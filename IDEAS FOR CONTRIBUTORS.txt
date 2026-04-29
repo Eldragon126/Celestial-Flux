@@ -38,11 +38,11 @@ If you have your own idea, feel free to run it by me (see the GitHub README) and
    - Action: After a random timer (10-20s), it "explodes," spawning a ring of enemy_bullet.gd nodes and calling queue_free().
 
 2. Nebula Clouds (Area2D):
-   - Action: When player enters, temporarily sets player.DRAG_bool = true (enforcing high drag) or modifies player.max_speed.
+   - Action: When player enters, temporarily modifies player.max_speed.
 
 3. Wormholes:
    - Logic: Create a pair of nodes.
-   - Action: On body_entered, set body.global_position to the exit node's position.
+   - Action: On body_entered, set body.global_position to the exit node's position. Could be really interesting. Just make sure it has lots of juice.
 
 --- 🖥️ UI & HUD ENHANCEMENTS ---
 
@@ -62,6 +62,10 @@ If you have your own idea, feel free to run it by me (see the GitHub README) and
    - Action: Create a "Critical Health" vignette (red blur) that appears when health is below 20%.
 
 --- ✨ PARTICLES & JUICE (GPU/CPU) ---
+
+https://youtu.be/epcQz2Vew4c
+This video can be useful to understand juice.
+
 
 1. Engine Thruster Trails:
    - Logic: GPUParticles2D that toggle 'emitting' based on Input.is_action_pressed("thrust").
