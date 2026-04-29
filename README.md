@@ -13,9 +13,10 @@ Made to be pure fun!
 Please, in general, only *add* nodes. Subtracting or editing existing nodes and then publishing to the repo can break the game.
    If there is something you would like to add to an existing node, please run it by me before doing it. (208) 821-0245
    Also make sure that no one else is editing the node you are editing. This is important so that the game doesn't break.
+   Remember, keep your nodes your nodes, and your code your code.
 
 Comments are king. Please comment your code so that other contributors know what you are attempting to do. 
-   It can help us all out if everyone knows what everyone is working on.
+   It can help us all out if everyone knows what everyone is working on. I like to think of this part as controlled chaos.
 
 If you have an idea and not sure if the game should be headed in that direction, please feel free to run it by me and I'll approve or veto it. 
    I'll approve ideas as long as it a) makes the game more fun. b) is relevant in some way.
