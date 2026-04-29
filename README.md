@@ -27,7 +27,7 @@ Check out the **IDEAS FOR CONTRIBUTORS.txt** file if you are stuck.
 Check out the Discord: https://discord.gg/HstMJMkCtb
 
 Last Thing: Start what you finish. If you have an idea, just make sure you go through with it and complete it. 
-  Half-done jobs just make the game less functional and add workload. If that means doing things in small chunks, that's completely fine.
+  Half-done jobs just make the game less functional and add workload. If that means doing things in small, complete chunks, that's completely fine.
 
 Thank you all contributors for choosing to help work on this project! 
 
