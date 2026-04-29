@@ -8,6 +8,7 @@ Small in scope but big on fun — pure arcade action with just the right touch o
 Made to be pure fun!
 # To the Players
   For any feedback on the game, please email me (eldensimmons1@gmail.com) or text me (208) 821-0245 your feedback. Any and all feedback is appreciated.
+  Feedback on the Discord Server also works: https://discord.gg/HstMJMkCtb
 
 # To the Contributors: 
 Please, in general, only *add* nodes. Subtracting or editing existing nodes and then publishing to the repo can break the game.
