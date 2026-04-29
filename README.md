@@ -5,5 +5,18 @@ Pilot a nimble spaceship through intense waves of enemies, mastering orbital gra
 Between the bullet hell frenzy, take a breath to explore mysterious celestial ruins and hidden cosmic pockets for upgrades and secrets.
 Small in scope but big on fun — pure arcade action with just the right touch of exploration.
 
-
 Made to be pure fun!
+# To the Players
+  For any feedback on the game, please email me (eldensimmons1@gmail.com) or text me (208) 821-0245 your feedback. Any and all feedback is appreciated.
+
+# To the Contributors: 
+Please, in general, only *add* nodes. Subtracting or editing existing nodes and then publishing to the repo can break the game.
+   If there is something you would like to add to an existing node, please run it by me before doing it. (208) 821-0245
+   Also make sure that no one else is editing the node you are editing. This is important so that the game doesn't break.
+
+   If you have an idea and not sure if the game should be headed in that direction, please just run it by me and I'll approve or veto it. 
+   I'll approve most ideas as long as it a) makes the game more fun. b) is relevant in some way.
+
+Thank you all contributors for choosing to help work on this project! 
+
+Elden Simmons
