@@ -1,7 +1,7 @@
 # Celestial-Flux
 A fast-paced, gravity-defying space shooter where every battle unfolds in the vastness of space.
 
-Pilot a nimble spaceship through intense waves of enemies, mastering orbital gravity to sling yourself around the battlefield, dodge incoming fire, and unleash torrents of bullets. With explosive combat, stunning GPU particle effects, and simple yet satisfying controls, survival gets more chaotic with every wave.
+Vision: Pilot a nimble spaceship through intense waves of enemies, mastering orbital gravity to sling yourself around the battlefield, dodge incoming fire, and unleash torrents of bullets. With explosive combat, stunning GPU particle effects, and simple yet satisfying controls, survival gets more chaotic with every wave.
 Between the waves, take a breath to explore fun planets and hidden cosmic pockets for upgrades and secrets.
 Small in scope but big on fun — pure arcade action with just the right touch of exploration.
 
@@ -19,6 +19,9 @@ Comments are king. Please comment your code so that other contributors know what
 
 If you have an idea and not sure if the game should be headed in that direction, please feel free to run it by me and I'll approve or veto it. 
    I'll approve ideas as long as it a) makes the game more fun. b) is relevant in some way.
+
+Last Thing: Start what you finish. If you have an idea, just make sure you go through with it and complete it. 
+  Half-done jobs just make the game less functional and add workload.
 
 Thank you all contributors for choosing to help work on this project! 
 
