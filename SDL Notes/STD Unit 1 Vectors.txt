@@ -1,0 +1,118 @@
+***Ideas***
+
+Flux-Based Shielding System (The Dot Product):
+
+The idea behind this is that the player can have a shield to block incoming bullets.
+ The trick is that the more orthogonal the shield is to the incoming projectile,
+ the more health it deflects.
+
+ 
+
+Work and Energy Consumption:
+
+This one is really fun! I like the idea of thrusting using energy.
+I already implemented a gravitational vector system and a vector system for thrust,
+ and a drag mode, which is essentially a vector in the opposite direction of travel.
+ I think I could reasonably add a fuel system where the player must refuel based on 
+how much work is being done, based on the gravity fields around the player.
+
+ 
+
+Extra slingshot mechanics: 
+
+I want to calculate the tangent component of the gravity vector to be able to boost the player in the direction he or she is headed. 
+
+
+
+***Log***
+*
+*** 4/28/2026
+* To get started, I want to focus on the extra slingshot mechanics.
+* This seems like something simple that I can work on first to warm up before tackling 
+* the bigger problems.
+*
+*
+* Below is attached a code snipped of me implementing it:
+******************************************************************************
+
+
+
+# 1. Custom Gravity (sum from all planets)
+	var Closest_Planet = null
+	var grav_accel = Vector2.ZERO
+	for planet in planets:
+		
+		var dir
+		var to_planet
+		var strength
+		to_planet = global_position.distance_to(planet.global_position)
+		if to_planet < 600:
+			Closest_Planet = planet
+		if to_planet < min_grav_dist: to_planet = min_grav_dist
+		dir = (planet.global_position - global_position).normalized()
+		strength = gravity_constant * planet.mass / (to_planet * to_planet)
+		grav_accel += dir * strength
+		
+	# 2. Rotation (predictable, instant response)
+	var rot_input = Input.get_axis("rotate_ccw", "rotate_cw")  # Left=A/D, Right=D/A?
+	if Settings.input_type == true: rotation += rot_input * rotation_speed * delta 
+	else: rotation = ((global_position - get_global_mouse_position() ).normalized()).angle()
+	#rotate parallel to planet IF goofy mode is activated.
+	if Closest_Planet != null and Settings.input_type == true: 
+		var parallel
+		var velocity_dir = velocity.normalized()
+		var target_dir = (Closest_Planet.global_position - self.global_position).normalized()
+		var cross = velocity_dir.cross(target_dir)
+		if cross > 0:
+			parallel = PI / 2
+			#print("clockwise. The cross is: " + str(cross))
+		elif cross < 0:
+			parallel = -PI / 2
+			#print("Counterclockwise. The cross is: " + str(cross))
+		else:
+			parallel = 0
+		#There is a problem with this on the bottom right of the planet when clockwise and upper right when ocunter clockwise but I don't know why
+		rotation = move_toward(rotation, (Closest_Planet.global_position - global_position).normalized().angle()  + parallel, 0.005 * Closest_Planet.mass / (global_position.distance_to(Closest_Planet.global_position) * (global_position.distance_to(Closest_Planet.global_position))))
+	
+	#Calculate Tangential Acceleration (a_t) to increase it around planets.
+	var a_t = 0.0
+	if velocity.length() > 0:
+		# a_t = (grav_accel * velocity) / velocity.length()this is the same as the following code.
+		a_t = grav_accel.dot(velocity.normalized())
+	# If a_t is positive, we are adding a force to "fall" with gravity.
+	if a_t > 0: #if the dot product is greater than zero, meaning the velocity component is parallel to the gravity acceleration
+		current_max_speed = lerp(current_max_speed, max_speed + (a_t * slingshot_factor), 0.1)
+	else:
+		current_max_speed = lerp(current_max_speed, max_speed, 0.05)
+	#apply velocity
+	velocity += grav_accel * delta #add the gravity.
+	shoot()
+	# 3. Thrust (forward from nose; -transform.x = "backwards" relative to right-facing sprite)
+
+	if Input.is_action_pressed("thrust"):  # W/Space
+		var thrust_dir = -transform.x.normalized()  # Assumes sprite points RIGHT
+		velocity += thrust_dir * thrust_power * delta
+	if Input.is_action_just_released("thrust"):
+		var thrust_dir = -transform.x.normalized()  # Assumes sprite points RIGHT
+		var current_time = Time.get_ticks_msec() / 1000.0
+		if current_time - lastThrustPress < 0.5 and can_dash == true:
+			boost(thrust_dir)
+		lastThrustPress = current_time
+	# 4. Drag (essential for tightness—stops on release)
+	if DRAG_bool: velocity *= pow(drag, delta * 60.0)  # Frame-rate independent
+	
+******************************************************************************
+* This took around 2-3 hours to implement correctly.
+*
+*https://docs.godotengine.org/en/stable/tutorials/math/vector_math.html
+* This resource was very useful for me.
+*
+*
+*
+*
+*
+*
+*
+*
+*
+***

@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://cou7kmndp04qt"
+path="res://.godot/imported/Orbital Drift.mp3-623459e3b490439e18066d52bf9e2fed.mp3str"
+
+[deps]
+
+source_file="res://Assets/Songs/Orbital Drift.mp3"
+dest_files=["res://.godot/imported/Orbital Drift.mp3-623459e3b490439e18066d52bf9e2fed.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0.0
+bpm=150.0
+beat_count=0
+bar_beats=4

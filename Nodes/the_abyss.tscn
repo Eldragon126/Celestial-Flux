@@ -1,0 +1,60 @@
+[gd_scene format=3 uid="uid://bft736y7vrfdv"]
+
+[ext_resource type="PackedScene" uid="uid://cqdqshk4xbg5q" path="res://Nodes/planet_1.tscn" id="1_bpjxb"]
+[ext_resource type="PackedScene" uid="uid://bar4e30caja5p" path="res://Nodes/player.tscn" id="2_souor"]
+[ext_resource type="AudioStream" uid="uid://6fr6geqn3di2" path="res://Assets/Songs/The Abyss Intro.wav" id="3_hmxhb"]
+[ext_resource type="PackedScene" uid="uid://c7b0subtq6kgr" path="res://Nodes/base_shooter_enemy.tscn" id="5_efbry"]
+[ext_resource type="PackedScene" uid="uid://nfcuwc1hcu21" path="res://Nodes/black_hole.tscn" id="6_hmxhb"]
+[ext_resource type="PackedScene" uid="uid://b2v55yaahtgwt" path="res://Nodes/base_enemy.tscn" id="6_r4pno"]
+
+[sub_resource type="Animation" id="Animation_souor"]
+resource_name = "Shoot"
+length = 0.4
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_7nq7w"]
+_data = {
+&"Shoot": SubResource("Animation_souor")
+}
+
+[sub_resource type="Environment" id="Environment_7nq7w"]
+background_mode = 3
+tonemap_mode = 3
+glow_enabled = true
+glow_intensity = 1.0
+fog_light_energy = 16.0
+fog_sun_scatter = 1.0
+fog_density = 0.715
+fog_height = -51.44
+fog_height_density = 16.0
+
+[node name="TheAbyss" type="Node2D" unique_id=189259211]
+
+[node name="Planet1" parent="." unique_id=1811765486 instance=ExtResource("1_bpjxb")]
+position = Vector2(115, 53)
+
+[node name="Player" parent="." unique_id=943672105 instance=ExtResource("2_souor")]
+position = Vector2(465, 780)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Player" unique_id=410853447]
+libraries/ = SubResource("AnimationLibrary_7nq7w")
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=1508610989]
+stream = ExtResource("3_hmxhb")
+autoplay = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1315056544]
+environment = SubResource("Environment_7nq7w")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="." unique_id=487829994]
+
+[node name="BaseShooterEnemy" parent="." unique_id=662240552 instance=ExtResource("5_efbry")]
+position = Vector2(-1131, 463)
+
+[node name="BlackHole" parent="." unique_id=1841234195 instance=ExtResource("6_hmxhb")]
+position = Vector2(3454, 1974)
+
+[node name="BaseShooterEnemy3" parent="." unique_id=3307367 instance=ExtResource("5_efbry")]
+position = Vector2(1174, -113)
+
+[node name="BaseEnemy" parent="." unique_id=581354831 instance=ExtResource("6_r4pno")]
+position = Vector2(907, 1882)

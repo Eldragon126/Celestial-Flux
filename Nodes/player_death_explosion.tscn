@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://db25aocc3v8gi"]
+
+[sub_resource type="Gradient" id="Gradient_sfp35"]
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_rnd0m"]
+gradient = SubResource("Gradient_sfp35")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_hv3sw"]
+particle_flag_disable_z = true
+inherit_velocity_ratio = 0.765
+direction = Vector3(0, 0, 0)
+spread = 180.0
+initial_velocity_min = 94.29
+initial_velocity_max = 1000.0
+gravity = Vector3(0, 0, 0)
+scale_max = 4.0
+color_ramp = SubResource("GradientTexture1D_rnd0m")
+hue_variation_min = -2.2351742e-08
+hue_variation_max = -2.2351742e-08
+turbulence_enabled = true
+
+[node name="DeathExplosion" type="GPUParticles2D" unique_id=1466336061]
+z_index = -1
+emitting = false
+amount = 1000
+one_shot = true
+explosiveness = 1.0
+fixed_fps = 60
+process_material = SubResource("ParticleProcessMaterial_hv3sw")

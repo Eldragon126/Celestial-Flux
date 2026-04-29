@@ -1,0 +1,108 @@
+[gd_scene format=3 uid="uid://b2v55yaahtgwt"]
+
+[ext_resource type="Script" uid="uid://qcu4ivo8kkyo" path="res://Scripts/base_enemy.gd" id="1_osi8g"]
+[ext_resource type="Texture2D" uid="uid://0was6kja082a" path="res://icon.svg" id="1_v25jk"]
+[ext_resource type="Script" uid="uid://cg2u575obenyk" path="res://Scripts/base_enemy_gpu_particles.gd" id="3_4ap62"]
+[ext_resource type="Script" uid="uid://cgo7omjjvv108" path="res://Scripts/health_component.gd" id="3_kl6qw"]
+
+[sub_resource type="Gradient" id="Gradient_osi8g"]
+offsets = PackedFloat32Array(0.04347826, 0.48369566, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.9431818, 0.9431818, 0.9431818, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_pie2b"]
+gradient = SubResource("Gradient_osi8g")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_kl6qw"]
+particle_flag_disable_z = true
+velocity_pivot = Vector3(100, 0, 0)
+initial_velocity_min = -50.0
+initial_velocity_max = 50.0
+orbit_velocity_min = 9.49949e-08
+orbit_velocity_max = 9.49949e-08
+gravity = Vector3(0, 0, 0)
+linear_accel_min = -2.2351742e-06
+linear_accel_max = -2.2351742e-06
+scale_min = 0.06
+scale_max = 0.099999994
+color_ramp = SubResource("GradientTexture1D_pie2b")
+
+[sub_resource type="Gradient" id="Gradient_4ap62"]
+offsets = PackedFloat32Array(0.41304347, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_osi8g"]
+gradient = SubResource("Gradient_4ap62")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_1xgmy"]
+lifetime_randomness = 0.45
+particle_flag_disable_z = true
+emission_shape = 1
+emission_sphere_radius = 12.01
+initial_velocity_min = -100.0
+initial_velocity_max = 100.0
+orbit_velocity_min = -0.009999906
+orbit_velocity_max = 0.010000096
+gravity = Vector3(0, 0, 0)
+linear_accel_min = -10.000002
+linear_accel_max = 59.999996
+damping_max = 20.0
+scale_min = 3.0
+scale_max = 8.0
+color = Color(1, 0, 0.59607846, 1)
+color_ramp = SubResource("GradientTexture1D_osi8g")
+turbulence_enabled = true
+turbulence_noise_strength = 0.5
+turbulence_noise_scale = 2.044
+turbulence_noise_speed_random = 0.1
+
+[node name="BaseEnemy" type="CharacterBody2D" unique_id=581354831]
+script = ExtResource("1_osi8g")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=960519407]
+polygon = PackedVector2Array(18, 0, 0, 11, -33, 1, -33, -1, 0, -11)
+
+[node name="Polygon2D" type="Polygon2D" parent="." unique_id=431494741]
+position = Vector2(-1.7948704, 0)
+scale = Vector2(1.1282052, 1)
+color = Color(1, 0, 0.2784314, 1)
+polygon = PackedVector2Array(-31.204544, 0, 1.5909077, -12.999999, 20.204542, 0, 1.5909077, 12.999999)
+uv = PackedVector2Array(-31.204544, 0, 1.5909077, -12.999999, 20.204542, 0, 1.5909077, 12.999999)
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="." unique_id=1585407917]
+visible = false
+modulate = Color(1, 0, 0.4, 1)
+z_index = -1
+emitting = false
+amount = 15
+texture = ExtResource("1_v25jk")
+lifetime = 2.0
+explosiveness = 0.03
+randomness = 0.07
+fixed_fps = 60
+process_material = SubResource("ParticleProcessMaterial_kl6qw")
+
+[node name="GPUParticles2D2" type="GPUParticles2D" parent="." unique_id=1717126253]
+z_index = -1
+position = Vector2(9, 0)
+amount = 50
+lifetime = 10.0
+speed_scale = 6.0
+randomness = 0.22
+fixed_fps = 60
+trail_enabled = true
+trail_lifetime = 1.0
+process_material = SubResource("ParticleProcessMaterial_1xgmy")
+script = ExtResource("3_4ap62")
+
+[node name="HealthComponent" type="Node" parent="." unique_id=549026451]
+script = ExtResource("3_kl6qw")
+metadata/_custom_type_script = "uid://cgo7omjjvv108"
+
+[node name="AttackArea" type="Area2D" parent="." unique_id=419173093]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="AttackArea" unique_id=131326220]
+polygon = PackedVector2Array(-36, 1, -36, -1, 0, -14, 22, 0, 0, 14)
+
+[connection signal="finished" from="GPUParticles2D2" to="GPUParticles2D2" method="_on_finished"]
+[connection signal="died" from="HealthComponent" to="." method="_on_health_component_died"]
+[connection signal="body_entered" from="AttackArea" to="." method="_on_attack_area_body_entered"]

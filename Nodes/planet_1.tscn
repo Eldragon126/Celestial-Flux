@@ -1,0 +1,78 @@
+[gd_scene format=3 uid="uid://cqdqshk4xbg5q"]
+
+[ext_resource type="Script" uid="uid://cd3do4wymy0lx" path="res://Scripts/planet_1.gd" id="1_x1rvw"]
+[ext_resource type="Shader" uid="uid://b3opol4m0r28b" path="res://Scripts/planet_1.gdshader" id="2_5wmj7"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_5wmj7"]
+radius = 60.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bppx8"]
+shader = ExtResource("2_5wmj7")
+shader_parameter/planet_color = Color(0.2, 0.6, 1, 1)
+shader_parameter/flare_color = Color(0.27781785, 0.49387473, 1, 0.3019608)
+shader_parameter/flare_size = 0.2
+
+[sub_resource type="Gradient" id="Gradient_x1rvw"]
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_5wmj7"]
+gradient = SubResource("Gradient_x1rvw")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_x1rvw"]
+lifetime_randomness = 0.1
+particle_flag_disable_z = true
+emission_shape = 2
+emission_sphere_radius = 150.0
+spread = 180.0
+initial_velocity_max = 100.0
+orbit_velocity_min = -0.09999991
+orbit_velocity_max = 0.1000001
+radial_velocity_min = 99.99998
+radial_velocity_max = 139.99997
+gravity = Vector3(0, 0, 0)
+radial_accel_min = -2.2351742e-06
+radial_accel_max = 5.7099977
+tangential_accel_min = -2.2351742e-06
+tangential_accel_max = 19.999998
+scale_min = 2.0
+scale_max = 5.0
+color = Color(1.4824272e-05, 0.92513716, 0.85546756, 1)
+color_ramp = SubResource("GradientTexture1D_5wmj7")
+hue_variation_min = -2.2351742e-08
+hue_variation_max = 0.09999997
+turbulence_noise_strength = 20.0
+turbulence_noise_scale = 10.0
+
+[sub_resource type="Gradient" id="Gradient_5wmj7"]
+colors = PackedColorArray(0.94, 0.94, 0.94, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_bppx8"]
+gradient = SubResource("Gradient_5wmj7")
+width = 1000
+height = 1000
+fill = 1
+fill_from = Vector2(0.50289017, 0.5317919)
+fill_to = Vector2(0.95086706, 0.95086706)
+
+[node name="Planet1" type="StaticBody2D" unique_id=1811765486 groups=["planets"]]
+script = ExtResource("1_x1rvw")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=546794783]
+shape = SubResource("CircleShape2D_5wmj7")
+
+[node name="Polygon2D" type="Polygon2D" parent="." unique_id=639895545]
+material = SubResource("ShaderMaterial_bppx8")
+color = Color(0.2645361, 0.6397588, 0.99999994, 1)
+polygon = PackedVector2Array(13, 35, -30, -6, 15, -42, 40, 0)
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="." unique_id=1613144557]
+z_index = -1
+amount = 5
+lifetime = 4.0
+explosiveness = 0.1
+randomness = 0.1
+fixed_fps = 60
+process_material = SubResource("ParticleProcessMaterial_x1rvw")
+
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=514427333]
+texture = SubResource("GradientTexture2D_bppx8")

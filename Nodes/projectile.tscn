@@ -1,0 +1,45 @@
+[gd_scene format=3 uid="uid://d3tleayxwxl6b"]
+
+[ext_resource type="Script" uid="uid://besheop2vhiwn" path="res://Scripts/projectile.gd" id="1_a85iw"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_qxf0c"]
+friction = 0.5
+bounce = 0.5
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_dgwo2"]
+radius = 6.0827627
+
+[sub_resource type="Gradient" id="Gradient_5y2at"]
+offsets = PackedFloat32Array(0.01459854, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_2xblw"]
+gradient = SubResource("Gradient_5y2at")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5071225, 0.50427353)
+fill_to = Vector2(0.8974359, 0.12820514)
+
+[node name="Projectile" type="RigidBody2D" unique_id=2088385998]
+mass = 0.25
+physics_material_override = SubResource("PhysicsMaterial_qxf0c")
+contact_monitor = true
+max_contacts_reported = 2
+linear_damp_mode = 1
+angular_damp_mode = 1
+script = ExtResource("1_a85iw")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=740035178]
+shape = SubResource("CircleShape2D_dgwo2")
+
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1741619624 groups=["Projectiles"]]
+energy = 2.0
+texture = SubResource("GradientTexture2D_2xblw")
+
+[node name="Polygon2D" type="Polygon2D" parent="." unique_id=1539769750]
+position = Vector2(43, 24)
+polygon = PackedVector2Array(-49, -24, -43, -18, -36.90355, -24.008644, -43, -30)
+uv = PackedVector2Array(-79.76105, -18.890343, -43.38037, 21.039673, 2.7609863, -21.552338, -36.281677, -76.56702)
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]

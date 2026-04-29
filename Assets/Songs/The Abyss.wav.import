@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://des7byr0l3ccn"
+path="res://.godot/imported/The Abyss.wav-be073fd6e6d26119ccb080916834da9b.sample"
+
+[deps]
+
+source_file="res://Assets/Songs/The Abyss.wav"
+dest_files=["res://.godot/imported/The Abyss.wav-be073fd6e6d26119ccb080916834da9b.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=3
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2
