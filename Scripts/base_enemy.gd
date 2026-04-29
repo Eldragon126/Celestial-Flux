@@ -13,7 +13,8 @@ func _ready() -> void:
 	planets = get_tree().get_nodes_in_group("planets")
 	var scale_size = randf_range(0.8,1.2)
 	scale = Vector2(scale_size,scale_size)
-
+func _physics_process(delta: float) -> void:
+	$GPUParticles2D2.global_position = global_position
 func _process(delta: float) -> void:
 	var Closest_Planet = null
 	var grav_accel = Vector2.ZERO

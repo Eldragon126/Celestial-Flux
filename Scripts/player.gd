@@ -65,7 +65,7 @@ func _physics_process(delta: float):
 	
 	#Calculate Tangential Acceleration (a_t) to increase it around planets.
 	var a_t = 0.0
-	if velocity.length() > 0 and Closest_Planet != null and (Closest_Planet.global_position - self.global_position).length() < 500:
+	if velocity.length() > 0 and Closest_Planet != null and (Closest_Planet.global_position - self.global_position).length() < 500 and (Closest_Planet.global_position - self.global_position).length() > 50:
 		var grav_dir = grav_accel.normalized()
 		# a_t = (grav_accel * velocity) / velocity.length()this is the same as the following code.
 		var tangent_dir = grav_dir.orthogonal()
@@ -73,12 +73,12 @@ func _physics_process(delta: float):
 			tangent_dir = -tangent_dir # Flip it if it's pointing backward
 		a_t = grav_accel.dot(velocity.normalized())
 	# If a_t is positive, we are adding a force to "fall" with gravity.
-		if a_t > 0: #if the dot product is greater than zero, meaning the velocity component is parallel to the gravity acceleration
+		if a_t > 0 and DRAG_bool == true: #if the dot product is greater than zero, meaning the velocity component is parallel to the gravity acceleration and drag is on
 			var boost_vector = tangent_dir * (a_t * slingshot_factor)
 			velocity += boost_vector * delta
 			current_max_speed = lerp(current_max_speed, max_speed + (a_t * slingshot_factor), 0.1)
 		else:
-			current_max_speed = lerp(current_max_speed, max_speed, 0.05)
+			current_max_speed = lerp(current_max_speed, max_speed, 0.01)
 		#apply velocity
 	velocity += grav_accel * delta #add the gravity.
 	shoot()
@@ -112,12 +112,12 @@ func boost(thrust_dir):
 	print("BOOST")
 	velocity += thrust_dir * 100000
 	DRAG_bool = false
-	max_speed = 3000.0
+	current_max_speed = 3000.0
 	can_dash = false
 	await get_tree().create_timer(0.3).timeout
 	$Dash.start()
 	DRAG_bool = true
-	max_speed = 800.0
+	current_max_speed = 800.0
 	print("Timer timed out and everything should be back to normal from the boost.")
 
 
