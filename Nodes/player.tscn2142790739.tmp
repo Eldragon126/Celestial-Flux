@@ -1,0 +1,136 @@
+[gd_scene format=3 uid="uid://bar4e30caja5p"]
+
+[ext_resource type="Script" uid="uid://cjj4qrhruwneh" path="res://Scripts/player.gd" id="1_qlfej"]
+[ext_resource type="Script" uid="uid://bqvpda2clw7pg" path="res://Scripts/player_shield.gd" id="2_qlfej"]
+[ext_resource type="Shader" uid="uid://msjv4m5smmjt" path="res://Scripts/playershield.gdshader" id="3_pie2b"]
+[ext_resource type="Script" uid="uid://cgo7omjjvv108" path="res://Scripts/health_component.gd" id="4_sfp35"]
+[ext_resource type="Script" uid="uid://dpsx3wfpdu82q" path="res://Scripts/energy_component.gd" id="5_8pukx"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_aoxlc"]
+radius = 8.0
+height = 60.0
+
+[sub_resource type="Gradient" id="Gradient_qlfej"]
+offsets = PackedFloat32Array(0.04347826, 0.48369566, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.9431818, 0.9431818, 0.9431818, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_pie2b"]
+gradient = SubResource("Gradient_qlfej")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_pie2b"]
+particle_flag_disable_z = true
+velocity_pivot = Vector3(100, 0, 0)
+spread = 180.0
+initial_velocity_min = -50.0
+initial_velocity_max = 50.0
+orbit_velocity_min = 9.49949e-08
+orbit_velocity_max = 9.49949e-08
+gravity = Vector3(0, 0, 0)
+linear_accel_min = -2.2351742e-06
+linear_accel_max = -2.2351742e-06
+scale_min = 2.0
+scale_max = 6.0
+color_ramp = SubResource("GradientTexture1D_pie2b")
+
+[sub_resource type="Gradient" id="Gradient_aoxlc"]
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_qlfej"]
+gradient = SubResource("Gradient_aoxlc")
+width = 512
+height = 512
+fill = 1
+fill_from = Vector2(0.5, 0.5231214)
+fill_to = Vector2(0.8150289, 0.82080925)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sfp35"]
+shader = ExtResource("3_pie2b")
+shader_parameter/shield_color = Color(0, 0.7, 1, 1)
+shader_parameter/border_strength = 0.8
+shader_parameter/pulse_speed = 2.0
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_pie2b"]
+
+[node name="Player" type="CharacterBody2D" unique_id=943672105 groups=["Player"]]
+script = ExtResource("1_qlfej")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=203339141]
+position = Vector2(-12, 0)
+rotation = 1.5707964
+shape = SubResource("CapsuleShape2D_aoxlc")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1957131979]
+limit_enabled = false
+limit_smoothed = true
+position_smoothing_enabled = true
+rotation_smoothing_enabled = true
+drag_horizontal_enabled = true
+drag_vertical_enabled = true
+
+[node name="Polygon2D" type="Polygon2D" parent="." unique_id=141735977]
+scale = Vector2(1.2552391, 1)
+offset = Vector2(16.18665, 0)
+polygon = PackedVector2Array(-16.18665, 16, -1.8467522, 0, -16.18665, -17, -51.23973, 0)
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="." unique_id=1117088465]
+z_index = -1
+amount = 20
+lifetime = 2.0
+explosiveness = 0.03
+randomness = 0.07
+fixed_fps = 60
+process_material = SubResource("ParticleProcessMaterial_pie2b")
+
+[node name="Dash" type="Timer" parent="." unique_id=593993584]
+wait_time = 5.0
+one_shot = true
+
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1766895883]
+texture = SubResource("GradientTexture2D_qlfej")
+
+[node name="Shield" type="Area2D" parent="." unique_id=694906908]
+z_index = -1
+position = Vector2(-12, 0)
+script = ExtResource("2_qlfej")
+
+[node name="Polygon2D" type="Polygon2D" parent="Shield" unique_id=457705372]
+material = SubResource("ShaderMaterial_sfp35")
+color = Color(0, 1, 1, 0.57254905)
+texture = SubResource("PlaceholderTexture2D_pie2b")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Shield" unique_id=1456695965]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1032448916]
+
+[node name="Health" type="Label" parent="CanvasLayer" unique_id=1346219360]
+offset_left = 7.0
+offset_top = 7.0
+offset_right = 68.0
+offset_bottom = 30.0
+text = "Health: "
+
+[node name="Drag" type="Label" parent="CanvasLayer" unique_id=2051683901]
+offset_left = 6.0
+offset_top = 30.0
+offset_right = 114.0
+offset_bottom = 53.0
+text = "Drag: Enabled"
+
+[node name="Energy" type="Label" parent="CanvasLayer" unique_id=942929448]
+offset_left = 6.0
+offset_top = 53.0
+offset_right = 114.0
+offset_bottom = 76.0
+text = "Energy: "
+
+[node name="HealthComponent" type="Node" parent="." unique_id=892177100]
+script = ExtResource("4_sfp35")
+metadata/_custom_type_script = "uid://cgo7omjjvv108"
+
+[node name="EnergyComponent" type="Node" parent="." unique_id=51219610]
+script = ExtResource("5_8pukx")
+metadata/_custom_type_script = "uid://dpsx3wfpdu82q"
+
+[connection signal="timeout" from="Dash" to="." method="_on_dash_timeout"]
+[connection signal="died" from="HealthComponent" to="." method="_on_health_component_died"]
+[connection signal="health_changed" from="HealthComponent" to="." method="_on_health_component_health_changed"]

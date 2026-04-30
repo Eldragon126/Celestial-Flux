@@ -68,7 +68,7 @@ func _build_vignette() -> void:
         float rim = smoothstep(0.35, 1.15, length(centered));
         COLOR = vec4(critical_color.rgb, critical_color.a * intensity * rim);
     }
-    """
+	"""
 	
 	_vignette_material = ShaderMaterial.new()
 	_vignette_material.shader = shader
