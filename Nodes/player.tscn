@@ -125,10 +125,12 @@ text = "Energy: "
 
 [node name="HealthComponent" type="Node" parent="." unique_id=892177100]
 script = ExtResource("4_sfp35")
+max_health = 10000.0
 metadata/_custom_type_script = "uid://cgo7omjjvv108"
 
 [node name="EnergyComponent" type="Node" parent="." unique_id=51219610]
 script = ExtResource("5_8pukx")
+max_energy = 1000000.0
 metadata/_custom_type_script = "uid://dpsx3wfpdu82q"
 
 [connection signal="timeout" from="Dash" to="." method="_on_dash_timeout"]

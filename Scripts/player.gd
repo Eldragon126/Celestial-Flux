@@ -82,7 +82,7 @@ func _physics_process(delta: float):
 	apply_gravity(gravity, delta)
 
 	# 2. Movement & resistance
-	apply_drag(delta)
+	apply_drag(gravity, delta)
 
 	# 3. Constraints
 	clamp_velocity()
@@ -230,18 +230,24 @@ func apply_gravity_recharge(gravity: Vector2, delta: float):
 # == DRAG ==
 # ========================
 
-func apply_drag(delta: float):
-	if not DRAG_enabled:
+func apply_drag(gravity, delta: float):
+	if not DRAG_enabled or velocity.length() < 1: # Added a movement threshold
 		return
 
 	var coeff = drag if Input.is_action_pressed("thrust") else idle_drag
-
+	
 	var old_v = velocity
 	velocity *= pow(coeff, delta * 60.0)
-
-	var energy_loss = (old_v.length() - velocity.length()) * 0.01
-	if energy_component:
-		energy_component.spend(max(energy_loss, 0.0))
+	
+	var energy_loss = 0.0
+	# Only drain energy if the drag coefficient is active and we are moving
+	if coeff < 0.95:
+	# Only calculate loss if we are moving significantly faster than the local gravity pull
+		if velocity.length() > gravity.length() + 20:
+			energy_loss = (old_v.length() - velocity.length()) * 0.01
+	
+	if energy_component and energy_loss > 0.0001: # Added a tiny buffer
+		energy_component.spend(energy_loss)
 
 
 # ========================
