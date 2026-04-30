@@ -11,7 +11,6 @@ func _ready() -> void:
 	contact_monitor = true
 	max_contacts_reported = 2
 	# Connect the signal via code if you haven't in the editor
-	body_entered.connect(_on_body_entered)
 
 func _physics_process(delta: float) -> void:
 	var total_grav_accel = Vector2.ZERO
