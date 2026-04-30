@@ -1,46 +1,57 @@
 extends RigidBody2D
+
 const force_of_impulse = 500
-var mouse
-var planets
+var planets: Array = []
+
 @export var gravity_constant: float = 200.0   # Low for arenas
-@export var min_grav_dist: float = 50.0    
+@export var min_grav_dist: float = 50.0     
+
 func _ready() -> void:
-	#var mouse = get_global_mouse_position()
-	#var direction = mouse - global_position
-	#direction = direction.normalized()
-	#apply_impulse(direction * force_of_impulse)
 	planets = get_tree().get_nodes_in_group("planets")
 	contact_monitor = true
 	max_contacts_reported = 2
-func _draw() -> void:
-	pass
-func _physics_process(delta: float) -> void:
-	var Closest_Planet = null
-	var grav_accel = Vector2.ZERO
-	for planet in planets:
-		var dir
-		var to_planet
-		var strength
-		to_planet = global_position.distance_to(planet.global_position)
-		if to_planet < 600.0:
-			Closest_Planet = planet
-		if to_planet < min_grav_dist: to_planet = min_grav_dist
-		dir = (planet.global_position - global_position).normalized()
-		strength = gravity_constant * planet.mass / (to_planet * to_planet)
-		grav_accel += dir * strength
-		if to_planet < 2000: apply_force(grav_accel)
+	# Connect the signal via code if you haven't in the editor
+	body_entered.connect(_on_body_entered)
 
+func _physics_process(delta: float) -> void:
+	var total_grav_accel = Vector2.ZERO
+	
+	# Iterate backwards so we can safely remove dead planets from the array
+	for i in range(planets.size() - 1, -1, -1):
+		var planet = planets[i]
+		
+		# FIX: Check if the planet still exists
+		if not is_instance_valid(planet):
+			planets.remove_at(i)
+			continue
+			
+		var offset = planet.global_position - global_position
+		var distance = offset.length()
+		
+		# Only apply gravity if within range (e.g., 2000 units)
+		if distance < 2000.0:
+			var effective_dist = max(distance, min_grav_dist)
+			var dir = offset.normalized()
+			
+			# Standard gravity formula: (G * m1 * m2) / r^2
+			# We use planet.mass (ensure your planet script has a 'mass' variable)
+			var p_mass = planet.get("mass") if "mass" in planet else 100.0
+			var strength = gravity_constant * p_mass / (effective_dist * effective_dist)
+			
+			total_grav_accel += dir * strength
+	
+	# FIX: Apply the total accumulated force ONCE outside the loop
+	if total_grav_accel != Vector2.ZERO:
+		apply_force(total_grav_accel)
 
 func _on_body_entered(body: Node) -> void:
-	set_deferred("monitoring", false) 
-	set_deferred("monitorable", false)
-	if body.has_method("take_damage"):
-		if not body.is_in_group("Player"):
-			body.take_damage(4 + randi_range(-10,20))
+	# RigidBody2D uses contact_monitor, not 'monitoring' (which is for Area2D)
+	# To stop further collisions after the first hit:
+	if not is_queued_for_deletion():
+		if body.is_in_group("planets"):
 			queue_free()
-	elif body.is_in_group("planets"):
-		queue_free()
-	else:
-		set_deferred("monitoring", true) 
-		set_deferred("monitorable", true)
-		
+		elif body.has_method("take_damage"):
+			# Don't hit the player who fired it (if they are in 'Player' group)
+			if not body.is_in_group("Player"):
+				body.take_damage(4 + randi_range(50, 100))
+				queue_free()

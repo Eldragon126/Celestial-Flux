@@ -96,7 +96,15 @@ func calculate_gravity() -> Vector2:
 	closest_dist = INF
 	closest_planet = null
 
-	for planet in planets:
+	# We iterate backwards so we can safely remove dead planets from the array
+	for i in range(planets.size() - 1, -1, -1):
+		var planet = planets[i]
+		
+		# CHECK: If the planet was destroyed, remove it from our list and skip
+		if not is_instance_valid(planet):
+			planets.remove_at(i)
+			continue
+
 		var offset = planet.global_position - global_position
 		var dist = max(offset.length(), min_grav_dist)
 
@@ -124,7 +132,8 @@ func handle_rotation(delta):
 		rotation = (global_position - get_global_mouse_position()).angle()
 
 	# Auto-align to orbit tangent
-	if closest_planet != null and Settings.input_type:
+	# CHECK: Ensure closest_planet is still alive before accessing it
+	if is_instance_valid(closest_planet) and Settings.input_type:
 		var radial = (global_position - closest_planet.global_position).normalized()
 		var tangent = Vector2(-radial.y, radial.x)
 
@@ -139,8 +148,10 @@ func handle_rotation(delta):
 # ========================
 
 func apply_slingshot(delta, grav_accel):
-	if closest_planet == null:
+	# CHECK: Ensure closest_planet is still alive
+	if not is_instance_valid(closest_planet):
 		return
+		
 	if velocity.length() == 0:
 		return
 	if closest_dist > 500 or closest_dist < 50:
@@ -224,7 +235,9 @@ func boost(direction):
 
 	await get_tree().create_timer(0.3).timeout
 
-	dash_timer.start()
+	if is_instance_valid(dash_timer):
+		dash_timer.start()
+		
 	DRAG_enabled = true
 	current_max_speed = 800.0
 
@@ -256,11 +269,16 @@ func handle_input():
 
 func update_ui():
 	drag_label.text = "Drag: Enabled" if DRAG_enabled else "Drag: Disabled"
-	health_label.text = "Health: " + str($HealthComponent.current_health)
-	energy_label.text = "Energy: %d/%d" % [
-		int(round(energy_component.current_energy)),
-		int(round(energy_component.max_energy))
-	]
+	
+	var health_comp = get_node_or_null("HealthComponent")
+	if health_comp:
+		health_label.text = "Health: " + str(health_comp.current_health)
+		
+	if energy_component:
+		energy_label.text = "Energy: %d/%d" % [
+			int(round(energy_component.current_energy)),
+			int(round(energy_component.max_energy))
+		]
 
 # ========================
 # == PROCESS LOOP ==
@@ -280,14 +298,18 @@ func update_camera():
 # ========================
 
 func shield_process():
-	shield_node.visible = shields_on
-	shield_node.get_node("Polygon2D").visible = shields_on
-	shield_node.get_node("CollisionPolygon2D").visible = shields_on
+	if is_instance_valid(shield_node):
+		shield_node.visible = shields_on
+		# Note: You might want to check if these children exist too
+		var poly = shield_node.get_node_or_null("Polygon2D")
+		var coll = shield_node.get_node_or_null("CollisionPolygon2D")
+		if poly: poly.visible = shields_on
+		if coll: coll.visible = shields_on
 
 func take_damage(amount: float):
 	if shields_on and shield_health > 0:
 		shield_health -= 1
-		if has_node("Shield"):
+		if is_instance_valid(shield_node) and shield_node.has_method("hit"):
 			shield_node.hit()
 			
 		if shield_health <= 0:
@@ -295,8 +317,9 @@ func take_damage(amount: float):
 			print("Shields depleted!")
 			
 	else:
-		if has_node("HealthComponent"):
-			$HealthComponent.take_damage(amount)
+		var health_comp = get_node_or_null("HealthComponent")
+		if health_comp:
+			health_comp.take_damage(amount)
 
 # ========================
 # == HEALTH SIGNALS ==
@@ -305,8 +328,9 @@ func take_damage(amount: float):
 func _on_health_component_died():
 	print("Player Died!")
 	call_deferred("_go_to_title")
+
 func _go_to_title():
 	get_tree().change_scene_to_file("res://Nodes/title_screen.tscn")
 	
-func _on_health_component_health_changed(current_health, max_health):
+func _on_health_component_health_changed(current_health, _max_health):
 	health_label.text = "Health: " + str(current_health)
