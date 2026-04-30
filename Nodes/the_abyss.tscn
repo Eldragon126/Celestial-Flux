@@ -3,9 +3,8 @@
 [ext_resource type="PackedScene" uid="uid://cqdqshk4xbg5q" path="res://Nodes/planet_1.tscn" id="1_bpjxb"]
 [ext_resource type="PackedScene" uid="uid://bar4e30caja5p" path="res://Nodes/player.tscn" id="2_souor"]
 [ext_resource type="AudioStream" uid="uid://6fr6geqn3di2" path="res://Assets/Songs/The Abyss Intro.wav" id="3_hmxhb"]
-[ext_resource type="PackedScene" uid="uid://c7b0subtq6kgr" path="res://Nodes/base_shooter_enemy.tscn" id="5_efbry"]
 [ext_resource type="PackedScene" uid="uid://nfcuwc1hcu21" path="res://Nodes/black_hole.tscn" id="6_hmxhb"]
-[ext_resource type="PackedScene" uid="uid://b2v55yaahtgwt" path="res://Nodes/base_enemy.tscn" id="6_r4pno"]
+[ext_resource type="Script" uid="uid://bik4q8pcaj1vy" path="res://Scripts/orbital_juice_manager.gd" id="7_juice"]
 
 [sub_resource type="Animation" id="Animation_souor"]
 resource_name = "Shoot"
@@ -47,14 +46,8 @@ environment = SubResource("Environment_7nq7w")
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="." unique_id=487829994]
 
-[node name="BaseShooterEnemy" parent="." unique_id=662240552 instance=ExtResource("5_efbry")]
-position = Vector2(-1131, 463)
-
 [node name="BlackHole" parent="." unique_id=1841234195 instance=ExtResource("6_hmxhb")]
 position = Vector2(3454, 1974)
 
-[node name="BaseShooterEnemy3" parent="." unique_id=3307367 instance=ExtResource("5_efbry")]
-position = Vector2(1174, -113)
-
-[node name="BaseEnemy" parent="." unique_id=581354831 instance=ExtResource("6_r4pno")]
-position = Vector2(907, 1882)
+[node name="OrbitalJuiceManager" type="Node2D" parent="." unique_id=163104507]
+script = ExtResource("7_juice")

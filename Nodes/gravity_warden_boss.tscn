@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/gravity_warden_boss.gd" id="1_boss"]
+
+[node name="GravityWardenBoss" type="CharacterBody2D" groups=["bosses", "enemies", "planets", "wave_enemy"]]
+script = ExtResource("1_boss")

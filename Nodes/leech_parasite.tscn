@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/leech_parasite.gd" id="1_leech"]
+
+[node name="LeechParasite" type="CharacterBody2D"]
+script = ExtResource("1_leech")

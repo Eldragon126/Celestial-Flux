@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://bqvpda2clw7pg" path="res://Scripts/player_shield.gd" id="2_qlfej"]
 [ext_resource type="Shader" uid="uid://msjv4m5smmjt" path="res://Scripts/playershield.gdshader" id="3_pie2b"]
 [ext_resource type="Script" uid="uid://cgo7omjjvv108" path="res://Scripts/health_component.gd" id="4_sfp35"]
+[ext_resource type="Script" uid="uid://dpsx3wfpdu82q" path="res://Scripts/energy_component.gd" id="5_8pukx"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_aoxlc"]
 radius = 8.0
@@ -115,9 +116,20 @@ offset_right = 114.0
 offset_bottom = 53.0
 text = "Drag: Enabled"
 
+[node name="Energy" type="Label" parent="CanvasLayer" unique_id=942929448]
+offset_left = 6.0
+offset_top = 53.0
+offset_right = 114.0
+offset_bottom = 76.0
+text = "Energy: "
+
 [node name="HealthComponent" type="Node" parent="." unique_id=892177100]
 script = ExtResource("4_sfp35")
 metadata/_custom_type_script = "uid://cgo7omjjvv108"
+
+[node name="EnergyComponent" type="Node" parent="." unique_id=51219610]
+script = ExtResource("5_8pukx")
+metadata/_custom_type_script = "uid://dpsx3wfpdu82q"
 
 [connection signal="timeout" from="Dash" to="." method="_on_dash_timeout"]
 [connection signal="died" from="HealthComponent" to="." method="_on_health_component_died"]

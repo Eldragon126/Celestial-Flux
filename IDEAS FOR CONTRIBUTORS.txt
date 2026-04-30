@@ -10,55 +10,55 @@ If you have your own idea, feel free to run it by me (see the GitHub README) and
 --- 👾 NEW ENEMY VARIANTS ---
 [Standard: Use base_enemy.gd logic for gravity and movement]
 
-1. The "Leech" Parasite:
+[x] 1. The "Leech" Parasite: Codex - added res://Nodes/leech_parasite.tscn
    - Logic: Instead of bouncing back on contact (_on_attack_area_body_entered), it reparents itself to the Player or uses a RemoteTransform2D to "stick."
    - Action: Calls body.take_damage() every 1.5 seconds.
    - Requirement: Must be destroyable while attached to free the player.
 
-2. The "Splitting" Asteroid-Bot:
+[x] 2. The "Splitting" Asteroid-Bot: Codex - added res://Nodes/splitting_asteroid_bot.tscn
    - Logic: Listen for the _on_health_component_died() signal.
    - Action: Before queue_free(), instantiates 2-3 smaller, faster versions of itself at its current global_position.
 
-3. The "Shielder" Support:
+[x] 3. The "Shielder" Support: Codex - added res://Nodes/shielder_support.tscn
    - Logic: Uses the player_shield.gd hexagonal logic.
    - Action: Orbits a "base_shooter_enemy" and protects it. Its shield must be destroyed before the main enemy can take damage.
 
-4. The Gravity Harasser:
+[x] 4. The Gravity Harasser: Codex - added res://Nodes/gravity_harasser.tscn
    - Logic: Has a 'mass' variable similar to black_hole.gd or planet_1.gd.
    - Action: Doesn't shoot; simply follows the player to disrupt their flight path with its own localized gravity field.
 
-5. Sniper Turret:
+[x] 5. Sniper Turret: Codex - added res://Nodes/sniper_turret.tscn
    - Logic: Static or slow-moving.
    - Action: Fires high-velocity projectiles only when the player is within a specific long-range radius.
 
 --- 🌌 CELESTIAL HAZARDS (Add to "planets" group) ---
 
-1. Unstable Moons:
+[x] 1. Unstable Moons: Codex - added res://Nodes/unstable_moon.tscn
    - Logic: Inherit from planet_1.gd.
    - Action: After a random timer (10-20s), it "explodes," spawning a ring of enemy_bullet.gd nodes and calling queue_free().
 
-2. Nebula Clouds (Area2D):
+[x] 2. Nebula Clouds (Area2D): Codex - added res://Nodes/nebula_cloud.tscn
    - Action: When player enters, temporarily modifies player.max_speed.
 
-3. Wormholes:
+[x] 3. Wormholes: Codex - added res://Nodes/wormhole_pair.tscn
    - Logic: Create a pair of nodes.
    - Action: On body_entered, set body.global_position to the exit node's position. Could be really interesting. Just make sure it has lots of juice.
 
 --- 🖥️ UI & HUD ENHANCEMENTS ---
 
-1. Orbital Nav-Arrows:
+[x] 1. Orbital Nav-Arrows: Codex - added to res://Nodes/orbital_hud.tscn
    - Logic: UI nodes that calculate direction to nodes in the "planets" group.
    - Action: Display small arrows at the edge of the screen pointing to off-screen planets.
 
-2. Speedometer:
+[x] 2. Speedometer: Codex - added to res://Nodes/orbital_hud.tscn
    - Logic: Read player.velocity.length().
    - Visual: A progress bar or digital readout showing current speed vs current_max_speed.
 
-3. Gravity Intensity Meter:
+[x] 3. Gravity Intensity Meter: Codex - added to res://Nodes/orbital_hud.tscn
    - Logic: Calculate the sum of grav_accel affecting the player.
    - Visual: A "G-Force" warning that turns red when the player is dangerously close to a high-mass object.
 
-4. Health/Shield UI Overlays:
+[x] 4. Health/Shield UI Overlays: Codex - added critical-health vignette to res://Nodes/orbital_hud.tscn
    - Action: Create a "Critical Health" vignette (red blur) that appears when health is below 20%.
 
 --- ✨ PARTICLES & JUICE (GPU/CPU) ---
@@ -67,31 +67,38 @@ https://youtu.be/epcQz2Vew4c
 This video can be useful to understand juice.
 
 
-1. Engine Thruster Trails:
+[x] 1. Engine Thruster Trails: Codex - added res://Nodes/player_thruster_trails.tscn
    - Logic: GPUParticles2D that toggle 'emitting' based on Input.is_action_pressed("thrust").
    - Visual: Blue/Orange flames that scale their lifetime based on player speed.
 
-2. Collision Spark System:
+[x] 2. Collision Spark System: Codex - added res://Nodes/projectile_spark_watcher.tscn and res://Nodes/collision_sparks.tscn
    - Logic: A one-shot CPUParticles2D node.
    - Action: Instantiate at the contact point in _on_body_entered() before a projectile is freed.
 
-3. Planet Atmosphere/Dust:
+[x] 3. Planet Atmosphere/Dust: Codex - added res://Nodes/planet_atmosphere_dust.tscn
    - Logic: Large-scale GPUParticles2D attached to planets.
    - Visual: Subtle "floating dust" or "gaseous swirls" using the planet's radius to define emission shape.
 
-4. Screen Shake:
+[x] 4. Screen Shake: Codex - added res://Nodes/player_damage_camera_shake.tscn
    - Logic: A dedicated Camera2D script that applies a random offset when take_damage() is called on the player.
 
 --- 🔊 AUDIO & AMBIENCE ---
 
-1. Dynamic Engine Hum:
+[x] 1. Dynamic Engine Hum: Codex - added res://Nodes/player_engine_hum.tscn
    - Action: An AudioStreamPlayer2D where the pitch increases as player.velocity.length() increases.
 
-2. Orbital "Whoosh":
+[ ] 2. Orbital "Whoosh":
    - Action: Plays a passing sound effect when the player moves within a certain distance of a planet at high speed.
 
-3. Combat SFX:
+[ ] 3. Combat SFX:
    - Modular sound nodes for: Projectile fire, Shield impact, Enemy destruction.
+
+---
+
+--- CODEX GAME LOOP ADDITIONS ---
+[x] Wave Director: Codex - added res://Nodes/wave_director.tscn to pace enemies, hazards, rest periods, and boss waves.
+[x] Gravity Warden Boss: Codex - added res://Nodes/gravity_warden_boss.tscn with gravity pull, bullet patterns, phase changes, and summons.
+[x] Coherent Main Scene Hook: Codex - res://Scripts/orbital_juice_manager.gd now starts the wave game by default instead of spawning showcase content.
 
 ---
 

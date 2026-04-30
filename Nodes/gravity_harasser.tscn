@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/gravity_harasser.gd" id="1_harass"]
+
+[node name="GravityHarasser" type="CharacterBody2D" groups=["planets"]]
+script = ExtResource("1_harass")

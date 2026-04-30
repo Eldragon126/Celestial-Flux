@@ -1,0 +1,286 @@
+extends CharacterBody2D
+
+# Boss encounter for the wave game. The Gravity Warden is a moving mass,
+# a bullet-pattern shooter, and a summoner so the previous modular ideas feel
+# like one escalating fight instead of separate demos.
+
+signal boss_health_changed(current_health: float, max_health: float)
+signal boss_defeated
+
+const ENEMY_BULLET_SCENE := preload("res://Nodes/enemy_bullet.tscn")
+const LEECH_SCENE := preload("res://Nodes/leech_parasite.tscn")
+const SPLITTER_SCENE := preload("res://Nodes/splitting_asteroid_bot.tscn")
+const HARASSER_SCENE := preload("res://Nodes/gravity_harasser.tscn")
+const COLLISION_SPARK_SCENE := preload("res://Nodes/collision_sparks.tscn")
+
+@export var max_health := 760.0
+@export var mass := 260000.0
+@export var orbit_distance := 860.0
+@export var move_speed := 520.0
+@export var gravity_radius := 880.0
+@export var gravity_strength := 1900.0
+@export var projectile_speed := 1180.0
+@export var fire_interval := 1.35
+@export var summon_interval := 7.0
+
+var _player: Node = null
+var _health: HealthComponent = null
+var _fire_timer: Timer
+var _summon_timer: Timer
+var _phase := 1
+var _orbit_angle := 0.0
+var _aura_polygon: Polygon2D
+var _core_polygon: Polygon2D
+var _rng := RandomNumberGenerator.new()
+
+func _ready() -> void:
+	add_to_group("enemies")
+	add_to_group("wave_enemy")
+	add_to_group("bosses")
+	add_to_group("planets")
+
+	_rng.randomize()
+	_player = get_tree().get_first_node_in_group("Player")
+	_build_body()
+	_build_health()
+	_build_timers()
+
+func _physics_process(delta: float) -> void:
+	if _player == null or not is_instance_valid(_player):
+		_player = get_tree().get_first_node_in_group("Player")
+		return
+
+	_update_phase()
+	_move_around_player(delta)
+	_pull_player(delta)
+
+func take_damage(amount: float) -> void:
+	if _health != null:
+		_health.take_damage(amount)
+
+func get_health_ratio() -> float:
+	if _health == null or _health.max_health <= 0.0:
+		return 0.0
+	return clampf(_health.current_health / _health.max_health, 0.0, 1.0)
+
+func _build_body() -> void:
+	_aura_polygon = Polygon2D.new()
+	_aura_polygon.name = "GravityAuraPolygon"
+	_aura_polygon.z_index = -3
+	_aura_polygon.color = Color(0.0, 0.95, 0.78, 0.11)
+	_aura_polygon.polygon = _circle_points(56, 148.0)
+	add_child(_aura_polygon)
+
+	var hull := Polygon2D.new()
+	hull.name = "WardenHullPolygon"
+	hull.color = Color(0.52, 0.06, 0.32, 1.0)
+	hull.polygon = PackedVector2Array([
+		Vector2(116.0, 0.0),
+		Vector2(58.0, 64.0),
+		Vector2(-28.0, 84.0),
+		Vector2(-106.0, 34.0),
+		Vector2(-126.0, 0.0),
+		Vector2(-106.0, -34.0),
+		Vector2(-28.0, -84.0),
+		Vector2(58.0, -64.0),
+	])
+	add_child(hull)
+
+	_core_polygon = Polygon2D.new()
+	_core_polygon.name = "WardenCorePolygon"
+	_core_polygon.color = Color(0.0, 0.92, 1.0, 1.0)
+	_core_polygon.polygon = _circle_points(8, 42.0)
+	add_child(_core_polygon)
+
+	var collision := CollisionPolygon2D.new()
+	collision.name = "CollisionPolygon2D"
+	collision.polygon = hull.polygon
+	add_child(collision)
+
+	var attack_area := Area2D.new()
+	attack_area.name = "RamDamageArea"
+	attack_area.monitoring = true
+	attack_area.body_entered.connect(_on_ram_damage_area_body_entered)
+	add_child(attack_area)
+
+	var attack_shape := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = 132.0
+	attack_shape.shape = circle
+	attack_area.add_child(attack_shape)
+
+	var particles := GPUParticles2D.new()
+	particles.name = "BossGravityParticles"
+	particles.z_index = -2
+	particles.amount = 220
+	particles.lifetime = 2.2
+	particles.randomness = 0.65
+	particles.process_material = _make_gravity_material()
+	add_child(particles)
+
+func _build_health() -> void:
+	_health = HealthComponent.new()
+	_health.name = "HealthComponent"
+	_health.max_health = max_health
+	add_child(_health)
+	_health.health_changed.connect(_on_health_changed)
+	_health.died.connect(_on_died)
+
+func _build_timers() -> void:
+	_fire_timer = Timer.new()
+	_fire_timer.name = "BossFireTimer"
+	_fire_timer.wait_time = fire_interval
+	_fire_timer.timeout.connect(_fire_pattern)
+	add_child(_fire_timer)
+	_fire_timer.start()
+
+	_summon_timer = Timer.new()
+	_summon_timer.name = "BossSummonTimer"
+	_summon_timer.wait_time = summon_interval
+	_summon_timer.timeout.connect(_summon_support)
+	add_child(_summon_timer)
+	_summon_timer.start()
+
+func _update_phase() -> void:
+	var ratio := get_health_ratio()
+	var next_phase := 1
+	if ratio < 0.34:
+		next_phase = 3
+	elif ratio < 0.67:
+		next_phase = 2
+
+	if next_phase == _phase:
+		return
+
+	_phase = next_phase
+	_fire_timer.wait_time = maxf(0.58, fire_interval - 0.28 * float(_phase - 1))
+	_summon_timer.wait_time = maxf(4.2, summon_interval - 1.2 * float(_phase - 1))
+
+	if _core_polygon != null:
+		_core_polygon.color = Color(1.0, 0.23, 0.08, 1.0) if _phase == 3 else Color(0.0, 0.92, 1.0, 1.0)
+
+func _move_around_player(delta: float) -> void:
+	_orbit_angle += delta * (0.34 + 0.11 * float(_phase))
+	var target = _player.global_position + Vector2(cos(_orbit_angle), sin(_orbit_angle)) * orbit_distance
+	var desired = (target - global_position).limit_length(move_speed + 80.0 * float(_phase))
+
+	velocity = velocity.lerp(desired, clampf(delta * 1.9, 0.0, 1.0))
+	move_and_slide()
+
+	var aim = (_player.global_position - global_position).normalized()
+	if aim != Vector2.ZERO:
+		rotation = lerp_angle(rotation, aim.angle(), clampf(delta * 4.5, 0.0, 1.0))
+
+	if _aura_polygon != null:
+		_aura_polygon.rotation -= delta * (0.8 + float(_phase) * 0.22)
+
+func _pull_player(delta: float) -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	var offset = global_position - _player.global_position
+	var dist = offset.length()
+	if dist <= 1.0 or dist > gravity_radius:
+		return
+
+	var player_velocity: Vector2 = _player.get("velocity")
+	var pull = offset.normalized() * gravity_strength * mass / maxf(dist * dist, 1600.0)
+	_player.set("velocity", player_velocity + pull * delta)
+
+func _fire_pattern() -> void:
+	if _player == null or not is_instance_valid(_player) or get_parent() == null:
+		return
+
+	var aim = (_player.global_position - global_position).normalized()
+	if aim == Vector2.ZERO:
+		aim = Vector2.RIGHT.rotated(rotation)
+
+	if _phase == 1:
+		_spawn_bullet(aim, projectile_speed)
+	elif _phase == 2:
+		for angle in [-0.22, 0.0, 0.22]:
+			_spawn_bullet(aim.rotated(angle), projectile_speed * 1.05)
+	else:
+		for i in range(10):
+			var ring_dir = aim.rotated(TAU * float(i) / 10.0 + _orbit_angle * 0.4)
+			_spawn_bullet(ring_dir, projectile_speed * 0.86)
+
+func _spawn_bullet(direction: Vector2, speed: float) -> void:
+	var bullet = ENEMY_BULLET_SCENE.instantiate()
+	get_parent().add_child(bullet)
+	bullet.global_position = global_position + direction * 130.0
+	bullet.apply_impulse(direction * speed)
+
+func _summon_support() -> void:
+	if get_parent() == null:
+		return
+
+	var summon_count := 1 + _phase
+	for i in range(summon_count):
+		var scene: PackedScene = LEECH_SCENE
+		if _phase == 2:
+			scene = SPLITTER_SCENE
+		elif _phase >= 3:
+			scene = HARASSER_SCENE if i == 0 else SPLITTER_SCENE
+
+		var minion = scene.instantiate()
+		minion.add_to_group("wave_enemy")
+		get_parent().add_child(minion)
+		var minion_2d := minion as Node2D
+		if minion_2d != null:
+			minion_2d.global_position = global_position + Vector2.RIGHT.rotated(TAU * float(i) / float(summon_count) + _rng.randf_range(-0.2, 0.2)) * 210.0
+
+	if _player != null and _player.get("planets") != null:
+		_player.set("planets", get_tree().get_nodes_in_group("planets"))
+
+func _on_ram_damage_area_body_entered(body: Node) -> void:
+	if body.is_in_group("Player") and body.has_method("take_damage"):
+		var body_2d := body as Node2D
+		if body_2d == null:
+			return
+
+		body.take_damage(18.0 + 6.0 * float(_phase))
+
+		var body_velocity: Vector2 = body.get("velocity")
+		var push := (body_2d.global_position - global_position).normalized()
+		body.set("velocity", body_velocity + push * 520.0)
+
+func _on_health_changed(current_health: float, new_max_health: float) -> void:
+	boss_health_changed.emit(current_health, new_max_health)
+
+func _on_died() -> void:
+	if get_parent() != null:
+		var sparks := COLLISION_SPARK_SCENE.instantiate()
+		get_parent().add_child(sparks)
+		sparks.global_position = global_position
+		sparks.scale = Vector2(5.0, 5.0)
+
+	boss_defeated.emit()
+	queue_free()
+
+func _make_gravity_material() -> ParticleProcessMaterial:
+	var material := ParticleProcessMaterial.new()
+	material.particle_flag_disable_z = true
+	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	material.emission_sphere_radius = 150.0
+	material.spread = 180.0
+	material.initial_velocity_min = 12.0
+	material.initial_velocity_max = 90.0
+	material.radial_accel_min = -170.0
+	material.radial_accel_max = -54.0
+	material.orbit_velocity_min = 0.25
+	material.orbit_velocity_max = 1.4
+	material.gravity = Vector3.ZERO
+	material.scale_min = 1.8
+	material.scale_max = 6.4
+	material.color = Color(0.0, 0.92, 1.0, 0.72)
+	material.turbulence_enabled = true
+	material.turbulence_noise_strength = 0.7
+	return material
+
+func _circle_points(count: int, radius: float) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for i in range(count):
+		var angle := TAU * float(i) / float(count)
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points

@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/player_thruster_trails.gd" id="1_trails"]
+
+[node name="PlayerThrusterTrails" type="Node2D"]
+script = ExtResource("1_trails")

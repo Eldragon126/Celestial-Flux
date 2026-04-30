@@ -36,7 +36,7 @@ func _on_body_entered(body: Node) -> void:
 	set_deferred("monitorable", false)
 	if body.has_method("take_damage"):
 		if not body.is_in_group("Player"):
-			body.take_damage(4 + randi_range(-2,3))
+			body.take_damage(4 + randi_range(-10,20))
 			queue_free()
 	elif body.is_in_group("planets"):
 		queue_free()

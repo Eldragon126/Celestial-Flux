@@ -14,6 +14,10 @@ extends CharacterBody2D
 
 @export var slingshot_factor: float = 1.5
 
+@export var energy_cost_per_work: float = 0.00002
+@export var minimum_thrust_energy_cost_per_second: float = 5.0
+@export var gravity_charge_per_work: float = 0.00001
+
 # ========================
 # == STATE VARIABLES ==
 # ========================
@@ -41,8 +45,10 @@ var closest_dist: float = INF
 @onready var camera = $Camera2D
 @onready var drag_label = $CanvasLayer/Drag
 @onready var health_label = $CanvasLayer/Health
+@onready var energy_label = $CanvasLayer/Energy
 @onready var shield_node = $Shield
 @onready var dash_timer = $Dash
+@onready var energy_component = $EnergyComponent
 
 @onready var projectile_scene = preload("res://Nodes/projectile.tscn")
 
@@ -72,6 +78,7 @@ func _physics_process(delta: float):
 
 	apply_thrust(delta)
 	apply_gravity(grav_accel, delta)
+	apply_gravity_recharge(grav_accel, delta)
 	apply_drag(delta)
 
 	clamp_velocity()
@@ -159,8 +166,23 @@ func apply_slingshot(delta, grav_accel):
 
 func apply_thrust(delta):
 	if Input.is_action_pressed("thrust"):
-		var thrust_dir = -transform.x.normalized()
-		velocity += thrust_dir * thrust_power * delta
+		var thrust_dir: Vector2 = -transform.x.normalized()
+		var thrust_force: Vector2 = thrust_dir * thrust_power
+		var velocity_after_thrust: Vector2 = velocity + thrust_force * delta
+		var displacement: Vector2 = ((velocity + velocity_after_thrust) * 0.5) * delta
+		var work_done: float = absf(thrust_force.dot(displacement))
+		var energy_cost: float = maxf(
+			work_done * energy_cost_per_work,
+			minimum_thrust_energy_cost_per_second * delta
+		)
+		var thrust_scale := 1.0
+
+		if energy_component != null:
+			var spent_energy: float = energy_component.spend(energy_cost)
+			thrust_scale = spent_energy / energy_cost if energy_cost > 0.0 else 0.0
+
+		if thrust_scale > 0.0:
+			velocity += thrust_force * thrust_scale * delta
 
 	if Input.is_action_just_released("thrust"):
 		var now = Time.get_ticks_msec() / 1000.0
@@ -172,6 +194,16 @@ func apply_thrust(delta):
 
 func apply_gravity(grav_accel, delta):
 	velocity += grav_accel * delta
+
+func apply_gravity_recharge(grav_accel: Vector2, delta: float) -> void:
+	if energy_component == null:
+		return
+
+	var displacement: Vector2 = velocity * delta
+	var gravity_work: float = grav_accel.dot(displacement)
+
+	if gravity_work > 0.0:
+		energy_component.restore(gravity_work * gravity_charge_per_work)
 
 func apply_drag(delta):
 	if DRAG_enabled:
@@ -225,6 +257,10 @@ func handle_input():
 func update_ui():
 	drag_label.text = "Drag: Enabled" if DRAG_enabled else "Drag: Disabled"
 	health_label.text = "Health: " + str($HealthComponent.current_health)
+	energy_label.text = "Energy: %d/%d" % [
+		int(round(energy_component.current_energy)),
+		int(round(energy_component.max_energy))
+	]
 
 # ========================
 # == PROCESS LOOP ==
@@ -251,13 +287,13 @@ func shield_process():
 func take_damage(amount: float):
 	if shields_on and shield_health > 0:
 		shield_health -= 1
-
 		if has_node("Shield"):
 			shield_node.hit()
-
+			
 		if shield_health <= 0:
 			shields_on = false
 			print("Shields depleted!")
+			
 	else:
 		if has_node("HealthComponent"):
 			$HealthComponent.take_damage(amount)
