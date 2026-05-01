@@ -4,5 +4,3 @@
 
 [node name="GravityWardenBoss" type="CharacterBody2D" unique_id=856046335 groups=["bosses", "enemies", "planets", "wave_enemy"]]
 script = ExtResource("1_boss")
-
-[node name="Camera2D" type="Camera2D" parent="." unique_id=990376601]
