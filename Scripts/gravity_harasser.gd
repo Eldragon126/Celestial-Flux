@@ -15,7 +15,9 @@ var _health: HealthComponent = null
 func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("planets")
+
 	_player = get_tree().get_first_node_in_group("Player")
+
 	_build_body()
 	_build_health()
 
@@ -24,10 +26,14 @@ func _physics_process(delta: float) -> void:
 		_player = get_tree().get_first_node_in_group("Player")
 		return
 
-	var to_player = _player.global_position - global_position
-	var desired = to_player.normalized() * move_speed
-	velocity = velocity.lerp(desired, clampf(delta * 2.2, 0.0, 1.0)).limit_length(max_speed)
+	var to_player: Vector2 = _player.global_position - global_position
+	var desired: Vector2 = to_player.normalized() * move_speed
+
+	velocity = velocity.lerp(desired, clampf(delta * 2.2, 0.0, 1.0))
+	velocity = velocity.limit_length(max_speed)
+
 	rotation += delta * 2.7
+
 	move_and_slide()
 	_pull_player(delta)
 
@@ -39,14 +45,26 @@ func _pull_player(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
 
-	var offset = global_position - _player.global_position
-	var dist = offset.length()
+	var offset: Vector2 = global_position - _player.global_position
+	var dist: float = offset.length()
+
 	if dist <= 1.0 or dist > gravity_radius:
 		return
 
-	var pull = offset.normalized() * gravity_strength * mass / maxf(dist * dist, 1200.0)
-	var player_velocity: Vector2 = _player.get("velocity")
-	_player.set("velocity", player_velocity + pull * delta)
+	var pull: Vector2 = offset.normalized() * gravity_strength * mass / maxf(dist * dist, 1200.0)
+
+	# Safe access to player's velocity
+	if _player.has_method("get_velocity") and _player.has_method("set_velocity"):
+		var player_velocity: Vector2 = _player.get_velocity()
+		_player.set_velocity(player_velocity + pull * delta)
+	else:
+		# fallback for direct variable access
+		var player_velocity: Vector2 = _player.get("velocity")
+		_player.set("velocity", player_velocity + pull * delta)
+
+# ========================
+# == BUILDING SYSTEMS ==
+# ========================
 
 func _build_body() -> void:
 	var core := Polygon2D.new()
@@ -83,14 +101,23 @@ func _build_body() -> void:
 	add_child(particles)
 
 func _build_health() -> void:
-	_health = $HealthComponent
+	# Create it fresh instead of trying to grab a non-existent or already-parented node
+	_health = HealthComponent.new()
 	_health.name = "HealthComponent"
 	_health.max_health = max_health
+
 	add_child(_health)
-	_health.died.connect(_on_died)
+
+	# Connect safely (prevents duplicate signal crash)
+	if not _health.died.is_connected(_on_died):
+		_health.died.connect(_on_died)
 
 func _on_died() -> void:
 	queue_free()
+
+# ========================
+# == VISUAL HELPERS ==
+# ========================
 
 func _make_field_material() -> ParticleProcessMaterial:
 	var material := ParticleProcessMaterial.new()

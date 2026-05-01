@@ -47,10 +47,10 @@ func _on_body_entered(body: Node) -> void:
 	# RigidBody2D uses contact_monitor, not 'monitoring' (which is for Area2D)
 	# To stop further collisions after the first hit:
 	if not is_queued_for_deletion():
-		if body.is_in_group("planets"):
-			queue_free()
-		elif body.has_method("take_damage"):
+		if body.has_method("take_damage"): #take damage first and then check if it's in the planet function.
 			# Don't hit the player who fired it (if they are in 'Player' group)
 			if not body.is_in_group("Player"):
 				body.take_damage(4 + randi_range(50, 100))
 				queue_free()
+		elif body.is_in_group("planets"):
+			queue_free()
