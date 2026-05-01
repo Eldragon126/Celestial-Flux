@@ -77,3 +77,7 @@ func _on_body_entered(body: Node) -> void:
 			
 	elif body.is_in_group("planets"):
 		queue_free()
+
+
+func _on_timer_timeout() -> void:
+	queue_free()

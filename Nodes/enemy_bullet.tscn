@@ -38,4 +38,10 @@ color = Color(0.99999684, 0.08704468, 0.7096414, 1)
 polygon = PackedVector2Array(-49, -24, -43, -18, -36.90355, -24.008644, -43, -30)
 uv = PackedVector2Array(-79.76105, -18.890343, -43.38037, 21.039673, 2.7609863, -21.552338, -36.281677, -76.56702)
 
+[node name="Timer" type="Timer" parent="." unique_id=92940570]
+wait_time = 60.0
+one_shot = true
+autostart = true
+
 [connection signal="body_entered" from="." to="." method="_on_body_entered"]
+[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]
