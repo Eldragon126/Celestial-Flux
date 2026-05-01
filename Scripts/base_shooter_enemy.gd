@@ -52,7 +52,7 @@ func _process(delta: float) -> void:
 		else:
 			velocity += direction_to_player * 500
 
-		rotation = (Player.global_position - global_position).angle()
+		rotation = (global_position - Player.global_position).angle()
 
 	# Apply physics
 	velocity += grav_accel * delta
