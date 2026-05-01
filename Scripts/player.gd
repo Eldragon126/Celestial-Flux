@@ -5,9 +5,9 @@ extends CharacterBody2D
 # ========================
 
 @export var thrust_power: float = 4000.0
-@export var rotation_speed: float = 10.0
+@export var rotation_speed: float = 9.0
 @export var max_speed: float = 1000.0
-@export var drag: float = 0.95
+@export var drag: float = 0.97
 @export var idle_drag: float = 0.9
 
 @export var gravity_constant: float = 400.0
