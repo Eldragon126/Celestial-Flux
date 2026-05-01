@@ -83,7 +83,7 @@ func _build_body() -> void:
 	add_child(particles)
 
 func _build_health() -> void:
-	_health = HealthComponent.new()
+	_health = $HealthComponent
 	_health.name = "HealthComponent"
 	_health.max_health = max_health
 	add_child(_health)
