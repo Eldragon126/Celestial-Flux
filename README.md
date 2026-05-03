@@ -22,7 +22,6 @@ Comments are king. Please comment your code so that other contributors know what
 If you have an idea and not sure if the game should be headed in that direction, please feel free to run it by me and I'll approve or veto it. 
    I'll approve ideas as long as it a) makes the game more fun. b) is relevant in some way.
 
-Check out the **IDEAS FOR CONTRIBUTORS.txt** file if you are stuck.
 
 Check out the Discord: https://discord.gg/HstMJMkCtb
 
