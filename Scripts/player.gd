@@ -340,7 +340,7 @@ func _process(delta):
 
 func update_camera():
 	if Settings.input_type == false:
-		var target = (get_global_mouse_position() - global_position).normalized() * 200
+		var target = (get_global_mouse_position() - global_position).normalized() * 180
 		camera.offset = lerp(camera.offset, target, 0.05)
 
 
