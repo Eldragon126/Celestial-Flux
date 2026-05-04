@@ -9,6 +9,7 @@ const THRUSTER_TRAILS_SCENE := preload("res://Nodes/player_thruster_trails.tscn"
 const ENGINE_HUM_SCENE := preload("res://Nodes/player_engine_hum.tscn")
 const CAMERA_SHAKE_SCENE := preload("res://Nodes/player_damage_camera_shake.tscn")
 const SPARK_WATCHER_SCENE := preload("res://Nodes/projectile_spark_watcher.tscn")
+
 const PLANET_ATMOSPHERE_SCENE := preload("res://Nodes/planet_atmosphere_dust.tscn")
 const WAVE_DIRECTOR_SCENE := preload("res://Nodes/wave_director.tscn")
 
@@ -47,6 +48,8 @@ func _install_modular_additions() -> void:
 
 	if attach_projectile_sparks:
 		_add_child_scene_once(level_root, SPARK_WATCHER_SCENE, "ProjectileSparkWatcher")
+		
+		
 
 	if player != null and attach_player_juice:
 		_add_child_scene_once(player, THRUSTER_TRAILS_SCENE, "PlayerThrusterTrails")

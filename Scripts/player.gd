@@ -161,7 +161,7 @@ func apply_slingshot(gravity: Vector2, delta: float):
 		return
 	if velocity.length() < 1.0:
 		return
-	if closest_dist > 500.0 or closest_dist < 50.0:
+	if closest_dist > 500.0 or closest_dist < 70.0:
 		return
 
 	var grav_dir = gravity.normalized()
@@ -267,12 +267,12 @@ func boost(dir):
 	DRAG_enabled = false
 	current_max_speed = 3000.0
 	can_dash = false
-
+	energy_component.spend(10)
 	await get_tree().create_timer(0.3).timeout
-
+	
 	if is_instance_valid(dash_timer):
 		dash_timer.start()
-
+	
 	DRAG_enabled = true
 	current_max_speed = 800.0
 
@@ -292,7 +292,7 @@ func shoot():
 	
 	# Add to current scene root to avoid local transform issues
 	get_tree().current_scene.add_child(p)
-	
+	$BulletBlastSoundEffect.play()
 	if p.has_method("apply_impulse"):
 		p.apply_impulse(spawn_dir * 900)
 

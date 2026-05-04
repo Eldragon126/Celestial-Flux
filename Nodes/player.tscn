@@ -5,6 +5,7 @@
 [ext_resource type="Shader" uid="uid://msjv4m5smmjt" path="res://Scripts/playershield.gdshader" id="3_pie2b"]
 [ext_resource type="Script" uid="uid://cgo7omjjvv108" path="res://Scripts/health_component.gd" id="4_sfp35"]
 [ext_resource type="Script" uid="uid://dpsx3wfpdu82q" path="res://Scripts/energy_component.gd" id="5_8pukx"]
+[ext_resource type="AudioStream" uid="uid://bwdttw7llfjht" path="res://Assets/Sound Effects/PlayerShoot.wav" id="6_r4ynj"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_aoxlc"]
 radius = 8.0
@@ -50,6 +51,12 @@ shader_parameter/border_strength = 0.8
 shader_parameter/pulse_speed = 2.0
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_pie2b"]
+
+[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_r4ynj"]
+playback_mode = 1
+random_pitch = 1.3348398
+streams_count = 1
+stream_0/stream = ExtResource("6_r4ynj")
 
 [node name="Player" type="CharacterBody2D" unique_id=943672105 groups=["Player"]]
 script = ExtResource("1_qlfej")
@@ -133,6 +140,11 @@ metadata/_custom_type_script = "uid://cgo7omjjvv108"
 script = ExtResource("5_8pukx")
 max_energy = 1000000.0
 metadata/_custom_type_script = "uid://dpsx3wfpdu82q"
+
+[node name="BulletBlastSoundEffect" type="AudioStreamPlayer" parent="." unique_id=1794398086]
+stream = SubResource("AudioStreamRandomizer_r4ynj")
+volume_db = -20.0
+bus = &"Player Sound Effects"
 
 [connection signal="timeout" from="Dash" to="." method="_on_dash_timeout"]
 [connection signal="died" from="HealthComponent" to="." method="_on_health_component_died"]

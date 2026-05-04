@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dwxmxjki35s10"]
 
-[ext_resource type="Script" path="res://Scripts/projectile_spark_watcher.gd" id="1_watch"]
+[ext_resource type="Script" uid="uid://pjssw1cuycdd" path="res://Scripts/projectile_spark_watcher.gd" id="1_watch"]
 
-[node name="ProjectileSparkWatcher" type="Node"]
+[node name="ProjectileSparkWatcher" type="Node" unique_id=1734846694]
 script = ExtResource("1_watch")

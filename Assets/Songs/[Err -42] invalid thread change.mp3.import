@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://cqgghnrykol0u"
+path="res://.godot/imported/[Err -42] invalid thread change.mp3-2657091b07328bf50eb1ae66bf14b31b.mp3str"
+
+[deps]
+
+source_file="res://Assets/Songs/[Err -42] invalid thread change.mp3"
+dest_files=["res://.godot/imported/[Err -42] invalid thread change.mp3-2657091b07328bf50eb1ae66bf14b31b.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

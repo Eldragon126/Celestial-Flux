@@ -1,6 +1,120 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bngs0r5fkd80n"]
 
-[ext_resource type="Script" path="res://Scripts/wave_director.gd" id="1_wave"]
+[ext_resource type="Script" uid="uid://c8e8diy2a8r37" path="res://Scripts/wave_director.gd" id="1_wave"]
+[ext_resource type="AudioStream" uid="uid://des7byr0l3ccn" path="res://Assets/Songs/The Abyss.wav" id="2_dyw32"]
+[ext_resource type="AudioStream" uid="uid://6fr6geqn3di2" path="res://Assets/Songs/The Abyss Intro.wav" id="3_phkuk"]
+[ext_resource type="AudioStream" uid="uid://yfrgwyxwmq2f" path="res://Assets/Songs/Interesting Song (1).mp3" id="4_7rbro"]
+[ext_resource type="AudioStream" uid="uid://eu6vv1vgucjt" path="res://Assets/Songs/Cosmic Bass.wav" id="5_0riij"]
+[ext_resource type="AudioStream" uid="uid://brn5i5kudbi5i" path="res://Assets/Songs/Whispers in the Void.mp3" id="6_jhh73"]
+[ext_resource type="AudioStream" uid="uid://b0c6fb7kpwh7v" path="res://Assets/Songs/Resonance.mp3" id="7_5tvm2"]
+[ext_resource type="AudioStream" uid="uid://b0fxjf5jygstt" path="res://Assets/Songs/The Arrival (1).mp3" id="8_871jo"]
+[ext_resource type="AudioStream" uid="uid://cqgghnrykol0u" path="res://Assets/Songs/[Err -42] invalid thread change.mp3" id="9_vpyrl"]
 
-[node name="WaveDirector" type="Node2D"]
+[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_wmx4x"]
+playback_mode = 1
+random_volume_offset_db = 2.0
+streams_count = 5
+stream_0/stream = ExtResource("2_dyw32")
+stream_1/stream = ExtResource("3_phkuk")
+stream_2/stream = ExtResource("4_7rbro")
+stream_3/stream = ExtResource("5_0riij")
+stream_4/stream = ExtResource("6_jhh73")
+
+[sub_resource type="Animation" id="Animation_0riij"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:volume_db")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [-0.5]
+}
+
+[sub_resource type="Animation" id="Animation_jhh73"]
+resource_name = "Volume Intro"
+length = 4.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:volume_db")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 3.9666667),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [-20.0, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_5tvm2"]
+_data = {
+&"RESET": SubResource("Animation_0riij"),
+&"Volume Intro": SubResource("Animation_jhh73")
+}
+
+[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_ngj8w"]
+playback_mode = 1
+streams_count = 3
+stream_0/stream = ExtResource("7_5tvm2")
+stream_1/stream = ExtResource("8_871jo")
+stream_2/stream = ExtResource("9_vpyrl")
+
+[sub_resource type="Animation" id="Animation_871jo"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:volume_db")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+
+[sub_resource type="Animation" id="Animation_vpyrl"]
+resource_name = "Volume Intro"
+length = 4.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:volume_db")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 3.9666667),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [-20.0, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_ngj8w"]
+_data = {
+&"RESET": SubResource("Animation_871jo"),
+&"Volume Intro": SubResource("Animation_vpyrl")
+}
+
+[node name="WaveDirector" type="Node2D" unique_id=262107383]
 script = ExtResource("1_wave")
+
+[node name="WaveMusic" type="AudioStreamPlayer" parent="." unique_id=13784161]
+stream = SubResource("AudioStreamRandomizer_wmx4x")
+volume_db = -0.5
+
+[node name="Volume Intro" type="AnimationPlayer" parent="WaveMusic" unique_id=154907784]
+libraries/ = SubResource("AnimationLibrary_5tvm2")
+autoplay = &"Volume Intro"
+
+[node name="BossWaveMusic" type="AudioStreamPlayer" parent="." unique_id=428775376]
+stream = SubResource("AudioStreamRandomizer_ngj8w")
+
+[node name="Volume Intro" type="AnimationPlayer" parent="BossWaveMusic" unique_id=1790486823]
+libraries/ = SubResource("AnimationLibrary_ngj8w")
+autoplay = &"Volume Intro"

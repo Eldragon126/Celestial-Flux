@@ -1,0 +1,22 @@
+[gd_resource type="AudioBusLayout" format=3 uid="uid://c0efltgmmbnc8"]
+
+[resource]
+bus/0/volume_db = -1.1215086
+bus/1/name = &"Player Sound Effects"
+bus/1/solo = false
+bus/1/mute = false
+bus/1/bypass_fx = false
+bus/1/volume_db = -1.6503448
+bus/1/send = &"Master"
+bus/2/name = &"Enemy Sound Effects"
+bus/2/solo = false
+bus/2/mute = false
+bus/2/bypass_fx = false
+bus/2/volume_db = -1.6525679
+bus/2/send = &"Master"
+bus/3/name = &"Other"
+bus/3/solo = false
+bus/3/mute = false
+bus/3/bypass_fx = false
+bus/3/volume_db = -2.0480833
+bus/3/send = &"Master"
