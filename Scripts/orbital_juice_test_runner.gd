@@ -3,7 +3,7 @@ extends SceneTree
 # Headless smoke tests for the modular contributor additions. Run with:
 # godot_console.exe --headless --path <project> --script res://Scripts/orbital_juice_test_runner.gd
 
-const SCENES_TO_INSTANTIATE := [
+const SCENES_TO_INSTANTIATE = [
 	"res://Nodes/orbital_hud.tscn",
 	"res://Nodes/player_thruster_trails.tscn",
 	"res://Nodes/player_engine_hum.tscn",
@@ -24,7 +24,7 @@ const SCENES_TO_INSTANTIATE := [
 ]
 
 func _initialize() -> void:
-	var failed := false
+	var failed = false
 
 	for scene_path in SCENES_TO_INSTANTIATE:
 		if not ResourceLoader.exists(scene_path):
@@ -32,7 +32,7 @@ func _initialize() -> void:
 			failed = true
 			continue
 
-		var packed := load(scene_path)
+		var packed = load(scene_path)
 		if packed == null:
 			push_error("Could not load %s" % scene_path)
 			failed = true

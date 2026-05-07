@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" uid="uid://pcvcl4t5auev" path="res://Scripts/gravity_warden_boss.gd" id="1_boss"]
 
-[node name="GravityWardenBoss" type="CharacterBody2D" unique_id=856046335 groups=["bosses", "enemies", "planets", "wave_enemy"]]
+[node name="GravityWardenBoss" type="CharacterBody2D" unique_id=856046335 groups=["Objects_With_Gravity", "bosses", "enemies", "planets", "wave_enemy"]]
 script = ExtResource("1_boss")

@@ -2,11 +2,11 @@ extends Area2D
 
 # Celestial hazard: a cloud that slows the player while inside it.
 
-@export var radius := 260.0
-@export var speed_multiplier := 0.58
-@export var swirl_speed := 0.18
+@export var radius = 260.0
+@export var speed_multiplier = 0.58
+@export var swirl_speed = 0.18
 
-var _affected_bodies := {}
+var _affected_bodies = {}
 var _swirl: Polygon2D
 
 func _ready() -> void:
@@ -21,8 +21,8 @@ func _process(delta: float) -> void:
         _swirl.rotation += swirl_speed * delta
 
 func _build_collision() -> void:
-    var collision := CollisionShape2D.new()
-    var shape := CircleShape2D.new()
+    var collision = CollisionShape2D.new()
+    var shape = CircleShape2D.new()
     shape.radius = radius
     collision.shape = shape
     add_child(collision)
@@ -34,13 +34,13 @@ func _build_visuals() -> void:
     _swirl.polygon = _soft_cloud_points(44, radius)
     add_child(_swirl)
 
-    var inner := Polygon2D.new()
+    var inner = Polygon2D.new()
     inner.name = "NebulaCorePolygon"
     inner.color = Color(0.0, 0.9, 0.82, 0.18)
     inner.polygon = _soft_cloud_points(36, radius * 0.62)
     add_child(inner)
 
-    var particles := GPUParticles2D.new()
+    var particles = GPUParticles2D.new()
     particles.name = "NebulaDust"
     particles.z_index = -1
     particles.amount = 180
@@ -57,7 +57,7 @@ func _on_body_entered(body: Node) -> void:
     if max_speed == null:
         return
 
-    var id := body.get_instance_id()
+    var id = body.get_instance_id()
     if _affected_bodies.has(id):
         return
 
@@ -71,7 +71,7 @@ func _on_body_entered(body: Node) -> void:
     body.set("current_max_speed", minf(float(body.get("current_max_speed")), float(body.get("max_speed"))))
 
 func _on_body_exited(body: Node) -> void:
-    var id := body.get_instance_id()
+    var id = body.get_instance_id()
     if not _affected_bodies.has(id):
         return
 
@@ -83,14 +83,14 @@ func _on_body_exited(body: Node) -> void:
     _affected_bodies.erase(id)
 
 func _make_nebula_material() -> ParticleProcessMaterial:
-    var gradient := Gradient.new()
+    var gradient = Gradient.new()
     gradient.set_color(0, Color(0.25, 0.9, 1.0, 0.45))
     gradient.set_color(1, Color(0.7, 0.2, 1.0, 0.0))
 
-    var texture := GradientTexture1D.new()
+    var texture = GradientTexture1D.new()
     texture.gradient = gradient
 
-    var material := ParticleProcessMaterial.new()
+    var material = ParticleProcessMaterial.new()
     material.particle_flag_disable_z = true
     material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
     material.emission_sphere_radius = radius
@@ -109,10 +109,10 @@ func _make_nebula_material() -> ParticleProcessMaterial:
     return material
 
 func _soft_cloud_points(count: int, base_radius: float) -> PackedVector2Array:
-    var points := PackedVector2Array()
+    var points = PackedVector2Array()
     for i in range(count):
-        var angle := TAU * float(i) / float(count)
-        var wave := sin(angle * 3.0) * 0.08 + cos(angle * 7.0) * 0.05
-        var r := base_radius * (1.0 + wave)
+        var angle = TAU * float(i) / float(count)
+        var wave = sin(angle * 3.0) * 0.08 + cos(angle * 7.0) * 0.05
+        var r = base_radius * (1.0 + wave)
         points.append(Vector2(cos(angle), sin(angle)) * r)
     return points

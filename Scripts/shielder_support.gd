@@ -3,17 +3,17 @@ extends CharacterBody2D
 # Enemy variant: orbits a shooter and spends its own shield health to undo
 # incoming damage on that host until the support is destroyed.
 
-@export var orbit_radius := 150.0
-@export var orbit_speed := 1.35
-@export var follow_strength := 4.8
-@export var shield_pool := 90.0
-@export var max_health := 38.0
+@export var orbit_radius = 150.0
+@export var orbit_speed = 1.35
+@export var follow_strength = 4.8
+@export var shield_pool = 90.0
+@export var max_health = 38.0
 
 var _host: Node2D = null
 var _host_health: HealthComponent = null
-var _host_last_health := 0.0
-var _protecting := false
-var _orbit_angle := 0.0
+var _host_last_health = 0.0
+var _protecting = false
+var _orbit_angle = 0.0
 var _health: HealthComponent = null
 var _shield_polygon: Polygon2D
 
@@ -29,7 +29,7 @@ func _physics_process(delta: float) -> void:
         return
 
     _orbit_angle += orbit_speed * delta
-    var target := _host.global_position + Vector2(cos(_orbit_angle), sin(_orbit_angle)) * orbit_radius
+    var target = _host.global_position + Vector2(cos(_orbit_angle), sin(_orbit_angle)) * orbit_radius
     velocity = (target - global_position) * follow_strength
     move_and_slide()
 
@@ -45,7 +45,7 @@ func _build_body() -> void:
     _shield_polygon.polygon = _hex_points(62.0)
     add_child(_shield_polygon)
 
-    var core := Polygon2D.new()
+    var core = Polygon2D.new()
     core.name = "SupportCorePolygon"
     core.color = Color(0.12, 0.72, 1.0, 1.0)
     core.polygon = PackedVector2Array([
@@ -56,12 +56,12 @@ func _build_body() -> void:
     ])
     add_child(core)
 
-    var collision := CollisionPolygon2D.new()
+    var collision = CollisionPolygon2D.new()
     collision.name = "CollisionPolygon2D"
     collision.polygon = _shield_polygon.polygon
     add_child(collision)
 
-    var particles := GPUParticles2D.new()
+    var particles = GPUParticles2D.new()
     particles.name = "ShieldOrbitParticles"
     particles.z_index = -2
     particles.amount = 90
@@ -78,7 +78,7 @@ func _build_health() -> void:
     _health.died.connect(_on_died)
 
 func _find_and_bind_host() -> void:
-    var next_host := _find_best_shooter_host(get_tree().current_scene)
+    var next_host = _find_best_shooter_host(get_tree().current_scene)
     if next_host == null:
         return
 
@@ -98,8 +98,8 @@ func _on_host_health_changed(current_health: float, _max_health: float) -> void:
         _host_last_health = current_health
         return
 
-    var incoming_damage := _host_last_health - current_health
-    var blocked := minf(incoming_damage, shield_pool)
+    var incoming_damage = _host_last_health - current_health
+    var blocked = minf(incoming_damage, shield_pool)
     shield_pool -= blocked
 
     if blocked > 0.0:
@@ -117,7 +117,7 @@ func _pulse_shield() -> void:
     if _shield_polygon == null:
         return
 
-    var tween := create_tween()
+    var tween = create_tween()
     tween.tween_property(_shield_polygon, "scale", Vector2(1.18, 1.18), 0.08)
     tween.parallel().tween_property(_shield_polygon, "color:a", 0.62, 0.08)
     tween.tween_property(_shield_polygon, "scale", Vector2.ONE, 0.22)
@@ -136,12 +136,12 @@ func _find_best_shooter_host(root: Node) -> Node2D:
     _collect_shooter_hosts(root, candidates)
 
     var best_host: Node2D = null
-    var best_score := INF
+    var best_score = INF
 
     for candidate in candidates:
-        var distance := global_position.distance_to(candidate.global_position)
-        var wave_bonus := 0.0 if candidate.is_in_group("wave_enemy") else 100000.0
-        var score := distance + wave_bonus
+        var distance = global_position.distance_to(candidate.global_position)
+        var wave_bonus = 0.0 if candidate.is_in_group("wave_enemy") else 100000.0
+        var score = distance + wave_bonus
 
         if score < best_score:
             best_score = score
@@ -160,7 +160,7 @@ func _collect_shooter_hosts(root: Node, candidates: Array[Node2D]) -> void:
         _collect_shooter_hosts(child, candidates)
 
 func _make_shield_material() -> ParticleProcessMaterial:
-    var material := ParticleProcessMaterial.new()
+    var material = ParticleProcessMaterial.new()
     material.particle_flag_disable_z = true
     material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
     material.emission_sphere_radius = 66.0
@@ -176,8 +176,8 @@ func _make_shield_material() -> ParticleProcessMaterial:
     return material
 
 func _hex_points(radius: float) -> PackedVector2Array:
-    var points := PackedVector2Array()
+    var points = PackedVector2Array()
     for i in range(6):
-        var angle := TAU * float(i) / 6.0
+        var angle = TAU * float(i) / 6.0
         points.append(Vector2(cos(angle), sin(angle)) * radius)
     return points

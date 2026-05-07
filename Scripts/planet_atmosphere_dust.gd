@@ -8,7 +8,7 @@ var _parent_planet: Node = null
 
 func _ready() -> void:
     _parent_planet = get_parent()
-    var radius := _get_planet_radius()
+    var radius = _get_planet_radius()
     _build_halo(radius)
     _build_dust(radius)
 
@@ -16,9 +16,9 @@ func _process(_delta: float) -> void:
     if _parent_planet == null or not is_instance_valid(_parent_planet):
         return
 
-    var radius := _get_planet_radius()
+    var radius = _get_planet_radius()
     if _dust != null and _dust.process_material is ParticleProcessMaterial:
-        var material := _dust.process_material as ParticleProcessMaterial
+        var material = _dust.process_material as ParticleProcessMaterial
         material.emission_sphere_radius = radius * 1.24
 
 func _build_halo(radius: float) -> void:
@@ -41,14 +41,14 @@ func _build_dust(radius: float) -> void:
     add_child(_dust)
 
 func _make_dust_material(radius: float) -> ParticleProcessMaterial:
-    var gradient := Gradient.new()
+    var gradient = Gradient.new()
     gradient.set_color(0, Color(0.36, 0.95, 1.0, 0.36))
     gradient.set_color(1, Color(0.45, 0.2, 1.0, 0.0))
 
-    var texture := GradientTexture1D.new()
+    var texture = GradientTexture1D.new()
     texture.gradient = gradient
 
-    var material := ParticleProcessMaterial.new()
+    var material = ParticleProcessMaterial.new()
     material.particle_flag_disable_z = true
     material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
     material.emission_sphere_radius = radius * 1.24
@@ -70,15 +70,15 @@ func _get_planet_radius() -> float:
     if _parent_planet != null and _parent_planet.get("radius") != null:
         return maxf(float(_parent_planet.get("radius")), 40.0)
 
-    var shape_node := _parent_planet.get_node_or_null("CollisionShape2D") if _parent_planet != null else null
+    var shape_node = _parent_planet.get_node_or_null("CollisionShape2D") if _parent_planet != null else null
     if shape_node != null and shape_node.shape is CircleShape2D:
         return shape_node.shape.radius
 
     return 150.0
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:
-    var points := PackedVector2Array()
+    var points = PackedVector2Array()
     for i in range(count):
-        var angle := TAU * float(i) / float(count)
+        var angle = TAU * float(i) / float(count)
         points.append(Vector2(cos(angle), sin(angle)) * radius)
     return points

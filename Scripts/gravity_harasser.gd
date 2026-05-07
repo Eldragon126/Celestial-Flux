@@ -2,12 +2,12 @@ extends CharacterBody2D
 
 # Enemy variant: a moving mass that pulls the player off-course.
 
-@export var mass := 120000.0
-@export var move_speed := 460.0
-@export var max_speed := 620.0
-@export var gravity_radius := 620.0
-@export var gravity_strength := 1450.0
-@export var max_health := 42.0
+@export var mass = 1200000.0
+@export var move_speed = 460.0
+@export var max_speed = 620.0
+@export var gravity_radius = 620.0
+@export var gravity_strength = 1450.0
+@export var max_health = 42.0
 
 var _player: Node = null
 var _health: HealthComponent = null
@@ -15,6 +15,7 @@ var _health: HealthComponent = null
 func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("planets")
+	add_to_group("Objects_With_Gravity")
 
 	_player = get_tree().get_first_node_in_group("Player")
 
@@ -59,7 +60,7 @@ func _pull_player(delta: float) -> void:
 		_player.set_velocity(player_velocity + pull * delta)
 	else:
 		# fallback for direct variable access
-		var player_velocity: Vector2 = _player.get("velocity")
+		var player_velocity = _player.get("velocity")
 		_player.set("velocity", player_velocity + pull * delta)
 
 # ========================
@@ -67,7 +68,7 @@ func _pull_player(delta: float) -> void:
 # ========================
 
 func _build_body() -> void:
-	var core := Polygon2D.new()
+	var core = Polygon2D.new()
 	core.name = "GravityCorePolygon"
 	core.color = Color(0.08, 0.9, 0.72, 1.0)
 	core.polygon = PackedVector2Array([
@@ -79,19 +80,19 @@ func _build_body() -> void:
 	])
 	add_child(core)
 
-	var field := Polygon2D.new()
+	var field = Polygon2D.new()
 	field.name = "GravityFieldPolygon"
 	field.z_index = -2
 	field.color = Color(0.1, 0.95, 0.72, 0.12)
 	field.polygon = _circle_points(42, 92.0)
 	add_child(field)
 
-	var collision := CollisionPolygon2D.new()
+	var collision = CollisionPolygon2D.new()
 	collision.name = "CollisionPolygon2D"
 	collision.polygon = core.polygon
 	add_child(collision)
 
-	var particles := GPUParticles2D.new()
+	var particles = GPUParticles2D.new()
 	particles.name = "GravityFieldParticles"
 	particles.z_index = -1
 	particles.amount = 120
@@ -120,7 +121,7 @@ func _on_died() -> void:
 # ========================
 
 func _make_field_material() -> ParticleProcessMaterial:
-	var material := ParticleProcessMaterial.new()
+	var material = ParticleProcessMaterial.new()
 	material.particle_flag_disable_z = true
 	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
 	material.emission_sphere_radius = 92.0
@@ -138,8 +139,8 @@ func _make_field_material() -> ParticleProcessMaterial:
 	return material
 
 func _circle_points(count: int, circle_radius: float) -> PackedVector2Array:
-	var points := PackedVector2Array()
+	var points = PackedVector2Array()
 	for i in range(count):
-		var angle := TAU * float(i) / float(count)
+		var angle = TAU * float(i) / float(count)
 		points.append(Vector2(cos(angle), sin(angle)) * circle_radius)
 	return points

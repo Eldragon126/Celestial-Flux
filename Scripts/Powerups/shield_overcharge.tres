@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PowerupDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/powerup_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+powerup_id = &"shield_overcharge"
+display_name = "Shield Overcharge"
+effect_type = &"shield_overcharge"
+stack_policy = 1
+max_stacks = 1
+duration = 12.0
+amount = 120.0
+secondary_amount = 80.0
+radius = 0.0
+color = Color(0.08, 0.95, 0.78, 1)

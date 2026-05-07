@@ -16,10 +16,10 @@ func _process(_delta: float) -> void:
     if _player == null or not is_instance_valid(_player):
         return
 
-    var velocity: Vector2 = _player.get("velocity")
-    var max_speed := maxf(float(_player.get("max_speed")), 1.0)
-    var speed_ratio := clampf(velocity.length() / max_speed, 0.0, 1.8)
-    var thrusting := Input.is_action_pressed("thrust")
+    var velocity = _player.get("velocity")
+    var max_speed = maxf(float(_player.get("max_speed")), 1.0)
+    var speed_ratio = clampf(velocity.length() / max_speed, 0.0, 1.8)
+    var thrusting = Input.is_action_pressed("thrust")
 
     for flame in _flames:
         flame.emitting = thrusting
@@ -31,7 +31,7 @@ func _process(_delta: float) -> void:
         glow.scale = Vector2.ONE * lerpf(0.82, 1.35, clampf(speed_ratio, 0.0, 1.0))
 
 func _build_thruster(local_pos: Vector2, core_color: Color, ember_color: Color) -> void:
-    var glow := Polygon2D.new()
+    var glow = Polygon2D.new()
     glow.name = "ThrusterGlow"
     glow.position = local_pos
     glow.polygon = PackedVector2Array([
@@ -44,7 +44,7 @@ func _build_thruster(local_pos: Vector2, core_color: Color, ember_color: Color) 
     add_child(glow)
     _glow_polygons.append(glow)
 
-    var flame := GPUParticles2D.new()
+    var flame = GPUParticles2D.new()
     flame.name = "ThrusterFlame"
     flame.position = local_pos
     flame.z_index = -2
@@ -59,14 +59,14 @@ func _build_thruster(local_pos: Vector2, core_color: Color, ember_color: Color) 
     _flames.append(flame)
 
 func _make_thruster_material(core_color: Color, ember_color: Color) -> ParticleProcessMaterial:
-    var gradient := Gradient.new()
+    var gradient = Gradient.new()
     gradient.set_color(0, core_color)
     gradient.set_color(1, Color(ember_color.r, ember_color.g, ember_color.b, 0.0))
 
-    var texture := GradientTexture1D.new()
+    var texture = GradientTexture1D.new()
     texture.gradient = gradient
 
-    var material := ParticleProcessMaterial.new()
+    var material = ParticleProcessMaterial.new()
     material.particle_flag_disable_z = true
     material.direction = Vector3(1.0, 0.0, 0.0)
     material.spread = 18.0

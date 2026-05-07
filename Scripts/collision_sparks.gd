@@ -21,7 +21,7 @@ func _ready() -> void:
     scale_amount_min = 1.6
     scale_amount_max = 4.4
 
-    var gradient := Gradient.new()
+    var gradient = Gradient.new()
     gradient.set_color(0, Color(1.0, 0.88, 0.26, 1.0))
     gradient.set_color(1, Color(0.0, 0.86, 1.0, 0.0))
     color_ramp = gradient

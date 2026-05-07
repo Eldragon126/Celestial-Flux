@@ -6,38 +6,41 @@ extends CharacterBody2D
 
 signal boss_health_changed(current_health: float, max_health: float)
 signal boss_defeated
+signal phase_entered(phase: int)
+signal phase_exited(phase: int)
 
-const ENEMY_BULLET_SCENE := preload("res://Nodes/enemy_bullet.tscn")
-const LEECH_SCENE := preload("res://Nodes/leech_parasite.tscn")
-const SPLITTER_SCENE := preload("res://Nodes/splitting_asteroid_bot.tscn")
-const HARASSER_SCENE := preload("res://Nodes/gravity_harasser.tscn")
-const COLLISION_SPARK_SCENE := preload("res://Nodes/collision_sparks.tscn")
+const ENEMY_BULLET_SCENE = preload("res://Nodes/enemy_bullet.tscn")
+const LEECH_SCENE = preload("res://Nodes/leech_parasite.tscn")
+const SPLITTER_SCENE = preload("res://Nodes/splitting_asteroid_bot.tscn")
+const HARASSER_SCENE = preload("res://Nodes/gravity_harasser.tscn")
+const COLLISION_SPARK_SCENE = preload("res://Nodes/collision_sparks.tscn")
 
-@export var max_health := 760.0
-@export var mass := 260000.0
-@export var orbit_distance := 860.0
-@export var move_speed := 520.0
-@export var gravity_radius := 880.0
-@export var gravity_strength := 1900.0
-@export var projectile_speed := 1180.0
-@export var fire_interval := 1.35
-@export var summon_interval := 7.0
+@export var max_health = 880.0
+@export var mass = 245000.0
+@export var orbit_distance = 820.0
+@export var move_speed = 470.0
+@export var gravity_radius = 840.0
+@export var gravity_strength = 1600.0
+@export var projectile_speed = 980.0
+@export var fire_interval = 1.75
+@export var summon_interval = 8.5
 
 var _player: Node = null
 var _health: HealthComponent = null
 var _fire_timer: Timer
 var _summon_timer: Timer
-var _phase := 1
-var _orbit_angle := 0.0
+var _phase = 1
+var _orbit_angle = 0.0
 var _aura_polygon: Polygon2D
 var _core_polygon: Polygon2D
-var _rng := RandomNumberGenerator.new()
+var _rng = RandomNumberGenerator.new()
 
 func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("wave_enemy")
 	add_to_group("bosses")
 	add_to_group("planets")
+	add_to_group("Objects_With_Gravity")
 
 	_rng.randomize()
 	_player = get_tree().get_first_node_in_group("Player")
@@ -71,7 +74,7 @@ func _build_body() -> void:
 	_aura_polygon.polygon = _circle_points(56, 148.0)
 	add_child(_aura_polygon)
 
-	var hull := Polygon2D.new()
+	var hull = Polygon2D.new()
 	hull.name = "WardenHullPolygon"
 	hull.color = Color(0.52, 0.06, 0.32, 1.0)
 	hull.polygon = PackedVector2Array([
@@ -92,24 +95,24 @@ func _build_body() -> void:
 	_core_polygon.polygon = _circle_points(8, 42.0)
 	add_child(_core_polygon)
 
-	var collision := CollisionPolygon2D.new()
+	var collision = CollisionPolygon2D.new()
 	collision.name = "CollisionPolygon2D"
 	collision.polygon = hull.polygon
 	add_child(collision)
 
-	var attack_area := Area2D.new()
+	var attack_area = Area2D.new()
 	attack_area.name = "RamDamageArea"
 	attack_area.monitoring = true
 	attack_area.body_entered.connect(_on_ram_damage_area_body_entered)
 	add_child(attack_area)
 
-	var attack_shape := CollisionShape2D.new()
-	var circle := CircleShape2D.new()
+	var attack_shape = CollisionShape2D.new()
+	var circle = CircleShape2D.new()
 	circle.radius = 132.0
 	attack_shape.shape = circle
 	attack_area.add_child(attack_shape)
 
-	var particles := GPUParticles2D.new()
+	var particles = GPUParticles2D.new()
 	particles.name = "BossGravityParticles"
 	particles.z_index = -2
 	particles.amount = 220
@@ -142,8 +145,8 @@ func _build_timers() -> void:
 	_summon_timer.start()
 
 func _update_phase() -> void:
-	var ratio := get_health_ratio()
-	var next_phase := 1
+	var ratio = get_health_ratio()
+	var next_phase = 1
 	if ratio < 0.34:
 		next_phase = 3
 	elif ratio < 0.67:
@@ -152,9 +155,11 @@ func _update_phase() -> void:
 	if next_phase == _phase:
 		return
 
+	phase_exited.emit(_phase)
 	_phase = next_phase
-	_fire_timer.wait_time = maxf(0.58, fire_interval - 0.28 * float(_phase - 1))
-	_summon_timer.wait_time = maxf(4.2, summon_interval - 1.2 * float(_phase - 1))
+	phase_entered.emit(_phase)
+	_fire_timer.wait_time = maxf(0.82, fire_interval - 0.24 * float(_phase - 1))
+	_summon_timer.wait_time = maxf(5.4, summon_interval - 1.0 * float(_phase - 1))
 
 	if _core_polygon != null:
 		_core_polygon.color = Color(1.0, 0.23, 0.08, 1.0) if _phase == 3 else Color(0.0, 0.92, 1.0, 1.0)
@@ -183,7 +188,7 @@ func _pull_player(delta: float) -> void:
 	if dist <= 1.0 or dist > gravity_radius:
 		return
 
-	var player_velocity: Vector2 = _player.get("velocity")
+	var player_velocity = _player.get("velocity")
 	var pull = offset.normalized() * gravity_strength * mass / maxf(dist * dist, 1600.0)
 	_player.set("velocity", player_velocity + pull * delta)
 
@@ -194,6 +199,8 @@ func _fire_pattern() -> void:
 	var aim = (_player.global_position - global_position).normalized()
 	if aim == Vector2.ZERO:
 		aim = Vector2.RIGHT.rotated(rotation)
+
+	_pulse_core()
 
 	if _phase == 1:
 		_spawn_bullet(aim, projectile_speed)
@@ -207,15 +214,15 @@ func _fire_pattern() -> void:
 
 func _spawn_bullet(direction: Vector2, speed: float) -> void:
 	var bullet = ENEMY_BULLET_SCENE.instantiate()
-	get_parent().add_child(bullet)
 	bullet.global_position = global_position + direction * 130.0
 	bullet.apply_impulse(direction * speed)
+	get_parent().call_deferred("add_child", bullet)
 
 func _summon_support() -> void:
 	if get_parent() == null:
 		return
 
-	var summon_count := 1 + _phase
+	var summon_count = 1 + _phase
 	for i in range(summon_count):
 		var scene: PackedScene = LEECH_SCENE
 		if _phase == 2:
@@ -225,32 +232,41 @@ func _summon_support() -> void:
 
 		var minion = scene.instantiate()
 		minion.add_to_group("wave_enemy")
-		get_parent().add_child(minion)
-		var minion_2d := minion as Node2D
+		var minion_2d = minion as Node2D
 		if minion_2d != null:
 			minion_2d.global_position = global_position + Vector2.RIGHT.rotated(TAU * float(i) / float(summon_count) + _rng.randf_range(-0.2, 0.2)) * 210.0
+		get_parent().call_deferred("add_child", minion)
 
 	if _player != null and _player.get("planets") != null:
 		_player.set("planets", get_tree().get_nodes_in_group("planets"))
 
 func _on_ram_damage_area_body_entered(body: Node) -> void:
 	if body.is_in_group("Player") and body.has_method("take_damage"):
-		var body_2d := body as Node2D
+		var body_2d = body as Node2D
 		if body_2d == null:
 			return
 
-		body.take_damage(18.0 + 6.0 * float(_phase))
+		body.take_damage(14.0 + 5.0 * float(_phase))
 
-		var body_velocity: Vector2 = body.get("velocity")
-		var push := (body_2d.global_position - global_position).normalized()
+		var body_velocity = body.get("velocity")
+		var push = (body_2d.global_position - global_position).normalized()
 		body.set("velocity", body_velocity + push * 520.0)
+
+func _pulse_core() -> void:
+	if _core_polygon == null:
+		return
+
+	var tween = create_tween()
+	_core_polygon.scale = Vector2.ONE
+	tween.tween_property(_core_polygon, "scale", Vector2(1.22, 1.22), 0.08)
+	tween.tween_property(_core_polygon, "scale", Vector2.ONE, 0.18)
 
 func _on_health_changed(current_health: float, new_max_health: float) -> void:
 	boss_health_changed.emit(current_health, new_max_health)
 
 func _on_died() -> void:
 	if get_parent() != null:
-		var sparks := COLLISION_SPARK_SCENE.instantiate()
+		var sparks = COLLISION_SPARK_SCENE.instantiate()
 		get_parent().add_child(sparks)
 		sparks.global_position = global_position
 		sparks.scale = Vector2(5.0, 5.0)
@@ -259,7 +275,7 @@ func _on_died() -> void:
 	queue_free()
 
 func _make_gravity_material() -> ParticleProcessMaterial:
-	var material := ParticleProcessMaterial.new()
+	var material = ParticleProcessMaterial.new()
 	material.particle_flag_disable_z = true
 	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
 	material.emission_sphere_radius = 150.0
@@ -279,8 +295,8 @@ func _make_gravity_material() -> ParticleProcessMaterial:
 	return material
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:
-	var points := PackedVector2Array()
+	var points = PackedVector2Array()
 	for i in range(count):
-		var angle := TAU * float(i) / float(count)
+		var angle = TAU * float(i) / float(count)
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
 	return points

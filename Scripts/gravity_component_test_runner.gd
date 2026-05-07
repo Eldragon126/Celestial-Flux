@@ -1,26 +1,26 @@
 extends SceneTree
 
-const GravityComponentScene := preload("res://Nodes/gravity_component.tscn")
+const GravityComponentScene = preload("res://Nodes/gravity_component.tscn")
 
 class TestGravitySource extends Node2D:
-	var mass := 100.0
+	var mass = 100.0
 
 func _initialize() -> void:
-	var root_node := Node2D.new()
+	var root_node = Node2D.new()
 	root.add_child(root_node)
 
-	var planet := TestGravitySource.new()
+	var planet = TestGravitySource.new()
 	planet.name = "TestPlanet"
 	planet.global_position = Vector2(10.0, 0.0)
 	root_node.add_child(planet)
 	planet.add_to_group("planets")
 
-	var body := CharacterBody2D.new()
+	var body = CharacterBody2D.new()
 	body.name = "TestBody"
 	body.global_position = Vector2.ZERO
 	root_node.add_child(body)
 
-	var gravity_component := GravityComponentScene.instantiate() as GravityComponent
+	var gravity_component = GravityComponentScene.instantiate() as GravityComponent
 	gravity_component.gravity_constant = 2.0
 	gravity_component.min_gravity_distance = 1.0
 	gravity_component.auto_apply = false
@@ -29,7 +29,7 @@ func _initialize() -> void:
 	await process_frame
 
 	var acceleration: Vector2 = gravity_component.calculate_gravity()
-	var expected := Vector2(2.0, 0.0)
+	var expected = Vector2(2.0, 0.0)
 
 	if not acceleration.is_equal_approx(expected):
 		push_error("Expected acceleration %s, got %s." % [expected, acceleration])
@@ -51,12 +51,12 @@ func _initialize() -> void:
 		quit(1)
 		return
 
-	var auto_body := CharacterBody2D.new()
+	var auto_body = CharacterBody2D.new()
 	auto_body.name = "AutoTestBody"
 	auto_body.global_position = Vector2.ZERO
 	root_node.add_child(auto_body)
 
-	var auto_component := GravityComponentScene.instantiate() as GravityComponent
+	var auto_component = GravityComponentScene.instantiate() as GravityComponent
 	auto_component.gravity_constant = 2.0
 	auto_component.min_gravity_distance = 1.0
 	auto_component.auto_apply = true

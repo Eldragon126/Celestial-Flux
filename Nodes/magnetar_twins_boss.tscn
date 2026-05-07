@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bosses/magnetar_twins_boss.gd" id="1_magnetar"]
+
+[node name="MagnetarTwinsBoss" type="CharacterBody2D" groups=["Objects_With_Gravity", "bosses", "enemies", "planets", "wave_enemy"]]
+script = ExtResource("1_magnetar")

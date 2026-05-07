@@ -2,13 +2,13 @@ extends StaticBody2D
 
 # Enemy variant: holds position and fires fast shots at long range.
 
-const ENEMY_BULLET_SCENE := preload("res://Nodes/enemy_bullet.tscn")
+const ENEMY_BULLET_SCENE = preload("res://Nodes/enemy_bullet.tscn")
 
-@export var min_range := 360.0
-@export var max_range := 1750.0
-@export var fire_interval := 2.25
-@export var projectile_speed := 1550.0
-@export var max_health := 55.0
+@export var min_range = 360.0
+@export var max_range = 1750.0
+@export var fire_interval = 2.25
+@export var projectile_speed = 1550.0
+@export var max_health = 55.0
 
 var _player: Node = null
 var _health: HealthComponent = null
@@ -36,7 +36,7 @@ func take_damage(amount: float) -> void:
 		_health.take_damage(amount)
 
 func _build_body() -> void:
-	var base := Polygon2D.new()
+	var base = Polygon2D.new()
 	base.name = "TurretBasePolygon"
 	base.color = Color(0.52, 0.14, 0.28, 1.0)
 	base.polygon = PackedVector2Array([
@@ -49,7 +49,7 @@ func _build_body() -> void:
 	])
 	add_child(base)
 
-	var barrel := Polygon2D.new()
+	var barrel = Polygon2D.new()
 	barrel.name = "SniperBarrelPolygon"
 	barrel.color = Color(0.0, 0.88, 0.98, 1.0)
 	barrel.polygon = PackedVector2Array([
@@ -61,7 +61,7 @@ func _build_body() -> void:
 	])
 	add_child(barrel)
 
-	var collision := CollisionPolygon2D.new()
+	var collision = CollisionPolygon2D.new()
 	collision.name = "CollisionPolygon2D"
 	collision.polygon = base.polygon
 	add_child(collision)
@@ -96,15 +96,15 @@ func _try_fire() -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
 
-	var distance := global_position.distance_to(_player.global_position)
+	var distance = global_position.distance_to(_player.global_position)
 	if distance < min_range or distance > max_range:
 		return
 
 	var direction = (_player.global_position - global_position).normalized()
-	var bullet := ENEMY_BULLET_SCENE.instantiate()
-	get_parent().add_child(bullet)
+	var bullet = ENEMY_BULLET_SCENE.instantiate()
 	bullet.global_position = global_position + direction * 108.0
 	bullet.apply_impulse(direction * projectile_speed)
+	get_parent().call_deferred("add_child", bullet)
 
 	if _charge_particles != null:
 		_charge_particles.restart()
@@ -114,7 +114,7 @@ func _on_died() -> void:
 	queue_free()
 
 func _make_charge_material() -> ParticleProcessMaterial:
-	var material := ParticleProcessMaterial.new()
+	var material = ParticleProcessMaterial.new()
 	material.particle_flag_disable_z = true
 	material.direction = Vector3(1.0, 0.0, 0.0)
 	material.spread = 12.0

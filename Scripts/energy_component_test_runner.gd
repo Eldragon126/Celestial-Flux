@@ -1,6 +1,6 @@
 extends SceneTree
 
-const EnergyComponentScene := preload("res://Nodes/energy_component.tscn")
+const EnergyComponentScene = preload("res://Nodes/energy_component.tscn")
 
 func _initialize() -> void:
 	var energy_component = EnergyComponentScene.instantiate()

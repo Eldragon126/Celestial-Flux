@@ -5,35 +5,44 @@ extends Node2D
 signal boss_wave
 signal regular_wave
 
-const BASE_ENEMY_SCENE := preload("res://Nodes/base_enemy.tscn")
-const BASE_SHOOTER_SCENE := preload("res://Nodes/base_shooter_enemy.tscn")
-const LEECH_SCENE := preload("res://Nodes/leech_parasite.tscn")
-const SPLITTER_SCENE := preload("res://Nodes/splitting_asteroid_bot.tscn")
-const HARASSER_SCENE := preload("res://Nodes/gravity_harasser.tscn")
-const SNIPER_SCENE := preload("res://Nodes/sniper_turret.tscn")
-const SHIELDER_SCENE := preload("res://Nodes/shielder_support.tscn")
-const NEBULA_SCENE := preload("res://Nodes/nebula_cloud.tscn")
-const UNSTABLE_MOON_SCENE := preload("res://Nodes/unstable_moon.tscn")
-const WORMHOLE_PAIR_SCENE := preload("res://Nodes/wormhole_pair.tscn")
-const GRAVITY_WARDEN_SCENE := preload("res://Nodes/gravity_warden_boss.tscn")
+const BASE_ENEMY_SCENE = preload("res://Nodes/base_enemy.tscn")
+const BASE_SHOOTER_SCENE = preload("res://Nodes/base_shooter_enemy.tscn")
+const LEECH_SCENE = preload("res://Nodes/leech_parasite.tscn")
+const ORBITER_DRONE_SCENE = preload("res://Nodes/orbiter_drone.tscn")
+const GRAVITY_LEECH_SCENE = preload("res://Nodes/gravity_leech.tscn")
+const SEEKER_FRAGMENT_SCENE = preload("res://Nodes/seeker_fragment.tscn")
+const SHIELD_BREAKER_SCENE = preload("res://Nodes/shield_breaker_unit.tscn")
+const CHAOS_WISP_SCENE = preload("res://Nodes/chaos_wisp.tscn")
+const SPLITTER_SCENE = preload("res://Nodes/splitting_asteroid_bot.tscn")
+const HARASSER_SCENE = preload("res://Nodes/gravity_harasser.tscn")
+const SNIPER_SCENE = preload("res://Nodes/sniper_turret.tscn")
+const SHIELDER_SCENE = preload("res://Nodes/shielder_support.tscn")
+const NEBULA_SCENE = preload("res://Nodes/nebula_cloud.tscn")
+const UNSTABLE_MOON_SCENE = preload("res://Nodes/unstable_moon.tscn")
+const WORMHOLE_PAIR_SCENE = preload("res://Nodes/wormhole_pair.tscn")
+const GRAVITY_WARDEN_SCENE = preload("res://Nodes/gravity_warden_boss.tscn")
+const ACCRETION_CORE_SCENE = preload("res://Nodes/accretion_core_boss.tscn")
+const NULL_SERAPH_SCENE = preload("res://Nodes/null_vector_seraph_boss.tscn")
+const MAGNETAR_TWINS_SCENE = preload("res://Nodes/magnetar_twins_boss.tscn")
+const RIFT_WEAVER_SCENE = preload("res://Nodes/rift_weaver_boss.tscn")
 
-@export var first_wave_delay := 2.0
-@export var rest_between_waves := 4.0
-@export var spawn_delay := 0.38
-@export var min_spawn_radius := 760.0
-@export var max_spawn_radius := 1220.0
-@export var boss_every_waves := 5
-@export var max_regular_enemies := 12
+@export var first_wave_delay = 2.0
+@export var rest_between_waves = 4.0
+@export var spawn_delay = 0.48
+@export var min_spawn_radius = 760.0
+@export var max_spawn_radius = 1220.0
+@export var boss_every_waves = 5
+@export var max_regular_enemies = 10
 
 var _player: Node2D = null
 var _level_root: Node = null
-var _wave := 1
-var _wave_running := false
-var _spawning := false
+var _wave = 0
+var _wave_running = false
+var _spawning = false
 var _boss: Node = null
 var _active_enemies: Array[Node] = []
 var _active_hazards: Array[Node] = []
-var _rng := RandomNumberGenerator.new()
+var _rng = RandomNumberGenerator.new()
 
 var _canvas: CanvasLayer
 var _banner_label: Label
@@ -104,12 +113,12 @@ func _spawn_regular_wave() -> void:
 	_banner_label.text = "WAVE %d" % _wave
 	_seed_wave_hazards()
 
-	var roster := _build_wave_roster()
+	var roster = _build_wave_roster()
 	for i in range(roster.size()):
 		if _player == null or not is_instance_valid(_player):
 			return
 
-		var enemy := _spawn_enemy(roster[i], "Wave%dEnemy%d" % [_wave, i])
+		var enemy = _spawn_enemy(roster[i], "Wave%dEnemy%d" % [_wave, i])
 		if enemy != null:
 			_active_enemies.append(enemy)
 
@@ -123,9 +132,10 @@ func _spawn_boss_wave() -> void:
 	_banner_label.text = "BOSS WAVE %d" % _wave
 	_seed_wave_hazards()
 
-	var boss = GRAVITY_WARDEN_SCENE.instantiate()
-	boss.name = "GravityWardenWave%d" % _wave
-	boss.set("max_health", 760.0 + 160.0 * float(_wave / boss_every_waves))
+	var boss_scene = _choose_boss_scene()
+	var boss = boss_scene.instantiate()
+	boss.name = "%sWave%d" % [_boss_node_prefix(boss_scene), _wave]
+	boss.set("max_health", 780.0 + 135.0 * float(_wave / boss_every_waves))
 	_level_root.add_child(boss)
 	boss.global_position = _spawn_position_for_index(_wave)
 	_refresh_player_planet_cache()
@@ -133,7 +143,7 @@ func _spawn_boss_wave() -> void:
 	_boss = boss
 	_active_enemies.append(boss)
 	_boss_panel.visible = true
-	_boss_label.text = "GRAVITY WARDEN"
+	_boss_label.text = _boss_display_name(boss_scene)
 
 	if boss.has_signal("boss_health_changed"):
 		boss.connect("boss_health_changed", Callable(self, "_on_boss_health_changed"))
@@ -144,22 +154,24 @@ func _spawn_boss_wave() -> void:
 
 func _build_wave_roster() -> Array:
 	var roster: Array = []
-	var count := int(min(4 + _wave, max_regular_enemies))
+	var count = int(min(4 + _wave, max_regular_enemies))
 
 	for i in range(count):
 		if _wave <= 1:
-			roster.append(BASE_ENEMY_SCENE if i % 3 != 0 else LEECH_SCENE)
+			roster.append(BASE_ENEMY_SCENE if i % 3 != 0 else ORBITER_DRONE_SCENE)
 		elif _wave == 2:
-			roster.append([BASE_ENEMY_SCENE, LEECH_SCENE, SPLITTER_SCENE][i % 3])
+			roster.append([BASE_ENEMY_SCENE, GRAVITY_LEECH_SCENE, ORBITER_DRONE_SCENE][i % 3])
 		elif _wave == 3:
-			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, SPLITTER_SCENE, SNIPER_SCENE][i % 4])
+			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, SEEKER_FRAGMENT_SCENE, CHAOS_WISP_SCENE][i % 4])
 		elif _wave == 4:
-			roster.append([BASE_SHOOTER_SCENE, HARASSER_SCENE, LEECH_SCENE, SPLITTER_SCENE, SNIPER_SCENE][i % 5])
+			roster.append([BASE_SHOOTER_SCENE, HARASSER_SCENE, GRAVITY_LEECH_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE][i % 5])
 		else:
-			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, LEECH_SCENE, SPLITTER_SCENE, HARASSER_SCENE, SNIPER_SCENE][i % 6])
+			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, ORBITER_DRONE_SCENE, GRAVITY_LEECH_SCENE, SEEKER_FRAGMENT_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, HARASSER_SCENE, SNIPER_SCENE][i % 9])
 
 	if _wave >= 3:
 		roster.insert(int(min(2, roster.size())), SHIELDER_SCENE)
+	if _wave >= 4:
+		roster.insert(int(min(4, roster.size())), SHIELD_BREAKER_SCENE)
 
 	return roster
 
@@ -173,14 +185,14 @@ func _spawn_enemy(scene: PackedScene, node_name: String) -> Node:
 	_tune_enemy_for_wave(enemy)
 
 	_level_root.add_child(enemy)
-	var enemy_2d := enemy as Node2D
+	var enemy_2d = enemy as Node2D
 	if enemy_2d != null:
 		enemy_2d.global_position = _spawn_position_for_index(_active_enemies.size())
 
 	return enemy
 
 func _tune_enemy_for_wave(enemy: Node) -> void:
-	var difficulty := 1.0 + float(max(_wave - 1, 0)) * 0.08
+	var difficulty = 1.0 + float(max(_wave - 1, 0)) * 0.07
 
 	if enemy.get("max_health") != null:
 		enemy.set("max_health", float(enemy.get("max_health")) * difficulty)
@@ -189,16 +201,16 @@ func _tune_enemy_for_wave(enemy: Node) -> void:
 	if enemy.get("fire_interval") != null:
 		enemy.set("fire_interval", maxf(float(enemy.get("fire_interval")) - float(_wave) * 0.045, 0.7))
 
-	var health := enemy.get_node_or_null("HealthComponent")
+	var health = enemy.get_node_or_null("HealthComponent")
 	if health != null:
 		health.set("max_health", float(health.get("max_health")) * difficulty)
 
 func _spawn_battlefield_features() -> void:
-	var origin := _player.global_position
+	var origin = _player.global_position
 	_spawn_hazard_once(NEBULA_SCENE, "PermanentNebulaNorth", origin + Vector2(-740.0, -520.0))
 	_spawn_hazard_once(NEBULA_SCENE, "PermanentNebulaSouth", origin + Vector2(920.0, 680.0))
 
-	var wormhole := _spawn_hazard_once(WORMHOLE_PAIR_SCENE, "PermanentWormholePair", Vector2.ZERO)
+	var wormhole = _spawn_hazard_once(WORMHOLE_PAIR_SCENE, "PermanentWormholePair", Vector2.ZERO)
 	if wormhole != null and wormhole.has_method("set_endpoint_positions"):
 		wormhole.set_endpoint_positions(origin + Vector2(-1280.0, 220.0), origin + Vector2(1300.0, -360.0))
 
@@ -215,7 +227,7 @@ func _spawn_hazard(scene: PackedScene, node_name: String, global_pos: Vector2) -
 	hazard.name = node_name
 	_level_root.add_child(hazard)
 
-	var hazard_2d := hazard as Node2D
+	var hazard_2d = hazard as Node2D
 	if hazard_2d != null:
 		hazard_2d.global_position = global_pos
 
@@ -229,8 +241,8 @@ func _spawn_hazard_once(scene: PackedScene, node_name: String, global_pos: Vecto
 	return _spawn_hazard(scene, node_name, global_pos)
 
 func _spawn_position_for_index(index: int) -> Vector2:
-	var angle := TAU * float(index % 11) / 11.0 + _rng.randf_range(-0.22, 0.22)
-	var radius := _rng.randf_range(min_spawn_radius, max_spawn_radius)
+	var angle = TAU * float(index % 11) / 11.0 + _rng.randf_range(-0.22, 0.22)
+	var radius = _rng.randf_range(min_spawn_radius, max_spawn_radius)
 	return _player.global_position + Vector2(cos(angle), sin(angle)) * radius
 
 func _complete_wave() -> void:
@@ -258,8 +270,45 @@ func _is_boss_wave() -> bool:
 	return boss_every_waves > 0 and _wave % boss_every_waves == 0
 
 func _refresh_player_planet_cache() -> void:
-	if _player != null and _player.get("planets") != null:
+	if _player != null and _player.has_method("_refresh_gravity_sources"):
+		_player.call("_refresh_gravity_sources", true)
+	elif _player != null and _player.get("planets") != null:
 		_player.set("planets", get_tree().get_nodes_in_group("planets"))
+
+func _choose_boss_scene() -> PackedScene:
+	var boss_number = max(0, int(float(_wave) / float(max(1, boss_every_waves))) - 1)
+	var boss_index = boss_number % 5
+	if boss_index == 1:
+		return ACCRETION_CORE_SCENE
+	if boss_index == 2:
+		return NULL_SERAPH_SCENE
+	if boss_index == 3:
+		return MAGNETAR_TWINS_SCENE
+	if boss_index == 4:
+		return RIFT_WEAVER_SCENE
+	return GRAVITY_WARDEN_SCENE
+
+func _boss_display_name(scene: PackedScene) -> String:
+	if scene == ACCRETION_CORE_SCENE:
+		return "THE ACCRETION CORE"
+	if scene == NULL_SERAPH_SCENE:
+		return "NULL VECTOR SERAPH"
+	if scene == MAGNETAR_TWINS_SCENE:
+		return "MAGNETAR TWINS"
+	if scene == RIFT_WEAVER_SCENE:
+		return "TIDAL RIFT WEAVER"
+	return "GRAVITY WARDEN"
+
+func _boss_node_prefix(scene: PackedScene) -> String:
+	if scene == ACCRETION_CORE_SCENE:
+		return "AccretionCore"
+	if scene == NULL_SERAPH_SCENE:
+		return "NullVectorSeraph"
+	if scene == MAGNETAR_TWINS_SCENE:
+		return "MagnetarTwins"
+	if scene == RIFT_WEAVER_SCENE:
+		return "RiftWeaver"
+	return "GravityWarden"
 
 func _on_boss_health_changed(current_health: float, max_health: float) -> void:
 	_boss_bar.max_value = maxf(max_health, 1.0)
@@ -283,7 +332,7 @@ func _build_ui() -> void:
 	_canvas.layer = 55
 	add_child(_canvas)
 
-	var banner_panel := PanelContainer.new()
+	var banner_panel = PanelContainer.new()
 	banner_panel.name = "WaveBannerPanel"
 	banner_panel.anchor_left = 0.5
 	banner_panel.anchor_right = 0.5
@@ -324,7 +373,7 @@ func _build_ui() -> void:
 	_boss_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.04, 0.01, 0.025, 0.76), Color(1.0, 0.18, 0.08, 0.55)))
 	_canvas.add_child(_boss_panel)
 
-	var boss_rows := VBoxContainer.new()
+	var boss_rows = VBoxContainer.new()
 	boss_rows.name = "BossRows"
 	boss_rows.add_theme_constant_override("separation", 6)
 	_boss_panel.add_child(boss_rows)
@@ -344,7 +393,7 @@ func _build_ui() -> void:
 	boss_rows.add_child(_boss_bar)
 
 func _make_panel_style(bg: Color, border: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
+	var style = StyleBoxFlat.new()
 	style.bg_color = bg
 	style.border_color = border
 	style.border_width_left = 2

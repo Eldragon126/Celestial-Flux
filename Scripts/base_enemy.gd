@@ -6,10 +6,13 @@ extends CharacterBody2D
 @export var drag: float = 0.55
 @export var gravity_constant: float = 500.0
 @export var min_grav_dist: float = 50.0
+@export var gravity_refresh_interval: float = 0.45
+@export var max_gravity_sources: int = 4
 
 var Player: Node2D
 var planets: Array[Node] = []
 var direction_variance: Vector2
+var _gravity_refresh_elapsed = 0.0
 
 @onready var trail_particles: GPUParticles2D = $GPUParticles2D2
 
@@ -23,7 +26,7 @@ func _ready() -> void:
 	scale = Vector2(scale_size, scale_size)
 
 	Player = get_tree().get_first_node_in_group("Player")
-	planets = get_tree().get_nodes_in_group("planets")
+	_refresh_planets()
 
 
 func _physics_process(delta: float) -> void:
@@ -32,14 +35,16 @@ func _physics_process(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	_gravity_refresh_elapsed += delta
+
 	# Refresh player reference if needed
 	if not is_instance_valid(Player):
 		Player = get_tree().get_first_node_in_group("Player")
 
 	# Clean up planet list
 	planets = planets.filter(func(p): return is_instance_valid(p))
-	if planets.is_empty():
-		planets = get_tree().get_nodes_in_group("planets")
+	if planets.is_empty() or _gravity_refresh_elapsed >= gravity_refresh_interval:
+		_refresh_planets()
 
 	var grav_accel: Vector2 = Vector2.ZERO
 
@@ -114,3 +119,26 @@ func _on_attack_area_body_entered(body: Node2D) -> void:
 
 		if "velocity" in body:
 			body.velocity -= knockback_dir * 600
+
+func _refresh_planets() -> void:
+	_gravity_refresh_elapsed = 0.0
+	planets.clear()
+	var seen = {}
+
+	for group_name in [&"Objects_With_Gravity", &"planets"]:
+		for source in get_tree().get_nodes_in_group(group_name):
+			var source_2d = source as Node2D
+			if source_2d == null or source_2d == self:
+				continue
+			var id = source_2d.get_instance_id()
+			if seen.has(id):
+				continue
+			seen[id] = true
+			planets.append(source_2d)
+
+	planets.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return a.global_position.distance_squared_to(global_position) < b.global_position.distance_squared_to(global_position)
+	)
+
+	if max_gravity_sources > 0 and planets.size() > max_gravity_sources:
+		planets.resize(max_gravity_sources)

@@ -2,13 +2,13 @@ extends Node2D
 
 # Celestial hazard/utility: a paired teleporter with polygon rings and particles.
 
-@export var endpoint_radius := 82.0
-@export var cooldown_seconds := 0.85
+@export var endpoint_radius = 82.0
+@export var cooldown_seconds = 0.85
 
 var _entry: Area2D
 var _exit: Area2D
-var _pending_entry_global := Vector2(-280.0, 0.0)
-var _pending_exit_global := Vector2(280.0, 0.0)
+var _pending_entry_global = Vector2(-280.0, 0.0)
+var _pending_exit_global = Vector2(280.0, 0.0)
 
 func _ready() -> void:
 	_entry = _build_endpoint("EntryWormhole", Color(0.0, 0.92, 1.0, 0.78))
@@ -35,30 +35,30 @@ func _position_endpoints_global() -> void:
 	_exit.position = _pending_exit_global - global_position
 
 func _build_endpoint(endpoint_name: String, ring_color: Color) -> Area2D:
-	var endpoint := Area2D.new()
+	var endpoint = Area2D.new()
 	endpoint.name = endpoint_name
 	endpoint.monitoring = true
 	add_child(endpoint)
 
-	var collision := CollisionShape2D.new()
-	var circle := CircleShape2D.new()
+	var collision = CollisionShape2D.new()
+	var circle = CircleShape2D.new()
 	circle.radius = endpoint_radius
 	collision.shape = circle
 	endpoint.add_child(collision)
 
-	var ring := Polygon2D.new()
+	var ring = Polygon2D.new()
 	ring.name = "WormholeRingPolygon"
 	ring.color = ring_color
 	ring.polygon = _circle_points(36, endpoint_radius)
 	endpoint.add_child(ring)
 
-	var core := Polygon2D.new()
+	var core = Polygon2D.new()
 	core.name = "WormholeCorePolygon"
 	core.color = Color(ring_color.r, ring_color.g, ring_color.b, 0.26)
 	core.polygon = _circle_points(24, endpoint_radius * 0.52)
 	endpoint.add_child(core)
 
-	var particles := GPUParticles2D.new()
+	var particles = GPUParticles2D.new()
 	particles.name = "WormholeParticles"
 	particles.z_index = -1
 	particles.amount = 130
@@ -78,8 +78,8 @@ func _teleport_body(body: Node, destination: Node2D) -> void:
 	if destination == null or not (body is Node2D):
 		return
 
-	var now := Time.get_ticks_msec() / 1000.0
-	var next_allowed := float(body.get_meta("wormhole_cooldown_until", 0.0))
+	var now = Time.get_ticks_msec() / 1000.0
+	var next_allowed = float(body.get_meta("wormhole_cooldown_until", 0.0))
 	if now < next_allowed:
 		return
 
@@ -95,14 +95,14 @@ func _teleport_body(body: Node, destination: Node2D) -> void:
 		body.set("velocity", velocity.rotated(PI * 0.12))
 
 func _make_wormhole_material(ring_color: Color) -> ParticleProcessMaterial:
-	var gradient := Gradient.new()
+	var gradient = Gradient.new()
 	gradient.set_color(0, ring_color)
 	gradient.set_color(1, Color(ring_color.r, ring_color.g, ring_color.b, 0.0))
 
-	var texture := GradientTexture1D.new()
+	var texture = GradientTexture1D.new()
 	texture.gradient = gradient
 
-	var material := ParticleProcessMaterial.new()
+	var material = ParticleProcessMaterial.new()
 	material.particle_flag_disable_z = true
 	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
 	material.emission_sphere_radius = endpoint_radius
@@ -120,8 +120,8 @@ func _make_wormhole_material(ring_color: Color) -> ParticleProcessMaterial:
 	return material
 
 func _circle_points(count: int, circle_radius: float) -> PackedVector2Array:
-	var points := PackedVector2Array()
+	var points = PackedVector2Array()
 	for i in range(count):
-		var angle := TAU * float(i) / float(count)
+		var angle = TAU * float(i) / float(count)
 		points.append(Vector2(cos(angle), sin(angle)) * circle_radius)
 	return points

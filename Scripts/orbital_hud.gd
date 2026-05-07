@@ -56,7 +56,7 @@ func _build_vignette() -> void:
 	_critical_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_critical_vignette.color = Color.TRANSPARENT
 	
-	var shader := Shader.new()
+	var shader = Shader.new()
 	shader.code = """
     shader_type canvas_item;
     
@@ -77,20 +77,20 @@ func _build_vignette() -> void:
 
 
 func _build_readout_panel() -> void:
-	var panel := PanelContainer.new()
+	var panel = PanelContainer.new()
 	panel.offset_left = 18.0
 	panel.offset_top = 96.0
 	panel.custom_minimum_size = Vector2(260.0, 94.0)
 	_hud_root.add_child(panel)
 	
-	var style := StyleBoxFlat.new()
+	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.02, 0.025, 0.04, 0.68)
 	style.border_color = Color(0.1, 0.95, 0.85, 0.48)
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(6)
 	panel.add_theme_stylebox_override("panel", style)
 	
-	var rows := VBoxContainer.new()
+	var rows = VBoxContainer.new()
 	rows.add_theme_constant_override("separation", 8)
 	panel.add_child(rows)
 	
@@ -115,11 +115,11 @@ func _build_readout_panel() -> void:
 
 
 func _build_nav_arrows() -> void:
-	var arrow_layer := Node2D.new()
+	var arrow_layer = Node2D.new()
 	_hud_root.add_child(arrow_layer)
 	
 	for i in range(max_arrow_count):
-		var arrow := Polygon2D.new()
+		var arrow = Polygon2D.new()
 		arrow.polygon = PackedVector2Array([
 			Vector2(0, -18),
 			Vector2(13, 12),
@@ -137,7 +137,7 @@ func _build_nav_arrows() -> void:
 # ============================
 
 func _update_speedometer() -> void:
-	var velocity: Vector2 = _player.get("velocity") if _player.has_method("get") else Vector2.ZERO
+	var velocity = _player.get("velocity") if _player.has_method("get") else Vector2.ZERO
 	if velocity == null:
 		velocity = Vector2.ZERO
 	
@@ -172,7 +172,7 @@ func _calculate_gravity_at_player() -> Vector2:
 	var gravity_constant: float = float(_player.get("gravity_constant") or 0.0)
 	var min_grav_dist: float = maxf(float(_player.get("min_grav_dist") or 1.0), 1.0)
 	
-	var total := Vector2.ZERO
+	var total = Vector2.ZERO
 	for planet in get_tree().get_nodes_in_group("planets"):
 		if not (planet is Node2D):
 			continue
@@ -195,7 +195,7 @@ func _calculate_gravity_at_player() -> Vector2:
 # ============================
 
 func _update_health_vignette(delta: float) -> void:
-	var health_component := _player.get_node_or_null("HealthComponent")
+	var health_component = _player.get_node_or_null("HealthComponent")
 	var target_intensity: float = 0.0
 	
 	if health_component != null:

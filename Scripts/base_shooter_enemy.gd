@@ -7,17 +7,21 @@ extends CharacterBody2D
 @export var max_speed: float = 500.0
 @export var min_grav_dist: float = 50.0
 @export var drag: float = 0.5
+@export var gravity_refresh_interval: float = 0.45
+@export var max_gravity_sources: int = 4
 
 var Player: Node = null
 var planets: Array = []
+var _gravity_refresh_elapsed = 0.0
 
 func _ready() -> void:
 	Player = get_tree().get_first_node_in_group("Player")
-	planets = get_tree().get_nodes_in_group("planets")
+	_refresh_planets()
 
 func _process(delta: float) -> void:
-	# Refresh planets list (safe for dynamic spawning/despawning)
-	planets = get_tree().get_nodes_in_group("planets")
+	_gravity_refresh_elapsed += delta
+	if _gravity_refresh_elapsed >= gravity_refresh_interval:
+		_refresh_planets()
 
 	var grav_accel: Vector2 = Vector2.ZERO
 
@@ -33,8 +37,9 @@ func _process(delta: float) -> void:
 
 		var dir: Vector2 = (planet.global_position - global_position).normalized()
 
-		# Safe mass access
-		var p_mass = planet.get("mass") if "mass" in planet else 100.0
+		var mass_value: Variant = planet.get("mass")
+		var mass_type = typeof(mass_value)
+		var p_mass = float(mass_value) if mass_type == TYPE_FLOAT or mass_type == TYPE_INT else 100.0
 
 		var strength: float = gravity_constant * p_mass / (to_planet * to_planet)
 		grav_accel += dir * strength
@@ -70,7 +75,7 @@ func _on_shoot_animation_animation_started(anim_name: StringName) -> void:
 		var projectile_scene = load("res://Nodes/enemy_bullet.tscn")
 		var projectile = projectile_scene.instantiate()
 
-		var force_of_impulse := 900
+		var force_of_impulse = 900
 
 		if Player != null and is_instance_valid(Player):
 			var dir: Vector2 = (Player.global_position - global_position).normalized()
@@ -111,3 +116,26 @@ func _on_attack_area_body_entered(body: Node2D) -> void:
 
 		if "velocity" in body:
 			body.velocity -= knockback_dir * 400
+
+func _refresh_planets() -> void:
+	_gravity_refresh_elapsed = 0.0
+	planets.clear()
+	var seen = {}
+
+	for group_name in [&"Objects_With_Gravity", &"planets"]:
+		for source in get_tree().get_nodes_in_group(group_name):
+			var source_2d = source as Node2D
+			if source_2d == null or source_2d == self:
+				continue
+			var id = source_2d.get_instance_id()
+			if seen.has(id):
+				continue
+			seen[id] = true
+			planets.append(source_2d)
+
+	planets.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return a.global_position.distance_squared_to(global_position) < b.global_position.distance_squared_to(global_position)
+	)
+
+	if max_gravity_sources > 0 and planets.size() > max_gravity_sources:
+		planets.resize(max_gravity_sources)

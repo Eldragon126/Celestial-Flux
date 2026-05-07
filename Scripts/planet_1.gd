@@ -4,6 +4,9 @@ var mass = 400000
 @export var radius: float = 150.0
 
 func _ready() -> void:
+	add_to_group("planets")
+	add_to_group("Objects_With_Gravity")
+
 	# 1. Randomize radius first
 	radius *= randf_range(0.5, 1.75)
 	
