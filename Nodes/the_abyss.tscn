@@ -44,7 +44,7 @@ environment = SubResource("Environment_7nq7w")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="." unique_id=487829994]
 
 [node name="BlackHole" parent="." unique_id=1841234195 instance=ExtResource("6_hmxhb")]
-position = Vector2(3454, 1974)
+position = Vector2(5358, 1589)
 
 [node name="OrbitalJuiceManager" type="Node2D" parent="." unique_id=163104507]
 script = ExtResource("7_juice")
