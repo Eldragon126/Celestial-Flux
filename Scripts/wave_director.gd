@@ -414,3 +414,11 @@ func _clear_remaining_wave_enemies() -> void:
 		if enemy != _boss and enemy != null and is_instance_valid(enemy):
 			enemy.queue_free()
 	_active_enemies.clear()
+
+
+func _on_wave_music_finished() -> void:
+	$WaveMusic.play()
+
+
+func _on_boss_wave_music_finished() -> void:
+	$BossWaveMusic.play()

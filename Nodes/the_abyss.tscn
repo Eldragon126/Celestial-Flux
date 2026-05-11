@@ -30,7 +30,7 @@ fog_height_density = 16.0
 script = ExtResource("1_hmxhb")
 
 [node name="Planet1" parent="." unique_id=1811765486 instance=ExtResource("1_bpjxb")]
-position = Vector2(115, 53)
+position = Vector2(53, 287)
 
 [node name="Player" parent="." unique_id=943672105 instance=ExtResource("2_souor")]
 position = Vector2(465, 780)
@@ -48,3 +48,18 @@ position = Vector2(3454, 1974)
 
 [node name="OrbitalJuiceManager" type="Node2D" parent="." unique_id=163104507]
 script = ExtResource("7_juice")
+
+[node name="Planet2" parent="." unique_id=705870222 instance=ExtResource("1_bpjxb")]
+position = Vector2(53, 2000)
+
+[node name="Planet3" parent="." unique_id=1813700944 instance=ExtResource("1_bpjxb")]
+position = Vector2(53, 4000)
+
+[node name="Planet4" parent="." unique_id=1164098613 instance=ExtResource("1_bpjxb")]
+position = Vector2(53, 3000)
+
+[node name="Planet5" parent="." unique_id=1114074345 instance=ExtResource("1_bpjxb")]
+position = Vector2(53, 5000)
+
+[node name="Planet6" parent="." unique_id=1464163550 instance=ExtResource("1_bpjxb")]
+position = Vector2(53, 6000)
