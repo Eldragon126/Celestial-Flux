@@ -1,3 +1,15 @@
-# Godot 4+ specific ignores
-.godot/
-/android/
+```
+# Build artifacts
+*.import
+*.remap
+export_presets.cfg
+# Dependencies
+addons/
+# Temporary files
+*.tmp
+*.log
+# Editor settings
+.editor/
+.vscode/
+.idea/
+```
