@@ -1,0 +1,6 @@
+res://Nodes/projectile_predictor.tscn
+res://Scripts/planet_1.gdshader
+res://Scripts/playershield.gdshader
+res://Scripts/player.gdshader
+res://Nodes/player.tscn
+res://Nodes/projectile.tscn

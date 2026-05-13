@@ -16,7 +16,7 @@ const HARASSER_SCENE = preload("res://Nodes/gravity_harasser.tscn")
 const COLLISION_SPARK_SCENE = preload("res://Nodes/collision_sparks.tscn")
 
 @export var max_health = 880.0
-@export var mass = 245000.0
+@export var mass = 265000.0
 @export var orbit_distance = 820.0
 @export var move_speed = 470.0
 @export var gravity_radius = 840.0

@@ -306,15 +306,20 @@ func _on_dash_timeout():
 # ========================
 
 func shoot():
-	var p = projectile_scene.instantiate()
+	var p = projectile_scene.instantiate() as RigidBody2D
+	if not p:
+		return
 	var spawn_dir = -transform.x.normalized()
 	p.global_position = global_position + spawn_dir * 70
+	p.global_rotation = rotation
 	
 	# Add to current scene root to avoid local transform issues
 	get_tree().current_scene.call_deferred("add_child", p)
 	$BulletBlastSoundEffect.play()
-	if p.has_method("apply_impulse"):
-		p.apply_impulse(spawn_dir * 900)
+	if p.has_method("launch"):
+		p.call_deferred("launch", spawn_dir)
+	else:
+		p.call_deferred("apply_central_impulse", spawn_dir * 900)
 	if recoil_instability > 0.0:
 		velocity -= spawn_dir.rotated(randf_range(-0.22, 0.22)) * recoil_instability
 	if powerup_inventory != null:

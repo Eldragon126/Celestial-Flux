@@ -11,7 +11,6 @@
 [ext_resource type="AudioStream" uid="uid://cqgghnrykol0u" path="res://Assets/Songs/[Err -42] invalid thread change.mp3" id="9_vpyrl"]
 
 [sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_wmx4x"]
-playback_mode = 1
 random_volume_offset_db = 2.0
 streams_count = 5
 stream_0/stream = ExtResource("2_dyw32")
@@ -58,7 +57,6 @@ _data = {
 }
 
 [sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_ngj8w"]
-playback_mode = 1
 streams_count = 3
 stream_0/stream = ExtResource("7_5tvm2")
 stream_1/stream = ExtResource("8_871jo")
@@ -118,3 +116,6 @@ stream = SubResource("AudioStreamRandomizer_ngj8w")
 [node name="Volume Intro" type="AnimationPlayer" parent="BossWaveMusic" unique_id=1790486823]
 libraries/ = SubResource("AnimationLibrary_ngj8w")
 autoplay = &"Volume Intro"
+
+[connection signal="finished" from="WaveMusic" to="." method="_on_wave_music_finished"]
+[connection signal="finished" from="BossWaveMusic" to="." method="_on_boss_wave_music_finished"]

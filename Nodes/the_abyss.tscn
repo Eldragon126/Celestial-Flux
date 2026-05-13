@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://b21qhaniop41p" path="res://Scripts/the_abyss.gd" id="1_hmxhb"]
 [ext_resource type="PackedScene" uid="uid://bar4e30caja5p" path="res://Nodes/player.tscn" id="2_souor"]
 [ext_resource type="PackedScene" uid="uid://nfcuwc1hcu21" path="res://Nodes/black_hole.tscn" id="6_hmxhb"]
+[ext_resource type="Script" uid="uid://dk5kb2f3tf0y7" path="res://Scripts/time_dilation_manager.gd" id="6_r4pno"]
 [ext_resource type="Script" uid="uid://bik4q8pcaj1vy" path="res://Scripts/orbital_juice_manager.gd" id="7_juice"]
 
 [sub_resource type="Animation" id="Animation_souor"]
@@ -30,7 +31,7 @@ fog_height_density = 16.0
 script = ExtResource("1_hmxhb")
 
 [node name="Planet1" parent="." unique_id=1811765486 instance=ExtResource("1_bpjxb")]
-position = Vector2(115, 53)
+position = Vector2(53, 287)
 
 [node name="Player" parent="." unique_id=943672105 instance=ExtResource("2_souor")]
 position = Vector2(465, 780)
@@ -44,7 +45,26 @@ environment = SubResource("Environment_7nq7w")
 [node name="LightOccluder2D" type="LightOccluder2D" parent="." unique_id=487829994]
 
 [node name="BlackHole" parent="." unique_id=1841234195 instance=ExtResource("6_hmxhb")]
-position = Vector2(3454, 1974)
+position = Vector2(5358, 1589)
 
 [node name="OrbitalJuiceManager" type="Node2D" parent="." unique_id=163104507]
 script = ExtResource("7_juice")
+
+[node name="Planet2" parent="." unique_id=705870222 instance=ExtResource("1_bpjxb")]
+position = Vector2(53, 2000)
+
+[node name="Planet3" parent="." unique_id=1813700944 instance=ExtResource("1_bpjxb")]
+position = Vector2(53, 4000)
+
+[node name="Planet4" parent="." unique_id=1164098613 instance=ExtResource("1_bpjxb")]
+position = Vector2(53, 3000)
+
+[node name="Planet5" parent="." unique_id=1114074345 instance=ExtResource("1_bpjxb")]
+position = Vector2(53, 5000)
+
+[node name="Planet6" parent="." unique_id=1464163550 instance=ExtResource("1_bpjxb")]
+position = Vector2(53, 6000)
+
+[node name="TimeDilationManager" type="Node" parent="." unique_id=665013840]
+script = ExtResource("6_r4pno")
+metadata/_custom_type_script = "uid://dk5kb2f3tf0y7"

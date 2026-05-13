@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cm03jb2735uw4"]
+
+[ext_resource type="Script" uid="uid://8e10xg8c2op6" path="res://Scripts/projectile_predictor.gd" id="1_v1dqn"]
+
+[node name="ProjectilePredictor" type="Node2D" unique_id=782046240]
+script = ExtResource("1_v1dqn")
