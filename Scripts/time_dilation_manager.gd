@@ -1,10 +1,8 @@
+# time_dilation_manager.gd
 extends Node
 class_name TimeDilationManager
 
 ## Time Dilation System for ORBITRON: VECTORFALL
-## Time dilation is NOT a panic button - it's precision rhythm combat
-## Preserves momentum during slowdown, enables delayed release bursts,
-## harmful afterimages, threading impossible trajectories
 
 @export var base_time_scale: float = 1.0
 @export var min_time_scale: float = 0.1
@@ -27,7 +25,6 @@ var _dilation_input_active: bool = false
 var _afterimage_timer: float = 0.0
 var _afterimage_positions: Array[Dictionary] = []
 var _local_slow_effects: Dictionary = {}
-var _global_slow_factor: float = 1.0
 var _momentum_preservation_active: bool = true
 
 signal time_scale_changed(new_scale: float, capacity: float)
@@ -48,7 +45,6 @@ func _process(delta: float) -> void:
 	_update_afterimages(delta)
 	_update_local_time_effects(delta)
 	
-	# Emit signal for audio/visual systems
 	time_scale_changed.emit(current_time_scale, current_dilation_capacity)
 
 func _physics_process(_delta: float) -> void:
@@ -80,7 +76,6 @@ func _end_dilation() -> void:
 
 func _update_capacity(delta: float) -> void:
 	if is_dilating:
-		# Drain capacity while dilating
 		var drain = dilation_cost_per_second * delta
 		current_dilation_capacity -= drain
 		
@@ -89,21 +84,18 @@ func _update_capacity(delta: float) -> void:
 			is_dilating = false
 			capacity_depleted.emit()
 	else:
-		# Recover capacity when not dilating
 		var recover = recovery_rate * delta * 20.0
 		current_dilation_capacity += recover
 		current_dilation_capacity = minf(current_dilation_capacity, initial_dilation_capacity)
 
 func _update_global_time_scale() -> void:
 	if is_dilating and current_dilation_capacity > 0.0:
-		# Calculate time scale based on remaining capacity
 		var target_scale = lerp(min_time_scale, base_time_scale, 
 			current_dilation_capacity / initial_dilation_capacity)
 		current_time_scale = lerp(current_time_scale, target_scale, dilation_rate * get_physics_process_delta_time())
 	else:
 		current_time_scale = lerp(current_time_scale, base_time_scale, recovery_rate * get_physics_process_delta_time())
 	
-	# Apply to engine (this affects global physics)
 	Engine.time_scale = current_time_scale
 
 func _update_afterimages(delta: float) -> void:
@@ -115,6 +107,14 @@ func _update_afterimages(delta: float) -> void:
 	if _afterimage_timer >= afterimage_interval:
 		_afterimage_timer = 0.0
 		_spawn_afterimage()
+	
+	# Update existing afterimages
+	for i in range(_afterimage_positions.size() - 1, -1, -1):
+		var afterimage = _afterimage_positions[i]
+		afterimage["lifetime"] -= delta
+		
+		if afterimage["lifetime"] <= 0.0:
+			_afterimage_positions.remove_at(i)
 
 func _spawn_afterimage() -> void:
 	var player = get_tree().get_first_node_in_group("Player")
@@ -123,22 +123,14 @@ func _spawn_afterimage() -> void:
 	
 	var afterimage_data = {
 		"position": player.global_position,
-		"rotation": player.rotation,
+		"rotation": player.rotation if "rotation" in player else 0.0,
 		"velocity": player.velocity if "velocity" in player else Vector2.ZERO,
 		"lifetime": afterimage_lifetime,
-		"scale": player.scale
+		"scale": player.scale if "scale" in player else Vector2.ONE
 	}
 	
 	_afterimage_positions.append(afterimage_data)
 	afterimage_spawned.emit(afterimage_data["position"], afterimage_data["velocity"])
-
-func _update_afterimages(delta: float) -> void:
-	for i in range(_afterimage_positions.size() - 1, -1, -1):
-		var afterimage = _afterimage_positions[i]
-		afterimage["lifetime"] -= delta
-		
-		if afterimage["lifetime"] <= 0.0:
-			_afterimage_positions.remove_at(i)
 
 func add_near_miss_charge(amount: float = near_miss_charge_amount) -> void:
 	current_dilation_capacity = minf(current_dilation_capacity + amount, initial_dilation_capacity * 1.2)
@@ -172,7 +164,6 @@ func apply_local_slow_to_target(target: Node, multiplier: float, duration: float
 	target.set_meta("local_time_scale", clampf(multiplier, 0.05, 1.0))
 	target.set_meta("local_time_scale_until", until)
 	
-	# Affect velocity for visual feedback
 	var velocity: Variant = target.get("velocity")
 	if velocity is Vector2:
 		target.set("velocity", velocity * maxf(multiplier, 0.25))
@@ -211,7 +202,6 @@ func _update_local_time_effects(delta: float) -> void:
 
 func get_momentum_preserved_velocity(base_velocity: Vector2) -> Vector2:
 	if _momentum_preservation_active and is_dilating:
-		# Preserve full momentum during time dilation
 		return base_velocity
 	return base_velocity * current_time_scale
 

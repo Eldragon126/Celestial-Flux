@@ -24,6 +24,7 @@ fill_to = Vector2(0.8974359, 0.12820514)
 [node name="Projectile" type="RigidBody2D" unique_id=2088385998]
 mass = 0.25
 physics_material_override = SubResource("PhysicsMaterial_qxf0c")
+gravity_scale = 0.0
 contact_monitor = true
 max_contacts_reported = 2
 linear_damp_mode = 1
