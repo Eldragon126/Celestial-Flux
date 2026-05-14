@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://gl60b8t6wpue"]
+
+[ext_resource type="Script" uid="uid://bldsjmtcko3dx" path="res://Scripts/arena_destabilization_manager.gd" id="1_arena"]
+
+[node name="ArenaDestabilizationManager" type="Node2D" unique_id=1221637910]
+script = ExtResource("1_arena")

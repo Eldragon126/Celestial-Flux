@@ -17,7 +17,7 @@ fill = 1
 fill_from = Vector2(0.5071225, 0.50427353)
 fill_to = Vector2(0.8974359, 0.12820514)
 
-[node name="EnemyBullet" type="RigidBody2D" unique_id=1240722569]
+[node name="EnemyBullet" type="RigidBody2D" unique_id=1240722569 groups=["Projectiles", "enemy_projectiles"]]
 scale = Vector2(2, 2)
 mass = 0.25
 gravity_scale = 0.0
@@ -28,7 +28,7 @@ script = ExtResource("1_a5yi5")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=384327214]
 shape = SubResource("CircleShape2D_a5yi5")
 
-[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1761201752 groups=["Projectiles"]]
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1761201752]
 energy = 2.0
 texture = SubResource("GradientTexture2D_hs4g0")
 

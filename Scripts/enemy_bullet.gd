@@ -10,6 +10,7 @@ extends RigidBody2D
 @export var homing_strength: float = 400.0
 @export var max_speed: float = 1200.0
 @export var is_homing: bool = true
+@export var debug_logging: bool = false
 
 var planets: Array[Node2D] = []
 var target: Node2D = null
@@ -20,6 +21,8 @@ func _ready() -> void:
 	gravity_scale = 0.0
 	contact_monitor = true
 	max_contacts_reported = 4
+	add_to_group("Projectiles")
+	add_to_group("enemy_projectiles")
 	
 	target = get_tree().get_first_node_in_group("Player")
 	
@@ -41,7 +44,8 @@ func _auto_launch() -> void:
 	var launch_dir = Vector2.RIGHT.rotated(global_rotation)
 	linear_velocity = launch_dir * initial_speed
 	
-	print("Enemy projectile auto-launched | Speed: ", linear_velocity.length())
+	if debug_logging:
+		print("Enemy projectile auto-launched | Speed: ", linear_velocity.length())
 
 
 func _physics_process(_delta: float) -> void:

@@ -5,8 +5,10 @@ extends RigidBody2D
 @export var min_grav_dist: float = 50.0
 @export var damage_min: float = 28.0
 @export var damage_max: float = 38.0
+@export var momentum_damage_cap: float = 2.75
 
 @export var initial_speed: float = 850.0
+@export var debug_logging: bool = false
 
 var planets: Array[Node2D] = []
 var _has_launched: bool = false
@@ -16,6 +18,8 @@ func _ready() -> void:
 	gravity_scale = 0.0
 	contact_monitor = true
 	max_contacts_reported = 4
+	add_to_group("Projectiles")
+	add_to_group("player_projectiles")
 	
 	_refresh_gravity_sources()
 	
@@ -23,7 +27,8 @@ func _ready() -> void:
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
 	
-	print("Projectile instantiated at ", global_position)
+	if debug_logging:
+		print("Projectile instantiated at ", global_position)
 
 
 # ========================
@@ -45,7 +50,8 @@ func _apply_launch_velocity(direction: Vector2) -> void:
 		return
 	
 	linear_velocity = direction.normalized() * initial_speed
-	print("Projectile LAUNCHED! Speed: ", linear_velocity.length())
+	if debug_logging:
+		print("Projectile LAUNCHED! Speed: ", linear_velocity.length())
 
 
 func _physics_process(_delta: float) -> void:
@@ -83,7 +89,7 @@ func _on_body_entered(body: Node) -> void:
 	
 	if body.has_method("take_damage"):
 		if not body.is_in_group("Player"):
-			body.take_damage(randf_range(damage_min, damage_max))
+			body.take_damage(_roll_damage())
 			queue_free()
 	
 	elif body.is_in_group("planets") or body.is_in_group("obstacles"):
@@ -115,3 +121,7 @@ func _refresh_gravity_sources() -> void:
 	
 	if max_gravity_sources > 0 and planets.size() > max_gravity_sources:
 		planets.resize(max_gravity_sources)
+
+func _roll_damage() -> float:
+	var multiplier = clampf(float(get_meta(&"momentum_damage_multiplier", 1.0)), 0.1, momentum_damage_cap)
+	return randf_range(damage_min, damage_max) * multiplier

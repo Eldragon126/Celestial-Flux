@@ -9,6 +9,11 @@ const THRUSTER_TRAILS_SCENE = preload("res://Nodes/player_thruster_trails.tscn")
 const ENGINE_HUM_SCENE = preload("res://Nodes/player_engine_hum.tscn")
 const CAMERA_SHAKE_SCENE = preload("res://Nodes/player_damage_camera_shake.tscn")
 const SPARK_WATCHER_SCENE = preload("res://Nodes/projectile_spark_watcher.tscn")
+const DEBUG_BALANCE_OVERLAY_SCENE = preload("res://Nodes/debug_balance_overlay.tscn")
+const MOMENTUM_COMBAT_SCENE = preload("res://Nodes/momentum_combat_component.tscn")
+const GRAVITY_RESONANCE_SCENE = preload("res://Nodes/gravity_resonance_manager.tscn")
+const ARENA_DESTABILIZATION_SCENE = preload("res://Nodes/arena_destabilization_manager.tscn")
+const PHYSICS_AWARE_ENEMY_DIRECTOR_SCENE = preload("res://Nodes/physics_aware_enemy_director.tscn")
 
 const PLANET_ATMOSPHERE_SCENE = preload("res://Nodes/planet_atmosphere_dust.tscn")
 const WAVE_DIRECTOR_SCENE = preload("res://Nodes/wave_director.tscn")
@@ -24,9 +29,14 @@ const SNIPER_TURRET_SCENE = preload("res://Nodes/sniper_turret.tscn")
 const SHIELDER_SUPPORT_SCENE = preload("res://Nodes/shielder_support.tscn")
 
 @export var attach_player_juice = true
+@export var attach_momentum_combat = true
 @export var attach_planet_atmospheres = true
 @export var attach_projectile_sparks = true
+@export var enable_debug_balance_overlay = true
+@export var enable_gravity_resonance = true
 @export var enable_wave_game = true
+@export var enable_arena_destabilization = true
+@export var enable_physics_aware_enemy_ai = true
 @export var spawn_showcase_content = false
 
 var _installed = false
@@ -45,18 +55,31 @@ func _install_modular_additions() -> void:
 	var player = get_tree().get_first_node_in_group("Player")
 
 	_add_child_scene_once(level_root, HUD_SCENE, "OrbitalHUD")
+	if enable_debug_balance_overlay:
+		# The balance overlay is its own CanvasLayer, so telemetry can be
+		# toggled or removed without changing player, enemy, or wave logic.
+		_add_child_scene_once(level_root, DEBUG_BALANCE_OVERLAY_SCENE, "DebugBalanceOverlay")
 
 	if attach_projectile_sparks:
 		_add_child_scene_once(level_root, SPARK_WATCHER_SCENE, "ProjectileSparkWatcher")
-		
-		
 
-	if player != null and attach_player_juice:
-		_add_child_scene_once(player, THRUSTER_TRAILS_SCENE, "PlayerThrusterTrails")
-		_add_child_scene_once(player, ENGINE_HUM_SCENE, "PlayerEngineHum")
+	if enable_gravity_resonance:
+		# Resonance is the shared gravity telemetry layer: arena escalation,
+		# projectiles, VFX, and future audio hooks can all listen here.
+		_add_child_scene_once(level_root, GRAVITY_RESONANCE_SCENE, "GravityResonanceManager")
+
+	if player != null:
+		if attach_player_juice:
+			_add_child_scene_once(player, THRUSTER_TRAILS_SCENE, "PlayerThrusterTrails")
+			_add_child_scene_once(player, ENGINE_HUM_SCENE, "PlayerEngineHum")
+
+		if attach_momentum_combat:
+			# Momentum combat stays as a player add-on: it rewards slingshots,
+			# near-misses, and kinetic impacts without rewriting player.gd.
+			_add_child_scene_once(player, MOMENTUM_COMBAT_SCENE, "MomentumCombatComponent")
 
 		var camera = player.get_node_or_null("Camera2D")
-		if camera != null:
+		if attach_player_juice and camera != null:
 			_add_child_scene_once(camera, CAMERA_SHAKE_SCENE, "DamageCameraShake")
 
 	if attach_planet_atmospheres:
@@ -66,6 +89,14 @@ func _install_modular_additions() -> void:
 
 	if enable_wave_game and player != null:
 		_add_child_scene_once(level_root, WAVE_DIRECTOR_SCENE, "WaveDirector")
+		if enable_physics_aware_enemy_ai:
+			# Enemy AI director adds gravity-aware steering nudges while each
+			# enemy keeps ownership of its core script and attack behavior.
+			_add_child_scene_once(level_root, PHYSICS_AWARE_ENEMY_DIRECTOR_SCENE, "PhysicsAwareEnemyDirector")
+		if enable_arena_destabilization:
+			# Arena destabilization escalates the battlefield through additive
+			# hazards and emits chaos signals for later audio/VFX integration.
+			_add_child_scene_once(level_root, ARENA_DESTABILIZATION_SCENE, "ArenaDestabilizationManager")
 	elif spawn_showcase_content and player != null:
 		_spawn_showcase_content(level_root, player.global_position)
 		_refresh_player_planet_cache(player)

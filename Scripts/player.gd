@@ -1,5 +1,8 @@
 extends CharacterBody2D
 
+signal slingshot_assist_applied(source: Node, gravity: Vector2, impulse: Vector2, assist_strength: float, speed: float)
+signal momentum_projectile_spawned(projectile: Node, direction: Vector2)
+
 # ========================
 # == EXPORT VARIABLES ==
 # ========================
@@ -44,6 +47,9 @@ var _gravity_refresh_elapsed = 0.0
 
 var closest_planet: Node = null
 var closest_dist: float = INF
+var last_slingshot_strength: float = 0.0
+var last_slingshot_source: Node = null
+var last_slingshot_time: float = -999.0
 
 # ========================
 # == NODE REFERENCES ==
@@ -95,7 +101,7 @@ func _physics_process(delta: float):
 
 	# 2. Movement & resistance
 	apply_drag(gravity, delta)
-
+	update_max_speed(delta)
 	# 3. Constraints
 	clamp_velocity()
 	move_and_slide()
@@ -175,6 +181,8 @@ func handle_rotation(delta):
 # ========================
 
 func apply_slingshot(gravity: Vector2, delta: float):
+	last_slingshot_strength = maxf(last_slingshot_strength - delta * 2.0, 0.0)
+
 	if not is_instance_valid(closest_planet):
 		return
 	if velocity.length() < 1.0:
@@ -191,8 +199,19 @@ func apply_slingshot(gravity: Vector2, delta: float):
 	var accel_tangent = gravity.dot(velocity.normalized())
 
 	if accel_tangent > 0 and DRAG_enabled:
-		velocity += tangent * accel_tangent * (slingshot_factor + orbit_control_bonus) * delta
+		var impulse = tangent * accel_tangent * (slingshot_factor + orbit_control_bonus) * delta
+		velocity += impulse
 		current_max_speed = lerp(current_max_speed, max_speed + accel_tangent, 0.1)
+		last_slingshot_strength = maxf(last_slingshot_strength, accel_tangent)
+		last_slingshot_source = closest_planet
+		last_slingshot_time = Time.get_ticks_msec() / 1000.0
+		slingshot_assist_applied.emit(
+			closest_planet,
+			gravity,
+			impulse,
+			accel_tangent,
+			velocity.length()
+		)
 	else:
 		current_max_speed = lerp(current_max_speed, max_speed, 0.05)
 
@@ -312,6 +331,10 @@ func shoot():
 	var spawn_dir = -transform.x.normalized()
 	p.global_position = global_position + spawn_dir * 70
 	p.global_rotation = rotation
+	var momentum_component = get_node_or_null("MomentumCombatComponent")
+	if momentum_component != null and momentum_component.has_method("prepare_projectile"):
+		momentum_component.call("prepare_projectile", p, spawn_dir)
+	momentum_projectile_spawned.emit(p, spawn_dir)
 	
 	# Add to current scene root to avoid local transform issues
 	get_tree().current_scene.call_deferred("add_child", p)
@@ -502,3 +525,13 @@ func _on_shield_hit(_amount: float, _current_energy: float, _max_capacity: float
 
 func _on_shield_restored(_amount: float, _current_energy: float, _max_capacity: float) -> void:
 	shields_on = is_shield_active()
+
+
+
+func update_max_speed(delta: float):
+	var target_max = max_speed
+	# If we're currently dashing, keep the high limit
+	if not DRAG_enabled and current_max_speed > 1500.0:
+		return
+		
+	current_max_speed = lerp(current_max_speed, target_max, 3.0 * delta)

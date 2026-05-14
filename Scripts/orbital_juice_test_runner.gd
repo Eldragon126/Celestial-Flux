@@ -5,7 +5,13 @@ extends SceneTree
 
 const SCENES_TO_INSTANTIATE = [
 	"res://Nodes/orbital_hud.tscn",
+	"res://Nodes/debug_balance_overlay.tscn",
 	"res://Nodes/player_thruster_trails.tscn",
+	"res://Nodes/momentum_combat_component.tscn",
+	"res://Nodes/gravity_resonance_manager.tscn",
+	"res://Nodes/physics_aware_enemy_director.tscn",
+	"res://Nodes/gravity_tide_pocket.tscn",
+	"res://Nodes/arena_destabilization_manager.tscn",
 	"res://Nodes/player_engine_hum.tscn",
 	"res://Nodes/player_damage_camera_shake.tscn",
 	"res://Nodes/projectile_spark_watcher.tscn",

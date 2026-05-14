@@ -21,7 +21,7 @@ fill = 1
 fill_from = Vector2(0.5071225, 0.50427353)
 fill_to = Vector2(0.8974359, 0.12820514)
 
-[node name="Projectile" type="RigidBody2D" unique_id=2088385998]
+[node name="Projectile" type="RigidBody2D" unique_id=2088385998 groups=["Projectiles", "player_projectiles"]]
 mass = 0.25
 physics_material_override = SubResource("PhysicsMaterial_qxf0c")
 gravity_scale = 0.0
@@ -34,7 +34,7 @@ script = ExtResource("1_a85iw")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=740035178]
 shape = SubResource("CircleShape2D_dgwo2")
 
-[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1741619624 groups=["Projectiles"]]
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1741619624]
 energy = 2.0
 texture = SubResource("GradientTexture2D_2xblw")
 

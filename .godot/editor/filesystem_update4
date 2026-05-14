@@ -1,6 +1,9 @@
-res://Nodes/projectile_predictor.tscn
+res://Scripts/arena_destabilization_manager.gd
+res://Nodes/arena_destabilization_manager.tscn
 res://Scripts/planet_1.gdshader
 res://Scripts/playershield.gdshader
 res://Scripts/player.gdshader
+res://Scripts/physics_aware_enemy_director.gd
+res://Scripts/debug_balance_overlay.gd
 res://Nodes/player.tscn
-res://Nodes/projectile.tscn
+res://Scripts/player.gd
