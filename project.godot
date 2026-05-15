@@ -101,7 +101,7 @@ time_dilation={
 
 [physics]
 
-2d/physics_engine="GodotPhysics2D"
+2d/physics_engine="Rapier2D"
 3d/physics_engine="Jolt Physics"
 3d/default_gravity=0.0
 3d/default_gravity_vector=Vector3(0, 0, 0)

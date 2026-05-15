@@ -2,9 +2,3 @@ res://Nodes/the_abyss.tscn
 res://Scripts/planet_1.gdshader
 res://Scripts/playershield.gdshader
 res://Scripts/player.gdshader
-res://Scripts/powerup_inventory.gd
-res://Scripts/debug_balance_overlay.gd
-res://Scripts/gravity_debris.gd
-res://Scripts/gravity_resonance_manager.gd
-res://Scripts/gravity_tide_pocket.gd
-res://Scripts/orbital_hud.gd
