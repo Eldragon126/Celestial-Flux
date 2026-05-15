@@ -37,6 +37,22 @@ const ZONE_DISPLAY_NAMES = {
 	ZoneType.HARMONIC_ORBIT: "Harmonic Orbit",
 }
 
+const ZONE_RULE_NAMES = {
+	ZoneType.COMPRESSION: "PULL",
+	ZoneType.SLIPSTREAM: "FLOW",
+	ZoneType.INVERSION: "PUSH",
+	ZoneType.TEMPORAL_SCAR: "SLOW",
+	ZoneType.HARMONIC_ORBIT: "ORBIT",
+}
+
+const ZONE_RULE_HINTS = {
+	ZoneType.COMPRESSION: "Bodies fall toward the core",
+	ZoneType.SLIPSTREAM: "Bodies slide around the ring",
+	ZoneType.INVERSION: "Bodies are pushed outward",
+	ZoneType.TEMPORAL_SCAR: "Enemies and shots lose time",
+	ZoneType.HARMONIC_ORBIT: "Bodies curve into arcs",
+}
+
 const ZONE_COLORS = {
 	ZoneType.COMPRESSION: Color(0.22, 0.72, 1.0, 1.0),
 	ZoneType.SLIPSTREAM: Color(0.0, 1.0, 0.78, 1.0),
@@ -71,12 +87,17 @@ const ZONE_COLORS = {
 @export var enemy_zone_effect_multiplier: float = 0.8
 @export var boss_zone_effect_multiplier: float = 0.48
 @export var temporal_scar_slow_multiplier: float = 0.58
+@export var temporal_scar_fusion_min_multiplier: float = 0.34
+@export var temporal_scar_time_fracture_bonus: float = 0.12
+@export var temporal_scar_active_dilation_bonus: float = 0.1
 @export var temporal_scar_slow_duration: float = 0.28
 @export var zone_body_groups: Array[StringName] = [&"Player", &"enemies", &"wave_enemy", &"bosses"]
 
 @export_group("Visuals")
 @export var enable_zone_visuals: bool = true
 @export_enum("Off", "Low", "High") var resonance_visual_quality: int = VisualQuality.HIGH
+@export var enable_zone_labels: bool = true
+@export var enable_zone_glyphs: bool = true
 @export var max_visual_particles_per_zone: int = 42
 @export var visual_ring_segments: int = 72
 
@@ -205,6 +226,8 @@ func _detect_resonance_zones(delta: float) -> void:
 				"zone_type": zone_type,
 				"zone_type_name": _zone_type_name(zone_type),
 				"zone_display_name": _zone_display_name(zone_type),
+				"zone_rule_name": _zone_rule_name(zone_type),
+				"zone_rule_hint": _zone_rule_hint(zone_type),
 				"zone_color": _zone_type_color(zone_type),
 				"radius": _zone_radius_for_distance(distance, zone_type, combined_strength),
 			})
@@ -289,6 +312,8 @@ func _merge_resonance_zones(potential_zones: Array[Dictionary], delta: float) ->
 			existing["zone_type"] = potential["zone_type"]
 			existing["zone_type_name"] = potential["zone_type_name"]
 			existing["zone_display_name"] = potential["zone_display_name"]
+			existing["zone_rule_name"] = potential["zone_rule_name"]
+			existing["zone_rule_hint"] = potential["zone_rule_hint"]
 			existing["zone_color"] = potential["zone_color"]
 			existing["radius"] = potential["radius"]
 
@@ -370,7 +395,8 @@ func _apply_projectile_acceleration(zone: Dictionary, delta: float) -> void:
 	var center: Vector2 = zone["midpoint"]
 	var influence_radius := _zone_radius(zone)
 	var influence_radius_squared := influence_radius * influence_radius
-	var acceleration_strength := float(zone["intensity"]) * projectile_acceleration_multiplier * 65.0 * _zone_projectile_multiplier(_zone_type(zone))
+	var intensity := float(zone["intensity"])
+	var acceleration_strength := intensity * projectile_acceleration_multiplier * 65.0 * _zone_projectile_multiplier(_zone_type(zone))
 	var affected := 0
 	var seen := {}
 
@@ -398,7 +424,8 @@ func _apply_projectile_acceleration(zone: Dictionary, delta: float) -> void:
 
 			var direction := _resonance_projectile_direction(zone, projectile_2d, offset)
 			if _zone_type(zone) == ZoneType.TEMPORAL_SCAR:
-				_apply_temporal_slow(projectile_2d, temporal_scar_slow_multiplier, temporal_scar_slow_duration)
+				var falloff := 1.0 - clampf(sqrt(distance_squared) / influence_radius, 0.0, 1.0)
+				_apply_temporal_slow(projectile_2d, _temporal_scar_multiplier(intensity, falloff), temporal_scar_slow_duration)
 			CombatStatus.add_velocity(projectile_2d, direction * acceleration_strength * delta)
 			affected += 1
 
@@ -439,7 +466,7 @@ func _apply_zone_body_effects(zone: Dictionary, delta: float) -> void:
 
 			var zone_type := _zone_type(zone)
 			if zone_type == ZoneType.TEMPORAL_SCAR and not body_2d.is_in_group("Player"):
-				var slow := lerpf(1.0, temporal_scar_slow_multiplier, clampf(intensity * falloff, 0.0, 1.0))
+				var slow := lerpf(1.0, _temporal_scar_multiplier(intensity, falloff), clampf(intensity * falloff, 0.0, 1.0))
 				_apply_temporal_slow(body_2d, slow, temporal_scar_slow_duration)
 
 			var direction := _zone_effect_direction(zone, body_2d, offset)
@@ -586,6 +613,34 @@ func _apply_temporal_slow(target: Node, multiplier: float, duration: float) -> v
 	else:
 		CombatStatus.apply_local_slow(target, multiplier, duration)
 
+func _temporal_scar_multiplier(intensity: float, falloff: float) -> float:
+	var multiplier := temporal_scar_slow_multiplier
+	if _player_time_fracture_stack() > 0:
+		multiplier -= temporal_scar_time_fracture_bonus * clampf(intensity * maxf(falloff, 0.35), 0.0, 1.0)
+
+	var time_manager := _get_time_dilation_manager()
+	if time_manager != null and is_instance_valid(time_manager) and not time_manager.is_queued_for_deletion():
+		var is_dilating_value: Variant = time_manager.get("is_dilating")
+		if typeof(is_dilating_value) == TYPE_BOOL and bool(is_dilating_value):
+			multiplier -= temporal_scar_active_dilation_bonus * clampf(intensity, 0.0, 1.0)
+
+	return clampf(multiplier, temporal_scar_fusion_min_multiplier, 1.0)
+
+func _player_time_fracture_stack() -> int:
+	var player_node = get_tree().get_first_node_in_group("Player")
+	if not is_instance_valid(player_node):
+		return 0
+
+	var player := player_node as Node
+	if player == null:
+		return 0
+
+	var inventory := player.get_node_or_null("PowerupInventory")
+	if inventory != null and inventory.has_method("get_stack_count"):
+		return int(inventory.call("get_stack_count", &"time_fracture_pulse"))
+
+	return 0
+
 func _get_time_dilation_manager() -> Node:
 	if _time_dilation_manager != null and is_instance_valid(_time_dilation_manager) and not _time_dilation_manager.is_queued_for_deletion():
 		return _time_dilation_manager
@@ -601,13 +656,16 @@ func _try_form_debris_ring(zone: Dictionary, delta: float) -> void:
 	if randf() > debris_ring_formation_chance * delta:
 		return
 
+	var zone_type := _zone_type(zone)
 	var ring_data := {
 		"center": zone["midpoint"],
 		"radius": float(zone["distance"]) * 0.5,
 		"intensity": zone["intensity"],
-		"zone_type": _zone_type(zone),
-		"zone_type_name": _zone_type_name(_zone_type(zone)),
-		"zone_color": _zone_type_color(_zone_type(zone)),
+		"zone_type": zone_type,
+		"zone_type_name": _zone_type_name(zone_type),
+		"zone_rule_name": _zone_rule_name(zone_type),
+		"zone_rule_hint": _zone_rule_hint(zone_type),
+		"zone_color": _zone_type_color(zone_type),
 	}
 	debris_ring_requested.emit(ring_data)
 
@@ -680,8 +738,11 @@ func _update_zone_visual(zone: Dictionary, delta: float) -> void:
 	var core := visual.get("core") as Polygon2D
 	var ring := visual.get("ring") as Line2D
 	var accent := visual.get("accent") as Line2D
+	var label := visual.get("label") as Label
 	var particles := visual.get("particles") as GPUParticles2D
 	var material := visual.get("particle_material") as ParticleProcessMaterial
+	var glyphs_value = visual.get("glyphs", [])
+	var glyphs: Array = glyphs_value if typeof(glyphs_value) == TYPE_ARRAY else []
 	if root == null or not is_instance_valid(root):
 		_zone_visuals.erase(zone_id)
 		return
@@ -689,11 +750,20 @@ func _update_zone_visual(zone: Dictionary, delta: float) -> void:
 	var center: Vector2 = zone.get("midpoint", Vector2.ZERO)
 	var radius := _zone_radius(zone)
 	var intensity := clampf(float(zone.get("intensity", 0.0)), 0.0, 1.0)
-	var base_color := _zone_type_color(_zone_type(zone))
+	var zone_type := _zone_type(zone)
+	var base_color := _zone_type_color(zone_type)
 	var life_alpha := lerpf(0.1, 0.72, intensity)
+	var previous_type := int(visual.get("zone_type", -1))
+	if previous_type != zone_type:
+		material = _make_zone_particle_material(zone_type)
+		if particles != null:
+			particles.process_material = material
+		visual["particle_material"] = material
+		visual["zone_type"] = zone_type
+		_zone_visuals[zone_id] = visual
 
 	root.global_position = center
-	root.rotation += delta * _visual_spin_for_zone(_zone_type(zone))
+	root.rotation += delta * _visual_spin_for_zone(zone_type)
 	root.scale = Vector2.ONE * lerpf(0.96, 1.04, sin(Time.get_ticks_msec() / 180.0) * 0.5 + 0.5)
 
 	if core != null:
@@ -707,6 +777,13 @@ func _update_zone_visual(zone: Dictionary, delta: float) -> void:
 		accent.points = _circle_points(maxi(18, int(visual_ring_segments / 2)), radius * 0.58)
 		accent.width = lerpf(1.0, 2.6, intensity)
 		accent.default_color = Color(1.0, 1.0, 1.0, life_alpha * 0.36)
+	if label != null:
+		label.visible = enable_zone_labels and intensity > 0.16
+		label.text = "%s  %s" % [_zone_display_name(zone_type).to_upper(), _zone_rule_name(zone_type)]
+		label.position = Vector2(-106.0, -radius - 38.0)
+		label.size = Vector2(212.0, 26.0)
+		label.modulate = Color(base_color.r, base_color.g, base_color.b, lerpf(0.42, 0.92, intensity))
+	_update_zone_glyphs(glyphs, zone_type, radius, intensity, base_color)
 	if particles != null:
 		particles.amount = maxi(0, max_visual_particles_per_zone)
 		particles.emitting = intensity > 0.24 and resonance_visual_quality == VisualQuality.HIGH
@@ -742,6 +819,25 @@ func _make_zone_visual(zone_id: int, zone_type: int) -> Dictionary:
 	accent.z_index = -6
 	root.add_child(accent)
 
+	var glyphs: Array[Line2D] = []
+	for i in range(8):
+		var glyph := Line2D.new()
+		glyph.name = "RuleGlyph%d" % i
+		glyph.antialiased = true
+		glyph.z_index = -5
+		glyph.width = 1.8
+		root.add_child(glyph)
+		glyphs.append(glyph)
+
+	var label := Label.new()
+	label.name = "RuleLabel"
+	label.z_index = -4
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_color_override("font_color", Color.WHITE)
+	root.add_child(label)
+
 	var particles: GPUParticles2D = null
 	var material: ParticleProcessMaterial = null
 	if resonance_visual_quality == VisualQuality.HIGH and max_visual_particles_per_zone > 0:
@@ -760,9 +856,59 @@ func _make_zone_visual(zone_id: int, zone_type: int) -> Dictionary:
 		"core": core,
 		"ring": ring,
 		"accent": accent,
+		"glyphs": glyphs,
+		"label": label,
 		"particles": particles,
 		"particle_material": material,
+		"zone_type": zone_type,
 	}
+
+func _update_zone_glyphs(glyphs: Array, zone_type: int, radius: float, intensity: float, base_color: Color) -> void:
+	var visible := enable_zone_glyphs and intensity > 0.16
+	var alpha := lerpf(0.18, 0.86, intensity)
+
+	for i in range(glyphs.size()):
+		var glyph := glyphs[i] as Line2D
+		if glyph == null or not is_instance_valid(glyph):
+			continue
+
+		glyph.visible = visible
+		if not visible:
+			continue
+
+		var angle := TAU * float(i) / float(maxi(glyphs.size(), 1))
+		var radial := Vector2(cos(angle), sin(angle))
+		var tangent := radial.orthogonal()
+		var inner := radius * 0.32
+		var outer := radius * 0.67
+		var points := PackedVector2Array()
+
+		match zone_type:
+			ZoneType.COMPRESSION:
+				points.append(radial * outer)
+				points.append(radial * inner)
+			ZoneType.INVERSION:
+				points.append(radial * inner)
+				points.append(radial * outer)
+			ZoneType.SLIPSTREAM:
+				var center := radial * radius * 0.58
+				points.append(center - tangent * radius * 0.18)
+				points.append(center + tangent * radius * 0.18)
+			ZoneType.TEMPORAL_SCAR:
+				var wobble := sin(Time.get_ticks_msec() / 220.0 + float(i)) * radius * 0.025
+				points.append(radial * (radius * 0.42 + wobble))
+				points.append(radial * (radius * 0.42 + wobble) + tangent * radius * 0.2)
+			ZoneType.HARMONIC_ORBIT:
+				var orbit_center := radial * radius * 0.55
+				points.append(orbit_center - tangent * radius * 0.14)
+				points.append(orbit_center + tangent * radius * 0.14 - radial * radius * 0.06)
+			_:
+				points.append(radial * inner)
+				points.append(radial * outer)
+
+		glyph.points = points
+		glyph.width = lerpf(1.2, 3.0, intensity)
+		glyph.default_color = Color(base_color.r, base_color.g, base_color.b, alpha)
 
 func _make_zone_particle_material(zone_type: int) -> ParticleProcessMaterial:
 	var base := _zone_type_color(zone_type)
@@ -870,6 +1016,12 @@ func _zone_type_name(zone_type: int) -> StringName:
 func _zone_display_name(zone_type: int) -> String:
 	return String(ZONE_DISPLAY_NAMES.get(zone_type, "Compression"))
 
+func _zone_rule_name(zone_type: int) -> String:
+	return String(ZONE_RULE_NAMES.get(zone_type, "PULL"))
+
+func _zone_rule_hint(zone_type: int) -> String:
+	return String(ZONE_RULE_HINTS.get(zone_type, "Bodies fall toward the core"))
+
 func _zone_type_color(zone_type: int) -> Color:
 	return ZONE_COLORS.get(zone_type, Color(0.22, 0.72, 1.0, 1.0))
 
@@ -924,6 +1076,7 @@ func get_resonance_debug_state() -> Dictionary:
 		"active": _active_resonance_zones.size(),
 		"max_intensity": max_intensity,
 		"strongest_type": String(strongest.get("zone_type_name", &"none")) if not strongest.is_empty() else "none",
+		"strongest_rule": String(strongest.get("zone_rule_name", "none")) if not strongest.is_empty() else "none",
 	}
 
 func is_position_in_resonance(position: Vector2, threshold: float = 0.3) -> bool:
@@ -951,6 +1104,8 @@ func create_manual_resonance_zone(position: Vector2, radius: float, zone_type: i
 		"zone_type": clamped_type,
 		"zone_type_name": _zone_type_name(clamped_type),
 		"zone_display_name": _zone_display_name(clamped_type),
+		"zone_rule_name": _zone_rule_name(clamped_type),
+		"zone_rule_hint": _zone_rule_hint(clamped_type),
 		"zone_color": _zone_type_color(clamped_type),
 		"manual": true,
 	}

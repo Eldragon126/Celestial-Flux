@@ -316,6 +316,14 @@ func _format_powerups() -> String:
 		parts.append(text)
 
 	parts.sort()
+	if inventory.has_method("get_law_fusion_debug_state"):
+		var fusion_value: Variant = inventory.call("get_law_fusion_debug_state")
+		if typeof(fusion_value) == TYPE_DICTIONARY:
+			var fusion_state: Dictionary = fusion_value
+			var active_value: Variant = fusion_state.get("active", [])
+			var active_fusions: Array = active_value if typeof(active_value) == TYPE_ARRAY else []
+			if not active_fusions.is_empty():
+				parts.append("fusion %d last %s" % [active_fusions.size(), String(fusion_state.get("last", "none"))])
 	return _trim_value_text(_join_strings(parts, ", "))
 
 func _format_local_gravity() -> String:
@@ -345,15 +353,18 @@ func _format_resonance_state() -> String:
 
 	var max_intensity := 0.0
 	var strongest_type := "none"
+	var strongest_rule := ""
 	for zone in zones:
 		if typeof(zone) == TYPE_DICTIONARY:
 			var intensity := _safe_float(zone.get("intensity"), 0.0)
 			if intensity > max_intensity:
 				max_intensity = intensity
 				strongest_type = String(zone.get("zone_type_name", &"untyped"))
+				strongest_rule = String(zone.get("zone_rule_name", ""))
 
 	var local_intensity := 0.0
 	var local_type := "none"
+	var local_rule := ""
 	if _is_valid_node(_player) and _resonance_manager.has_method("get_resonance_at_position"):
 		local_intensity = float(_resonance_manager.call("get_resonance_at_position", _player.global_position))
 	if _is_valid_node(_player) and _resonance_manager.has_method("get_resonance_zone_at_position"):
@@ -362,8 +373,17 @@ func _format_resonance_state() -> String:
 			var local_zone: Dictionary = local_zone_value
 			if not local_zone.is_empty():
 				local_type = String(local_zone.get("zone_type_name", &"zone"))
+				local_rule = String(local_zone.get("zone_rule_name", ""))
 
-	return "%d %s %.2f local %s %.2f" % [zones.size(), strongest_type, max_intensity, local_type, local_intensity]
+	return "%d %s %s %.2f local %s %s %.2f" % [
+		zones.size(),
+		strongest_rule,
+		strongest_type,
+		max_intensity,
+		local_rule,
+		local_type,
+		local_intensity,
+	]
 
 func _format_arena_state() -> String:
 	if not _is_valid_node(_arena_destabilization_manager) or not _arena_destabilization_manager.has_method("get_instability_debug_state"):

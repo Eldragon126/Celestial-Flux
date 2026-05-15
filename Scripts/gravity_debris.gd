@@ -6,8 +6,13 @@ class_name GravityDebris
 @export var lifetime: float = 3.2
 @export var particle_cap: int = 42
 @export var color: Color = Color(0.78, 0.32, 1.0, 1.0)
+@export var drift_drag: float = 4.2
+@export var max_drift_speed: float = 420.0
 
 var _age := 0.0
+var _drift_velocity := Vector2.ZERO
+var _fusion_flash := 0.0
+var _fusion_flash_color := Color(0.42, 0.95, 1.0, 1.0)
 var _core: Polygon2D = null
 var _ring: Line2D = null
 var _particles: GPUParticles2D = null
@@ -27,20 +32,35 @@ func configure(new_mass: float, new_radius: float, new_lifetime: float, new_colo
 
 func _process(delta: float) -> void:
 	_age += delta
+	if _drift_velocity.length_squared() > 0.1:
+		global_position += _drift_velocity * delta
+		_drift_velocity = _drift_velocity.lerp(Vector2.ZERO, clampf(delta * drift_drag, 0.0, 1.0))
+
+	_fusion_flash = maxf(_fusion_flash - delta * 3.8, 0.0)
 	var remaining := clampf(1.0 - _age / maxf(lifetime, 0.001), 0.0, 1.0)
 	rotation += delta * 1.5
 
 	if _core != null:
-		_core.scale = Vector2.ONE * lerpf(0.72, 1.12, remaining)
-		_core.color = Color(color.r, color.g, color.b, 0.22 * remaining)
+		_core.scale = Vector2.ONE * (lerpf(0.72, 1.12, remaining) + _fusion_flash * 0.18)
+		var core_color := color.lerp(_fusion_flash_color, _fusion_flash)
+		_core.color = Color(core_color.r, core_color.g, core_color.b, (0.22 + _fusion_flash * 0.16) * remaining)
 	if _ring != null:
-		_ring.width = lerpf(1.0, 3.2, remaining)
-		_ring.default_color = Color(color.r, color.g, color.b, 0.65 * remaining)
+		var ring_color := color.lerp(_fusion_flash_color, _fusion_flash)
+		_ring.width = lerpf(1.0, 3.2, remaining) + _fusion_flash * 2.2
+		_ring.default_color = Color(ring_color.r, ring_color.g, ring_color.b, (0.65 + _fusion_flash * 0.25) * remaining)
 	if _particles != null:
 		_particles.emitting = remaining > 0.12
 
 	if _age >= lifetime:
 		queue_free()
+
+func apply_fusion_impulse(impulse: Vector2, flash_color: Color = Color(0.42, 0.95, 1.0, 1.0)) -> void:
+	if impulse == Vector2.ZERO:
+		return
+
+	_drift_velocity = (_drift_velocity + impulse).limit_length(max_drift_speed)
+	_fusion_flash = 1.0
+	_fusion_flash_color = flash_color
 
 func _build_visuals() -> void:
 	_core = Polygon2D.new()

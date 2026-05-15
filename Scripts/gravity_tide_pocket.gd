@@ -14,6 +14,20 @@ signal temporal_pocket_entered(body: Node, multiplier: float, duration: float)
 
 enum TideMode { COMPRESSION, SLIPSTREAM, INVERSION, TEMPORAL }
 
+const MODE_DISPLAY_NAMES = {
+	TideMode.COMPRESSION: "Compression",
+	TideMode.SLIPSTREAM: "Slipstream",
+	TideMode.INVERSION: "Inversion",
+	TideMode.TEMPORAL: "Temporal",
+}
+
+const MODE_RULE_NAMES = {
+	TideMode.COMPRESSION: "PULL",
+	TideMode.SLIPSTREAM: "FLOW",
+	TideMode.INVERSION: "PUSH",
+	TideMode.TEMPORAL: "SLOW",
+}
+
 @export_enum("Compression", "Slipstream", "Inversion", "Temporal") var mode: int = TideMode.COMPRESSION
 @export var radius: float = 320.0
 @export var lifetime: float = 9.0
@@ -38,6 +52,8 @@ var _age := 0.0
 var _tracked_bodies: Dictionary = {}
 var _ring: Polygon2D = null
 var _core: Polygon2D = null
+var _label: Label = null
+var _glyphs: Array[Line2D] = []
 var _particles: GPUParticles2D = null
 var _collision: CollisionShape2D = null
 var _time_dilation_manager: Node = null
@@ -132,6 +148,24 @@ func _build_visuals() -> void:
 		_core.color = _mode_color(0.1)
 		add_child(_core)
 
+		for i in range(8):
+			var glyph := Line2D.new()
+			glyph.name = "TideRuleGlyph%d" % i
+			glyph.antialiased = true
+			glyph.width = 2.0
+			glyph.z_index = -1
+			add_child(glyph)
+			_glyphs.append(glyph)
+
+		_label = Label.new()
+		_label.name = "TideRuleLabel"
+		_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_label.z_index = 0
+		_label.add_theme_font_size_override("font_size", 12)
+		_label.add_theme_color_override("font_color", Color.WHITE)
+		add_child(_label)
+
 	if enable_particles:
 		_particles = GPUParticles2D.new()
 		_particles.name = "TidePocketParticles"
@@ -160,6 +194,15 @@ func _update_visuals(delta: float) -> void:
 	if _core != null:
 		_core.rotation -= delta * 0.38
 		_core.color = _mode_color(lerpf(0.04, 0.16, alpha_scale))
+
+	if _label != null:
+		_label.visible = alpha_scale > 0.12
+		_label.text = "%s  %s" % [_mode_display_name().to_upper(), _mode_rule_name()]
+		_label.position = Vector2(-90.0, -radius - 34.0)
+		_label.size = Vector2(180.0, 26.0)
+		_label.modulate = _mode_color(lerpf(0.46, 0.94, alpha_scale))
+
+	_update_rule_glyphs(alpha_scale)
 
 	if _particles != null:
 		_particles.emitting = _active
@@ -262,6 +305,26 @@ func _apply_local_slow(body: Node, multiplier: float, duration: float) -> void:
 	else:
 		CombatStatus.apply_local_slow(body, multiplier, duration)
 
+func get_tide_debug_state(sample_position: Vector2) -> Dictionary:
+	var distance := sample_position.distance_to(global_position)
+	if distance > radius * 1.15:
+		return {}
+
+	var local_intensity := clampf(1.0 - distance / maxf(radius, 0.001), 0.0, 1.0)
+	if not _active:
+		local_intensity *= 0.42
+
+	return {
+		"mode": int(mode),
+		"display_name": _mode_display_name(),
+		"rule_name": _mode_rule_name(),
+		"color": _mode_color(1.0),
+		"local_intensity": local_intensity,
+		"active": _active,
+		"radius": radius,
+		"position": global_position,
+	}
+
 func _get_time_dilation_manager() -> Node:
 	if _time_dilation_manager != null and is_instance_valid(_time_dilation_manager) and not _time_dilation_manager.is_queued_for_deletion():
 		return _time_dilation_manager
@@ -309,6 +372,51 @@ func _mode_color(alpha: float) -> Color:
 	if mode == TideMode.TEMPORAL:
 		return Color(0.72, 0.38, 1.0, alpha)
 	return Color(0.28, 0.72, 1.0, alpha)
+
+func _mode_display_name() -> String:
+	return String(MODE_DISPLAY_NAMES.get(mode, "Compression"))
+
+func _mode_rule_name() -> String:
+	return String(MODE_RULE_NAMES.get(mode, "PULL"))
+
+func _update_rule_glyphs(alpha_scale: float) -> void:
+	var visible := debug_visual_enabled and alpha_scale > 0.1
+	var color := _mode_color(lerpf(0.16, 0.78, alpha_scale))
+
+	for i in range(_glyphs.size()):
+		var glyph := _glyphs[i]
+		if glyph == null or not is_instance_valid(glyph):
+			continue
+
+		glyph.visible = visible
+		if not visible:
+			continue
+
+		var angle := TAU * float(i) / float(maxi(_glyphs.size(), 1))
+		var radial := Vector2(cos(angle), sin(angle))
+		var tangent := radial.orthogonal()
+		var inner := radius * 0.36
+		var outer := radius * 0.78
+		var points := PackedVector2Array()
+
+		if mode == TideMode.COMPRESSION:
+			points.append(radial * outer)
+			points.append(radial * inner)
+		elif mode == TideMode.INVERSION:
+			points.append(radial * inner)
+			points.append(radial * outer)
+		elif mode == TideMode.SLIPSTREAM:
+			var center := radial * radius * 0.62
+			points.append(center - tangent * radius * 0.18)
+			points.append(center + tangent * radius * 0.18)
+		else:
+			var center := radial * radius * 0.52
+			points.append(center - tangent * radius * 0.12)
+			points.append(center + tangent * radius * 0.12)
+
+		glyph.points = points
+		glyph.width = lerpf(1.2, 3.2, alpha_scale)
+		glyph.default_color = color
 
 func _ring_points(count: int, inner_radius: float, outer_radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()

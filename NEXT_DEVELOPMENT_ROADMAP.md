@@ -36,6 +36,10 @@ Completed this pass:
 - Momentum, Orbital, Singularity, and Time Fracture upgrades now have first-pass
   law-modifying behavior: shockwaves, projectile satellites, gravity debris, and
   stored acceleration release.
+- First-pass upgrade fusion hooks are now active: shockwaves bend singularity
+  debris outward, debris can briefly catch converted satellites, Time Fracture
+  releases fling satellites into arcs, and temporal scars deepen time pockets.
+- Fusion state is exposed to the debug overlay through the powerup telemetry row.
 - The first boss physics rule pass is in: resonance field control, debris
   compression, disruption lanes, polarity windows, and rift/tide interaction.
 - Runtime safety fixes landed for velocity mutation, local slow metadata, freed

@@ -6,6 +6,7 @@ signal powerup_expired(powerup_id: StringName)
 signal orbital_satellite_captured(projectile: Node, stacks: int)
 signal gravity_debris_spawned(debris: Node, source_enemy: Node)
 signal time_fracture_released(impulse: Vector2)
+signal law_fusion_triggered(fusion_id: StringName, fusion_data: Dictionary)
 
 @export_node_path("Node2D") var player_path: NodePath = ^".."
 @export var action_pulse_cooldown: float = 0.65
@@ -22,6 +23,15 @@ signal time_fracture_released(impulse: Vector2)
 @export_group("Time Fracture Law")
 @export var time_fracture_store_rate: float = 0.36
 @export var time_fracture_release_cap: float = 680.0
+@export_group("Law Fusion")
+@export var enable_law_fusions: bool = true
+@export var fusion_debris_bend_force: float = 340.0
+@export var fusion_debris_bend_radius_multiplier: float = 1.45
+@export var fusion_debris_bend_max_targets: int = 7
+@export var fusion_satellite_arc_speed: float = 980.0
+@export var fusion_debris_satellite_capture_radius: float = 260.0
+@export var fusion_debris_satellite_capture_duration: float = 0.72
+@export var fusion_visuals_enabled: bool = true
 
 var _player: Node2D = null
 var _stacks: Dictionary = {}
@@ -32,6 +42,9 @@ var _enemy_death_hooks: Dictionary = {}
 var _stored_time_fracture_velocity := Vector2.ZERO
 var _was_time_dilating := false
 var _time_dilation_manager: Node = null
+var _momentum_component: Node = null
+var _last_fusion_id: StringName = &"none"
+var _last_fusion_time := -999.0
 
 func _ready() -> void:
 	_player = get_node_or_null(player_path) as Node2D
@@ -158,6 +171,7 @@ func _update_law_rules(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player) or _player.is_queued_for_deletion() or not _player.is_inside_tree():
 		return
 
+	_connect_momentum_component()
 	_update_orbital_satellites(delta)
 	_update_singularity_death_hooks()
 	_update_time_fracture_storage(delta)
@@ -209,12 +223,15 @@ func _capture_nearby_projectiles(stacks: int) -> void:
 			"age": 0.0,
 			"angle": angle,
 			"radius": satellite_orbit_radius + float(_count_valid_satellites()) * 18.0,
+			"debris_anchor_until": 0.0,
+			"next_debris_anchor": 0.0,
 		}
 		orbital_satellite_captured.emit(projectile_2d, stacks)
 
 func _update_captured_projectiles(delta: float) -> void:
 	var expired: Array[int] = []
 	var orbit_speed := 3.7
+	var singularity_stacks := get_stack_count(&"singularity_amplifier")
 
 	for id in _captured_projectiles.keys():
 		var entry_value = _captured_projectiles[id]
@@ -231,17 +248,28 @@ func _update_captured_projectiles(delta: float) -> void:
 
 		entry["age"] = float(entry.get("age", 0.0)) + delta
 		entry["angle"] = float(entry.get("angle", 0.0)) + orbit_speed * delta
+		if enable_law_fusions and singularity_stacks > 0:
+			_try_anchor_satellite_to_debris(entry, projectile, singularity_stacks)
 
 		var angle := float(entry["angle"])
+		var anchor := _valid_debris_anchor(entry)
+		var orbit_center := _player.global_position
 		var radius := float(entry.get("radius", satellite_orbit_radius))
+		if anchor != null:
+			orbit_center = anchor.global_position
+			var anchor_radius_value: Variant = anchor.get("radius")
+			var anchor_radius := maxf(float(anchor_radius_value) * 0.74, 58.0) if typeof(anchor_radius_value) == TYPE_FLOAT or typeof(anchor_radius_value) == TYPE_INT else 78.0
+			radius = minf(radius, anchor_radius)
+
 		var offset := Vector2.RIGHT.rotated(angle) * radius
 		var tangent := offset.normalized().orthogonal()
 		
-		projectile.global_position = _player.global_position + offset
+		projectile.global_position = orbit_center + offset
 		CombatStatus.add_velocity(projectile, tangent * 32.0)
 		
 		if projectile.get("linear_velocity") is Vector2:
-			projectile.set("linear_velocity", tangent * 720.0 + _body_velocity(_player) * 0.2)
+			var inherited := _body_velocity(_player) * 0.2 if anchor == null else Vector2.ZERO
+			projectile.set("linear_velocity", tangent * 720.0 + inherited)
 
 		if float(entry["age"]) >= satellite_duration:
 			_release_satellite(projectile, tangent)
@@ -252,13 +280,14 @@ func _update_captured_projectiles(delta: float) -> void:
 	for id in expired:
 		_captured_projectiles.erase(id)
 
-func _release_satellite(projectile: Node2D, tangent: Vector2) -> void:
+func _release_satellite(projectile: Node2D, tangent: Vector2, release_speed: float = 920.0) -> void:
 	if projectile == null or not is_instance_valid(projectile) or projectile.is_queued_for_deletion():
 		return
 		
 	projectile.remove_meta(&"orbital_satellite_owner")
+	projectile.remove_meta(&"singularity_debris_anchor")
 	if projectile.get("linear_velocity") is Vector2:
-		projectile.set("linear_velocity", tangent.normalized() * 920.0 + _body_velocity(_player) * 0.25)
+		projectile.set("linear_velocity", tangent.normalized() * release_speed + _body_velocity(_player) * 0.25)
 
 func _release_all_invalid_satellites() -> void:
 	var expired: Array[int] = []
@@ -383,8 +412,198 @@ func _update_time_fracture_storage(delta: float) -> void:
 		_stored_time_fracture_velocity = Vector2.ZERO
 		CombatStatus.add_velocity(_player, impulse)
 		time_fracture_released.emit(impulse)
+		if enable_law_fusions and get_stack_count(&"orbital_tether_upgrade") > 0:
+			_fling_satellites_with_time_fracture(impulse, stacks)
 
 	_was_time_dilating = is_dilating
+
+func _connect_momentum_component() -> void:
+	if _momentum_component != null and is_instance_valid(_momentum_component) and not _momentum_component.is_queued_for_deletion():
+		return
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	_momentum_component = _player.get_node_or_null("MomentumCombatComponent")
+	if _momentum_component == null or not _momentum_component.has_signal("kinetic_shockwave_created"):
+		return
+
+	var callable := Callable(self, "_on_kinetic_shockwave_created")
+	if not _momentum_component.is_connected("kinetic_shockwave_created", callable):
+		_momentum_component.connect("kinetic_shockwave_created", callable)
+
+func _on_kinetic_shockwave_created(shockwave_data: Dictionary) -> void:
+	if not enable_law_fusions or get_stack_count(&"singularity_amplifier") <= 0:
+		return
+
+	var center: Vector2 = shockwave_data.get("position", Vector2.ZERO)
+	var base_radius := float(shockwave_data.get("radius", 180.0))
+	var speed := float(shockwave_data.get("speed", 0.0))
+	var radius := maxf(base_radius * fusion_debris_bend_radius_multiplier, base_radius + 24.0)
+	var radius_squared := radius * radius
+	var affected := 0
+
+	for debris in get_tree().get_nodes_in_group("law_gravity_debris"):
+		if affected >= fusion_debris_bend_max_targets:
+			break
+		var debris_2d := debris as Node2D
+		if debris_2d == null or not is_instance_valid(debris_2d) or debris_2d.is_queued_for_deletion():
+			continue
+
+		var offset := debris_2d.global_position - center
+		var dist_squared := offset.length_squared()
+		if dist_squared <= 0.001 or dist_squared > radius_squared:
+			continue
+
+		var falloff := 1.0 - sqrt(dist_squared) / radius
+		var impulse := offset.normalized() * fusion_debris_bend_force * falloff * (1.0 + speed / 2400.0)
+		if debris_2d.has_method("apply_fusion_impulse"):
+			debris_2d.call("apply_fusion_impulse", impulse, Color(0.36, 0.9, 1.0, 1.0))
+		affected += 1
+
+	if affected <= 0:
+		return
+
+	_emit_law_fusion(&"momentum_singularity", {
+		"position": center,
+		"radius": radius,
+		"affected": affected,
+		"speed": speed,
+	})
+	_spawn_fusion_ring(center, radius, Color(0.36, 0.9, 1.0, 0.72))
+
+func _try_anchor_satellite_to_debris(entry: Dictionary, projectile: Node2D, singularity_stacks: int) -> void:
+	var now := _now_seconds()
+	if float(entry.get("debris_anchor_until", 0.0)) > now:
+		return
+	if float(entry.get("next_debris_anchor", 0.0)) > now:
+		return
+
+	var anchor := _nearest_debris(projectile.global_position, fusion_debris_satellite_capture_radius + 28.0 * float(singularity_stacks - 1))
+	if anchor == null:
+		entry["next_debris_anchor"] = now + 0.22
+		return
+
+	entry["debris_anchor"] = anchor
+	entry["debris_anchor_until"] = now + fusion_debris_satellite_capture_duration
+	entry["next_debris_anchor"] = now + fusion_debris_satellite_capture_duration + 0.35
+	projectile.set_meta(&"singularity_debris_anchor", anchor.get_instance_id())
+
+	_emit_law_fusion(&"singularity_orbital", {
+		"position": anchor.global_position,
+		"projectile": projectile,
+		"anchor": anchor,
+	})
+
+func _valid_debris_anchor(entry: Dictionary) -> Node2D:
+	var anchor = entry.get("debris_anchor")
+	if anchor == null or not is_instance_valid(anchor):
+		return null
+	var anchor_2d := anchor as Node2D
+	if anchor_2d == null or anchor_2d.is_queued_for_deletion():
+		return null
+	if float(entry.get("debris_anchor_until", 0.0)) <= _now_seconds():
+		return null
+	return anchor_2d
+
+func _nearest_debris(position: Vector2, search_radius: float) -> Node2D:
+	var best: Node2D = null
+	var best_distance := search_radius * search_radius
+	for debris in get_tree().get_nodes_in_group("law_gravity_debris"):
+		var debris_2d := debris as Node2D
+		if debris_2d == null or not is_instance_valid(debris_2d) or debris_2d.is_queued_for_deletion():
+			continue
+		var distance := debris_2d.global_position.distance_squared_to(position)
+		if distance < best_distance:
+			best = debris_2d
+			best_distance = distance
+	return best
+
+func _fling_satellites_with_time_fracture(impulse: Vector2, time_stacks: int) -> void:
+	if impulse.length_squared() <= 1.0 or _captured_projectiles.is_empty():
+		return
+
+	var release_ids: Array[int] = []
+	var impulse_dir := impulse.normalized()
+	var count := _captured_projectiles.size()
+	var released := 0
+
+	for id in _captured_projectiles.keys():
+		var entry_value = _captured_projectiles[id]
+		if typeof(entry_value) != TYPE_DICTIONARY:
+			release_ids.append(id)
+			continue
+		var entry: Dictionary = entry_value
+		var projectile := entry.get("projectile") as Node2D
+		if projectile == null or not is_instance_valid(projectile) or projectile.is_queued_for_deletion():
+			release_ids.append(id)
+			continue
+
+		var spread := 0.0 if count <= 1 else lerpf(-0.42, 0.42, float(released) / float(count - 1))
+		var radial := (projectile.global_position - _player.global_position).normalized()
+		if radial == Vector2.ZERO:
+			radial = Vector2.RIGHT.rotated(float(entry.get("angle", 0.0)))
+		var arc_dir := (impulse_dir.rotated(spread) * 0.72 + radial.orthogonal() * 0.28).normalized()
+		_release_satellite(projectile, arc_dir, fusion_satellite_arc_speed + impulse.length() * (0.36 + 0.08 * float(time_stacks - 1)))
+		release_ids.append(id)
+		released += 1
+
+	for id in release_ids:
+		_captured_projectiles.erase(id)
+
+	if released <= 0:
+		return
+
+	_emit_law_fusion(&"orbital_time_fracture", {
+		"position": _player.global_position,
+		"impulse": impulse,
+		"released": released,
+	})
+	_spawn_fusion_ring(_player.global_position, 180.0 + 28.0 * float(released), Color(0.35, 0.86, 1.0, 0.76))
+
+func _emit_law_fusion(fusion_id: StringName, fusion_data: Dictionary) -> void:
+	_last_fusion_id = fusion_id
+	_last_fusion_time = _now_seconds()
+	law_fusion_triggered.emit(fusion_id, fusion_data)
+
+func _spawn_fusion_ring(center: Vector2, radius: float, ring_color: Color) -> void:
+	if not fusion_visuals_enabled:
+		return
+	var root := get_tree().current_scene
+	if root == null:
+		return
+
+	var ring := Line2D.new()
+	ring.name = "LawFusionRing"
+	ring.closed = true
+	ring.antialiased = true
+	ring.width = 4.0
+	ring.default_color = ring_color
+	ring.points = _circle_points(54, 1.0)
+	ring.global_position = center
+	ring.scale = Vector2.ONE * 18.0
+	ring.z_index = 26
+	root.add_child(ring)
+
+	var tween := ring.create_tween()
+	tween.tween_property(ring, "scale", Vector2.ONE * radius, 0.26)
+	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.26)
+	tween.tween_callback(ring.queue_free)
+
+func get_law_fusion_debug_state() -> Dictionary:
+	var active: Array[String] = []
+	if get_stack_count(&"singularity_amplifier") > 0:
+		active.append("Momentum+Singularity")
+	if get_stack_count(&"singularity_amplifier") > 0 and get_stack_count(&"orbital_tether_upgrade") > 0:
+		active.append("Singularity+Orbital")
+	if get_stack_count(&"orbital_tether_upgrade") > 0 and get_stack_count(&"time_fracture_pulse") > 0:
+		active.append("Orbital+Time")
+
+	return {
+		"active": active,
+		"satellites": _count_valid_satellites(),
+		"last": String(_last_fusion_id),
+		"last_age": _now_seconds() - _last_fusion_time,
+	}
 
 func _get_time_dilation_manager() -> Node:
 	if _time_dilation_manager != null and is_instance_valid(_time_dilation_manager) and not _time_dilation_manager.is_queued_for_deletion():
@@ -414,3 +633,13 @@ func _body_velocity(body: Node) -> Vector2:
 		return linear_velocity
 
 	return Vector2.ZERO
+
+func _now_seconds() -> float:
+	return Time.get_ticks_msec() / 1000.0
+
+func _circle_points(count: int, radius: float) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for i in range(count):
+		var angle := TAU * float(i) / float(maxi(count, 1))
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points
