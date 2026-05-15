@@ -12,7 +12,7 @@ dest_files=["res://.godot/imported/Interesting Song (1).mp3-be467e7b230360815f5e
 
 [params]
 
-loop=true
+loop=false
 loop_offset=0.0
 bpm=150.0
 beat_count=332

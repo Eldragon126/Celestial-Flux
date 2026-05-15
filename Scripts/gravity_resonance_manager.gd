@@ -44,7 +44,8 @@ signal fracture_applied(position: Vector2, intensity: float)
 @export var max_pending_implosions: int = 6
 
 var _active_resonance_zones: Array[Dictionary] = []
-var _gravity_sources: Array[Node2D] = []
+# Untyped Array to avoid implicit cast crashes when stored nodes are freed
+var _gravity_sources: Array = [] 
 var _implosion_queue: Array[Dictionary] = []
 var _source_refresh_elapsed: float = 999.0
 var _detection_elapsed: float = 999.0
@@ -79,8 +80,12 @@ func _refresh_gravity_sources() -> void:
 
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for source in get_tree().get_nodes_in_group(group_name):
+			# Validate BEFORE casting to prevent freed object crashes
+			if not is_instance_valid(source) or source.is_queued_for_deletion():
+				continue
+
 			var source_2d := source as Node2D
-			if source_2d == null or not is_instance_valid(source_2d) or source_2d.is_queued_for_deletion():
+			if source_2d == null:
 				continue
 
 			var id := source_2d.get_instance_id()
@@ -90,9 +95,15 @@ func _refresh_gravity_sources() -> void:
 			seen[id] = true
 			_gravity_sources.append(source_2d)
 
-	var player := get_tree().get_first_node_in_group("Player") as Node2D
+	var player_node = get_tree().get_first_node_in_group("Player")
+	var player: Node2D = null
+	if is_instance_valid(player_node) and not player_node.is_queued_for_deletion():
+		player = player_node as Node2D
+
 	if player != null:
-		_gravity_sources.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		_gravity_sources.sort_custom(func(a: Variant, b: Variant) -> bool:
+			if not is_instance_valid(a) or not is_instance_valid(b):
+				return false
 			return a.global_position.distance_squared_to(player.global_position) < b.global_position.distance_squared_to(player.global_position)
 		)
 
@@ -104,14 +115,16 @@ func _detect_resonance_zones(delta: float) -> void:
 	var detection_diameter_squared := resonance_detection_radius * resonance_detection_radius * 4.0
 
 	for i in range(_gravity_sources.size()):
-		var source_a := _gravity_sources[i]
-		if source_a == null or not is_instance_valid(source_a):
+		var raw_a = _gravity_sources[i]
+		if not is_instance_valid(raw_a) or raw_a.is_queued_for_deletion():
 			continue
+		var source_a: Node2D = raw_a
 
 		for j in range(i + 1, _gravity_sources.size()):
-			var source_b := _gravity_sources[j]
-			if source_b == null or not is_instance_valid(source_b):
+			var raw_b = _gravity_sources[j]
+			if not is_instance_valid(raw_b) or raw_b.is_queued_for_deletion():
 				continue
+			var source_b: Node2D = raw_b
 
 			var distance_squared := source_a.global_position.distance_squared_to(source_b.global_position)
 			if distance_squared > detection_diameter_squared:
@@ -149,6 +162,8 @@ func _calculate_combined_strength(source_a: Node2D, source_b: Node2D, position: 
 	return (strength_a + strength_b) * resonance_factor * 0.5
 
 func _get_source_strength_at(source: Node2D, position: Vector2) -> float:
+	if not is_instance_valid(source):
+		return 0.0
 	var distance := maxf(source.global_position.distance_to(position), 20.0)
 	var mass := _source_mass(source)
 	return 500.0 * mass / (distance * distance)
@@ -226,9 +241,12 @@ func _apply_projectile_acceleration(zone: Dictionary, delta: float) -> void:
 		for projectile in get_tree().get_nodes_in_group(group_name):
 			if affected >= max_projectiles_per_zone:
 				return
+				
+			if not is_instance_valid(projectile) or projectile.is_queued_for_deletion():
+				continue
 
 			var projectile_2d := _projectile_motion_body(projectile)
-			if projectile_2d == null or not is_instance_valid(projectile_2d):
+			if projectile_2d == null:
 				continue
 
 			var id := projectile_2d.get_instance_id()
@@ -247,7 +265,8 @@ func _apply_projectile_acceleration(zone: Dictionary, delta: float) -> void:
 
 func _projectile_motion_body(node: Node) -> Node2D:
 	var current := node
-	while current != null:
+	# Validate nodes traversing up the tree
+	while is_instance_valid(current) and not current.is_queued_for_deletion():
 		var current_2d := current as Node2D
 		if current_2d != null and _accepts_velocity(current_2d):
 			return current_2d
@@ -264,14 +283,20 @@ func _accepts_velocity(node: Node) -> bool:
 	return linear_velocity is Vector2
 
 func _resonance_projectile_direction(zone: Dictionary, projectile: Node2D, offset_from_center: Vector2) -> Vector2:
-	var source_a := zone.get("source_a", null) as Node2D
-	var source_b := zone.get("source_b", null) as Node2D
 	var field := Vector2.ZERO
+	
+	# Safely extract and check dictionary objects before casting
+	var raw_a = zone.get("source_a")
+	if is_instance_valid(raw_a) and not raw_a.is_queued_for_deletion():
+		var source_a := raw_a as Node2D
+		if source_a:
+			field += (source_a.global_position - projectile.global_position).normalized()
 
-	if source_a != null and is_instance_valid(source_a):
-		field += (source_a.global_position - projectile.global_position).normalized()
-	if source_b != null and is_instance_valid(source_b):
-		field += (source_b.global_position - projectile.global_position).normalized()
+	var raw_b = zone.get("source_b")
+	if is_instance_valid(raw_b) and not raw_b.is_queued_for_deletion():
+		var source_b := raw_b as Node2D
+		if source_b:
+			field += (source_b.global_position - projectile.global_position).normalized()
 
 	var tangent := offset_from_center.normalized().orthogonal()
 	if field == Vector2.ZERO:
@@ -315,12 +340,15 @@ func _process_implosion_queue(delta: float) -> void:
 			_implosion_queue[i] = implosion
 
 func _zone_id(source_a: Node2D, source_b: Node2D) -> int:
-	var a := source_a.get_instance_id()
-	var b := source_b.get_instance_id()
+	var a := source_a.get_instance_id() if is_instance_valid(source_a) else 0
+	var b := source_b.get_instance_id() if is_instance_valid(source_b) else 0
 	return int(hash("%d_%d" % [mini(a, b), maxi(a, b)]))
 
 func _source_mass(source: Node2D) -> float:
 	var mass: float = 100.0
+	if not is_instance_valid(source):
+		return mass
+		
 	var value: Variant = source.get("mass")
 	if typeof(value) == TYPE_FLOAT or typeof(value) == TYPE_INT:
 		mass = absf(float(value))
