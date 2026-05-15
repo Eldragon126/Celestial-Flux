@@ -2,5 +2,4 @@ res://Nodes/the_abyss.tscn
 res://Scripts/planet_1.gdshader
 res://Scripts/playershield.gdshader
 res://Scripts/player.gdshader
-res://Scripts/the_abyss.gd
-res://Nodes/player.tscn
+res://Scripts/powerup_inventory.gd
