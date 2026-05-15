@@ -1,5 +1,8 @@
 extends RigidBody2D
 
+# ========================
+# == EXPORT VARIABLES ==
+# ========================
 @export var max_gravity_sources: int = 4
 @export var gravity_constant: float = 200.0
 @export var min_grav_dist: float = 50.0
@@ -10,53 +13,37 @@ extends RigidBody2D
 @export var initial_speed: float = 850.0
 @export var debug_logging: bool = false
 
+# ========================
+# == STATE VARIABLES ==
+# ========================
 var planets: Array[Node2D] = []
 var _has_launched: bool = false
 
+# ========================
+# == LIFECYCLE ==
+# ========================
 func _ready() -> void:
+	# RigidBody2D Setup for high-speed detection
 	can_sleep = false
 	gravity_scale = 0.0
 	contact_monitor = true
 	max_contacts_reported = 4
+	
 	add_to_group("Projectiles")
 	add_to_group("player_projectiles")
 	
 	_refresh_gravity_sources()
 	
-	# Safe signal connection
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
 	
 	if debug_logging:
 		print("Projectile instantiated at ", global_position)
 
-
-# ========================
-# NEW LAUNCH METHOD (No await issues)
-# ========================
-func launch(direction: Vector2 = Vector2.RIGHT) -> void:
-	if _has_launched:
-		return
-	_has_launched = true
-	
-	global_rotation = direction.angle()
-	
-	# Use call_deferred + one-shot timer to avoid get_tree() null
-	call_deferred("_apply_launch_velocity", direction)
-
-
-func _apply_launch_velocity(direction: Vector2) -> void:
-	if not is_instance_valid(self) or is_queued_for_deletion():
-		return
-	
-	linear_velocity = direction.normalized() * initial_speed
-	if debug_logging:
-		print("Projectile LAUNCHED! Speed: ", linear_velocity.length())
-
-
 func _physics_process(_delta: float) -> void:
 	var total_grav_accel = Vector2.ZERO
 	
+	# Iterate backwards to safely handle potential deletions
 	for i in range(planets.size() - 1, -1, -1):
 		var planet = planets[i]
 		
@@ -67,6 +54,7 @@ func _physics_process(_delta: float) -> void:
 		var offset = planet.global_position - global_position
 		var distance = offset.length()
 		
+		# Only apply gravity within a reasonable range
 		if distance < 2000.0 and distance > 0.0:
 			var effective_dist = max(distance, min_grav_dist)
 			var dir = offset.normalized()
@@ -82,24 +70,71 @@ func _physics_process(_delta: float) -> void:
 	if total_grav_accel != Vector2.ZERO:
 		apply_force(total_grav_accel)
 
+# ========================
+# == LAUNCH LOGIC ==
+# ========================
+func launch(direction: Vector2 = Vector2.RIGHT) -> void:
+	if _has_launched:
+		return
+	_has_launched = true
+	
+	global_rotation = direction.angle()
+	
+	# Deferring velocity application ensures the combat component 
+	# has finished modifying initial_speed before we move.
+	call_deferred("_apply_launch_velocity", direction)
 
+func _apply_launch_velocity(direction: Vector2) -> void:
+	if not is_instance_valid(self) or is_queued_for_deletion():
+		return
+	
+	# initial_speed here includes the bonus from MomentumCombatComponent
+	linear_velocity = direction.normalized() * initial_speed
+	
+	if debug_logging:
+		print("Projectile LAUNCHED! Total Speed: ", linear_velocity.length())
+
+# ========================
+# == COLLISION & DAMAGE ==
+# ========================
 func _on_body_entered(body: Node) -> void:
 	if is_queued_for_deletion():
 		return
 	
-	if body.has_method("take_damage"):
-		if not body.is_in_group("Player"):
-			body.take_damage(_roll_damage())
-			queue_free()
+	# 1. Ignore the player so we don't shoot ourselves
+	if body.is_in_group("Player"):
+		return
 	
-	elif body.is_in_group("planets") or body.is_in_group("obstacles"):
+	# 2. Check for damageable targets (Enemies)
+	if body.has_method("take_damage"):
+		body.take_damage(_roll_damage())
+		queue_free()
+		return
+	
+	# 3. Hit terrain or obstacles
+	if body.is_in_group("planets") or body.is_in_group("obstacles") or body is StaticBody2D:
 		queue_free()
 
+func _roll_damage() -> float:
+	# Retrieve metadata injected by MomentumCombatComponent
+	var multiplier: float = 1.0
+	if has_meta(&"momentum_damage_multiplier"):
+		multiplier = get_meta(&"momentum_damage_multiplier")
+	
+	# Clamp the multiplier to your defined cap (minimum 1.0 for safety)
+	multiplier = clampf(multiplier, 1.0, momentum_damage_cap)
+	
+	var base_damage = randf_range(damage_min, damage_max)
+	var final_damage = base_damage * multiplier
+	
+	if debug_logging:
+		print("Dealt Damage: ", final_damage, " (Mult: ", multiplier, ")")
+		
+	return final_damage
 
-func _on_timer_timeout() -> void:
-	queue_free()
-
-
+# ========================
+# == UTILITY ==
+# ========================
 func _refresh_gravity_sources() -> void:
 	planets.clear()
 	var seen = {}
@@ -122,6 +157,5 @@ func _refresh_gravity_sources() -> void:
 	if max_gravity_sources > 0 and planets.size() > max_gravity_sources:
 		planets.resize(max_gravity_sources)
 
-func _roll_damage() -> float:
-	var multiplier = clampf(float(get_meta(&"momentum_damage_multiplier", 1.0)), 0.1, momentum_damage_cap)
-	return randf_range(damage_min, damage_max) * multiplier
+func _on_timer_timeout() -> void:
+	queue_free()

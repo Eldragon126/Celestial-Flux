@@ -4,7 +4,7 @@ class_name EnergyComponent
 signal energy_changed(current_energy, max_energy)
 signal energy_depleted
 
-@export var max_energy: float = 100.0
+@export var max_energy: float = 300.0
 @export var starting_energy: float = -1.0
 
 var current_energy: float
