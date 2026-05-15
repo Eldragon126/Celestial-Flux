@@ -19,6 +19,7 @@ func _ready() -> void:
 	_refresh_planets()
 
 func _process(delta: float) -> void:
+	delta *= CombatStatus.get_time_scale(self)
 	_gravity_refresh_elapsed += delta
 	if _gravity_refresh_elapsed >= gravity_refresh_interval:
 		_refresh_planets()
@@ -114,8 +115,7 @@ func _on_attack_area_body_entered(body: Node2D) -> void:
 
 		velocity += knockback_dir * 500
 
-		if "velocity" in body:
-			body.velocity -= knockback_dir * 400
+		CombatStatus.add_velocity(body, -knockback_dir * 400)
 
 func _refresh_planets() -> void:
 	_gravity_refresh_elapsed = 0.0

@@ -8,6 +8,8 @@ const SPLITTER_SCENE = preload("res://Nodes/splitting_asteroid_bot.tscn")
 @export var gravity_radius = 920.0
 @export var gravity_strength = 1550.0
 @export var projectile_speed = 720.0
+@export var compression_pressure_radius = 520.0
+@export var compression_pressure_force = 620.0
 
 var _orbit_angle = 0.0
 var _aura: Polygon2D
@@ -45,9 +47,11 @@ func _run_attack_pattern() -> void:
 	if current_phase == 1:
 		_spawn_radial_bullets(10, projectile_speed)
 	elif current_phase == 2:
+		_apply_compression_pressure(0.72)
 		_spawn_radial_bullets(14, projectile_speed * 0.95)
 		_spawn_debris_ring(5)
 	else:
+		_apply_compression_pressure(1.0)
 		_spawn_radial_bullets(18, projectile_speed * 1.04)
 		_pull_player(0.28)
 
@@ -118,6 +122,28 @@ func _spawn_debris_ring(count: int) -> void:
 		debris.velocity = Vector2.RIGHT.rotated(TAU * float(i) / float(count) + PI * 0.5) * 240.0
 		debris.add_to_group("wave_enemy")
 		get_parent().call_deferred("add_child", debris)
+
+func _apply_compression_pressure(multiplier: float) -> void:
+	var radius: float = compression_pressure_radius + 90.0 * float(current_phase - 1)
+	var radius_squared := radius * radius
+	var seen := {}
+	for group_name in [&"Projectiles", &"enemies", &"wave_enemy"]:
+		for body in get_tree().get_nodes_in_group(group_name):
+			if body == self or body == player or not is_instance_valid(body) or body.is_queued_for_deletion():
+				continue
+			var body_2d := body as Node2D
+			if body_2d == null:
+				continue
+			var id := body_2d.get_instance_id()
+			if seen.has(id):
+				continue
+			seen[id] = true
+			var offset := global_position - body_2d.global_position
+			var dist_squared := offset.length_squared()
+			if dist_squared <= 0.001 or dist_squared > radius_squared:
+				continue
+			var falloff := 1.0 - sqrt(dist_squared) / radius
+			CombatStatus.add_velocity(body_2d, offset.normalized() * compression_pressure_force * multiplier * falloff)
 
 func _telegraph_pulse() -> void:
 	if _aura == null:

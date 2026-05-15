@@ -91,7 +91,17 @@ func _physics_process(_delta: float) -> void:
 func _on_body_entered(body: Node) -> void:
 	if is_queued_for_deletion():
 		return
-	
+
+	if has_meta(&"converted_to_player_projectile"):
+		if body.is_in_group("Player"):
+			return
+		if body.has_method("take_damage"):
+			body.take_damage(randf_range(damage_min, damage_max) * 1.65)
+			queue_free()
+		elif body.is_in_group("planets") or body.is_in_group("obstacles"):
+			queue_free()
+		return
+
 	if body.has_method("take_damage"):
 		if body.is_in_group("Player"):
 			body.take_damage(randf_range(damage_min, damage_max))

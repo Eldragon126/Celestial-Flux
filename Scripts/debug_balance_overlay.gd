@@ -27,7 +27,7 @@ func _ready() -> void:
 	layer = 90
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = visible_on_start
-	
+
 	_build_overlay()
 	_resolve_references(true)
 	set_process(true)
@@ -36,7 +36,7 @@ func _process(delta: float) -> void:
 	_elapsed += delta
 	if _elapsed < maxf(update_interval, 0.04):
 		return
-	
+
 	_elapsed = 0.0
 	_resolve_references(false)
 	_update_telemetry()
@@ -49,7 +49,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if key_event.keycode != toggle_key:
 		return
-	
+
 	visible = not visible
 	get_viewport().set_input_as_handled()
 
@@ -59,7 +59,7 @@ func _build_overlay() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(root)
-	
+
 	var panel := PanelContainer.new()
 	panel.name = "TelemetryPanel"
 	panel.anchor_left = 1.0
@@ -71,19 +71,19 @@ func _build_overlay() -> void:
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_theme_stylebox_override("panel", _make_panel_style())
 	root.add_child(panel)
-	
+
 	var rows := VBoxContainer.new()
 	rows.name = "TelemetryRows"
 	rows.add_theme_constant_override("separation", 5)
 	panel.add_child(rows)
-	
+
 	var title := Label.new()
 	title.text = "BALANCE TELEMETRY F3"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 14)
 	title.modulate = Color(0.72, 1.0, 0.96, 1.0)
 	rows.add_child(title)
-	
+
 	_add_row(rows, &"wave", "Wave")
 	_add_row(rows, &"enemies", "Enemies")
 	_add_row(rows, &"enemy_ai", "Enemy AI")
@@ -105,14 +105,14 @@ func _add_row(parent: VBoxContainer, key: StringName, label_text: String) -> voi
 	row.name = "%sRow" % String(key).capitalize()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(row)
-	
+
 	var label := Label.new()
 	label.text = label_text
 	label.custom_minimum_size = Vector2(92.0, 0.0)
 	label.modulate = Color(0.48, 0.78, 0.84, 1.0)
 	label.add_theme_font_size_override("font_size", 13)
 	row.add_child(label)
-	
+
 	var value := Label.new()
 	value.text = "n/a"
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -120,7 +120,7 @@ func _add_row(parent: VBoxContainer, key: StringName, label_text: String) -> voi
 	value.clip_text = true
 	value.add_theme_font_size_override("font_size", 13)
 	row.add_child(value)
-	
+
 	_rows[key] = value
 
 func _make_panel_style() -> StyleBoxFlat:
@@ -138,21 +138,21 @@ func _make_panel_style() -> StyleBoxFlat:
 func _resolve_references(force: bool) -> void:
 	if force or not _is_valid_node(_player):
 		_player = get_tree().get_first_node_in_group("Player") as Node2D
-	
+
 	if force or not _is_valid_node(_wave_director):
 		_wave_director = _find_node_by_name(&"WaveDirector")
-	
+
 	if force or not _is_valid_node(_time_dilation_manager):
 		_time_dilation_manager = _find_node_by_name(&"TimeDilationManager")
-	
+
 	if force or not _is_valid_node(_resonance_manager):
 		_resonance_manager = _find_node_by_name(&"GravityResonanceManager")
 		if _resonance_manager == null:
 			_resonance_manager = _find_node_with_method(get_tree().current_scene, &"get_active_resonance_zones")
-	
+
 	if force or not _is_valid_node(_arena_destabilization_manager):
 		_arena_destabilization_manager = _find_node_by_name(&"ArenaDestabilizationManager")
-	
+
 	if force or not _is_valid_node(_physics_aware_enemy_director):
 		_physics_aware_enemy_director = _find_node_by_name(&"PhysicsAwareEnemyDirector")
 
@@ -189,7 +189,7 @@ func _format_enemy_count() -> String:
 	if _is_valid_node(_wave_director):
 		wave_count = _count_valid_nodes(_wave_director.get("_active_enemies"))
 	var total := _count_valid_nodes(get_tree().get_nodes_in_group("enemies"))
-	
+
 	if _is_valid_node(_wave_director):
 		return "%d wave / %d total" % [wave_count, total]
 	return "%d total" % total
@@ -200,11 +200,11 @@ func _format_enemy_ai_state() -> String:
 	var state_value: Variant = _physics_aware_enemy_director.call("get_ai_debug_state")
 	if typeof(state_value) != TYPE_DICTIONARY:
 		return "state n/a"
-	
+
 	var state: Dictionary = state_value
 	var tracked := int(_safe_float(state.get("tracked"), 0.0))
 	var profiles: Dictionary = state.get("profiles", {})
-	
+
 	var top_profile := "none"
 	var top_count := 0
 	for key in profiles.keys():
@@ -212,22 +212,22 @@ func _format_enemy_ai_state() -> String:
 		if count > top_count:
 			top_count = count
 			top_profile = String(key)
-	
+
 	return "%d tracked %s %d" % [tracked, top_profile, top_count]
 
 func _format_boss_state() -> String:
 	var boss := _get_active_boss()
 	if not _is_valid_node(boss):
 		return "none"
-	
+
 	var phase := int(_safe_float(boss.get("current_phase"), -1.0))
 	if phase < 0:
 		phase = int(_safe_float(boss.get("_phase"), -1.0))
-	
+
 	var health_ratio := -1.0
 	if boss.has_method("get_health_ratio"):
 		health_ratio = clampf(float(boss.call("get_health_ratio")), 0.0, 1.0)
-	
+
 	var phase_text := "p?" if phase < 0 else "p%d" % phase
 	var hp_text := "" if health_ratio < 0.0 else " %d%%" % int(round(health_ratio * 100.0))
 	return "%s %s%s" % [_clean_node_name(String(boss.name)), phase_text, hp_text]
@@ -238,7 +238,7 @@ func _format_health_state() -> String:
 	var health := _player.get_node_or_null("HealthComponent")
 	if health == null:
 		return "component n/a"
-	
+
 	var current := _safe_float(health.get("current_health"), 0.0)
 	var maximum := maxf(_safe_float(health.get("max_health"), 1.0), 1.0)
 	return "%s %d%%" % [_format_resource_pair(current, maximum), int(round(current / maximum * 100.0))]
@@ -247,27 +247,27 @@ func _format_shield_state() -> String:
 	if not _is_valid_node(_player): return "player n/a"
 	var shield := _player.get_node_or_null("Shield")
 	if shield == null: return "node n/a"
-	
+
 	var current := _safe_float(shield.get("current_energy"), 0.0)
 	var maximum := maxf(_safe_float(shield.get("max_capacity"), 1.0), 1.0)
 	var broken := _safe_bool(shield.get("is_broken"), false)
 	var active := false
 	if shield.has_method("is_shield_active"):
 		active = bool(shield.call("is_shield_active"))
-	
+
 	var state := "ACTIVE" if active else "RECHARGE"
 	if broken: state = "BROKEN"
-	
+
 	var timer := _safe_float(shield.get("_break_remaining"), 0.0) if broken else _safe_float(shield.get("_recharge_delay_remaining"), 0.0)
 	var timer_text := "" if timer <= 0.05 else " %.1fs" % timer
-	
+
 	return "%s %s%s" % [_format_resource_pair(current, maximum), state, timer_text]
 
 func _format_energy_state() -> String:
 	if not _is_valid_node(_player): return "player n/a"
 	var energy := _player.get_node_or_null("EnergyComponent")
 	if energy == null: return "component n/a"
-	
+
 	var current := _safe_float(energy.get("current_energy"), 0.0)
 	var maximum := maxf(_safe_float(energy.get("max_energy"), 1.0), 1.0)
 	return "%s %d%%" % [_format_resource_pair(current, maximum), int(round(current / maximum * 100.0))]
@@ -282,29 +282,29 @@ func _format_momentum_state() -> String:
 	var component := _player.get_node_or_null("MomentumCombatComponent")
 	if component == null or not component.has_method("get_momentum_debug_state"):
 		return "component n/a"
-	
+
 	var state_value: Variant = component.call("get_momentum_debug_state")
 	if typeof(state_value) != TYPE_DICTIONARY:
 		return "state n/a"
-	
+
 	var state: Dictionary = state_value
 	var state_name := String(state.get("state", &"stable"))
 	var damage_multiplier := _safe_float(state.get("damage_multiplier"), 1.0)
 	var orbit_charge := _safe_float(state.get("orbit_charge"), 0.0)
-	
+
 	return "%s x%.2f orbit %d%%" % [state_name, damage_multiplier, int(round(orbit_charge * 100.0))]
 
 func _format_powerups() -> String:
 	if not _is_valid_node(_player): return "player n/a"
 	var inventory := _player.get_node_or_null("PowerupInventory")
 	if inventory == null: return "none"
-	
+
 	var stacks: Dictionary = inventory.get("_stacks") if typeof(inventory.get("_stacks")) == TYPE_DICTIONARY else {}
 	var timed: Dictionary = inventory.get("_timed_effects") if typeof(inventory.get("_timed_effects")) == TYPE_DICTIONARY else {}
-	
+
 	if stacks.is_empty():
 		return "none"
-	
+
 	var parts: Array[String] = []
 	for id in stacks.keys():
 		var stack_count := int(stacks[id])
@@ -314,7 +314,7 @@ func _format_powerups() -> String:
 			if not entry.is_empty():
 				text += " %.0fs" % _safe_float(entry.get("remaining"), 0.0)
 		parts.append(text)
-	
+
 	parts.sort()
 	return _trim_value_text(_join_strings(parts, ", "))
 
@@ -327,47 +327,58 @@ func _format_local_gravity() -> String:
 func _format_time_dilation() -> String:
 	if not _is_valid_node(_time_dilation_manager):
 		return "Engine x%.2f" % Engine.time_scale
-	
+
 	var scale := _safe_float(_time_dilation_manager.get("current_time_scale"), Engine.time_scale)
 	var capacity := _safe_float(_time_dilation_manager.get("current_dilation_capacity"), 0.0)
 	var max_capacity := maxf(_safe_float(_time_dilation_manager.get("initial_dilation_capacity"), 1.0), 1.0)
 	var dilating := _safe_bool(_time_dilation_manager.get("is_dilating"), false)
 	var state := "DILATING" if dilating else "READY"
-	
+
 	return "%s x%.2f %d%%" % [state, scale, int(round(capacity / max_capacity * 100.0))]
 
 func _format_resonance_state() -> String:
 	if not _is_valid_node(_resonance_manager) or not _resonance_manager.has_method("get_active_resonance_zones"):
 		return "manager n/a"
-	
+
 	var zones_value: Variant = _resonance_manager.call("get_active_resonance_zones")
 	var zones: Array = zones_value if typeof(zones_value) == TYPE_ARRAY else []
-	
+
 	var max_intensity := 0.0
+	var strongest_type := "none"
 	for zone in zones:
 		if typeof(zone) == TYPE_DICTIONARY:
-			max_intensity = maxf(max_intensity, _safe_float(zone.get("intensity"), 0.0))
-	
+			var intensity := _safe_float(zone.get("intensity"), 0.0)
+			if intensity > max_intensity:
+				max_intensity = intensity
+				strongest_type = String(zone.get("zone_type_name", &"untyped"))
+
 	var local_intensity := 0.0
+	var local_type := "none"
 	if _is_valid_node(_player) and _resonance_manager.has_method("get_resonance_at_position"):
 		local_intensity = float(_resonance_manager.call("get_resonance_at_position", _player.global_position))
-	
-	return "%d active max %.2f local %.2f" % [zones.size(), max_intensity, local_intensity]
+	if _is_valid_node(_player) and _resonance_manager.has_method("get_resonance_zone_at_position"):
+		var local_zone_value: Variant = _resonance_manager.call("get_resonance_zone_at_position", _player.global_position)
+		if typeof(local_zone_value) == TYPE_DICTIONARY:
+			var local_zone: Dictionary = local_zone_value
+			if not local_zone.is_empty():
+				local_type = String(local_zone.get("zone_type_name", &"zone"))
+
+	return "%d %s %.2f local %s %.2f" % [zones.size(), strongest_type, max_intensity, local_type, local_intensity]
 
 func _format_arena_state() -> String:
 	if not _is_valid_node(_arena_destabilization_manager) or not _arena_destabilization_manager.has_method("get_instability_debug_state"):
 		return "manager n/a"
-	
+
 	var state_value: Variant = _arena_destabilization_manager.call("get_instability_debug_state")
 	if typeof(state_value) != TYPE_DICTIONARY:
 		return "state n/a"
-	
+
 	var state: Dictionary = state_value
 	var instability := _safe_float(state.get("instability"), 0.0)
 	var stage := String(state.get("stage", &"early"))
 	var hazards := int(_safe_float(state.get("active_hazards"), 0.0))
 	var next_event := _safe_float(state.get("next_event"), 0.0)
-	
+
 	return "%s %d%% H%d %.0fs" % [stage, int(round(instability * 100.0)), hazards, next_event]
 
 # ==================== HELPERS ====================
@@ -375,12 +386,12 @@ func _format_arena_state() -> String:
 func _calculate_local_gravity() -> Vector2:
 	if not _is_valid_node(_player):
 		return Vector2.ZERO
-	
+
 	var gravity_constant := _safe_float(_player.get("gravity_constant"), 0.0)
 	var min_dist := maxf(_safe_float(_player.get("min_grav_dist"), 1.0), 1.0)
 	var pull_radius := _safe_float(_player.get("gravity_pull_radius"), 0.0)
 	var pull_radius_squared := pull_radius * pull_radius
-	
+
 	var total := Vector2.ZERO
 	for source in _nearby_gravity_sources():
 		if not _is_valid_node(source):
@@ -391,18 +402,18 @@ func _calculate_local_gravity() -> Vector2:
 			continue
 		if pull_radius > 0.0 and raw_dist_squared > pull_radius_squared:
 			continue
-		
+
 		var raw_dist := sqrt(raw_dist_squared)
 		var dist := maxf(raw_dist, min_dist)
 		var mass := _safe_float(source.get("mass"), 100.0)
 		total += (offset / raw_dist) * gravity_constant * mass / (dist * dist)
-	
+
 	return total
 
 func _nearby_gravity_sources() -> Array[Node2D]:
 	var sources: Array[Node2D] = []
 	var seen := {}
-	
+
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for source in get_tree().get_nodes_in_group(group_name):
 			if source == _player:
@@ -415,14 +426,14 @@ func _nearby_gravity_sources() -> Array[Node2D]:
 				continue
 			seen[id] = true
 			sources.append(source_2d)
-	
+
 	sources.sort_custom(func(a: Node2D, b: Node2D) -> bool:
 		return a.global_position.distance_squared_to(_player.global_position) < b.global_position.distance_squared_to(_player.global_position)
 	)
-	
+
 	if max_gravity_sources_sampled > 0 and sources.size() > max_gravity_sources_sampled:
 		sources.resize(max_gravity_sources_sampled)
-	
+
 	return sources
 
 func _get_active_boss() -> Node:
@@ -430,7 +441,7 @@ func _get_active_boss() -> Node:
 		var boss := _wave_director.get("_boss") as Node
 		if _is_valid_node(boss):
 			return boss
-	
+
 	for boss in get_tree().get_nodes_in_group("bosses"):
 		if _is_valid_node(boss):
 			return boss

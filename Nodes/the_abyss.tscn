@@ -29,6 +29,8 @@ fog_height_density = 16.0
 
 [node name="TheAbyss" type="Node2D" unique_id=189259211]
 script = ExtResource("1_hmxhb")
+planets_to_spawn = 6
+max_spawn_radius = 5000.0
 
 [node name="Planet1" parent="." unique_id=1811765486 instance=ExtResource("1_bpjxb")]
 position = Vector2(53, 287)
@@ -49,21 +51,6 @@ position = Vector2(5358, 1589)
 
 [node name="OrbitalJuiceManager" type="Node2D" parent="." unique_id=163104507]
 script = ExtResource("7_juice")
-
-[node name="Planet2" parent="." unique_id=705870222 instance=ExtResource("1_bpjxb")]
-position = Vector2(53, 2000)
-
-[node name="Planet3" parent="." unique_id=1813700944 instance=ExtResource("1_bpjxb")]
-position = Vector2(53, 4000)
-
-[node name="Planet4" parent="." unique_id=1164098613 instance=ExtResource("1_bpjxb")]
-position = Vector2(53, 3000)
-
-[node name="Planet5" parent="." unique_id=1114074345 instance=ExtResource("1_bpjxb")]
-position = Vector2(53, 5000)
-
-[node name="Planet6" parent="." unique_id=1464163550 instance=ExtResource("1_bpjxb")]
-position = Vector2(53, 6000)
 
 [node name="TimeDilationManager" type="Node" parent="." unique_id=665013840]
 script = ExtResource("6_r4pno")

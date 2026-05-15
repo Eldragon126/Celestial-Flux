@@ -2,7 +2,7 @@ extends Object
 class_name CombatStatus
 
 static func apply_local_slow(target: Node, multiplier: float, duration: float) -> void:
-	if target == null or duration <= 0.0:
+	if target == null or not is_instance_valid(target) or target.is_queued_for_deletion() or duration <= 0.0:
 		return
 
 	var now = Time.get_ticks_msec() / 1000.0
@@ -22,7 +22,7 @@ static func apply_local_slow(target: Node, multiplier: float, duration: float) -
 		target.call("on_local_slow_applied", multiplier, duration)
 
 static func get_time_scale(target: Node) -> float:
-	if target == null:
+	if target == null or not is_instance_valid(target) or target.is_queued_for_deletion():
 		return 1.0
 
 	var now = Time.get_ticks_msec() / 1000.0
@@ -35,7 +35,7 @@ static func get_time_scale(target: Node) -> float:
 	return clampf(float(target.get_meta("local_time_scale", 1.0)), 0.05, 1.0)
 
 static func add_velocity(target: Node, impulse: Vector2) -> void:
-	if target == null:
+	if target == null or not is_instance_valid(target) or target.is_queued_for_deletion():
 		return
 
 	var velocity: Variant = target.get("velocity")
@@ -48,7 +48,7 @@ static func add_velocity(target: Node, impulse: Vector2) -> void:
 		target.set("linear_velocity", linear_velocity + impulse)
 
 static func damage_shield_only(target: Node, amount: float) -> float:
-	if target == null or amount <= 0.0:
+	if target == null or not is_instance_valid(target) or target.is_queued_for_deletion() or amount <= 0.0:
 		return 0.0
 
 	if target.has_method("take_shield_damage"):

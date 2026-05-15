@@ -8,6 +8,8 @@ const ENEMY_BULLET_SCENE = preload("res://Nodes/enemy_bullet.tscn")
 @export var move_speed = 510.0
 @export var projectile_speed = 880.0
 @export var ability_lock_duration = 1.1
+@export var lane_time_multiplier = 0.58
+@export var lane_time_duration = 0.22
 
 var _lane_angle = 0.0
 var _phase_shift_angle = 0.0
@@ -35,6 +37,7 @@ func _boss_physics(delta: float) -> void:
 
 	move_and_slide()
 	_apply_rotating_lanes(delta)
+	_apply_lane_time_disruption()
 	_update_lane_visuals()
 
 func _run_attack_pattern() -> void:
@@ -114,6 +117,30 @@ func _apply_rotating_lanes(delta: float) -> void:
 			var player_velocity = player.get("velocity")
 			player.set("velocity", player_velocity + lane_dir * lane_force * delta)
 			return
+
+func _apply_lane_time_disruption() -> void:
+	var seen := {}
+	for group_name in [&"enemy_projectiles", &"player_projectiles", &"Projectiles", &"enemies"]:
+		for body in get_tree().get_nodes_in_group(group_name):
+			if body == self or body == player or not is_instance_valid(body) or body.is_queued_for_deletion():
+				continue
+			var body_2d := body as Node2D
+			if body_2d == null:
+				continue
+			var id := body_2d.get_instance_id()
+			if seen.has(id):
+				continue
+			seen[id] = true
+
+			var offset := body_2d.global_position - global_position
+			if offset.length() > lane_radius:
+				continue
+
+			for i in range(4):
+				var lane_dir := Vector2.RIGHT.rotated(_lane_angle + TAU * float(i) / 4.0)
+				if absf(offset.dot(lane_dir.orthogonal())) <= lane_width:
+					CombatStatus.apply_local_slow(body_2d, lane_time_multiplier, lane_time_duration)
+					break
 
 func _update_lane_visuals() -> void:
 	for i in range(_lane_visuals.size()):

@@ -44,6 +44,7 @@ const GRAVITY_TIDE_POCKET_SCENE = preload("res://Nodes/gravity_tide_pocket.tscn"
 @export_group("Performance")
 @export var low_performance_mode: bool = false
 @export var particle_scale: float = 1.0
+@export var enable_tide_particles: bool = true
 @export var debug_logging: bool = false
 
 var instability: float = 0.0
@@ -192,6 +193,8 @@ func _spawn_event(event_id: StringName) -> void:
 			_spawn_tide_pocket(GravityTidePocket.TideMode.SLIPSTREAM)
 		&"tide_inversion":
 			_spawn_tide_pocket(GravityTidePocket.TideMode.INVERSION)
+		&"temporal_pocket":
+			_spawn_tide_pocket(GravityTidePocket.TideMode.TEMPORAL)
 		&"volatile_moon":
 			_spawn_volatile_moon()
 		&"nebula_shear":
@@ -218,18 +221,22 @@ func _choose_event() -> StringName:
 			return &"tide_compression"
 		if roll < 0.56:
 			return &"tide_slipstream"
-		if roll < 0.78:
+		if roll < 0.7:
+			return &"temporal_pocket"
+		if roll < 0.84:
 			return &"nebula_shear"
 		return &"volatile_moon"
 
 	# Late stage
-	if roll < 0.22:
+	if roll < 0.18:
 		return &"tide_inversion"
-	if roll < 0.42:
+	if roll < 0.34:
+		return &"temporal_pocket"
+	if roll < 0.5:
 		return &"resonance_storm"
-	if roll < 0.62:
+	if roll < 0.66:
 		return &"wormhole_shear"
-	if roll < 0.8:
+	if roll < 0.84:
 		return &"tide_compression"
 	return &"nebula_shear"
 
@@ -248,6 +255,7 @@ func _spawn_tide_pocket(mode: int) -> Node:
 		pocket.call("configure", mode, pocket_radius, pocket_lifetime, strength)
 
 	pocket.set("particle_cap", int(lerpf(70.0, 170.0, instability) * clampf(particle_scale, 0.0, 2.0)))
+	pocket.set("enable_particles", enable_tide_particles and not low_performance_mode)
 	return _spawn_hazard_node(pocket, _spawn_position(), _event_id_for_tide_mode(mode))
 
 func _spawn_volatile_moon() -> Node:
@@ -291,7 +299,7 @@ func _spawn_resonance_storm() -> void:
 		var mode = [
 			GravityTidePocket.TideMode.COMPRESSION,
 			GravityTidePocket.TideMode.SLIPSTREAM,
-			GravityTidePocket.TideMode.INVERSION,
+			GravityTidePocket.TideMode.TEMPORAL,
 		][i % 3]
 		_spawn_tide_pocket(mode)
 
@@ -403,6 +411,8 @@ func _event_id_for_tide_mode(mode_value: int) -> StringName:
 			return &"tide_slipstream"
 		GravityTidePocket.TideMode.INVERSION:
 			return &"tide_inversion"
+		GravityTidePocket.TideMode.TEMPORAL:
+			return &"temporal_pocket"
 		_:
 			return &"tide_compression"
 

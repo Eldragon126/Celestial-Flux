@@ -9,6 +9,7 @@ const ENEMY_BULLET_SCENE = preload("res://Nodes/enemy_bullet.tscn")
 @export var rift_width = 72.0
 @export var lane_force = 720.0
 @export var projectile_speed = 840.0
+@export var tide_lane_drift = 95.0
 
 var _lane_angle = 0.0
 var _orbit_angle = 0.0
@@ -32,6 +33,7 @@ func _boss_physics(delta: float) -> void:
 	velocity = velocity.lerp((target - global_position).limit_length(move_speed + 45.0 * current_phase), clampf(delta * 1.6, 0.0, 1.0))
 	move_and_slide()
 	_apply_rift_lanes(delta)
+	_weave_tide_pockets(delta)
 	_update_lanes()
 
 func _run_attack_pattern() -> void:
@@ -111,6 +113,24 @@ func _apply_rift_lanes(delta: float) -> void:
 			player.set("velocity", player_velocity + lane_dir * lane_force * delta)
 			return
 
+func _weave_tide_pockets(delta: float) -> void:
+	for hazard in get_tree().get_nodes_in_group("arena_destabilization_hazard"):
+		var pocket := hazard as GravityTidePocket
+		if pocket == null or not is_instance_valid(pocket) or pocket.is_queued_for_deletion():
+			continue
+
+		var offset := pocket.global_position - global_position
+		if offset.length() > rift_radius:
+			continue
+
+		for i in range(_rift_lanes.size()):
+			var lane_dir := Vector2.RIGHT.rotated(_lane_angle + TAU * float(i) / float(_rift_lanes.size()))
+			if absf(offset.dot(lane_dir.orthogonal())) <= rift_width:
+				pocket.global_position += lane_dir * tide_lane_drift * delta
+				if pocket.get("field_acceleration") != null:
+					pocket.set("field_acceleration", minf(float(pocket.get("field_acceleration")) + 90.0 * delta, 1450.0))
+				break
+
 func _update_lanes() -> void:
 	for i in range(_rift_lanes.size()):
 		var lane = _rift_lanes[i]
@@ -167,4 +187,3 @@ func _circle_points(count: int, radius: float) -> PackedVector2Array:
 		var angle = TAU * float(i) / float(count)
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
 	return points
-

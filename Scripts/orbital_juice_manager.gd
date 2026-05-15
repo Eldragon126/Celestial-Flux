@@ -38,6 +38,12 @@ const SHIELDER_SUPPORT_SCENE = preload("res://Nodes/shielder_support.tscn")
 @export var enable_arena_destabilization = true
 @export var enable_physics_aware_enemy_ai = true
 @export var spawn_showcase_content = false
+@export var near_miss_time_charge_multiplier: float = 0.14
+@export_group("Quality")
+@export_enum("Off", "Low", "High") var resonance_visual_quality: int = 2
+@export var enable_tide_particles: bool = true
+@export var enable_time_afterimages: bool = true
+@export var low_performance_mode: bool = false
 
 var _installed = false
 
@@ -77,6 +83,7 @@ func _install_modular_additions() -> void:
 			# Momentum combat stays as a player add-on: it rewards slingshots,
 			# near-misses, and kinetic impacts without rewriting player.gd.
 			_add_child_scene_once(player, MOMENTUM_COMBAT_SCENE, "MomentumCombatComponent")
+			_connect_momentum_to_time_dilation(level_root, player)
 
 		var camera = player.get_node_or_null("Camera2D")
 		if attach_player_juice and camera != null:
@@ -100,6 +107,8 @@ func _install_modular_additions() -> void:
 	elif spawn_showcase_content and player != null:
 		_spawn_showcase_content(level_root, player.global_position)
 		_refresh_player_planet_cache(player)
+
+	_apply_quality_settings(level_root)
 
 func _add_child_scene_once(parent: Node, scene: PackedScene, child_name: String) -> Node:
 	if parent == null:
@@ -148,3 +157,52 @@ func _refresh_player_planet_cache(player: Node) -> void:
 	# hazards are pushed into that cache without editing player.gd.
 	if player != null and player.get("planets") != null:
 		player.set("planets", get_tree().get_nodes_in_group("planets"))
+
+func _connect_momentum_to_time_dilation(level_root: Node, player: Node) -> void:
+	if level_root == null or player == null:
+		return
+
+	var momentum := player.get_node_or_null("MomentumCombatComponent")
+	var time_manager := level_root.find_child("TimeDilationManager", true, false)
+	if momentum == null or time_manager == null:
+		return
+	if not momentum.has_signal("near_miss_velocity_gained") or not time_manager.has_method("add_near_miss_charge"):
+		return
+
+	var callable := Callable(self, "_on_momentum_near_miss_velocity_gained").bind(time_manager)
+	if not momentum.is_connected("near_miss_velocity_gained", callable):
+		momentum.connect("near_miss_velocity_gained", callable)
+
+func _on_momentum_near_miss_velocity_gained(_target: Node, amount: float, time_manager: Node) -> void:
+	if time_manager == null or not is_instance_valid(time_manager):
+		return
+
+	var base_charge_value: Variant = time_manager.get("near_miss_charge_amount")
+	var base_charge_is_number := typeof(base_charge_value) == TYPE_FLOAT or typeof(base_charge_value) == TYPE_INT
+	var base_charge := float(base_charge_value) if base_charge_is_number else 15.0
+	var charge := maxf(base_charge * 0.65, amount * near_miss_time_charge_multiplier)
+	time_manager.call("add_near_miss_charge", charge)
+
+func _apply_quality_settings(level_root: Node) -> void:
+	if level_root == null:
+		return
+
+	var resonance := level_root.find_child("GravityResonanceManager", true, false)
+	if resonance != null:
+		if resonance.get("resonance_visual_quality") != null:
+			resonance.set("resonance_visual_quality", resonance_visual_quality)
+		if resonance.get("max_visual_particles_per_zone") != null and low_performance_mode:
+			resonance.set("max_visual_particles_per_zone", 16)
+
+	var arena := level_root.find_child("ArenaDestabilizationManager", true, false)
+	if arena != null:
+		if arena.get("low_performance_mode") != null:
+			arena.set("low_performance_mode", low_performance_mode)
+		if arena.get("enable_tide_particles") != null:
+			arena.set("enable_tide_particles", enable_tide_particles)
+		if arena.get("particle_scale") != null and low_performance_mode:
+			arena.set("particle_scale", 0.45)
+
+	var time_manager := level_root.find_child("TimeDilationManager", true, false)
+	if time_manager != null and time_manager.get("enable_afterimages") != null:
+		time_manager.set("enable_afterimages", enable_time_afterimages and not low_performance_mode)

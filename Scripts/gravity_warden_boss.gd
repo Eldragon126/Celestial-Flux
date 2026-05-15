@@ -34,6 +34,7 @@ var _orbit_angle = 0.0
 var _aura_polygon: Polygon2D
 var _core_polygon: Polygon2D
 var _rng = RandomNumberGenerator.new()
+var _resonance_manager: Node = null
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -205,9 +206,11 @@ func _fire_pattern() -> void:
 	if _phase == 1:
 		_spawn_bullet(aim, projectile_speed)
 	elif _phase == 2:
+		_command_resonance_field(GravityResonanceManager.ZoneType.COMPRESSION)
 		for angle in [-0.22, 0.0, 0.22]:
 			_spawn_bullet(aim.rotated(angle), projectile_speed * 1.05)
 	else:
+		_command_resonance_field(GravityResonanceManager.ZoneType.INVERSION)
 		for i in range(10):
 			var ring_dir = aim.rotated(TAU * float(i) / 10.0 + _orbit_angle * 0.4)
 			_spawn_bullet(ring_dir, projectile_speed * 0.86)
@@ -260,6 +263,33 @@ func _pulse_core() -> void:
 	_core_polygon.scale = Vector2.ONE
 	tween.tween_property(_core_polygon, "scale", Vector2(1.22, 1.22), 0.08)
 	tween.tween_property(_core_polygon, "scale", Vector2.ONE, 0.18)
+
+func _command_resonance_field(zone_type: int) -> void:
+	var manager := _get_resonance_manager()
+	if manager == null or not manager.has_method("create_manual_resonance_zone"):
+		return
+
+	var center := global_position
+	if _player != null and is_instance_valid(_player):
+		center = (global_position + _player.global_position) * 0.5
+
+	manager.call(
+		"create_manual_resonance_zone",
+		center,
+		260.0 + 42.0 * float(_phase),
+		zone_type,
+		0.58 + 0.12 * float(_phase),
+		2.4
+	)
+
+func _get_resonance_manager() -> Node:
+	if _resonance_manager != null and is_instance_valid(_resonance_manager):
+		return _resonance_manager
+	var root := get_tree().current_scene
+	if root == null:
+		return null
+	_resonance_manager = root.find_child("GravityResonanceManager", true, false)
+	return _resonance_manager
 
 func _on_health_changed(current_health: float, new_max_health: float) -> void:
 	boss_health_changed.emit(current_health, new_max_health)

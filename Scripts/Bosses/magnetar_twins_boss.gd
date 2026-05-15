@@ -9,8 +9,11 @@ const ENEMY_BULLET_SCENE = preload("res://Nodes/enemy_bullet.tscn")
 @export var lobe_radius = 165.0
 @export var lobe_force = 1320.0
 @export var projectile_speed = 900.0
+@export var polarity_window_duration = 2.6
 
 var _angle = 0.0
+var _polarity_sign = 1.0
+var _polarity_timer = 0.0
 var _core: Polygon2D
 var _north_lobe: Polygon2D
 var _south_lobe: Polygon2D
@@ -27,6 +30,7 @@ func _boss_physics(delta: float) -> void:
 		return
 
 	_angle += delta * (0.45 + current_phase * 0.14)
+	_update_polarity_window(delta)
 	var target = player.global_position + Vector2(cos(_angle), sin(_angle * 0.7)) * orbit_distance
 	velocity = velocity.lerp((target - global_position).limit_length(move_speed + 30.0 * current_phase), clampf(delta * 1.9, 0.0, 1.0))
 	move_and_slide()
@@ -97,7 +101,7 @@ func _apply_lobe_forces(delta: float) -> void:
 		if distance <= 1.0 or distance > 540.0:
 			continue
 		var player_velocity = player.get("velocity")
-		var polarity = 1.0 if lobe == _north_lobe else -0.65
+		var polarity = _polarity_sign if lobe == _north_lobe else -_polarity_sign
 		player.set("velocity", player_velocity + offset.normalized() * lobe_force * polarity * delta * 540.0 / maxf(distance, 90.0))
 
 func _update_lobes() -> void:
@@ -147,12 +151,26 @@ func _spawn_seekers() -> void:
 func _magnetic_inversion() -> void:
 	if player == null:
 		return
+	_polarity_sign *= -1.0
+	_polarity_timer = 0.0
 	var offset = player.global_position - global_position
 	if offset.length() < 760.0:
 		var player_velocity = player.get("velocity")
 		player.set("velocity", player_velocity + offset.normalized() * 460.0)
 		if player.has_method("apply_shield_disruption"):
 			player.call("apply_shield_disruption", 0.38, 0.75)
+
+func _update_polarity_window(delta: float) -> void:
+	_polarity_timer += delta
+	if _polarity_timer >= maxf(polarity_window_duration, 0.4):
+		_polarity_timer = 0.0
+		_polarity_sign *= -1.0
+		_pulse_core()
+
+	if _north_lobe != null:
+		_north_lobe.color = Color(0.26, 0.86, 1.0, 0.52) if _polarity_sign > 0.0 else Color(1.0, 0.18, 0.72, 0.52)
+	if _south_lobe != null:
+		_south_lobe.color = Color(1.0, 0.18, 0.72, 0.52) if _polarity_sign > 0.0 else Color(0.26, 0.86, 1.0, 0.52)
 
 func _pulse_core() -> void:
 	if _core == null:

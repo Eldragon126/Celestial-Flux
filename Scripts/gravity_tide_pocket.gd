@@ -10,10 +10,11 @@ class_name GravityTidePocket
 signal pocket_activated(mode: int, position: Vector2)
 signal pocket_expired(mode: int, position: Vector2)
 signal body_affected(body: Node, impulse: Vector2, mode: int)
+signal temporal_pocket_entered(body: Node, multiplier: float, duration: float)
 
-enum TideMode { COMPRESSION, SLIPSTREAM, INVERSION }
+enum TideMode { COMPRESSION, SLIPSTREAM, INVERSION, TEMPORAL }
 
-@export_enum("Compression", "Slipstream", "Inversion") var mode: int = TideMode.COMPRESSION
+@export_enum("Compression", "Slipstream", "Inversion", "Temporal") var mode: int = TideMode.COMPRESSION
 @export var radius: float = 320.0
 @export var lifetime: float = 9.0
 @export var telegraph_time: float = 1.0
@@ -27,6 +28,10 @@ enum TideMode { COMPRESSION, SLIPSTREAM, INVERSION }
 @export var particle_cap: int = 150
 @export var enable_particles: bool = true
 @export var debug_visual_enabled: bool = true
+@export_group("Temporal")
+@export var temporal_slow_multiplier: float = 0.48
+@export var temporal_slow_duration: float = 0.35
+@export var temporal_player_tangent_boost: float = 120.0
 
 var _active := false
 var _age := 0.0
@@ -35,6 +40,7 @@ var _ring: Polygon2D = null
 var _core: Polygon2D = null
 var _particles: GPUParticles2D = null
 var _collision: CollisionShape2D = null
+var _time_dilation_manager: Node = null
 
 func _ready() -> void:
 	add_to_group("arena_hazard")
@@ -66,7 +72,7 @@ func _process(delta: float) -> void:
 	_apply_field(delta)
 
 func configure(new_mode: int, new_radius: float, new_lifetime: float, new_strength: float) -> void:
-	mode = clampi(new_mode, TideMode.COMPRESSION, TideMode.INVERSION)
+	mode = clampi(new_mode, TideMode.COMPRESSION, TideMode.TEMPORAL)
 	radius = maxf(new_radius, 40.0)
 	lifetime = maxf(new_lifetime, 0.5)
 	field_acceleration = maxf(new_strength, 0.0)
@@ -185,12 +191,14 @@ func _apply_field(delta: float) -> void:
 			impulse = -radial * field_acceleration * falloff * delta
 		elif mode == TideMode.INVERSION:
 			impulse = radial * field_acceleration * falloff * delta
-		else:
+		elif mode == TideMode.SLIPSTREAM:
 			var tangent := radial.orthogonal()
 			var velocity := _body_velocity(body)
 			if tangent.dot(velocity) < 0.0:
 				tangent = -tangent
 			impulse = tangent * slipstream_acceleration * (0.35 + falloff) * delta
+		else:
+			impulse = _apply_temporal_field(body, radial, falloff, delta)
 
 		if impulse.length() > impulse_limit:
 			impulse = impulse.limit_length(impulse_limit)
@@ -233,6 +241,38 @@ func _body_velocity(body: Node) -> Vector2:
 
 	return Vector2.ZERO
 
+func _apply_temporal_field(body: Node, radial: Vector2, falloff: float, delta: float) -> Vector2:
+	var tangent := radial.orthogonal()
+	var velocity := _body_velocity(body)
+	if velocity != Vector2.ZERO and tangent.dot(velocity) < 0.0:
+		tangent = -tangent
+
+	if body.is_in_group("Player"):
+		return tangent * temporal_player_tangent_boost * falloff * delta
+
+	var multiplier := lerpf(1.0, temporal_slow_multiplier, falloff)
+	_apply_local_slow(body, multiplier, temporal_slow_duration)
+	temporal_pocket_entered.emit(body, multiplier, temporal_slow_duration)
+	return -velocity.normalized() * field_acceleration * 0.12 * falloff * delta if velocity != Vector2.ZERO else Vector2.ZERO
+
+func _apply_local_slow(body: Node, multiplier: float, duration: float) -> void:
+	var time_manager := _get_time_dilation_manager()
+	if time_manager != null and time_manager.has_method("apply_local_slow_to_target"):
+		time_manager.call("apply_local_slow_to_target", body, multiplier, duration)
+	else:
+		CombatStatus.apply_local_slow(body, multiplier, duration)
+
+func _get_time_dilation_manager() -> Node:
+	if _time_dilation_manager != null and is_instance_valid(_time_dilation_manager) and not _time_dilation_manager.is_queued_for_deletion():
+		return _time_dilation_manager
+
+	var root := get_tree().current_scene
+	if root == null:
+		return null
+
+	_time_dilation_manager = root.find_child("TimeDilationManager", true, false)
+	return _time_dilation_manager
+
 func _make_particle_material() -> ParticleProcessMaterial:
 	var gradient := Gradient.new()
 	var base := _mode_color(0.72)
@@ -266,6 +306,8 @@ func _mode_color(alpha: float) -> Color:
 		return Color(0.0, 0.96, 0.78, alpha)
 	if mode == TideMode.INVERSION:
 		return Color(1.0, 0.38, 0.13, alpha)
+	if mode == TideMode.TEMPORAL:
+		return Color(0.72, 0.38, 1.0, alpha)
 	return Color(0.28, 0.72, 1.0, alpha)
 
 func _ring_points(count: int, inner_radius: float, outer_radius: float) -> PackedVector2Array:

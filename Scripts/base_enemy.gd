@@ -35,6 +35,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	delta *= CombatStatus.get_time_scale(self)
 	_gravity_refresh_elapsed += delta
 
 	# Refresh player reference if needed
@@ -117,8 +118,7 @@ func _on_attack_area_body_entered(body: Node2D) -> void:
 		var knockback_dir = (global_position - body.global_position).normalized()
 		velocity += knockback_dir * 600
 
-		if "velocity" in body:
-			body.velocity -= knockback_dir * 600
+		CombatStatus.add_velocity(body, -knockback_dir * 600)
 
 func _refresh_planets() -> void:
 	_gravity_refresh_elapsed = 0.0
