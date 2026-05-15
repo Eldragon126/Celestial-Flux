@@ -2,7 +2,7 @@ extends Node2D
 
 ## Planet Spawner for ORBITRON: VECTORFALL
 ## Creates planets around the player while avoiding overlaps.
-## Tiny procedural cosmos machine 🌌
+## Tiny procedural cosmos machine
 
 @export var planet_scene: PackedScene = preload("res://Nodes/planet_1.tscn")
 

@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://bft736y7vrfdv"]
 
-[ext_resource type="PackedScene" uid="uid://cqdqshk4xbg5q" path="res://Nodes/planet_1.tscn" id="1_bpjxb"]
 [ext_resource type="Script" uid="uid://b21qhaniop41p" path="res://Scripts/the_abyss.gd" id="1_hmxhb"]
 [ext_resource type="PackedScene" uid="uid://bar4e30caja5p" path="res://Nodes/player.tscn" id="2_souor"]
 [ext_resource type="PackedScene" uid="uid://nfcuwc1hcu21" path="res://Nodes/black_hole.tscn" id="6_hmxhb"]
@@ -31,9 +30,6 @@ fog_height_density = 16.0
 script = ExtResource("1_hmxhb")
 planets_to_spawn = 6
 max_spawn_radius = 5000.0
-
-[node name="Planet1" parent="." unique_id=1811765486 instance=ExtResource("1_bpjxb")]
-position = Vector2(53, 287)
 
 [node name="Player" parent="." unique_id=943672105 instance=ExtResource("2_souor")]
 position = Vector2(465, 780)
