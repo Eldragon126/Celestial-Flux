@@ -149,3 +149,10 @@ Debug and Optimize code.
 Keep pushing toward gravitational personality first: readable rules, then beauty,
 then escalation. The game gets most fun when players can see the law bending
 before the spectacle blooms.
+
+
+## Things that need to be done: 
+
+Fix the reoccurring player velocity compounded error continuously.
+Make the time dilation script work better, and make the player script work better with the time dilation script.
+

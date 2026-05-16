@@ -2,87 +2,198 @@
 extends Node
 class_name TimeDilationManager
 
-## Time Dilation System for ORBITRON: VECTORFALL
+## ORBITRON: VECTORFALL
+## Stable Time Dilation System
+##
+## Key fixes:
+## - No recursive velocity scaling
+## - No infinite momentum amplification
+## - No player physics corruption
+## - Local slow system only affects non-player targets
+## - Safe metadata cleanup
+## - Stable Engine.time_scale transitions
+## - Compatible with MomentumCombatComponent
+
+# ============================================================
+# CORE SETTINGS
+# ============================================================
+
+@export_group("Core Settings")
 
 @export var base_time_scale: float = 1.0
-@export var min_time_scale: float = 0.1
-@export var max_time_scale: float = 2.0
-@export var dilation_rate: float = 3.0
-@export var recovery_rate: float = 1.5
+@export var min_time_scale: float = 0.18
+@export var max_time_scale: float = 1.0
+
+@export var dilation_rate: float = 7.0
+@export var recovery_rate: float = 3.0
+
+@export var use_global_time_scale: bool = true
+@export var sync_audio_pitch: bool = true
+
+# ============================================================
+# PLAYER PROTECTION
+# ============================================================
+
+@export_group("Player Protection")
+
+@export var isolate_player_from_slowmo: bool = true
+@export var preserve_player_velocity: bool = true
+
+# ============================================================
+# ENERGY / CAPACITY
+# ============================================================
+
+@export_group("Capacity")
+
 @export var initial_dilation_capacity: float = 100.0
-@export var dilation_cost_per_second: float = 40.0
-@export var near_miss_charge_amount: float = 15.0
-@export var near_miss_detection_radius: float = 60.0
-@export var use_global_time_scale: bool = false
+@export var dilation_cost_per_second: float = 36.0
+@export var recovery_per_second: float = 18.0
+
+# ============================================================
+# LOCAL FIELD
+# ============================================================
+
+@export_group("Local Time Field")
+
 @export var dilation_enemy_multiplier: float = 0.52
 @export var dilation_projectile_multiplier: float = 0.68
-@export var dilation_local_effect_duration: float = 0.18
-@export var dilation_field_interval: float = 0.08
-@export var max_dilation_targets_per_tick: int = 64
+
+@export var local_effect_duration: float = 0.16
+@export var field_tick_interval: float = 0.03
+
+@export var max_targets_per_tick: int = 64
+
+# ============================================================
+# AFTERIMAGES
+# ============================================================
+
+@export_group("Afterimages")
+
 @export var enable_afterimages: bool = true
 @export var afterimage_interval: float = 0.08
-@export var afterimage_lifetime: float = 0.4
-@export var afterimage_color: Color = Color(0.0, 0.9, 1.0, 0.3)
+@export var afterimage_lifetime: float = 0.45
+
+# ============================================================
+# STATE
+# ============================================================
 
 var current_dilation_capacity: float = 100.0
 var current_time_scale: float = 1.0
-var is_dilating: bool = false
-var _dilation_input_active: bool = false
-var _afterimage_timer: float = 0.0
-var _afterimage_positions: Array[Dictionary] = []
-var _local_slow_effects: Dictionary = {}
-var _momentum_preservation_active: bool = true
-var _dilation_field_elapsed := 0.0
 
-signal time_scale_changed(new_scale: float, capacity: float)
+var is_dilating: bool = false
+
+var _dilation_input_active := false
+var _field_elapsed := 0.0
+var _afterimage_elapsed := 0.0
+
+var _afterimages: Array[Dictionary] = []
+var _local_slow_effects: Dictionary = {}
+
+var _player: CharacterBody2D = null
+
+# ============================================================
+# SIGNALS
+# ============================================================
+
 signal dilation_started()
 signal dilation_ended()
-signal capacity_depleted()
-signal afterimage_spawned(position: Vector2, velocity: Vector2)
-signal near_miss_detected(amount: float)
-signal local_time_pocket_entered(target: Node, multiplier: float, duration: float)
-signal local_time_pocket_expired(target_id: int)
-signal time_tear_intensity_changed(intensity: float)
 
-var _last_time_tear_intensity: float = 0.0
+signal time_scale_changed(scale: float, capacity: float)
+
+signal local_time_pocket_entered(
+	target: Node,
+	multiplier: float,
+	duration: float
+)
+
+signal local_time_pocket_expired(target_id: int)
+
+signal afterimage_spawned(position: Vector2, velocity: Vector2)
+
+# ============================================================
+# READY
+# ============================================================
 
 func _ready() -> void:
 	current_dilation_capacity = initial_dilation_capacity
+	current_time_scale = base_time_scale
+
+	_find_player()
+
 	set_process(true)
 	set_physics_process(true)
 
+# ============================================================
+# EXIT
+# ============================================================
+
 func _exit_tree() -> void:
-	if is_equal_approx(Engine.time_scale, current_time_scale):
-		Engine.time_scale = base_time_scale
+	_restore_global_time()
+	_clear_all_local_slows()
+	_reset_player_isolation()
+
+# ============================================================
+# PROCESS
+# ============================================================
 
 func _process(delta: float) -> void:
 	_handle_input()
 	_update_capacity(delta)
 	_update_afterimages(delta)
-	_update_local_time_effects(delta)
-	_update_dilation_field(delta)
+	_update_local_effects(delta)
 
-	time_scale_changed.emit(current_time_scale, current_dilation_capacity)
+	time_scale_changed.emit(
+		current_time_scale,
+		current_dilation_capacity
+	)
 
-func _physics_process(_delta: float) -> void:
-	_update_global_time_scale()
-	_emit_time_tear_intensity()
+# ============================================================
+# PHYSICS
+# ============================================================
+
+func _physics_process(delta: float) -> void:
+	_update_time_scale(delta)
+	_update_field(delta)
+	_manage_player_isolation()
+
+# ============================================================
+# PLAYER LOOKUP
+# ============================================================
+
+func _find_player() -> void:
+	var node := get_tree().get_first_node_in_group("Player")
+
+	if node is CharacterBody2D:
+		_player = node
+
+# ============================================================
+# INPUT
+# ============================================================
 
 func _handle_input() -> void:
-	var dilation_pressed = Input.is_action_pressed("time_dilation")
+	var pressed := Input.is_action_pressed("time_dilation")
 
-	if dilation_pressed and not _dilation_input_active:
+	if pressed and not _dilation_input_active:
 		_start_dilation()
-	elif not dilation_pressed and _dilation_input_active:
+
+	elif not pressed and _dilation_input_active:
 		_end_dilation()
 
-	_dilation_input_active = dilation_pressed
+	_dilation_input_active = pressed
+
+# ============================================================
+# START / END
+# ============================================================
 
 func _start_dilation() -> void:
-	if is_dilating or current_dilation_capacity <= 0.0:
+	if is_dilating:
+		return
+
+	if current_dilation_capacity <= 0.0:
 		return
 
 	is_dilating = true
+
 	dilation_started.emit()
 
 func _end_dilation() -> void:
@@ -90,379 +201,378 @@ func _end_dilation() -> void:
 		return
 
 	is_dilating = false
+
 	dilation_ended.emit()
+
+# ============================================================
+# CAPACITY
+# ============================================================
 
 func _update_capacity(delta: float) -> void:
 	if is_dilating:
-		var drain = dilation_cost_per_second * delta
-		current_dilation_capacity -= drain
+		current_dilation_capacity -= dilation_cost_per_second * delta
 
 		if current_dilation_capacity <= 0.0:
 			current_dilation_capacity = 0.0
 			_end_dilation()
-			capacity_depleted.emit()
-	else:
-		var recover = recovery_rate * delta * 20.0
-		current_dilation_capacity += recover
-		current_dilation_capacity = minf(current_dilation_capacity, initial_dilation_capacity)
 
-func _update_global_time_scale() -> void:
-	if is_dilating and current_dilation_capacity > 0.0:
-		var target_scale := lerpf(
+	else:
+		current_dilation_capacity += recovery_per_second * delta
+
+		current_dilation_capacity = minf(
+			current_dilation_capacity,
+			initial_dilation_capacity
+		)
+
+# ============================================================
+# GLOBAL TIME SCALE
+# ============================================================
+
+func _update_time_scale(delta: float) -> void:
+	var target_scale := base_time_scale
+
+	if is_dilating:
+		var fraction := current_dilation_capacity / maxf(
+			initial_dilation_capacity,
+			0.001
+		)
+
+		target_scale = lerpf(
 			min_time_scale,
 			base_time_scale,
-			current_dilation_capacity / maxf(initial_dilation_capacity, 0.001)
+			fraction
 		)
 
 		current_time_scale = lerpf(
 			current_time_scale,
 			target_scale,
-			dilation_rate * get_physics_process_delta_time()
+			dilation_rate * delta
 		)
+
 	else:
 		current_time_scale = lerpf(
 			current_time_scale,
 			base_time_scale,
-			recovery_rate * get_physics_process_delta_time()
+			recovery_rate * delta
 		)
 
-	Engine.time_scale = current_time_scale if use_global_time_scale else base_time_scale
-
-func _emit_time_tear_intensity() -> void:
-	var denominator := maxf(base_time_scale - min_time_scale, 0.001)
-	var intensity := clampf(
-		(base_time_scale - current_time_scale) / denominator,
-		0.0,
-		1.0
+	current_time_scale = clampf(
+		current_time_scale,
+		min_time_scale,
+		max_time_scale
 	)
 
-	if absf(intensity - _last_time_tear_intensity) < 0.025:
+	var applied := current_time_scale
+
+	if not use_global_time_scale:
+		applied = base_time_scale
+
+	Engine.time_scale = applied
+
+	if sync_audio_pitch:
+		AudioServer.playback_speed_scale = applied
+
+# ============================================================
+# PLAYER ISOLATION
+# ============================================================
+
+func _manage_player_isolation() -> void:
+	if not isolate_player_from_slowmo:
 		return
 
-	_last_time_tear_intensity = intensity
-	time_tear_intensity_changed.emit(intensity)
-
-func _update_afterimages(delta: float) -> void:
-	if not enable_afterimages or not is_dilating:
+	if not use_global_time_scale:
 		return
 
-	_afterimage_timer += delta
-
-	if _afterimage_timer >= afterimage_interval:
-		_afterimage_timer = 0.0
-		_spawn_afterimage()
-
-	for i in range(_afterimage_positions.size() - 1, -1, -1):
-		var afterimage = _afterimage_positions[i]
-		afterimage["lifetime"] -= delta
-
-		if afterimage["lifetime"] <= 0.0:
-			_afterimage_positions.remove_at(i)
-
-func _spawn_afterimage() -> void:
-	var player = get_tree().get_first_node_in_group("Player")
-
-	if not is_instance_valid(player):
+	if not is_instance_valid(_player):
+		_find_player()
 		return
 
-	var player_2d := player as Node2D
+	if is_dilating:
+		if _player.process_mode != Node.PROCESS_MODE_ALWAYS:
+			_player.process_mode = Node.PROCESS_MODE_ALWAYS
 
-	if player_2d == null:
+		if preserve_player_velocity:
+			_player.set_meta(
+				"time_dilation_velocity_protected",
+				true
+			)
+
+	else:
+		_reset_player_isolation()
+
+func _reset_player_isolation() -> void:
+	if not is_instance_valid(_player):
 		return
 
-	var velocity_value: Variant = player.get("velocity")
-	var player_velocity: Vector2 = velocity_value if velocity_value is Vector2 else Vector2.ZERO
+	if _player.process_mode == Node.PROCESS_MODE_ALWAYS:
+		_player.process_mode = Node.PROCESS_MODE_INHERIT
 
-	var afterimage_data = {
-		"position": player_2d.global_position,
-		"rotation": player_2d.rotation,
-		"velocity": player_velocity,
-		"lifetime": afterimage_lifetime,
-		"scale": player_2d.scale
-	}
+	if _player.has_meta("time_dilation_velocity_protected"):
+		_player.remove_meta("time_dilation_velocity_protected")
 
-	_afterimage_positions.append(afterimage_data)
-	afterimage_spawned.emit(afterimage_data["position"], afterimage_data["velocity"])
+# ============================================================
+# LOCAL FIELD
+# ============================================================
 
-func add_near_miss_charge(amount: float = near_miss_charge_amount) -> void:
-	if amount <= 0.0:
+func _update_field(delta: float) -> void:
+	_field_elapsed += delta
+
+	if _field_elapsed < field_tick_interval:
 		return
 
-	current_dilation_capacity = minf(
-		current_dilation_capacity + amount,
-		initial_dilation_capacity * 1.2
-	)
+	_field_elapsed = 0.0
 
-	near_miss_detected.emit(amount)
-
-func detect_near_misses(player: Node2D, enemies: Array) -> void:
-	if player == null:
-		return
-
-	for enemy in enemies:
-		if not is_instance_valid(enemy):
-			continue
-
-		var enemy_2d = enemy as Node2D
-
-		if enemy_2d == null:
-			continue
-
-		var distance = player.global_position.distance_to(enemy_2d.global_position)
-
-		if distance < near_miss_detection_radius:
-			add_near_miss_charge()
-			break
-
-func apply_local_slow_to_target(target: Node, multiplier: float, duration: float) -> void:
-	if target == null or duration <= 0.0:
-		return
-
-	if not is_instance_valid(target):
-		return
-
-	var now = Time.get_ticks_msec() / 1000.0
-	var previous_until := float(target.get_meta("local_time_scale_until", 0.0))
-	var previous_multiplier := clampf(
-		float(target.get_meta("local_time_scale", 1.0)),
-		0.05,
-		1.0
-	)
-
-	var already_slowed: bool = previous_until > now
-	var clamped_multiplier := clampf(multiplier, 0.05, 1.0)
-	var until: float = maxf(previous_until, now + duration)
-	var target_id := target.get_instance_id()
-
-	target.set_meta(
-		"local_time_scale",
-		minf(previous_multiplier, clamped_multiplier)
-			if already_slowed
-			else clamped_multiplier
-	)
-
-	target.set_meta("local_time_scale_until", until)
-
-	var existing_value = _local_slow_effects.get(target_id, {})
-	var existing_remaining := 0.0
-
-	if typeof(existing_value) == TYPE_DICTIONARY:
-		var existing_effect: Dictionary = existing_value
-		existing_remaining = float(existing_effect.get("remaining", 0.0))
-
-	_local_slow_effects[target_id] = {
-		"target": target,
-		"remaining": maxf(duration, existing_remaining),
-		"multiplier": clamped_multiplier,
-	}
-
-	if not already_slowed or clamped_multiplier < previous_multiplier:
-		var velocity: Variant = target.get("velocity")
-
-		if velocity is Vector2:
-			target.set("velocity", velocity * maxf(clamped_multiplier, 0.25))
-
-	if is_instance_valid(target) and target.has_method("on_local_slow_applied"):
-		target.call("on_local_slow_applied", clamped_multiplier, duration)
-
-	local_time_pocket_entered.emit(target, clamped_multiplier, duration)
-	time_tear_intensity_changed.emit(1.0 - clamped_multiplier)
-
-func get_time_scale_for_target(target: Node) -> float:
-	if target == null:
-		return current_time_scale
-
-	if not is_instance_valid(target):
-		return current_time_scale
-
-	var now = Time.get_ticks_msec() / 1000.0
-	var until = float(target.get_meta("local_time_scale_until", 0.0))
-
-	if now >= until:
-		if target.has_meta("local_time_scale"):
-			target.remove_meta("local_time_scale")
-
-		return current_time_scale
-
-	var local_scale = clampf(
-		float(target.get_meta("local_time_scale", 1.0)),
-		0.05,
-		1.0
-	)
-
-	return local_scale * current_time_scale
-
-func _update_local_time_effects(delta: float) -> void:
-	var expired: Array = []
-
-	for obj_id in _local_slow_effects.keys():
-		var effect_value = _local_slow_effects[obj_id]
-
-		if typeof(effect_value) != TYPE_DICTIONARY:
-			expired.append(obj_id)
-			continue
-
-		var effect: Dictionary = effect_value
-		effect["remaining"] -= delta
-
-		var target = effect.get("target")
-
-		if not is_instance_valid(target):
-			expired.append(obj_id)
-			continue
-
-		target = target as Node
-
-		if float(effect["remaining"]) <= 0.0:
-			expired.append(obj_id)
-		else:
-			_local_slow_effects[obj_id] = effect
-
-	for obj_id in expired:
-		var effect_value = _local_slow_effects.get(obj_id, {})
-
-		if typeof(effect_value) == TYPE_DICTIONARY:
-			var expired_effect: Dictionary = effect_value
-
-			var target = expired_effect.get("target")
-
-			if is_instance_valid(target):
-				target = target as Node
-
-				if target.has_meta("local_time_scale"):
-					target.remove_meta("local_time_scale")
-
-				if target.has_meta("local_time_scale_until"):
-					target.remove_meta("local_time_scale_until")
-
-		_local_slow_effects.erase(obj_id)
-		local_time_pocket_expired.emit(int(obj_id))
-
-func _update_dilation_field(delta: float) -> void:
-	_dilation_field_elapsed += delta
-
-	if _dilation_field_elapsed < maxf(dilation_field_interval, 0.02):
-		return
-
-	var tick_delta := _dilation_field_elapsed
-	_dilation_field_elapsed = 0.0
-
-	if not is_dilating or current_dilation_capacity <= 0.0:
+	if not is_dilating:
 		return
 
 	var affected := 0
 
-	affected += _apply_dilation_to_group(
+	affected += _apply_group_slow(
 		&"enemies",
 		dilation_enemy_multiplier,
-		dilation_local_effect_duration + tick_delta
+		local_effect_duration
 	)
 
-	if affected < max_dilation_targets_per_tick:
-		affected += _apply_dilation_to_group(
-			&"wave_enemy",
-			dilation_enemy_multiplier,
-			dilation_local_effect_duration + tick_delta,
-			affected
-		)
-
-	if affected < max_dilation_targets_per_tick:
-		affected += _apply_dilation_to_group(
+	if affected < max_targets_per_tick:
+		affected += _apply_group_slow(
 			&"bosses",
-			maxf(dilation_enemy_multiplier, 0.72),
-			dilation_local_effect_duration + tick_delta,
-			affected
+			0.72,
+			local_effect_duration
 		)
 
-	if affected < max_dilation_targets_per_tick:
-		affected += _apply_dilation_to_group(
+	if affected < max_targets_per_tick:
+		affected += _apply_group_slow(
 			&"enemy_projectiles",
 			dilation_projectile_multiplier,
-			dilation_local_effect_duration + tick_delta,
-			affected
+			local_effect_duration
 		)
 
-	if affected < max_dilation_targets_per_tick:
-		_apply_dilation_to_group(
-			&"Projectiles",
-			maxf(dilation_projectile_multiplier, 0.74),
-			dilation_local_effect_duration + tick_delta,
-			affected
-		)
+# ============================================================
+# APPLY GROUP SLOW
+# ============================================================
 
-func _apply_dilation_to_group(
+func _apply_group_slow(
 	group_name: StringName,
 	multiplier: float,
-	duration: float,
-	already_affected: int = 0
+	duration: float
 ) -> int:
 
 	var affected := 0
 
 	for node in get_tree().get_nodes_in_group(group_name):
-		if already_affected + affected >= max_dilation_targets_per_tick:
-			return affected
 
-		if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+		if affected >= max_targets_per_tick:
+			break
+
+		if not is_instance_valid(node):
 			continue
 
-		if node.is_in_group("Player"):
+		if node == _player:
 			continue
 
-		apply_local_slow_to_target(node, multiplier, duration)
+		apply_local_slow_to_target(
+			node,
+			multiplier,
+			duration
+		)
+
 		affected += 1
 
 	return affected
 
-func get_momentum_preserved_velocity(base_velocity: Vector2) -> Vector2:
-	if _momentum_preservation_active and is_dilating:
-		return base_velocity
+# ============================================================
+# APPLY LOCAL SLOW
+# ============================================================
 
-	return base_velocity * current_time_scale
+func apply_local_slow_to_target(
+	target: Node,
+	multiplier: float,
+	duration: float
+) -> void:
 
-func create_temporal_burst(direction: Vector2, delay: float, magnitude: float) -> Dictionary:
-	return {
-		"direction": direction,
-		"delay": delay,
-		"magnitude": magnitude,
-		"elapsed": 0.0,
-		"triggered": false
+	if not is_instance_valid(target):
+		return
+
+	if target == _player:
+		return
+
+	var id := target.get_instance_id()
+
+	_local_slow_effects[id] = {
+		"target": target,
+		"remaining": duration,
+		"multiplier": clampf(multiplier, 0.05, 1.0)
 	}
 
-func update_temporal_bursts(bursts: Array, delta: float) -> Array:
-	for i in range(bursts.size()):
-		var burst = bursts[i]
+	target.set_meta(
+		"local_time_scale",
+		clampf(multiplier, 0.05, 1.0)
+	)
 
-		if burst["triggered"]:
+	target.set_meta(
+		"local_time_scale_until",
+		Time.get_ticks_msec() / 1000.0 + duration
+	)
+
+	local_time_pocket_entered.emit(
+		target,
+		multiplier,
+		duration
+	)
+
+# ============================================================
+# UPDATE LOCAL EFFECTS
+# ============================================================
+
+func _update_local_effects(delta: float) -> void:
+	var expired: Array[int] = []
+
+	for id in _local_slow_effects.keys():
+
+		var entry = _local_slow_effects[id]
+
+		if typeof(entry) != TYPE_DICTIONARY:
+			expired.append(id)
 			continue
 
-		burst["elapsed"] += delta
+		var target = entry.get("target")
 
-		if burst["elapsed"] >= burst["delay"]:
-			burst["triggered"] = true
+		if not is_instance_valid(target):
+			expired.append(id)
+			continue
 
-	return bursts
+		entry["remaining"] -= delta
+
+		if float(entry["remaining"]) <= 0.0:
+			expired.append(id)
+		else:
+			_local_slow_effects[id] = entry
+
+	for id in expired:
+		_remove_local_slow(id)
+
+# ============================================================
+# REMOVE LOCAL SLOW
+# ============================================================
+
+func _remove_local_slow(id: int) -> void:
+	var entry = _local_slow_effects.get(id)
+
+	if typeof(entry) == TYPE_DICTIONARY:
+		var target = entry.get("target")
+
+		if is_instance_valid(target):
+
+			if target.has_meta("local_time_scale"):
+				target.remove_meta("local_time_scale")
+
+			if target.has_meta("local_time_scale_until"):
+				target.remove_meta("local_time_scale_until")
+
+	_local_slow_effects.erase(id)
+
+	local_time_pocket_expired.emit(id)
+
+# ============================================================
+# CLEAR ALL
+# ============================================================
+
+func _clear_all_local_slows() -> void:
+	for id in _local_slow_effects.keys():
+		_remove_local_slow(id)
+
+	_local_slow_effects.clear()
+
+# ============================================================
+# AFTERIMAGES
+# ============================================================
+
+func _update_afterimages(delta: float) -> void:
+	if not enable_afterimages:
+		return
+
+	if not is_dilating:
+		return
+
+	if not is_instance_valid(_player):
+		return
+
+	_afterimage_elapsed += delta
+
+	if _afterimage_elapsed >= afterimage_interval:
+		_afterimage_elapsed = 0.0
+		_spawn_afterimage()
+
+	for i in range(_afterimages.size() - 1, -1, -1):
+		var entry = _afterimages[i]
+
+		entry["lifetime"] -= delta
+
+		if entry["lifetime"] <= 0.0:
+			_afterimages.remove_at(i)
+		else:
+			_afterimages[i] = entry
+
+func _spawn_afterimage() -> void:
+	if not is_instance_valid(_player):
+		return
+
+	var velocity := Vector2.ZERO
+
+	if _player.velocity is Vector2:
+		velocity = _player.velocity
+
+	var data := {
+		"position": _player.global_position,
+		"rotation": _player.rotation,
+		"velocity": velocity,
+		"lifetime": afterimage_lifetime
+	}
+
+	_afterimages.append(data)
+
+	afterimage_spawned.emit(
+		data["position"],
+		data["velocity"]
+	)
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+func get_time_scale_for_target(target: Node) -> float:
+	if not is_instance_valid(target):
+		return current_time_scale
+
+	if target == _player:
+		return 1.0
+
+	if target.has_meta("local_time_scale"):
+		return float(target.get_meta("local_time_scale"))
+
+	return current_time_scale
 
 func get_active_afterimages() -> Array[Dictionary]:
-	return _afterimage_positions.duplicate()
+	return _afterimages.duplicate(true)
 
 func clear_afterimages() -> void:
-	_afterimage_positions.clear()
+	_afterimages.clear()
 
 func get_dilation_fraction() -> float:
-	return current_dilation_capacity / maxf(initial_dilation_capacity, 0.001)
-
-func is_at_minimum_time_scale() -> bool:
-	return current_time_scale <= min_time_scale + 0.01
+	return current_dilation_capacity / maxf(
+		initial_dilation_capacity,
+		0.001
+	)
 
 func force_end_dilation() -> void:
-	var was_dilating := is_dilating
+	_end_dilation()
 
-	is_dilating = false
 	current_time_scale = base_time_scale
+
+	_restore_global_time()
+
+func _restore_global_time() -> void:
 	Engine.time_scale = base_time_scale
 
-	if was_dilating:
-		dilation_ended.emit()
-
-	_emit_time_tear_intensity()
+	if sync_audio_pitch:
+		AudioServer.playback_speed_scale = base_time_scale

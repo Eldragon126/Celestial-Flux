@@ -3,3 +3,9 @@ res://Scripts/planet_1.gdshader
 res://Scripts/playershield.gdshader
 res://Scripts/player.gdshader
 res://Nodes/player.tscn
+res://Nodes/player_thruster_trails.tscn
+res://Scripts/player_thruster_trails.gd
+res://Scripts/settings.gd
+res://Scripts/time_dilation_manager.gd
+res://Scripts/player.gd
+res://Scripts/powerup_inventory.gd

@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bim2qwkxur675"]
 
-[ext_resource type="Script" path="res://Scripts/player_thruster_trails.gd" id="1_trails"]
+[ext_resource type="Script" uid="uid://k0ysn04aixp2" path="res://Scripts/player_thruster_trails.gd" id="1_trails"]
 
-[node name="PlayerThrusterTrails" type="Node2D"]
+[node name="PlayerThrusterTrails" type="Node2D" unique_id=55555706]
 script = ExtResource("1_trails")
