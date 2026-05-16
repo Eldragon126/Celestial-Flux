@@ -1,4 +1,5 @@
-#For some reasons the player interacts with the momentum combat script and sometimes when drag is disabled gets infinite speed increases. This needs to be fixed.
+
+# Player Controller with Improved Slingshot Mechanics
 extends CharacterBody2D
 
 signal slingshot_assist_applied(source: Node, gravity: Vector2, impulse: Vector2, assist_strength: float, speed: float)
@@ -21,6 +22,9 @@ signal momentum_projectile_spawned(projectile: Node, direction: Vector2)
 @export var gravity_source_refresh_interval: float = 0.35
 
 @export var slingshot_factor: float = 1.5
+@export var slingshot_max_impulse: float = 600.0
+@export var slingshot_speed_cap: float = 1200.0
+@export var slingshot_cooldown: float = 0.2
 @export var recoil_instability: float = 0.0
 @export var max_gravity_anchors: int = 1
 @export var orbit_control_bonus: float = 0.0
@@ -56,6 +60,8 @@ var last_slingshot_strength: float = 0.0
 var last_slingshot_source: Node = null
 var last_slingshot_time: float = -999.0
 
+var slingshot_ready: bool = true
+
 # ========================
 # == NODE REFERENCES ==
 # ========================
@@ -78,7 +84,6 @@ var last_slingshot_time: float = -999.0
 
 func _ready():
 	_refresh_gravity_sources(true)
-
 	_bind_shield()
 	_ensure_powerup_inventory()
 
@@ -179,14 +184,12 @@ func handle_rotation(delta):
 	# orbital alignment assist
 	if is_instance_valid(closest_planet) and Settings.input_type:
 		var radial = (global_position - closest_planet.global_position).normalized()
-
 		var tangent = Vector2(-radial.y, radial.x)
 
 		if velocity.dot(tangent) < 0:
 			tangent = -tangent
 
 		var target = tangent.angle()
-
 		rotation = lerp_angle(rotation, target, 0.08)
 
 # ========================
@@ -194,34 +197,58 @@ func handle_rotation(delta):
 # ========================
 
 func apply_slingshot(gravity: Vector2, delta: float):
+	# Recharges slingshot after cooldown
+	if not slingshot_ready:
+		return
+
 	last_slingshot_strength = maxf(last_slingshot_strength - delta * 2.0, 0.0)
 
+	# Conditions for slingshot opportunity
 	if not is_instance_valid(closest_planet):
 		return
-
 	if velocity.length() < 1.0:
 		return
-
 	if closest_dist > 500.0 or closest_dist < 70.0:
 		return
+	if not DRAG_enabled:
+		return  # You can allow this if desired, but bugs can occur if drag is off
 
+	# Try to allow modification/cancellation by momentum (combat) component
+	var impulse := Vector2.ZERO
 	var grav_dir = gravity.normalized()
-
 	var tangent = grav_dir.orthogonal()
 
 	if tangent.dot(velocity) < 0:
 		tangent = -tangent
 
 	var accel_tangent = gravity.dot(velocity.normalized())
+	if accel_tangent > 0:
+		impulse = tangent * accel_tangent * (slingshot_factor + orbit_control_bonus) * delta
 
-	if accel_tangent > 0 and DRAG_enabled:
-		var impulse = tangent * accel_tangent * (slingshot_factor + orbit_control_bonus) * delta
+		# Cap impulse strength for polish & balance
+		if impulse.length() > slingshot_max_impulse:
+			impulse = impulse.normalized() * slingshot_max_impulse
+
+		var momentum_comp = get_node_or_null("MomentumCombatComponent")
+		if momentum_comp != null and momentum_comp.has_method("modify_slingshot_impulse"):
+			# Allow other scripts to modify (dampen, block, enhance, etc)
+			impulse = momentum_comp.modify_slingshot_impulse(impulse, gravity, delta)
+
+		var proposed = velocity + impulse
+		# Clamp so we don't exceed the slingshot speed cap
+		if proposed.length() > slingshot_speed_cap:
+			var allowed = max(0, slingshot_speed_cap - velocity.length())
+			if allowed > 0:
+				impulse = impulse.normalized() * min(impulse.length(), allowed)
+			else:
+				impulse = Vector2.ZERO  # Already at/above the speed cap
 
 		velocity += impulse
 
 		last_slingshot_strength = maxf(last_slingshot_strength, accel_tangent)
 		last_slingshot_source = closest_planet
 		last_slingshot_time = Time.get_ticks_msec() / 1000.0
+		slingshot_ready = false
 
 		slingshot_assist_applied.emit(
 			closest_planet,
@@ -230,6 +257,11 @@ func apply_slingshot(gravity: Vector2, delta: float):
 			accel_tangent,
 			velocity.length()
 		)
+		# Setup cooldown for next slingshot
+		get_tree().create_timer(slingshot_cooldown).connect("timeout", Callable(self, "_on_slingshot_cooldown"))
+
+func _on_slingshot_cooldown():
+	slingshot_ready = true
 
 # ========================
 # == MOVEMENT ==
@@ -257,7 +289,6 @@ func apply_thrust(delta):
 
 	if energy_component:
 		var spent = energy_component.spend(energy_cost)
-
 		scale = clamp(spent / energy_cost, 0.0, 1.0)
 
 	if scale > 0.0:
@@ -291,7 +322,6 @@ func apply_drag(gravity, delta: float):
 		return
 
 	var coeff = drag if Input.is_action_pressed("thrust") else idle_drag
-
 	var old_v = velocity
 
 	velocity *= pow(coeff, delta * 60.0)
@@ -359,7 +389,6 @@ func shoot():
 		momentum_component.call("prepare_projectile", p, spawn_dir)
 
 	momentum_projectile_spawned.emit(p, spawn_dir)
-
 	get_tree().current_scene.call_deferred("add_child", p)
 
 	$BulletBlastSoundEffect.play()
@@ -428,7 +457,6 @@ func _process(delta):
 func update_camera():
 	if Settings.input_type == false:
 		var target = (get_global_mouse_position() - global_position).normalized() * 180
-
 		camera.offset = lerp(camera.offset, target, 0.05)
 
 # ========================
@@ -465,13 +493,11 @@ func take_damage(amount: float):
 func take_shield_damage(amount: float) -> float:
 	if shield_component != null and shield_component.has_method("take_shield_damage"):
 		return float(shield_component.call("take_shield_damage", amount))
-
 	return amount
 
 func restore_shield(amount: float) -> float:
 	if shield_component != null and shield_component.has_method("restore_shield"):
 		return float(shield_component.call("restore_shield", amount))
-
 	return 0.0
 
 func apply_shield_disruption(strength: float, duration: float) -> void:
@@ -481,7 +507,6 @@ func apply_shield_disruption(strength: float, duration: float) -> void:
 func is_shield_active() -> bool:
 	if shield_component != null and shield_component.has_method("is_shield_active"):
 		return bool(shield_component.call("is_shield_active"))
-
 	return false
 
 func _bind_shield() -> void:
@@ -507,7 +532,6 @@ func _ensure_powerup_inventory() -> void:
 
 	powerup_inventory = PowerupInventory.new()
 	powerup_inventory.name = "PowerupInventory"
-
 	add_child(powerup_inventory)
 
 # ========================
@@ -515,10 +539,6 @@ func _ensure_powerup_inventory() -> void:
 # ========================
 
 func _refresh_gravity_sources(force: bool) -> void:
-	# FIX:
-	# During scene startup or scene transition, get_tree()
-	# can briefly return null. Your original script assumed
-	# it always existed, creating the black-hole crash.
 	var tree := get_tree()
 
 	if tree == null:
@@ -534,25 +554,17 @@ func _refresh_gravity_sources(force: bool) -> void:
 
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for source in tree.get_nodes_in_group(group_name):
-
 			if source == self:
 				continue
-
 			var source_2d := source as Node2D
-
 			if source_2d == null:
 				continue
-
 			if not is_instance_valid(source_2d):
 				continue
-
 			var id = source_2d.get_instance_id()
-
 			if seen.has(id):
 				continue
-
 			seen[id] = true
-
 			sources.append(source_2d)
 
 	sources.sort_custom(func(a: Node2D, b: Node2D) -> bool:
