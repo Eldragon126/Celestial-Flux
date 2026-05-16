@@ -56,6 +56,7 @@ turbulence_noise_scale = 2.044
 turbulence_noise_speed_random = 0.1
 
 [node name="BaseEnemy" type="CharacterBody2D" unique_id=581354831]
+motion_mode = 1
 script = ExtResource("1_osi8g")
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=960519407]

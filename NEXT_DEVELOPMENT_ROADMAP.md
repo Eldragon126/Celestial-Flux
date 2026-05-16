@@ -140,7 +140,7 @@ After this tuning pass, the next feature step should be upgrade fusion:
 
 ## Other things
 
-Make everything beautiful. Gradients are a good way to do this. Think shading to the max, cool colors, and make everything flashy. Don't be afraid to go all out on particle effects as longs as they don't bog down the CPU.
+Make everything beautiful. Gradients are a good way to do this. Think shading to the max, cool colors, and make everything flashy. Don't be afraid to go all out on particle effects as long as they don't bog down the CPU.
 
 Make sure everything works correctly.
 
@@ -155,4 +155,4 @@ before the spectacle blooms.
 
 Fix the reoccurring player velocity compounded error continuously.
 Make the time dilation script work better, and make the player script work better with the time dilation script.
-
+The standalone gravity slingshot in the player script isn't working very well; it needs to be debugged and fixed for maximum fun.
