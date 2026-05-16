@@ -9,7 +9,7 @@ var _player: Node = null
 
 func _ready() -> void:
 	_player = get_parent()
-	_build_thruster(Vector2(32.0, 0), Color(0.15, 0.78, 1.0, 1.0), Color(0.0, 0.698, 0.813, 0.92))
+	_build_thruster(Vector2(32.0, 0), Color(0.15, 0.78, 1.0, 1.0), Color(0.0, 0.162, 0.811, 0.922))
 	#_build_thruster(Vector2(32.0, 8.5), Color(0.2, 0.86, 1.0, 1.0), Color(0.0, 0.698, 0.813, 0.92))
 
 func _process(_delta: float) -> void:
