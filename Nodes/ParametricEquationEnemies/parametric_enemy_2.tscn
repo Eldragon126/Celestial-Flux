@@ -1,0 +1,73 @@
+[gd_scene format=3 uid="uid://ch82c26sdlrmq"]
+
+[ext_resource type="Script" uid="uid://bwsalobcwxpw7" path="res://Scripts/ParametricEquationScripts/parametric_enemy_2.gd" id="1_nrn4h"]
+[ext_resource type="Script" uid="uid://cgo7omjjvv108" path="res://Scripts/health_component.gd" id="2_0yeau"]
+[ext_resource type="Script" uid="uid://baqf8o2ugmdvj" path="res://Scripts/gravity_component.gd" id="3_600bq"]
+
+[sub_resource type="Gradient" id="Gradient_m7qe5"]
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_6of5k"]
+gradient = SubResource("Gradient_m7qe5")
+
+[sub_resource type="Curve" id="Curve_t8tnl"]
+_limits = [-2.0, 2.0, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.5074184, 1.6600072), -2.3146982, -2.3146982, 0, 0, Vector2(0.7448071, 0.64002895), 20.68759, 20.68759, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="CurveTexture" id="CurveTexture_nc53s"]
+curve = SubResource("Curve_t8tnl")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_3gbk0"]
+lifetime_randomness = 0.12
+particle_flag_disable_z = true
+angle_min = -720.0
+angle_max = 720.0
+inherit_velocity_ratio = 0.565
+direction = Vector3(0, 0, 0)
+spread = 180.0
+initial_velocity_max = 500.0
+angular_velocity_min = -100.000015
+angular_velocity_max = 99.999985
+orbit_velocity_min = -0.99999994
+orbit_velocity_max = 1.0000001
+orbit_velocity_curve = SubResource("CurveTexture_nc53s")
+gravity = Vector3(0, 0, 0)
+linear_accel_min = -2.2351742e-06
+linear_accel_max = 9.999997
+scale_max = 5.0
+color = Color(1, 0, 0.2784314, 1)
+color_ramp = SubResource("GradientTexture1D_6of5k")
+turbulence_enabled = true
+
+[node name="parametric_enemy_2" type="CharacterBody2D" unique_id=1266540202 groups=["ParametricEnemies", "enemies"]]
+motion_mode = 1
+script = ExtResource("1_nrn4h")
+equation_speed = 2.0
+
+[node name="HealthComponent" type="Node" parent="." unique_id=2104972926]
+script = ExtResource("2_0yeau")
+max_health = 500.0
+metadata/_custom_type_script = "uid://cgo7omjjvv108"
+
+[node name="GravityComponent" type="Node" parent="." unique_id=983995710]
+script = ExtResource("3_600bq")
+gravity_constant = 50.0
+metadata/_custom_type_script = "uid://baqf8o2ugmdvj"
+
+[node name="Body" type="Polygon2D" parent="." unique_id=1442490083]
+color = Color(1, 0, 0.2784314, 1)
+polygon = PackedVector2Array(25, 25, -25, 25, -25, -25, 25, -25)
+
+[node name="Collision" type="CollisionPolygon2D" parent="." unique_id=1293614400]
+polygon = PackedVector2Array(25, 25, -25, 25, -25, -25, 25, -25)
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="." unique_id=1566855350]
+amount = 20
+lifetime = 4.0
+randomness = 0.1
+fixed_fps = 60
+process_material = SubResource("ParticleProcessMaterial_3gbk0")
+
+[connection signal="died" from="HealthComponent" to="." method="_on_health_component_died"]
+[connection signal="health_changed" from="HealthComponent" to="." method="_on_health_component_health_changed"]

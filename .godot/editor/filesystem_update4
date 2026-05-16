@@ -1,6 +1,9 @@
-res://Nodes/ParametricEquationEnemies/parametric_testing_center.tscn
 res://Scripts/planet_1.gdshader
 res://Scripts/playershield.gdshader
 res://Scripts/player.gdshader
-res://Scripts/player.gd
-res://Nodes/player.tscn
+res://Scripts/ParametricEquationScripts/parametric_enemy_2.gd
+res://Scripts/ParametricEquationScripts/parametric_enemy_2.tscn
+res://Scripts/ParametricEquationScripts/polymorph_boss.gd
+res://Nodes/ParametricEquationEnemies/polymorph_boss.tscn
+res://Nodes/ParametricEquationEnemies/parametric_testing_center.tscn
+res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn

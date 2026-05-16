@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://daytuijrlty5v" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn" id="1_2fwtw"]
 [ext_resource type="PackedScene" uid="uid://bar4e30caja5p" path="res://Nodes/player.tscn" id="2_na8vp"]
 [ext_resource type="PackedScene" uid="uid://cqdqshk4xbg5q" path="res://Nodes/planet_1.tscn" id="3_na8vp"]
-[ext_resource type="Script" uid="uid://bik4q8pcaj1vy" path="res://Scripts/orbital_juice_manager.gd" id="4_q81my"]
+[ext_resource type="PackedScene" uid="uid://ch82c26sdlrmq" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn" id="4_q81my"]
 
 [node name="ParametricTestingCenter" type="Node2D" unique_id=852147971]
 
@@ -14,6 +14,6 @@ position = Vector2(164, -162)
 position = Vector2(-257, -121)
 
 [node name="Planet1" parent="." unique_id=1811765486 instance=ExtResource("3_na8vp")]
+position = Vector2(579, -127)
 
-[node name="OrbitalJuiceManager" type="Node2D" parent="." unique_id=1876341460]
-script = ExtResource("4_q81my")
+[node name="parametric_enemy_2" parent="." unique_id=1266540202 instance=ExtResource("4_q81my")]

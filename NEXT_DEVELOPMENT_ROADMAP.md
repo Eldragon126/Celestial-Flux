@@ -140,7 +140,7 @@ After this tuning pass, the next feature step should be upgrade fusion:
 
 ## Other things
 
-Make everything beautiful. Gradients are a good way to do this. Think shading to the max, cool colors, and make everything flashy. Don't be afraid to go all out on particle effects as long as they don't bog down the CPU.
+Make everything beautiful. Gradients are a good way to do this. Think shading to the max, cool colors, and make everything flashy. Don't be afraid to go all out on particle effects as long as they don't bog down the CPU. Feel free to make shading scripts to manage how things look, and feel free to add them to any node as long as it's safe.
 
 Make sure everything works correctly.
 
@@ -151,8 +151,15 @@ then escalation. The game gets most fun when players can see the law bending
 before the spectacle blooms.
 
 
-## Things that need to be done: 
+## Things that #need# to be done: 
 
 Fix the reoccurring player velocity compounded error continuously.
 Make the time dilation script work better, and make the player script work better with the time dilation script.
 The standalone gravity slingshot in the player script isn't working very well; it needs to be debugged and fixed for maximum fun.
+For some reasons, the player interacts with the momentum combat script, and sometimes, when drag is disabled, it gets infinite speed increases. This needs to be fixed.
+When drag is disabled and I keep holding the thrust, I keep going faster and there is a little jitter every second or two. That needs to be fixed.
+Polymorph boss needs MAJOR edits, it has a great baseline though! That being said, everything should work better and it should be faster, stronger, and more boss like. Still, a good parametric enemy.
+	Specific things about the Polymorph boss: It destroys it's own bullets, it is slow, it looks cool but visuals could be improved. It is a cool idea but needs to be better.
+The Gravity Warden boss still needs major edits. It flies so fast you can barely touch it, it's gravity is mid, the player runs out of energy before being able to reach it, and it creates so many asteroids that your computer heats up like crazy.
+Gameplay needs to be expanded in some way. Waves are good, but wave after wave feels a little flat. Parametric Enemies need to be expanded to 5 or 6 and also implemented in the OrbitalJuiceManager.gd.
+Upgrades are hardly noticeable. When I get upgrades I can't even tell what they do. Making upgrades more noticeable would be amazing.

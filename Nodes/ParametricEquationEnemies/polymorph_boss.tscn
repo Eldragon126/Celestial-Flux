@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://ccexuvu0lpqhj"]
+
+[ext_resource type="Script" uid="uid://bdc2mc1aldsf6" path="res://Scripts/ParametricEquationScripts/polymorph_boss.gd" id="1_gm2me"]
+
+[node name="PolymorphBoss" type="CharacterBody2D" unique_id=1660273406]
+script = ExtResource("1_gm2me")
