@@ -349,7 +349,7 @@ func _update_active_state() -> void:
 
 	visible = active
 	monitoring = active
-	monitorable = active
+	set_deferred("monitorable", true)
 
 	if is_instance_valid(polygon):
 		polygon.visible = active

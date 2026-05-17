@@ -4,7 +4,7 @@ extends CharacterBody2D
 
 @export var move_speed = 420.0
 @export var max_speed = 720.0
-@export var attach_damage = 8.0
+@export var attach_damage = 10.0
 @export var damage_interval = 1.5
 @export var max_health = 24.0
 
@@ -13,7 +13,7 @@ var _health: HealthComponent = null
 var _damage_timer: Timer
 var _attached_body: Node2D = null
 var _attach_offset = Vector2.ZERO
-
+var dt = 0.0
 func _ready() -> void:
 	add_to_group("enemies")
 	_player = get_tree().get_first_node_in_group("Player")
@@ -23,7 +23,15 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if _attached_body != null and is_instance_valid(_attached_body):
-		global_position = _attached_body.global_position + _attach_offset.rotated(_attached_body.global_rotation)
+		
+		#global_position = _attached_body.global_position + _attach_offset.rotated(_attached_body.global_rotation)
+		dt += delta * 5
+		if dt >= TAU:
+			dt = 0
+		var x = _player.global_position.x + 90*cos(dt)
+		var y = _player.global_position.y + 90*sin(dt)
+		rotation = lerp_angle(rotation, (global_position - _player.global_position).angle(), delta * 10)
+		global_position = Vector2(x,y)
 		velocity = Vector2.ZERO
 		return
 

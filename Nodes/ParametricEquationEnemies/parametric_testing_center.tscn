@@ -1,19 +1,20 @@
 [gd_scene format=3 uid="uid://tw7c4fyglsmn"]
 
-[ext_resource type="PackedScene" uid="uid://daytuijrlty5v" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn" id="1_2fwtw"]
 [ext_resource type="PackedScene" uid="uid://bar4e30caja5p" path="res://Nodes/player.tscn" id="2_na8vp"]
 [ext_resource type="PackedScene" uid="uid://cqdqshk4xbg5q" path="res://Nodes/planet_1.tscn" id="3_na8vp"]
-[ext_resource type="PackedScene" uid="uid://ch82c26sdlrmq" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn" id="4_q81my"]
+[ext_resource type="PackedScene" uid="uid://c1rfva2x24bjk" path="res://Nodes/leech_parasite.tscn" id="4_q81my"]
+[ext_resource type="PackedScene" uid="uid://ccexuvu0lpqhj" path="res://Nodes/ParametricEquationEnemies/polymorph_boss.tscn" id="7_icntu"]
 
 [node name="ParametricTestingCenter" type="Node2D" unique_id=852147971]
 
-[node name="ParametricEnemy1" parent="." unique_id=2014406817 instance=ExtResource("1_2fwtw")]
-position = Vector2(164, -162)
-
 [node name="Player" parent="." unique_id=943672105 instance=ExtResource("2_na8vp")]
-position = Vector2(-257, -121)
+position = Vector2(-218, 457)
 
 [node name="Planet1" parent="." unique_id=1811765486 instance=ExtResource("3_na8vp")]
 position = Vector2(579, -127)
 
-[node name="parametric_enemy_2" parent="." unique_id=1266540202 instance=ExtResource("4_q81my")]
+[node name="LeechParasite" parent="." unique_id=1188525514 instance=ExtResource("4_q81my")]
+position = Vector2(183, -189)
+
+[node name="PolymorphBoss" parent="." unique_id=1660273406 instance=ExtResource("7_icntu")]
+position = Vector2(-571, -669)

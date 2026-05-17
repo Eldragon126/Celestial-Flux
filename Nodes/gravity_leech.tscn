@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://deeaihs58vwn"]
 
-[ext_resource type="Script" path="res://Scripts/gravity_leech.gd" id="1_leech"]
+[ext_resource type="Script" uid="uid://qtg8tt4a5xxq" path="res://Scripts/gravity_leech.gd" id="1_leech"]
 
-[node name="GravityLeech" type="CharacterBody2D" groups=["Objects_With_Gravity", "enemies", "planets"]]
+[node name="GravityLeech" type="CharacterBody2D" unique_id=332173923 groups=["Objects_With_Gravity", "enemies", "planets"]]
 script = ExtResource("1_leech")

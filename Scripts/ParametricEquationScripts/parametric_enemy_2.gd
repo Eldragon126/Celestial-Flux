@@ -744,3 +744,9 @@ func _on_health_component_health_changed(
 		"/",
 		max_health
 	)
+
+
+
+func _on_attack_body_entered(body: Node2D) -> void:
+	if body.is_in_group("Player"):
+		body.take_damage(30.0)

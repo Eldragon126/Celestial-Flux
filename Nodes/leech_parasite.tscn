@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://c1rfva2x24bjk"]
 
-[ext_resource type="Script" path="res://Scripts/leech_parasite.gd" id="1_leech"]
+[ext_resource type="Script" uid="uid://bk7r3yxfn4aep" path="res://Scripts/leech_parasite.gd" id="1_leech"]
 
-[node name="LeechParasite" type="CharacterBody2D"]
+[node name="LeechParasite" type="CharacterBody2D" unique_id=1188525514]
 script = ExtResource("1_leech")

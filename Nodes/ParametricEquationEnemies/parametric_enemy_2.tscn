@@ -44,6 +44,7 @@ turbulence_enabled = true
 motion_mode = 1
 script = ExtResource("1_nrn4h")
 equation_speed = 2.0
+orbit_scale = 300.0
 
 [node name="HealthComponent" type="Node" parent="." unique_id=2104972926]
 script = ExtResource("2_0yeau")
@@ -69,5 +70,11 @@ randomness = 0.1
 fixed_fps = 60
 process_material = SubResource("ParticleProcessMaterial_3gbk0")
 
+[node name="Attack" type="Area2D" parent="." unique_id=1603345042]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Attack" unique_id=699852606]
+polygon = PackedVector2Array(26, 26, -26, 26, -26, -26, 26, -26)
+
 [connection signal="died" from="HealthComponent" to="." method="_on_health_component_died"]
 [connection signal="health_changed" from="HealthComponent" to="." method="_on_health_component_health_changed"]
+[connection signal="body_entered" from="Attack" to="." method="_on_attack_body_entered"]

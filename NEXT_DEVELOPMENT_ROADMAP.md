@@ -149,6 +149,11 @@ Debug and Optimize code.
 Keep pushing toward gravitational personality first: readable rules, then beauty,
 then escalation. The game gets most fun when players can see the law bending
 before the spectacle blooms.
+- Sparkles! Add lots of visual effects for more things! MAXIMIZE JUICE!
+
+- Gameplay: Maximize enjoyment. Enemies should be difficult but controllable, the player should feel like he or she is actually progressing, and optimize bosses for maximum fun.
+
+- Add science fiction elements! Just make it fun!
 
 
 ## Things that #need# to be done: 
@@ -163,3 +168,16 @@ Polymorph boss needs MAJOR edits, it has a great baseline though! That being sai
 The Gravity Warden boss still needs major edits. It flies so fast you can barely touch it, it's gravity is mid, the player runs out of energy before being able to reach it, and it creates so many asteroids that your computer heats up like crazy.
 Gameplay needs to be expanded in some way. Waves are good, but wave after wave feels a little flat. Parametric Enemies need to be expanded to 5 or 6 and also implemented in the OrbitalJuiceManager.gd.
 Upgrades are hardly noticeable. When I get upgrades I can't even tell what they do. Making upgrades more noticeable would be amazing.
+E 0:01:12:328   player.gd:542 @ _refresh_gravity_sources(): Parameter "data.tree" is null.
+  <C++ Source>  scene/main/node.h:549 @ get_tree()
+  <Stack Trace> player.gd:542 @ _refresh_gravity_sources()
+                arena_destabilization_manager.gd:345 @ _refresh_player_gravity_cache()
+
+I got this error in the player script, something to look at.
+
+The bullets do not work very well during time dilation. You can't aim them as well. They need to be able to move the same (I don't know why they are moving differently just because time is slower. Maybe it's something to do with impulse?)
+parametric_enemy_1 and parametric_enemy_3 need major improvements. Right now they just rely on simple equations but eventually I want them to be tactical enemies. parametric_enemy_2 also needs minor adjustments.
+
+The polymorph boss needs better mechanics and better shapes, it is good right now but it just needs to be better.
+All the bosses need improvements.
+
