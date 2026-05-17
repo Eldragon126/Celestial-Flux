@@ -6,10 +6,9 @@ class_name TimeDilationManager
 ## Stable Time Dilation System
 ##
 ## Key fixes:
-## - No recursive velocity scaling
-## - No infinite momentum amplification
-## - No player physics corruption
-## - Local slow system only affects non-player targets
+## - Manager runs independently of Engine.time_scale
+## - No recursive velocity scaling (Black hole fix)
+## - Local slow system uses internal time syncing
 ## - Safe metadata cleanup
 ## - Stable Engine.time_scale transitions
 ## - Compatible with MomentumCombatComponent
@@ -27,7 +26,7 @@ class_name TimeDilationManager
 @export var dilation_rate: float = 7.0
 @export var recovery_rate: float = 3.0
 
-@export var use_global_time_scale: bool = true
+@export var use_global_time_scale: bool = false
 @export var sync_audio_pitch: bool = true
 
 # ============================================================
@@ -48,6 +47,7 @@ class_name TimeDilationManager
 @export var initial_dilation_capacity: float = 100.0
 @export var dilation_cost_per_second: float = 36.0
 @export var recovery_per_second: float = 18.0
+@export var near_miss_charge_amount: float = 16.0
 
 # ============================================================
 # LOCAL FIELD
@@ -115,6 +115,9 @@ signal afterimage_spawned(position: Vector2, velocity: Vector2)
 # ============================================================
 
 func _ready() -> void:
+	# Ensure the manager processes independently of the game's time state
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	
 	current_dilation_capacity = initial_dilation_capacity
 	current_time_scale = base_time_scale
 
@@ -137,10 +140,12 @@ func _exit_tree() -> void:
 # ============================================================
 
 func _process(delta: float) -> void:
+	var unscaled_delta = delta if Engine.time_scale == 0 else (delta / Engine.time_scale)
+	
 	_handle_input()
-	_update_capacity(delta)
-	_update_afterimages(delta)
-	_update_local_effects(delta)
+	_update_capacity(unscaled_delta)
+	_update_afterimages(unscaled_delta) 
+	_update_local_effects(unscaled_delta)
 
 	time_scale_changed.emit(
 		current_time_scale,
@@ -152,8 +157,10 @@ func _process(delta: float) -> void:
 # ============================================================
 
 func _physics_process(delta: float) -> void:
-	_update_time_scale(delta)
-	_update_field(delta)
+	var unscaled_delta = delta if Engine.time_scale == 0 else (delta / Engine.time_scale)
+	
+	_update_time_scale(unscaled_delta)
+	_update_field(unscaled_delta)
 	_manage_player_isolation()
 
 # ============================================================
@@ -208,16 +215,16 @@ func _end_dilation() -> void:
 # CAPACITY
 # ============================================================
 
-func _update_capacity(delta: float) -> void:
+func _update_capacity(unscaled_delta: float) -> void:
 	if is_dilating:
-		current_dilation_capacity -= dilation_cost_per_second * delta
+		current_dilation_capacity -= dilation_cost_per_second * unscaled_delta
 
 		if current_dilation_capacity <= 0.0:
 			current_dilation_capacity = 0.0
 			_end_dilation()
 
 	else:
-		current_dilation_capacity += recovery_per_second * delta
+		current_dilation_capacity += recovery_per_second * unscaled_delta
 
 		current_dilation_capacity = minf(
 			current_dilation_capacity,
@@ -228,7 +235,7 @@ func _update_capacity(delta: float) -> void:
 # GLOBAL TIME SCALE
 # ============================================================
 
-func _update_time_scale(delta: float) -> void:
+func _update_time_scale(unscaled_delta: float) -> void:
 	var target_scale := base_time_scale
 
 	if is_dilating:
@@ -246,14 +253,14 @@ func _update_time_scale(delta: float) -> void:
 		current_time_scale = lerpf(
 			current_time_scale,
 			target_scale,
-			dilation_rate * delta
+			dilation_rate * unscaled_delta
 		)
 
 	else:
 		current_time_scale = lerpf(
 			current_time_scale,
 			base_time_scale,
-			recovery_rate * delta
+			recovery_rate * unscaled_delta
 		)
 
 	current_time_scale = clampf(
@@ -314,8 +321,8 @@ func _reset_player_isolation() -> void:
 # LOCAL FIELD
 # ============================================================
 
-func _update_field(delta: float) -> void:
-	_field_elapsed += delta
+func _update_field(unscaled_delta: float) -> void:
+	_field_elapsed += unscaled_delta
 
 	if _field_elapsed < field_tick_interval:
 		return
@@ -390,41 +397,32 @@ func apply_local_slow_to_target(
 	duration: float
 ) -> void:
 
-	if not is_instance_valid(target):
-		return
-
-	if target == _player:
+	if not is_instance_valid(target) or target == _player:
 		return
 
 	var id := target.get_instance_id()
+	var clamped_multiplier := clampf(multiplier, 0.05, 1.0)
+	var existing: Dictionary = _local_slow_effects.get(id, {})
+	var was_new := existing.is_empty()
+	var previous_multiplier := float(existing.get("multiplier", 1.0))
 
 	_local_slow_effects[id] = {
 		"target": target,
-		"remaining": duration,
-		"multiplier": clampf(multiplier, 0.05, 1.0)
+		"remaining": maxf(duration, float(existing.get("remaining", 0.0))),
+		"multiplier": minf(clamped_multiplier, previous_multiplier)
 	}
 
-	target.set_meta(
-		"local_time_scale",
-		clampf(multiplier, 0.05, 1.0)
-	)
-
-	target.set_meta(
-		"local_time_scale_until",
-		Time.get_ticks_msec() / 1000.0 + duration
-	)
-
-	local_time_pocket_entered.emit(
-		target,
-		multiplier,
-		duration
-	)
+	target.set_meta("local_time_scale", minf(clamped_multiplier, previous_multiplier))
+	
+	if was_new or clamped_multiplier < previous_multiplier - 0.01:
+		_dampen_velocity_for_local_slow(target, clamped_multiplier)
+		local_time_pocket_entered.emit(target, clamped_multiplier, duration)
 
 # ============================================================
 # UPDATE LOCAL EFFECTS
 # ============================================================
 
-func _update_local_effects(delta: float) -> void:
+func _update_local_effects(unscaled_delta: float) -> void:
 	var expired: Array[int] = []
 
 	for id in _local_slow_effects.keys():
@@ -441,7 +439,7 @@ func _update_local_effects(delta: float) -> void:
 			expired.append(id)
 			continue
 
-		entry["remaining"] -= delta
+		entry["remaining"] -= unscaled_delta
 
 		if float(entry["remaining"]) <= 0.0:
 			expired.append(id)
@@ -466,8 +464,14 @@ func _remove_local_slow(id: int) -> void:
 			if target.has_meta("local_time_scale"):
 				target.remove_meta("local_time_scale")
 
-			if target.has_meta("local_time_scale_until"):
-				target.remove_meta("local_time_scale_until")
+			# Restore original velocity
+			if target.has_meta("original_velocity"):
+				var orig_vel = target.get_meta("original_velocity")
+				if target.get("velocity") is Vector2:
+					target.set("velocity", orig_vel)
+				elif target.get("linear_velocity") is Vector2:
+					target.set("linear_velocity", orig_vel)
+				target.remove_meta("original_velocity")
 
 	_local_slow_effects.erase(id)
 
@@ -487,17 +491,11 @@ func _clear_all_local_slows() -> void:
 # AFTERIMAGES
 # ============================================================
 
-func _update_afterimages(delta: float) -> void:
-	if not enable_afterimages:
+func _update_afterimages(unscaled_delta: float) -> void:
+	if not enable_afterimages or not is_dilating or not is_instance_valid(_player):
 		return
 
-	if not is_dilating:
-		return
-
-	if not is_instance_valid(_player):
-		return
-
-	_afterimage_elapsed += delta
+	_afterimage_elapsed += unscaled_delta
 
 	if _afterimage_elapsed >= afterimage_interval:
 		_afterimage_elapsed = 0.0
@@ -506,7 +504,7 @@ func _update_afterimages(delta: float) -> void:
 	for i in range(_afterimages.size() - 1, -1, -1):
 		var entry = _afterimages[i]
 
-		entry["lifetime"] -= delta
+		entry["lifetime"] -= unscaled_delta
 
 		if entry["lifetime"] <= 0.0:
 			_afterimages.remove_at(i)
@@ -564,6 +562,13 @@ func get_dilation_fraction() -> float:
 		0.001
 	)
 
+func add_near_miss_charge(amount: float = -1.0) -> void:
+	var charge := near_miss_charge_amount if amount < 0.0 else amount
+	current_dilation_capacity = minf(
+		current_dilation_capacity + maxf(charge, 0.0),
+		initial_dilation_capacity
+	)
+
 func force_end_dilation() -> void:
 	_end_dilation()
 
@@ -576,3 +581,22 @@ func _restore_global_time() -> void:
 
 	if sync_audio_pitch:
 		AudioServer.playback_speed_scale = base_time_scale
+
+func _dampen_velocity_for_local_slow(target: Node, multiplier: float) -> void:
+	if target.is_in_group("player_projectiles") or target.is_in_group("Player"):
+		return
+
+	var damping := maxf(multiplier, 0.35)
+	
+	# Save original velocity if we haven't already
+	if not target.has_meta("original_velocity"):
+		if target.get("velocity") is Vector2:
+			target.set_meta("original_velocity", target.get("velocity"))
+		elif target.get("linear_velocity") is Vector2:
+			target.set_meta("original_velocity", target.get("linear_velocity"))
+
+	# Apply dampening
+	if target.get("velocity") is Vector2:
+		target.set("velocity", target.get("velocity") * damping)
+	if target.get("linear_velocity") is Vector2:
+		target.set("linear_velocity", target.get("linear_velocity") * damping)

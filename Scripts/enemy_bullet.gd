@@ -11,10 +11,15 @@ extends RigidBody2D
 @export var max_speed: float = 1200.0
 @export var is_homing: bool = true
 @export var debug_logging: bool = false
+@export var spawn_safe_time: float = 0.38
 
 var planets: Array[Node2D] = []
 var target: Node2D = null
 var _has_launched: bool = false
+var _configured_launch_direction := Vector2.ZERO
+var _configured_launch_speed := 0.0
+var _source_id := -1
+var _spawn_safe_until := 0.0
 
 func _ready() -> void:
 	can_sleep = false
@@ -31,24 +36,42 @@ func _ready() -> void:
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
 	
-	# Auto launch after a safe delay (important for Rapier)
+	# Auto launch after a safe delay so boss scripts can configure ownership.
 	call_deferred("_auto_launch")
 
+func configure_launch(direction: Vector2, speed: float, source: Node = null) -> void:
+	_configured_launch_direction = direction.normalized()
+	_configured_launch_speed = maxf(speed, 0.0)
+	if _configured_launch_direction == Vector2.ZERO:
+		_configured_launch_direction = Vector2.RIGHT.rotated(global_rotation)
+	global_rotation = _configured_launch_direction.angle()
+
+	if source != null and is_instance_valid(source):
+		_source_id = source.get_instance_id()
+		set_meta(&"source_id", _source_id)
+		if source is CollisionObject2D:
+			add_collision_exception_with(source)
+
+	_spawn_safe_until = Time.get_ticks_msec() / 1000.0 + spawn_safe_time
+	set_meta(&"spawn_safe_until", _spawn_safe_until)
 
 func _auto_launch() -> void:
 	if _has_launched:
 		return
 	_has_launched = true
 	
-	# Launch in the direction the bullet is facing
-	var launch_dir = Vector2.RIGHT.rotated(global_rotation)
-	linear_velocity = launch_dir * initial_speed
+	if _configured_launch_direction != Vector2.ZERO:
+		linear_velocity = _configured_launch_direction * maxf(_configured_launch_speed, initial_speed)
+	elif linear_velocity.length_squared() <= 1.0:
+		var launch_dir = Vector2.RIGHT.rotated(global_rotation)
+		linear_velocity = launch_dir * initial_speed
 	
 	if debug_logging:
 		print("Enemy projectile auto-launched | Speed: ", linear_velocity.length())
 
 
 func _physics_process(_delta: float) -> void:
+	var time_scale := CombatStatus.get_time_scale(self)
 	var total_force = Vector2.ZERO
 	
 	# Planetary Gravity
@@ -71,25 +94,28 @@ func _physics_process(_delta: float) -> void:
 				p_mass = float(mass_value)
 			
 			var strength = gravity_constant * p_mass / (effective_dist * effective_dist)
-			total_force += dir * strength
+			total_force += dir * strength * time_scale
 	
 	# Homing
 	if is_homing and is_instance_valid(target):
 		var homing_dir = (target.global_position - global_position).normalized()
-		total_force += homing_dir * homing_strength
+		total_force += homing_dir * homing_strength * time_scale
 		# Face target while homing
-		global_rotation = homing_dir.angle()
+		global_rotation = lerp_angle(global_rotation, homing_dir.angle(), clampf(time_scale, 0.12, 1.0))
 	
 	if total_force != Vector2.ZERO:
 		apply_force(total_force)
 	
 	# Speed cap
-	if linear_velocity.length() > max_speed:
-		linear_velocity = linear_velocity.limit_length(max_speed)
+	var effective_max_speed := max_speed * lerpf(0.42, 1.0, time_scale)
+	if linear_velocity.length() > effective_max_speed:
+		linear_velocity = linear_velocity.limit_length(effective_max_speed)
 
 
 func _on_body_entered(body: Node) -> void:
 	if is_queued_for_deletion():
+		return
+	if _should_ignore_body(body):
 		return
 
 	if has_meta(&"converted_to_player_projectile"):
@@ -102,9 +128,8 @@ func _on_body_entered(body: Node) -> void:
 			queue_free()
 		return
 
-	if body.has_method("take_damage"):
-		if body.is_in_group("Player"):
-			body.take_damage(randf_range(damage_min, damage_max))
+	if body.is_in_group("Player") and body.has_method("take_damage"):
+		body.take_damage(randf_range(damage_min, damage_max))
 		queue_free()
 	
 	elif body.is_in_group("planets") or body.is_in_group("obstacles"):
@@ -116,6 +141,9 @@ func _on_timer_timeout() -> void:
 
 
 func _refresh_gravity_sources() -> void:
+	if not is_inside_tree():
+		return
+
 	planets.clear()
 	var seen = {}
 	
@@ -136,3 +164,20 @@ func _refresh_gravity_sources() -> void:
 	
 	if max_gravity_sources > 0 and planets.size() > max_gravity_sources:
 		planets.resize(max_gravity_sources)
+
+func _should_ignore_body(body: Node) -> bool:
+	if body == null or not is_instance_valid(body):
+		return true
+
+	if _source_id != -1 and body.get_instance_id() == _source_id:
+		return true
+
+	var now := Time.get_ticks_msec() / 1000.0
+	var safe_until := maxf(_spawn_safe_until, float(get_meta(&"spawn_safe_until", 0.0)))
+	if now < safe_until and (body.is_in_group("bosses") or body.is_in_group("enemies")):
+		return true
+
+	if not has_meta(&"converted_to_player_projectile") and (body.is_in_group("bosses") or body.is_in_group("enemies")):
+		return true
+
+	return false

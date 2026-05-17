@@ -46,6 +46,7 @@ bosses="phase-based bosses"
 Projectiles=""
 Player="The Player(s)"
 ParametricEnemies="Enemies that move with parametric and regular functions"
+Orbital_Juice_Manager=""
 
 [input]
 

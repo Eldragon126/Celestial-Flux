@@ -1,5 +1,5 @@
 extends RigidBody2D
-
+#The bullets are off from the projection predictor when time dialation happens.
 # ========================
 # == EXPORT VARIABLES ==
 # ========================
@@ -41,6 +41,7 @@ func _ready() -> void:
 		print("Projectile instantiated at ", global_position)
 
 func _physics_process(_delta: float) -> void:
+
 	var total_grav_accel = Vector2.ZERO
 	
 	# Iterate backwards to safely handle potential deletions
@@ -69,7 +70,11 @@ func _physics_process(_delta: float) -> void:
 	
 	if total_grav_accel != Vector2.ZERO:
 		apply_force(total_grav_accel)
-
+	
+	
+		
+		
+		
 # ========================
 # == LAUNCH LOGIC ==
 # ========================
@@ -136,6 +141,9 @@ func _roll_damage() -> float:
 # == UTILITY ==
 # ========================
 func _refresh_gravity_sources() -> void:
+	if not is_inside_tree():
+		return
+
 	planets.clear()
 	var seen = {}
 	

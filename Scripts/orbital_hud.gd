@@ -8,6 +8,8 @@ extends CanvasLayer
 var _player: Node2D
 var _resonance_manager: Node
 var _time_dilation_manager: Node
+var _powerup_inventory: Node
+var _momentum_component: Node
 var _hud_root: Control
 var _speed_label: Label
 var _speed_bar: ProgressBar
@@ -15,9 +17,15 @@ var _g_label: Label
 var _g_bar: ProgressBar
 var _field_label: Label
 var _time_label: Label
+var _slingshot_label: Label
+var _slingshot_bar: ProgressBar
+var _combo_label: Label
+var _powerup_notice_label: Label
 var _critical_vignette: ColorRect
 var _vignette_material: ShaderMaterial
 var _arrows: Array[Polygon2D] = []
+var _powerup_notice_time := 0.0
+var _powerup_notice_color := Color(0.72, 1.0, 0.96, 1.0)
 
 # Cache the current intensity to avoid repeated get_shader_parameter calls
 var _current_vignette_intensity: float = 0.0
@@ -38,6 +46,8 @@ func _process(delta: float) -> void:
 	_resolve_rule_systems()
 	_update_field_lens()
 	_update_time_lens()
+	_update_slingshot_lens()
+	_update_powerup_notice(delta)
 	_update_health_vignette(delta)
 	_update_nav_arrows(gravity_strength)
 
@@ -55,6 +65,7 @@ func _build_hud() -> void:
 	
 	_build_vignette()
 	_build_readout_panel()
+	_build_powerup_notice()
 	_build_nav_arrows()
 
 
@@ -88,7 +99,7 @@ func _build_readout_panel() -> void:
 	var panel = PanelContainer.new()
 	panel.offset_left = 18.0
 	panel.offset_top = 96.0
-	panel.custom_minimum_size = Vector2(292.0, 154.0)
+	panel.custom_minimum_size = Vector2(314.0, 214.0)
 	_hud_root.add_child(panel)
 	
 	var style = StyleBoxFlat.new()
@@ -132,6 +143,42 @@ func _build_readout_panel() -> void:
 	_time_label.clip_text = true
 	_time_label.add_theme_font_size_override("font_size", 12)
 	rows.add_child(_time_label)
+
+	_slingshot_label = Label.new()
+	_slingshot_label.text = "SLING SEARCH"
+	_slingshot_label.clip_text = true
+	_slingshot_label.add_theme_font_size_override("font_size", 12)
+	rows.add_child(_slingshot_label)
+
+	_slingshot_bar = ProgressBar.new()
+	_slingshot_bar.show_percentage = false
+	_slingshot_bar.max_value = 1.0
+	_slingshot_bar.custom_minimum_size = Vector2(228, 12)
+	rows.add_child(_slingshot_bar)
+
+	_combo_label = Label.new()
+	_combo_label.text = "VECTOR CHAIN --"
+	_combo_label.clip_text = true
+	_combo_label.add_theme_font_size_override("font_size", 12)
+	rows.add_child(_combo_label)
+
+func _build_powerup_notice() -> void:
+	_powerup_notice_label = Label.new()
+	_powerup_notice_label.name = "PowerupNotice"
+	_powerup_notice_label.anchor_left = 0.5
+	_powerup_notice_label.anchor_right = 0.5
+	_powerup_notice_label.anchor_top = 0.0
+	_powerup_notice_label.anchor_bottom = 0.0
+	_powerup_notice_label.offset_left = -260.0
+	_powerup_notice_label.offset_right = 260.0
+	_powerup_notice_label.offset_top = 72.0
+	_powerup_notice_label.offset_bottom = 110.0
+	_powerup_notice_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_powerup_notice_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_powerup_notice_label.add_theme_font_size_override("font_size", 18)
+	_powerup_notice_label.text = ""
+	_powerup_notice_label.modulate = Color.TRANSPARENT
+	_hud_root.add_child(_powerup_notice_label)
 
 
 func _build_nav_arrows() -> void:
@@ -225,6 +272,23 @@ func _resolve_rule_systems() -> void:
 	if _time_dilation_manager == null or not is_instance_valid(_time_dilation_manager):
 		_time_dilation_manager = root.find_child("TimeDilationManager", true, false)
 
+	if _player != null and is_instance_valid(_player):
+		var inventory := _player.get_node_or_null("PowerupInventory")
+		if inventory != null and inventory != _powerup_inventory:
+			_powerup_inventory = inventory
+			if inventory.has_signal("powerup_applied"):
+				var callable := Callable(self, "_on_powerup_applied")
+				if not inventory.is_connected("powerup_applied", callable):
+					inventory.connect("powerup_applied", callable)
+
+		var momentum := _player.get_node_or_null("MomentumCombatComponent")
+		if momentum != null and momentum != _momentum_component:
+			_momentum_component = momentum
+			if momentum.has_signal("slingshot_mastery_triggered"):
+				var mastery_callable := Callable(self, "_on_slingshot_mastery_triggered")
+				if not momentum.is_connected("slingshot_mastery_triggered", mastery_callable):
+					momentum.connect("slingshot_mastery_triggered", mastery_callable)
+
 func _update_field_lens() -> void:
 	if _field_label == null:
 		return
@@ -287,9 +351,113 @@ func _update_time_lens() -> void:
 	_time_label.text = "TIME %s  x%.2f %d%%" % [state, scale, int(round(capacity / maximum * 100.0))]
 	_time_label.modulate = Color(0.72, 0.38, 1.0, 1.0) if dilating else Color(0.72, 1.0, 0.96, 1.0)
 
+func _update_slingshot_lens() -> void:
+	if _slingshot_label == null or _slingshot_bar == null:
+		return
+
+	var sling_state := {}
+	if _player != null and is_instance_valid(_player) and _player.has_method("get_slingshot_debug_state"):
+		var value: Variant = _player.call("get_slingshot_debug_state")
+		if typeof(value) == TYPE_DICTIONARY:
+			sling_state = value
+
+	var state := String(sling_state.get("state", "search")).to_upper()
+	var score := clampf(float(sling_state.get("score", 0.0)), 0.0, 1.0)
+	var tangential := float(sling_state.get("tangential_speed", 0.0))
+	var distance := float(sling_state.get("distance", 0.0))
+	var grade := String(sling_state.get("grade", "none")).to_upper()
+	var color := _slingshot_color(state, score)
+
+	_slingshot_bar.value = score
+	_slingshot_label.text = "SLING %s  %s %03d%%  T%04d D%03d" % [
+		state,
+		grade,
+		int(round(score * 100.0)),
+		int(round(tangential)),
+		int(round(distance)),
+	]
+	_slingshot_label.modulate = color
+
+	if _combo_label == null:
+		return
+
+	var combo := 0
+	var timer := 0.0
+	var flow_active := false
+	var flow_intensity := 0.0
+	var tier := "IDLE"
+
+	if _momentum_component != null and is_instance_valid(_momentum_component) and _momentum_component.has_method("get_momentum_debug_state"):
+		var momentum_value: Variant = _momentum_component.call("get_momentum_debug_state")
+		if typeof(momentum_value) == TYPE_DICTIONARY:
+			var momentum_state: Dictionary = momentum_value
+			combo = int(momentum_state.get("mastery_combo", 0))
+			timer = float(momentum_state.get("mastery_timer", 0.0))
+			flow_active = bool(momentum_state.get("flow_active", false))
+			flow_intensity = float(momentum_state.get("flow_intensity", 0.0))
+			tier = String(momentum_state.get("mastery_tier", "idle")).to_upper()
+
+	if combo > 0:
+		_combo_label.text = "VECTOR CHAIN x%d  %s %.1fs" % [combo, tier, timer]
+		_combo_label.modulate = Color(1.0, 0.9, 0.28, 1.0) if tier == "GOD_VECTOR" else Color(0.34, 1.0, 0.86, 1.0)
+	elif flow_active:
+		_combo_label.text = "FLOW ONLINE  %03d%%" % int(round(flow_intensity * 100.0))
+		_combo_label.modulate = Color(0.28, 0.9, 1.0, 1.0)
+	else:
+		_combo_label.text = "VECTOR CHAIN --"
+		_combo_label.modulate = Color(0.48, 0.78, 0.84, 1.0)
+
+func _slingshot_color(state: String, score: float) -> Color:
+	match state:
+		"APEX":
+			return Color(1.0, 0.9, 0.24, 1.0)
+		"PERFECT":
+			return Color(0.3, 1.0, 0.86, 1.0)
+		"SWEET":
+			return Color(0.42, 0.86, 1.0, 1.0)
+		"DANGER":
+			return Color(1.0, 0.28, 0.18, 1.0)
+		"COOLDOWN":
+			return Color(0.55, 0.62, 0.75, 1.0)
+	return Color(0.48 + score * 0.22, 0.78 + score * 0.18, 0.84 + score * 0.12, 1.0)
+
 func _set_field_text(text: String, color: Color) -> void:
 	_field_label.text = text
 	_field_label.modulate = Color(color.r, color.g, color.b, 1.0)
+
+func _on_powerup_applied(definition: PowerupDefinition, stacks: int) -> void:
+	if definition == null or _powerup_notice_label == null:
+		return
+
+	_powerup_notice_label.text = "LAW ONLINE: %s  x%d" % [definition.display_name.to_upper(), stacks]
+	_powerup_notice_color = definition.color
+	_powerup_notice_time = 2.2
+
+func _on_slingshot_mastery_triggered(data: Dictionary) -> void:
+	if _powerup_notice_label == null:
+		return
+
+	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
+	var combo := int(data.get("combo", 1))
+	var grade := String(data.get("grade", "good")).to_upper()
+	if score < 0.58:
+		return
+
+	_powerup_notice_label.text = "%s SLINGSHOT  x%d" % [grade, combo]
+	_powerup_notice_color = Color(1.0, 0.9, 0.28, 1.0) if grade == "APEX" else Color(0.34, 1.0, 0.86, 1.0)
+	_powerup_notice_time = maxf(_powerup_notice_time, 1.15 + score * 0.45)
+
+func _update_powerup_notice(delta: float) -> void:
+	if _powerup_notice_label == null:
+		return
+
+	if _powerup_notice_time <= 0.0:
+		_powerup_notice_label.modulate = _powerup_notice_label.modulate.lerp(Color.TRANSPARENT, clampf(delta * 7.0, 0.0, 1.0))
+		return
+
+	_powerup_notice_time -= delta
+	var pulse := 0.72 + 0.28 * sin(Time.get_ticks_msec() / 70.0)
+	_powerup_notice_label.modulate = Color(_powerup_notice_color.r, _powerup_notice_color.g, _powerup_notice_color.b, pulse)
 
 func _nearest_resonance_zone() -> Dictionary:
 	if _resonance_manager == null or not _resonance_manager.has_method("get_active_resonance_zones"):

@@ -3,6 +3,8 @@
 extends CharacterBody2D
 
 signal slingshot_assist_applied(source: Node, gravity: Vector2, impulse: Vector2, assist_strength: float, speed: float)
+signal slingshot_mastery_scored(data: Dictionary)
+signal slingshot_window_changed(data: Dictionary)
 signal momentum_projectile_spawned(projectile: Node, direction: Vector2)
 
 # ========================
@@ -14,6 +16,10 @@ signal momentum_projectile_spawned(projectile: Node, direction: Vector2)
 @export var max_speed: float = 1000.0
 @export var drag: float = 0.97
 @export var idle_drag: float = 0.9
+@export var drag_disabled_speed_multiplier: float = 1.34
+@export var dash_speed_cap: float = 2300.0
+@export var absolute_velocity_cap: float = 2800.0
+@export var high_speed_thrust_falloff_start: float = 0.86
 
 @export var gravity_constant: float = 400.0
 @export var min_grav_dist: float = 50.0
@@ -23,8 +29,17 @@ signal momentum_projectile_spawned(projectile: Node, direction: Vector2)
 
 @export var slingshot_factor: float = 1.5
 @export var slingshot_max_impulse: float = 600.0
-@export var slingshot_speed_cap: float = 1200.0
+@export var slingshot_speed_cap: float = 2500.0
 @export var slingshot_cooldown: float = 0.2
+@export var slingshot_min_tangential_speed: float = 210.0
+@export var slingshot_gravity_boost_scale: float = 2.8
+@export var slingshot_sweet_spot_distance: float = 265.0
+@export var slingshot_sweet_spot_width: float = 150.0
+@export var slingshot_perfect_score: float = 0.82
+@export var slingshot_apex_score: float = 0.94
+@export var slingshot_mastery_cap_bonus: float = 270.0
+@export var slingshot_camera_kick: float = 20.0
+@export var slingshot_camera_roll: float = 0.035
 @export var recoil_instability: float = 0.0
 @export var max_gravity_anchors: int = 1
 @export var orbit_control_bonus: float = 0.0
@@ -41,6 +56,8 @@ var current_max_speed: float = 800.0
 var planets: Array = []
 
 var DRAG_enabled = true
+var drag_enabled_by_player = true
+var _dash_drag_suppressed = false
 var can_dash = true
 
 var last_thrust_release = 0.0
@@ -59,8 +76,15 @@ var closest_dist: float = INF
 var last_slingshot_strength: float = 0.0
 var last_slingshot_source: Node = null
 var last_slingshot_time: float = -999.0
+var last_slingshot_score: float = 0.0
+var last_slingshot_grade: StringName = &"none"
+var last_slingshot_window: Dictionary = {}
 
 var slingshot_ready: bool = true
+var _last_slingshot_window_state: StringName = &"offline"
+var _camera_base_rotation: float = 0.0
+var _camera_feedback_offset: Vector2 = Vector2.ZERO
+var _camera_feedback_roll: float = 0.0
 
 # ========================
 # == NODE REFERENCES ==
@@ -94,6 +118,8 @@ func _ready():
 		camera.ignore_rotation = false
 		camera.rotation_degrees = 270
 
+	_camera_base_rotation = camera.rotation
+
 # ========================
 # == PHYSICS LOOP ==
 # ========================
@@ -102,6 +128,7 @@ func _physics_process(delta: float):
 	_gravity_refresh_elapsed += delta
 
 	var gravity = calculate_gravity()
+	_update_slingshot_window(gravity)
 
 	handle_rotation(delta)
 
@@ -198,10 +225,13 @@ func handle_rotation(delta):
 
 func apply_slingshot(gravity: Vector2, delta: float):
 	# Recharges slingshot after cooldown
+	if get_tree().get_first_node_in_group("Orbital_Juice_Manager") == null:
+		apply_regular_slingshot(gravity, delta)
+		return
+	last_slingshot_strength = maxf(last_slingshot_strength - delta * 2.0, 0.0)
+
 	if not slingshot_ready:
 		return
-
-	last_slingshot_strength = maxf(last_slingshot_strength - delta * 2.0, 0.0)
 
 	# Conditions for slingshot opportunity
 	if not is_instance_valid(closest_planet):
@@ -210,24 +240,40 @@ func apply_slingshot(gravity: Vector2, delta: float):
 		return
 	if closest_dist > 500.0 or closest_dist < 70.0:
 		return
-	if not DRAG_enabled:
-		return  # You can allow this if desired, but bugs can occur if drag is off
+	if gravity.length_squared() <= 0.001:
+		return
 
 	# Try to allow modification/cancellation by momentum (combat) component
 	var impulse := Vector2.ZERO
-	var grav_dir = gravity.normalized()
-	var tangent = grav_dir.orthogonal()
+	var radial = global_position - closest_planet.global_position
+	if radial.length_squared() <= 0.001:
+		return
+
+	var radial_dir = radial.normalized()
+	var tangent = radial_dir.orthogonal()
 
 	if tangent.dot(velocity) < 0:
 		tangent = -tangent
 
-	var accel_tangent = gravity.dot(velocity.normalized())
-	if accel_tangent > 0:
-		impulse = tangent * accel_tangent * (slingshot_factor + orbit_control_bonus) * delta
+	var tangential_speed = maxf(velocity.dot(tangent), 0.0)
+	if tangential_speed < slingshot_min_tangential_speed:
+		return
+
+	var inward_speed = maxf(velocity.dot(-radial_dir), 0.0)
+	var speed_before := velocity.length()
+	var quality_data := _score_slingshot_window(gravity, radial_dir, tangent, tangential_speed, inward_speed)
+	var slingshot_score := float(quality_data.get("score", 0.0))
+	var quality_bonus := lerpf(0.9, 1.34, slingshot_score)
+	var speed_factor = clampf(tangential_speed / maxf(slingshot_speed_cap, 1.0), 0.28, 1.35)
+	var dive_bonus = clampf(inward_speed / 620.0, 0.0, 0.55)
+	var assist_strength = gravity.length() * (speed_factor + dive_bonus) * slingshot_gravity_boost_scale
+	if assist_strength > 0:
+		impulse = tangent * assist_strength * (slingshot_factor + orbit_control_bonus) * quality_bonus * delta
 
 		# Cap impulse strength for polish & balance
-		if impulse.length() > slingshot_max_impulse:
-			impulse = impulse.normalized() * slingshot_max_impulse
+		var impulse_cap := slingshot_max_impulse * lerpf(0.88, 1.24, slingshot_score)
+		if impulse.length() > impulse_cap:
+			impulse = impulse.normalized() * impulse_cap
 
 		var momentum_comp = get_node_or_null("MomentumCombatComponent")
 		if momentum_comp != null and momentum_comp.has_method("modify_slingshot_impulse"):
@@ -236,8 +282,9 @@ func apply_slingshot(gravity: Vector2, delta: float):
 
 		var proposed = velocity + impulse
 		# Clamp so we don't exceed the slingshot speed cap
-		if proposed.length() > slingshot_speed_cap:
-			var allowed = max(0, slingshot_speed_cap - velocity.length())
+		var mastery_speed_cap := slingshot_speed_cap + slingshot_mastery_cap_bonus * slingshot_score
+		if proposed.length() > mastery_speed_cap:
+			var allowed = max(0, mastery_speed_cap - velocity.length())
 			if allowed > 0:
 				impulse = impulse.normalized() * min(impulse.length(), allowed)
 			else:
@@ -245,11 +292,73 @@ func apply_slingshot(gravity: Vector2, delta: float):
 
 		velocity += impulse
 
+		last_slingshot_strength = maxf(last_slingshot_strength, assist_strength)
+		last_slingshot_source = closest_planet
+		last_slingshot_time = Time.get_ticks_msec() / 1000.0
+		last_slingshot_score = slingshot_score
+		last_slingshot_grade = _slingshot_grade_for_score(slingshot_score)
+		slingshot_ready = false
+
+		var mastery_data := quality_data.duplicate()
+		mastery_data["source"] = closest_planet
+		mastery_data["gravity"] = gravity
+		mastery_data["impulse"] = impulse
+		mastery_data["assist_strength"] = assist_strength
+		mastery_data["speed_before"] = speed_before
+		mastery_data["speed_after"] = velocity.length()
+		mastery_data["grade"] = last_slingshot_grade
+		mastery_data["position"] = global_position
+		mastery_data["source_position"] = closest_planet.global_position
+		mastery_data["time"] = last_slingshot_time
+		last_slingshot_window = mastery_data
+		_apply_slingshot_camera_feedback(mastery_data)
+
+		slingshot_assist_applied.emit(
+			closest_planet,
+			gravity,
+			impulse,
+			assist_strength,
+			velocity.length()
+		)
+		slingshot_mastery_scored.emit(mastery_data)
+		# Setup cooldown for next slingshot
+		if is_inside_tree():
+			get_tree().create_timer(slingshot_cooldown).connect("timeout", Callable(self, "_on_slingshot_cooldown"))
+
+func apply_regular_slingshot(gravity: Vector2, delta: float):
+	
+	last_slingshot_strength = maxf(last_slingshot_strength - delta * 2.0, 0.0)
+	
+	if not is_instance_valid(closest_planet):
+		return
+	
+	if velocity.length() < 1.0:
+		return
+	
+	if closest_dist > 500.0 or closest_dist < 70.0:
+		current_max_speed = lerp(current_max_speed, max_speed, delta * 0.5)
+		return
+	else:
+		current_max_speed = maxf(current_max_speed, slingshot_speed_cap)
+	
+	var grav_dir = gravity.normalized()
+	
+	var tangent = grav_dir.orthogonal()
+	
+	if tangent.dot(velocity) < 0:
+		tangent = -tangent
+	
+	var accel_tangent = gravity.dot(velocity.normalized())
+
+	if accel_tangent > 0 and DRAG_enabled:
+		var impulse = tangent * accel_tangent * (slingshot_factor + orbit_control_bonus) * delta
+
+		velocity += impulse
+		
 		last_slingshot_strength = maxf(last_slingshot_strength, accel_tangent)
 		last_slingshot_source = closest_planet
 		last_slingshot_time = Time.get_ticks_msec() / 1000.0
-		slingshot_ready = false
-
+		
 		slingshot_assist_applied.emit(
 			closest_planet,
 			gravity,
@@ -257,9 +366,7 @@ func apply_slingshot(gravity: Vector2, delta: float):
 			accel_tangent,
 			velocity.length()
 		)
-		# Setup cooldown for next slingshot
-		get_tree().create_timer(slingshot_cooldown).connect("timeout", Callable(self, "_on_slingshot_cooldown"))
-
+		
 func _on_slingshot_cooldown():
 	slingshot_ready = true
 
@@ -292,6 +399,15 @@ func apply_thrust(delta):
 		scale = clamp(spent / energy_cost, 0.0, 1.0)
 
 	if scale > 0.0:
+		var hard_cap := _get_current_hard_speed_cap()
+		var speed := velocity.length()
+		var forward_speed := velocity.dot(dir)
+		var falloff_start := hard_cap * high_speed_thrust_falloff_start
+		if forward_speed > 0.0 and speed > falloff_start:
+			var remaining := maxf(hard_cap - speed, 0.0)
+			var falloff_band := maxf(hard_cap - falloff_start, 1.0)
+			scale *= clampf(remaining / falloff_band, 0.0, 1.0)
+
 		velocity += force * scale * delta
 
 func apply_gravity(gravity: Vector2, delta: float):
@@ -340,7 +456,7 @@ func apply_drag(gravity, delta: float):
 # ========================
 
 func clamp_velocity():
-	velocity = velocity.limit_length(current_max_speed)
+	velocity = velocity.limit_length(_get_current_hard_speed_cap())
 
 # ========================
 # == DASH ==
@@ -349,21 +465,25 @@ func clamp_velocity():
 func boost(dir):
 	velocity += dir * 2000.0
 
-	DRAG_enabled = false
-	current_max_speed = 3000.0
+	_dash_drag_suppressed = true
+	_update_drag_state()
+	current_max_speed = maxf(current_max_speed, dash_speed_cap)
 	can_dash = false
 
-	energy_component.spend(10)
+	if energy_component:
+		energy_component.spend(10)
 
 	if powerup_inventory != null:
 		powerup_inventory.trigger_player_action()
 
-	await get_tree().create_timer(0.3).timeout
+	if is_inside_tree():
+		await get_tree().create_timer(0.3).timeout
 
 	if is_instance_valid(dash_timer):
 		dash_timer.start()
 
-	DRAG_enabled = true
+	_dash_drag_suppressed = false
+	_update_drag_state()
 
 func _on_dash_timeout():
 	can_dash = true
@@ -373,6 +493,9 @@ func _on_dash_timeout():
 # ========================
 
 func shoot():
+	if not is_inside_tree() or get_tree().current_scene == null:
+		return
+
 	var p = projectile_scene.instantiate() as RigidBody2D
 
 	if not p:
@@ -413,7 +536,8 @@ func handle_input():
 		shoot()
 
 	if Input.is_action_just_released("Toggle"):
-		DRAG_enabled = !DRAG_enabled
+		drag_enabled_by_player = !drag_enabled_by_player
+		_update_drag_state()
 
 	if Input.is_action_just_released("thrust"):
 		var now = Time.get_ticks_msec() / 1000.0
@@ -451,13 +575,28 @@ func update_ui():
 # ========================
 
 func _process(delta):
-	update_camera()
+	update_camera(delta)
 	shield_process()
 
-func update_camera():
+func update_camera(delta: float):
+	_camera_feedback_offset = _camera_feedback_offset.lerp(
+		Vector2.ZERO,
+		clampf(delta * 7.5, 0.0, 1.0)
+	)
+	_camera_feedback_roll = lerpf(
+		_camera_feedback_roll,
+		0.0,
+		clampf(delta * 8.5, 0.0, 1.0)
+	)
+
 	if Settings.input_type == false:
 		var target = (get_global_mouse_position() - global_position).normalized() * 180
-		camera.offset = lerp(camera.offset, target, 0.05)
+		var base_offset = camera.offset - _camera_feedback_offset
+		camera.offset = lerp(base_offset, target, 0.05) + _camera_feedback_offset
+	else:
+		camera.offset = camera.offset.lerp(_camera_feedback_offset, clampf(delta * 8.0, 0.0, 1.0))
+
+	camera.rotation = _camera_base_rotation + _camera_feedback_roll
 
 # ========================
 # == SHIELDS ==
@@ -539,6 +678,9 @@ func _ensure_powerup_inventory() -> void:
 # ========================
 
 func _refresh_gravity_sources(force: bool) -> void:
+	if is_queued_for_deletion() or not is_inside_tree():
+		return
+
 	var tree := get_tree()
 
 	if tree == null:
@@ -604,16 +746,196 @@ func _on_shield_restored(_amount: float, _current_energy: float, _max_capacity: 
 
 func update_max_speed(delta: float):
 	var target_max = max_speed
+	var momentum_bonus := _get_momentum_speed_cap_bonus()
 
+	target_max += momentum_bonus
+
+	if not drag_enabled_by_player:
+		target_max = maxf(target_max, max_speed * drag_disabled_speed_multiplier + momentum_bonus)
+
+	if _dash_drag_suppressed:
+		target_max = maxf(target_max, dash_speed_cap + momentum_bonus * 0.45)
+
+	target_max = minf(target_max, absolute_velocity_cap)
+	var lerp_rate := 5.8 if current_max_speed > target_max else 3.2
+	current_max_speed = lerp(current_max_speed, target_max, clampf(lerp_rate * delta, 0.0, 1.0))
+
+func _get_momentum_speed_cap_bonus() -> float:
 	var momentum_comp = get_node_or_null("MomentumCombatComponent")
 
-	if momentum_comp != null:
-		if momentum_comp.has_method("_get_current_speed_cap_bonus"):
-			target_max += momentum_comp.call("_get_current_speed_cap_bonus")
-		elif momentum_comp.get("_speed_cap_bonus") != null:
-			target_max += momentum_comp.get("_speed_cap_bonus")
+	if momentum_comp == null:
+		return 0.0
 
-	if not DRAG_enabled and current_max_speed > 1500.0:
+	if momentum_comp.has_method("_get_current_speed_cap_bonus"):
+		return float(momentum_comp.call("_get_current_speed_cap_bonus"))
+
+	var bonus_value: Variant = momentum_comp.get("_speed_cap_bonus")
+	if typeof(bonus_value) == TYPE_FLOAT or typeof(bonus_value) == TYPE_INT:
+		return float(bonus_value)
+
+	return 0.0
+
+func _get_current_hard_speed_cap() -> float:
+	var cap := minf(maxf(current_max_speed, max_speed), absolute_velocity_cap)
+
+	if not drag_enabled_by_player and not _dash_drag_suppressed:
+		cap = minf(cap, max_speed * drag_disabled_speed_multiplier + _get_momentum_speed_cap_bonus())
+
+	return maxf(cap, 1.0)
+
+func _update_drag_state() -> void:
+	DRAG_enabled = drag_enabled_by_player and not _dash_drag_suppressed
+
+func _update_slingshot_window(gravity: Vector2) -> void:
+	var state := &"offline"
+	var window_data := {
+		"state": state,
+		"score": 0.0,
+		"grade": &"none",
+		"ready": slingshot_ready,
+		"distance": closest_dist,
+		"sweet_distance": slingshot_sweet_spot_distance,
+		"sweet_width": slingshot_sweet_spot_width,
+		"tangential_speed": 0.0,
+		"inward_speed": 0.0,
+		"source": closest_planet,
+		"position": global_position,
+	}
+
+	if not slingshot_ready:
+		state = &"cooldown"
+	elif not is_instance_valid(closest_planet):
+		state = &"search"
+	elif velocity.length() < 1.0 or gravity.length_squared() <= 0.001:
+		state = &"align"
+	elif closest_dist > 500.0:
+		state = &"approach"
+	elif closest_dist < 70.0:
+		state = &"danger"
+	else:
+		var radial = global_position - closest_planet.global_position
+		if radial.length_squared() > 0.001:
+			var radial_dir = radial.normalized()
+			var tangent = radial_dir.orthogonal()
+			if tangent.dot(velocity) < 0.0:
+				tangent = -tangent
+			var tangential_speed := maxf(velocity.dot(tangent), 0.0)
+			var inward_speed := maxf(velocity.dot(-radial_dir), 0.0)
+			var score_data := _score_slingshot_window(
+				gravity,
+				radial_dir,
+				tangent,
+				tangential_speed,
+				inward_speed
+			)
+			window_data.merge(score_data, true)
+			var score := float(score_data.get("score", 0.0))
+			if tangential_speed < slingshot_min_tangential_speed:
+				state = &"align"
+			elif score >= slingshot_apex_score:
+				state = &"apex"
+			elif score >= slingshot_perfect_score:
+				state = &"perfect"
+			elif float(score_data.get("distance_score", 0.0)) > 0.5:
+				state = &"sweet"
+			else:
+				state = &"ready"
+
+	window_data["state"] = state
+	window_data["grade"] = _slingshot_grade_for_score(float(window_data.get("score", 0.0)))
+	window_data["ready"] = slingshot_ready
+	last_slingshot_window = window_data
+
+	if state != _last_slingshot_window_state:
+		_last_slingshot_window_state = state
+		slingshot_window_changed.emit(window_data)
+
+func _score_slingshot_window(
+	gravity: Vector2,
+	radial_dir: Vector2,
+	tangent: Vector2,
+	tangential_speed: float,
+	inward_speed: float
+) -> Dictionary:
+	var distance_score := 0.0
+	if slingshot_sweet_spot_width > 0.001:
+		distance_score = 1.0 - absf(closest_dist - slingshot_sweet_spot_distance) / slingshot_sweet_spot_width
+	distance_score = clampf(distance_score, 0.0, 1.0)
+
+	var full_tangent_speed := maxf(slingshot_speed_cap * 0.82, slingshot_min_tangential_speed + 1.0)
+	var tangent_score := clampf(
+		(tangential_speed - slingshot_min_tangential_speed)
+		/ maxf(full_tangent_speed - slingshot_min_tangential_speed, 1.0),
+		0.0,
+		1.0
+	)
+	var dive_score := clampf(inward_speed / 620.0, 0.0, 1.0)
+	var speed_score := clampf(velocity.length() / maxf(current_max_speed, 1.0), 0.0, 1.0)
+	var gravity_score := clampf(gravity.length() / 420.0, 0.0, 1.0)
+	var score := clampf(
+		distance_score * 0.44
+		+ tangent_score * 0.34
+		+ dive_score * 0.14
+		+ speed_score * 0.05
+		+ gravity_score * 0.03,
+		0.0,
+		1.0
+	)
+
+	return {
+		"score": score,
+		"distance_score": distance_score,
+		"tangent_score": tangent_score,
+		"dive_score": dive_score,
+		"speed_score": speed_score,
+		"gravity_score": gravity_score,
+		"tangential_speed": tangential_speed,
+		"inward_speed": inward_speed,
+		"distance": closest_dist,
+		"sweet_distance": slingshot_sweet_spot_distance,
+		"sweet_width": slingshot_sweet_spot_width,
+		"radial_dir": radial_dir,
+		"tangent": tangent,
+		"position": global_position,
+	}
+
+func _slingshot_grade_for_score(score: float) -> StringName:
+	if score >= slingshot_apex_score:
+		return &"apex"
+	if score >= slingshot_perfect_score:
+		return &"perfect"
+	if score >= 0.64:
+		return &"great"
+	if score >= 0.38:
+		return &"good"
+	return &"assist"
+
+func _apply_slingshot_camera_feedback(data: Dictionary) -> void:
+	if camera == null:
 		return
 
-	current_max_speed = lerp(current_max_speed, target_max, 3.0 * delta)
+	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
+	var tangent: Vector2 = data.get("tangent", Vector2.RIGHT)
+	if tangent.length_squared() <= 0.001:
+		tangent = Vector2.RIGHT
+
+	var grade := StringName(data.get("grade", &"assist"))
+	var grade_boost := 1.0
+	if grade == &"perfect":
+		grade_boost = 1.25
+	elif grade == &"apex":
+		grade_boost = 1.55
+
+	_camera_feedback_offset += -tangent.normalized() * slingshot_camera_kick * (0.25 + score) * grade_boost
+	_camera_feedback_offset = _camera_feedback_offset.limit_length(slingshot_camera_kick * 2.2)
+	var roll_axis := tangent.x if absf(tangent.x) > 0.05 else tangent.y
+	_camera_feedback_roll += slingshot_camera_roll * (0.25 + score) * grade_boost * signf(roll_axis)
+	_camera_feedback_roll = clampf(_camera_feedback_roll, -slingshot_camera_roll * 2.1, slingshot_camera_roll * 2.1)
+
+func get_slingshot_debug_state() -> Dictionary:
+	var state := last_slingshot_window.duplicate()
+	state["last_score"] = last_slingshot_score
+	state["last_grade"] = last_slingshot_grade
+	state["last_age"] = Time.get_ticks_msec() / 1000.0 - last_slingshot_time
+	state["cooldown_ready"] = slingshot_ready
+	return state

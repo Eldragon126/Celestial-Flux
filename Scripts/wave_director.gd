@@ -25,6 +25,12 @@ const ACCRETION_CORE_SCENE = preload("res://Nodes/accretion_core_boss.tscn")
 const NULL_SERAPH_SCENE = preload("res://Nodes/null_vector_seraph_boss.tscn")
 const MAGNETAR_TWINS_SCENE = preload("res://Nodes/magnetar_twins_boss.tscn")
 const RIFT_WEAVER_SCENE = preload("res://Nodes/rift_weaver_boss.tscn")
+const POLYMORPH_BOSS_SCENE = preload("res://Nodes/ParametricEquationEnemies/polymorph_boss.tscn")
+const PARAMETRIC_1_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn")
+const PARAMETRIC_2_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn")
+const PARAMETRIC_3_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn")
+const PARAMETRIC_4_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_4.tscn")
+const PARAMETRIC_5_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn")
 
 @export var first_wave_delay = 2.0
 @export var rest_between_waves = 4.0
@@ -162,16 +168,18 @@ func _build_wave_roster() -> Array:
 		elif _wave == 2:
 			roster.append([BASE_ENEMY_SCENE, GRAVITY_LEECH_SCENE, ORBITER_DRONE_SCENE][i % 3])
 		elif _wave == 3:
-			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, SEEKER_FRAGMENT_SCENE, CHAOS_WISP_SCENE][i % 4])
+			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, SEEKER_FRAGMENT_SCENE, CHAOS_WISP_SCENE, PARAMETRIC_1_SCENE][i % 5])
 		elif _wave == 4:
-			roster.append([BASE_SHOOTER_SCENE, HARASSER_SCENE, GRAVITY_LEECH_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE][i % 5])
+			roster.append([BASE_SHOOTER_SCENE, HARASSER_SCENE, GRAVITY_LEECH_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, PARAMETRIC_2_SCENE][i % 6])
 		else:
-			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, ORBITER_DRONE_SCENE, GRAVITY_LEECH_SCENE, SEEKER_FRAGMENT_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, HARASSER_SCENE, SNIPER_SCENE][i % 9])
+			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, ORBITER_DRONE_SCENE, GRAVITY_LEECH_SCENE, SEEKER_FRAGMENT_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, HARASSER_SCENE, SNIPER_SCENE, PARAMETRIC_1_SCENE, PARAMETRIC_2_SCENE, PARAMETRIC_4_SCENE, PARAMETRIC_5_SCENE][i % 13])
 
 	if _wave >= 3:
 		roster.insert(int(min(2, roster.size())), SHIELDER_SCENE)
 	if _wave >= 4:
 		roster.insert(int(min(4, roster.size())), SHIELD_BREAKER_SCENE)
+	if _wave >= 6:
+		roster.insert(int(min(5, roster.size())), PARAMETRIC_3_SCENE)
 
 	return roster
 
@@ -277,7 +285,7 @@ func _refresh_player_planet_cache() -> void:
 
 func _choose_boss_scene() -> PackedScene:
 	var boss_number = max(0, int(float(_wave) / float(max(1, boss_every_waves))) - 1)
-	var boss_index = boss_number % 5
+	var boss_index = boss_number % 6
 	if boss_index == 1:
 		return ACCRETION_CORE_SCENE
 	if boss_index == 2:
@@ -286,6 +294,8 @@ func _choose_boss_scene() -> PackedScene:
 		return MAGNETAR_TWINS_SCENE
 	if boss_index == 4:
 		return RIFT_WEAVER_SCENE
+	if boss_index == 5:
+		return POLYMORPH_BOSS_SCENE
 	return GRAVITY_WARDEN_SCENE
 
 func _boss_display_name(scene: PackedScene) -> String:
@@ -297,6 +307,8 @@ func _boss_display_name(scene: PackedScene) -> String:
 		return "MAGNETAR TWINS"
 	if scene == RIFT_WEAVER_SCENE:
 		return "TIDAL RIFT WEAVER"
+	if scene == POLYMORPH_BOSS_SCENE:
+		return "THE POLYMORPH"
 	return "GRAVITY WARDEN"
 
 func _boss_node_prefix(scene: PackedScene) -> String:
@@ -308,6 +320,8 @@ func _boss_node_prefix(scene: PackedScene) -> String:
 		return "MagnetarTwins"
 	if scene == RIFT_WEAVER_SCENE:
 		return "RiftWeaver"
+	if scene == POLYMORPH_BOSS_SCENE:
+		return "Polymorph"
 	return "GravityWarden"
 
 func _on_boss_health_changed(current_health: float, max_health: float) -> void:

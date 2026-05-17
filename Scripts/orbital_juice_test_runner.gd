@@ -27,6 +27,12 @@ const SCENES_TO_INSTANTIATE = [
 	"res://Nodes/shielder_support.tscn",
 	"res://Nodes/gravity_warden_boss.tscn",
 	"res://Nodes/wave_director.tscn",
+	"res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn",
+	"res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn",
+	"res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn",
+	"res://Nodes/ParametricEquationEnemies/parametric_enemy_4.tscn",
+	"res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn",
+	"res://Nodes/ParametricEquationEnemies/polymorph_boss.tscn",
 ]
 
 func _initialize() -> void:

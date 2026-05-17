@@ -17,6 +17,7 @@ signal debris_ring_requested(ring_data: Dictionary)
 signal chain_implosion_triggered(implosion_data: Dictionary)
 signal fracture_applied(position: Vector2, intensity: float)
 signal resonance_field_pulsed(zone_data: Dictionary)
+signal slingshot_resonance_amplified(zone_data: Dictionary)
 
 enum ZoneType { COMPRESSION, SLIPSTREAM, INVERSION, TEMPORAL_SCAR, HARMONIC_ORBIT }
 enum VisualQuality { OFF, LOW, HIGH }
@@ -1086,6 +1087,61 @@ func clear_all_zones() -> void:
 	_active_resonance_zones.clear()
 	_implosion_queue.clear()
 	_clear_zone_visuals()
+
+func amplify_slingshot_mastery(data: Dictionary) -> int:
+	if not enabled:
+		return 0
+
+	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
+	if score < 0.56:
+		return 0
+
+	var position: Vector2 = data.get("position", Vector2.ZERO)
+	var tangent: Vector2 = data.get("tangent", Vector2.RIGHT)
+	if tangent.length_squared() <= 0.001:
+		tangent = Vector2.RIGHT
+	tangent = tangent.normalized()
+
+	var combo := int(data.get("combo", 1))
+	var orbital_stacks := int(data.get("orbital_stacks", 0))
+	var singularity_stacks := int(data.get("singularity_stacks", 0))
+	var time_stacks := int(data.get("time_stacks", 0))
+	var source_radius := float(data.get("radius", resonance_detection_radius * 0.62))
+	var zone_radius := clampf(
+		source_radius * (0.42 + score * 0.2 + float(combo) * 0.025),
+		92.0,
+		resonance_detection_radius * 0.95
+	)
+
+	var zone_type := ZoneType.SLIPSTREAM
+	if time_stacks > 0:
+		zone_type = ZoneType.TEMPORAL_SCAR
+	elif orbital_stacks > 0 and score >= 0.82:
+		zone_type = ZoneType.HARMONIC_ORBIT
+	elif singularity_stacks > 0:
+		zone_type = ZoneType.INVERSION
+
+	var zone_position := position + tangent * zone_radius * 0.36
+	var intensity := clampf(0.48 + score * 0.42 + float(combo) * 0.035, 0.05, 1.0)
+	var duration := 0.7 + score * 0.8 + float(combo) * 0.08
+	var zone_id := create_manual_resonance_zone(zone_position, zone_radius, zone_type, intensity, duration)
+
+	for idx in range(_active_resonance_zones.size()):
+		if int(_active_resonance_zones[idx].get("id", 0)) != zone_id:
+			continue
+
+		var zone := _active_resonance_zones[idx]
+		zone["slingshot_mastery"] = true
+		zone["slingshot_tangent"] = tangent
+		zone["slingshot_score"] = score
+		zone["slingshot_combo"] = combo
+		zone["zone_rule_hint"] = "A mastered vector bends the local law"
+		_active_resonance_zones[idx] = zone
+		resonance_zone_updated.emit(zone)
+		slingshot_resonance_amplified.emit(zone)
+		break
+
+	return zone_id
 
 func create_manual_resonance_zone(position: Vector2, radius: float, zone_type: int = ZoneType.HARMONIC_ORBIT, intensity: float = 0.65, duration: float = 2.0) -> int:
 	_manual_zone_counter += 1

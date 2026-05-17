@@ -22,6 +22,7 @@ fill_from = Vector2(0.5071225, 0.50427353)
 fill_to = Vector2(0.8974359, 0.12820514)
 
 [node name="Projectile" type="RigidBody2D" unique_id=2088385998 groups=["Projectiles", "player_projectiles"]]
+process_mode = 3
 mass = 0.25
 physics_material_override = SubResource("PhysicsMaterial_qxf0c")
 gravity_scale = 0.0

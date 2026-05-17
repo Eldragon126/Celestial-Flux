@@ -17,13 +17,15 @@ const COLLISION_SPARK_SCENE = preload("res://Nodes/collision_sparks.tscn")
 
 @export var max_health = 880.0
 @export var mass = 265000.0
-@export var orbit_distance = 820.0
-@export var move_speed = 470.0
-@export var gravity_radius = 840.0
-@export var gravity_strength = 1600.0
-@export var projectile_speed = 980.0
+@export var orbit_distance = 650.0
+@export var move_speed = 335.0
+@export var gravity_radius = 980.0
+@export var gravity_strength = 2350.0
+@export var projectile_speed = 860.0
 @export var fire_interval = 1.75
-@export var summon_interval = 8.5
+@export var summon_interval = 10.5
+@export var max_support_units = 4
+@export var gravity_channel_duration = 1.25
 
 var _player: Node = null
 var _health: HealthComponent = null
@@ -35,6 +37,8 @@ var _aura_polygon: Polygon2D
 var _core_polygon: Polygon2D
 var _rng = RandomNumberGenerator.new()
 var _resonance_manager: Node = null
+var _gravity_channel_until := 0.0
+var _support_units: Array[Node] = []
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -116,7 +120,7 @@ func _build_body() -> void:
 	var particles = GPUParticles2D.new()
 	particles.name = "BossGravityParticles"
 	particles.z_index = -2
-	particles.amount = 220
+	particles.amount = 120
 	particles.lifetime = 2.2
 	particles.randomness = 0.65
 	particles.process_material = _make_gravity_material()
@@ -160,15 +164,19 @@ func _update_phase() -> void:
 	_phase = next_phase
 	phase_entered.emit(_phase)
 	_fire_timer.wait_time = maxf(0.82, fire_interval - 0.24 * float(_phase - 1))
-	_summon_timer.wait_time = maxf(5.4, summon_interval - 1.0 * float(_phase - 1))
+	_summon_timer.wait_time = maxf(7.0, summon_interval - 0.7 * float(_phase - 1))
 
 	if _core_polygon != null:
 		_core_polygon.color = Color(1.0, 0.23, 0.08, 1.0) if _phase == 3 else Color(0.0, 0.92, 1.0, 1.0)
 
 func _move_around_player(delta: float) -> void:
-	_orbit_angle += delta * (0.34 + 0.11 * float(_phase))
+	_orbit_angle += delta * (0.24 + 0.08 * float(_phase))
 	var target = _player.global_position + Vector2(cos(_orbit_angle), sin(_orbit_angle)) * orbit_distance
-	var desired = (target - global_position).limit_length(move_speed + 80.0 * float(_phase))
+	var speed_limit: float = float(move_speed) + 45.0 * float(_phase - 1)
+	if _is_gravity_channeling():
+		speed_limit *= 0.48
+
+	var desired = (target - global_position).limit_length(speed_limit)
 
 	velocity = velocity.lerp(desired, clampf(delta * 1.9, 0.0, 1.0))
 	move_and_slide()
@@ -190,8 +198,17 @@ func _pull_player(delta: float) -> void:
 		return
 
 	var player_velocity = _player.get("velocity")
-	var pull = offset.normalized() * gravity_strength * mass / maxf(dist * dist, 1600.0)
-	_player.set("velocity", player_velocity + pull * delta)
+	if not player_velocity is Vector2:
+		return
+
+	var channel_bonus := 1.35 if _is_gravity_channeling() else 1.0
+	var readable_falloff := clampf((dist - 120.0) / maxf(gravity_radius - 120.0, 1.0), 0.32, 1.0)
+	var pull = offset.normalized() * gravity_strength * mass * channel_bonus * readable_falloff / maxf(dist * dist, 2200.0)
+	var next_velocity: Vector2 = player_velocity + pull * delta
+	var player_cap_value = _player.get("current_max_speed")
+	if typeof(player_cap_value) == TYPE_FLOAT or typeof(player_cap_value) == TYPE_INT:
+		next_velocity = next_velocity.limit_length(float(player_cap_value) + 520.0)
+	_player.set("velocity", next_velocity)
 
 func _fire_pattern() -> void:
 	if _player == null or not is_instance_valid(_player) or get_parent() == null:
@@ -202,8 +219,10 @@ func _fire_pattern() -> void:
 		aim = Vector2.RIGHT.rotated(rotation)
 
 	_pulse_core()
+	_gravity_channel_until = Time.get_ticks_msec() / 1000.0 + gravity_channel_duration
 
 	if _phase == 1:
+		_command_resonance_field(GravityResonanceManager.ZoneType.HARMONIC_ORBIT)
 		_spawn_bullet(aim, projectile_speed)
 	elif _phase == 2:
 		_command_resonance_field(GravityResonanceManager.ZoneType.COMPRESSION)
@@ -211,25 +230,33 @@ func _fire_pattern() -> void:
 			_spawn_bullet(aim.rotated(angle), projectile_speed * 1.05)
 	else:
 		_command_resonance_field(GravityResonanceManager.ZoneType.INVERSION)
-		for i in range(10):
-			var ring_dir = aim.rotated(TAU * float(i) / 10.0 + _orbit_angle * 0.4)
+		for i in range(8):
+			var ring_dir = aim.rotated(TAU * float(i) / 8.0 + _orbit_angle * 0.4)
 			_spawn_bullet(ring_dir, projectile_speed * 0.86)
 
 func _spawn_bullet(direction: Vector2, speed: float) -> void:
 	var bullet = ENEMY_BULLET_SCENE.instantiate()
 	bullet.global_position = global_position + direction * 130.0
-	bullet.apply_impulse(direction * speed)
+	bullet.global_rotation = direction.angle()
+	if bullet.has_method("configure_launch"):
+		bullet.call("configure_launch", direction, speed, self)
+	elif bullet.get("initial_speed") != null:
+		bullet.set("initial_speed", speed)
 	get_parent().call_deferred("add_child", bullet)
 
 func _summon_support() -> void:
 	if get_parent() == null:
 		return
 
-	var summon_count = 1 + _phase
+	_cleanup_support_units()
+	if _support_units.size() >= max_support_units:
+		return
+
+	var summon_count = mini(max_support_units - _support_units.size(), 1 + int(_phase >= 2))
 	for i in range(summon_count):
 		var scene: PackedScene = LEECH_SCENE
 		if _phase == 2:
-			scene = SPLITTER_SCENE
+			scene = HARASSER_SCENE if i == 0 else LEECH_SCENE
 		elif _phase >= 3:
 			scene = HARASSER_SCENE if i == 0 else SPLITTER_SCENE
 
@@ -239,9 +266,10 @@ func _summon_support() -> void:
 		if minion_2d != null:
 			minion_2d.global_position = global_position + Vector2.RIGHT.rotated(TAU * float(i) / float(summon_count) + _rng.randf_range(-0.2, 0.2)) * 210.0
 		get_parent().call_deferred("add_child", minion)
+		_support_units.append(minion)
 
-	if _player != null and _player.get("planets") != null:
-		_player.set("planets", get_tree().get_nodes_in_group("planets"))
+	if _player != null and _player.has_method("_refresh_gravity_sources"):
+		_player.call_deferred("_refresh_gravity_sources", true)
 
 func _on_ram_damage_area_body_entered(body: Node) -> void:
 	if body.is_in_group("Player") and body.has_method("take_damage"):
@@ -290,6 +318,16 @@ func _get_resonance_manager() -> Node:
 		return null
 	_resonance_manager = root.find_child("GravityResonanceManager", true, false)
 	return _resonance_manager
+
+func _is_gravity_channeling() -> bool:
+	return Time.get_ticks_msec() / 1000.0 < _gravity_channel_until
+
+func _cleanup_support_units() -> void:
+	var kept: Array[Node] = []
+	for unit in _support_units:
+		if unit != null and is_instance_valid(unit) and not unit.is_queued_for_deletion():
+			kept.append(unit)
+	_support_units = kept
 
 func _on_health_changed(current_health: float, new_max_health: float) -> void:
 	boss_health_changed.emit(current_health, new_max_health)

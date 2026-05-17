@@ -1,6 +1,12 @@
-res://Nodes/projectile.tscn
+res://Nodes/the_abyss.tscn
 res://Scripts/planet_1.gdshader
 res://Scripts/playershield.gdshader
 res://Scripts/player.gdshader
 res://Nodes/ParametricEquationEnemies/parametric_testing_center.tscn
-res://Nodes/ParametricEquationEnemies/polymorph_boss.tscn
+res://Scripts/player.gd
+res://Nodes/title_screen.tscn
+res://Scripts/time_dilation_manager.gd
+res://Nodes/projectile_predictor.tscn
+res://Scripts/projectile_predictor.gd
+res://Nodes/projectile.tscn
+res://Scripts/projectile.gd

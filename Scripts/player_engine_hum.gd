@@ -41,13 +41,16 @@ func _process(delta: float) -> void:
     var max_speed = maxf(float(_player.get("max_speed")), 1.0)
     var speed_ratio = clampf(velocity.length() / max_speed, 0.0, 1.0)
     var thrusting = Input.is_action_pressed("thrust")
+    var flow_intensity := _get_flow_intensity()
+    var slingshot_heat := _get_recent_slingshot_heat()
     var target_amp = lerpf(0.015, 0.09, speed_ratio)
 
     if thrusting:
         target_amp += 0.05
+    target_amp += flow_intensity * 0.035 + slingshot_heat * 0.025
 
     _amplitude = lerpf(_amplitude, target_amp, clampf(delta * 5.0, 0.0, 1.0))
-    pitch_scale = lerpf(0.82, 1.55, speed_ratio) + (0.12 if thrusting else 0.0)
+    pitch_scale = lerpf(0.82, 1.55, speed_ratio) + (0.12 if thrusting else 0.0) + flow_intensity * 0.18 + slingshot_heat * 0.22
     volume_db = lerpf(quiet_volume_db, loud_volume_db, clampf(_amplitude / 0.14, 0.0, 1.0))
     _fill_audio_buffer(speed_ratio, thrusting)
 
@@ -64,3 +67,31 @@ func _fill_audio_buffer(speed_ratio: float, thrusting: bool) -> void:
         var harmonic = sin(_phase * 0.5) * _amplitude * 0.35
         var sample = tone + harmonic
         _playback.push_frame(Vector2(sample, sample))
+
+func _get_flow_intensity() -> float:
+    if _player == null or not is_instance_valid(_player):
+        return 0.0
+
+    var momentum := _player.get_node_or_null("MomentumCombatComponent")
+    if momentum == null or not momentum.has_method("get_momentum_debug_state"):
+        return 0.0
+
+    var state_value: Variant = momentum.call("get_momentum_debug_state")
+    if typeof(state_value) != TYPE_DICTIONARY:
+        return 0.0
+
+    return clampf(float(state_value.get("flow_intensity", 0.0)), 0.0, 1.0)
+
+func _get_recent_slingshot_heat() -> float:
+    if _player == null or not is_instance_valid(_player):
+        return 0.0
+
+    var time_value: Variant = _player.get("last_slingshot_time")
+    var score_value: Variant = _player.get("last_slingshot_score")
+    if not (typeof(time_value) == TYPE_FLOAT or typeof(time_value) == TYPE_INT):
+        return 0.0
+    if not (typeof(score_value) == TYPE_FLOAT or typeof(score_value) == TYPE_INT):
+        return 0.0
+
+    var age := Time.get_ticks_msec() / 1000.0 - float(time_value)
+    return clampf(1.0 - age / 0.9, 0.0, 1.0) * clampf(float(score_value), 0.0, 1.0)

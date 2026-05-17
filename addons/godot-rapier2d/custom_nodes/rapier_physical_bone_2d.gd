@@ -39,14 +39,14 @@ func _ready() -> void:
 	set_dominance(dominance)
 	set_soft_ccd(soft_ccd)
 
-func set_body_skin(value: float) -> void:
-	RapierPhysicsServer2D.body_set_extra_param(get_rid(), RapierPhysicsServer2D.BODY_PARAM_CONTACT_SKIN, value)
+func set_body_skin(_value: float) -> void:
+	pass
 
-func set_dominance(value: int) -> void:
-	RapierPhysicsServer2D.body_set_extra_param(get_rid(), RapierPhysicsServer2D.BODY_PARAM_DOMINANCE, value)
+func set_dominance(_value: int) -> void:
+	pass
 
-func set_soft_ccd(value: float) -> void:
-	RapierPhysicsServer2D.body_set_extra_param(get_rid(), RapierPhysicsServer2D.BODY_PARAM_SOFT_CCD, value)
+func set_soft_ccd(_value: float) -> void:
+	pass
 
-func set_massless(value: bool) -> void:
-	RapierPhysicsServer2D.body_set_extra_param(get_rid(), RapierPhysicsServer2D.BODY_PARAM_MASSLESS, value)
+func set_massless(_value: bool) -> void:
+	pass

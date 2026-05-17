@@ -54,7 +54,7 @@ func _ready() -> void:
 	top_level = true
 	_player = get_parent() as CharacterBody2D
 	_dt = 1.0 / Engine.physics_ticks_per_second
-
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 # ============================================================
 # LOOP
@@ -63,8 +63,8 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(_player):
 		return
-
-	_time += delta
+	var unscaled_delta = delta / Engine.time_scale
+	_time += unscaled_delta
 
 	_update_gravity_sources()
 	_simulate()

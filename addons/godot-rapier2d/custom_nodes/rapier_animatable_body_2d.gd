@@ -12,5 +12,5 @@ extends AnimatableBody2D
 func _ready() -> void:
 	set_body_skin(body_skin)
 
-func set_body_skin(value: float) -> void:
-	RapierPhysicsServer2D.body_set_extra_param(get_rid(), RapierPhysicsServer2D.BODY_PARAM_CONTACT_SKIN, value)
+func set_body_skin(_value: float) -> void:
+	pass

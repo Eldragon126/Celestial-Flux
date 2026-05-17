@@ -49,7 +49,7 @@ func _initialize() -> void:
 
 	inventory.set("_captured_projectiles", {
 		projectile.get_instance_id(): {
-			"projectile": projectile,
+			"projectile_id": projectile.get_instance_id(),
 			"age": 0.0,
 			"angle": 0.0,
 			"radius": 118.0,

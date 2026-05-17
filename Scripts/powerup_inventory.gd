@@ -12,20 +12,24 @@ signal law_fusion_triggered(fusion_id: StringName, fusion_data: Dictionary)
 @export var action_pulse_cooldown: float = 0.65
 
 @export_group("Orbital Law")
-@export var satellite_capture_radius: float = 270.0
+@export var satellite_capture_radius: float = 340.0
 @export var satellite_orbit_radius: float = 118.0
-@export var satellite_duration: float = 2.4
-@export var max_satellites_per_stack: int = 2
+@export var satellite_duration: float = 3.3
+@export var max_satellites_per_stack: int = 3
 
 @export_group("Singularity Law")
-@export var singularity_debris_lifetime: float = 3.2
-@export var singularity_debris_radius: float = 94.0
+@export var singularity_debris_lifetime: float = 4.2
+@export var singularity_debris_radius: float = 118.0
 @export var singularity_debris_mass: float = 92000.0
-@export var singularity_debris_particle_cap: int = 38
+@export var singularity_debris_particle_cap: int = 52
 
 @export_group("Time Fracture Law")
 @export var time_fracture_store_rate: float = 0.36
-@export var time_fracture_release_cap: float = 680.0
+@export var time_fracture_release_cap: float = 860.0
+
+@export_group("Pickup Readability")
+@export var powerup_visuals_enabled: bool = true
+@export var powerup_burst_radius: float = 180.0
 
 @export_group("Law Fusion")
 @export var enable_law_fusions: bool = true
@@ -36,11 +40,15 @@ signal law_fusion_triggered(fusion_id: StringName, fusion_data: Dictionary)
 @export var fusion_debris_satellite_capture_radius: float = 260.0
 @export var fusion_debris_satellite_capture_duration: float = 0.72
 @export var fusion_visuals_enabled: bool = true
+@export var slingshot_convergence_radius: float = 430.0
+@export var slingshot_convergence_cooldown: float = 0.32
+@export var slingshot_time_lens_multiplier: float = 0.46
 
 var _player: Node2D = null
 var _stacks: Dictionary = {}
 var _timed_effects: Dictionary = {}
 var _time_pulse_ready := 0.0
+var _next_slingshot_convergence_time := 0.0
 
 # instance_id -> data
 var _captured_projectiles: Dictionary = {}
@@ -123,6 +131,7 @@ func apply_powerup(definition: PowerupDefinition) -> void:
 		return
 
 	_apply_effect(definition, current_stack)
+	_spawn_powerup_burst(definition, current_stack)
 	powerup_applied.emit(definition, current_stack)
 
 
@@ -258,7 +267,7 @@ func _update_orbital_satellites(delta: float) -> void:
 	_update_captured_projectiles(delta)
 
 
-func _capture_nearby_projectiles(stacks: int) -> void:
+func _capture_nearby_projectiles(stacks: int, override_radius: float = -1.0) -> void:
 	var tree := get_tree()
 
 	if tree == null:
@@ -269,7 +278,8 @@ func _capture_nearby_projectiles(stacks: int) -> void:
 	if _count_valid_satellites() >= max_satellites:
 		return
 
-	var radius_squared := satellite_capture_radius * satellite_capture_radius
+	var capture_radius := satellite_capture_radius if override_radius <= 0.0 else override_radius
+	var radius_squared := capture_radius * capture_radius
 
 	for projectile in tree.get_nodes_in_group("enemy_projectiles"):
 
@@ -576,13 +586,17 @@ func _connect_momentum_component() -> void:
 	if _momentum_component == null:
 		return
 
-	if not _momentum_component.has_signal("kinetic_shockwave_created"):
-		return
+	if _momentum_component.has_signal("kinetic_shockwave_created"):
+		var callable := Callable(self, "_on_kinetic_shockwave_created")
 
-	var callable := Callable(self, "_on_kinetic_shockwave_created")
+		if not _momentum_component.is_connected("kinetic_shockwave_created", callable):
+			_momentum_component.connect("kinetic_shockwave_created", callable)
 
-	if not _momentum_component.is_connected("kinetic_shockwave_created", callable):
-		_momentum_component.connect("kinetic_shockwave_created", callable)
+	if _momentum_component.has_signal("slingshot_mastery_triggered"):
+		var mastery_callable := Callable(self, "_on_slingshot_mastery_triggered")
+
+		if not _momentum_component.is_connected("slingshot_mastery_triggered", mastery_callable):
+			_momentum_component.connect("slingshot_mastery_triggered", mastery_callable)
 
 
 func _on_kinetic_shockwave_created(shockwave_data: Dictionary) -> void:
@@ -658,6 +672,225 @@ func _on_kinetic_shockwave_created(shockwave_data: Dictionary) -> void:
 		radius,
 		Color(0.36, 0.9, 1.0, 0.72)
 	)
+
+
+func _on_slingshot_mastery_triggered(data: Dictionary) -> void:
+	if not enable_law_fusions or not _is_node_valid(_player):
+		return
+
+	var now := _now_seconds()
+	if now < _next_slingshot_convergence_time:
+		return
+
+	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
+	if score < 0.58:
+		return
+
+	_next_slingshot_convergence_time = now + slingshot_convergence_cooldown
+
+	var position: Vector2 = data.get("position", _player.global_position)
+	var tangent: Vector2 = data.get("tangent", _body_velocity(_player).normalized())
+	if tangent.length_squared() <= 0.001:
+		tangent = Vector2.RIGHT
+	tangent = tangent.normalized()
+	var combo := int(data.get("combo", 1))
+	var radius := slingshot_convergence_radius * (0.82 + score * 0.34 + float(combo) * 0.045)
+
+	var orbital_stacks := get_stack_count(&"orbital_tether_upgrade")
+	var singularity_stacks := get_stack_count(&"singularity_amplifier")
+	var time_stacks := get_stack_count(&"time_fracture_pulse")
+
+	var before_satellites := _count_valid_satellites()
+	if orbital_stacks > 0:
+		_capture_nearby_projectiles(orbital_stacks, radius)
+	var captured = max(_count_valid_satellites() - before_satellites, 0)
+
+	var debris_bent := 0
+	if singularity_stacks > 0:
+		debris_bent = _bend_debris_from_slingshot(position, tangent, radius, score, combo)
+
+	var slowed := 0
+	if time_stacks > 0:
+		slowed = _pulse_time_lens_from_slingshot(position, radius, score, combo, time_stacks)
+
+	var released := 0
+	if orbital_stacks > 0 and (time_stacks > 0 or score >= 0.82):
+		released = _fling_satellites_along_slingshot(tangent, score, combo)
+
+	var resonance_id := _amplify_resonance_from_slingshot(data, radius, orbital_stacks, singularity_stacks, time_stacks)
+
+	var triggered : int = captured + debris_bent + slowed + released
+	if resonance_id != 0:
+		triggered += 1
+
+	if triggered <= 0:
+		return
+
+	_emit_law_fusion(
+		&"slingshot_law_convergence",
+		{
+			"position": position,
+			"tangent": tangent,
+			"radius": radius,
+			"score": score,
+			"combo": combo,
+			"captured": captured,
+			"debris_bent": debris_bent,
+			"slowed": slowed,
+			"released": released,
+			"resonance_id": resonance_id,
+		}
+	)
+
+	_spawn_fusion_ring(
+		position,
+		radius,
+		Color(0.28, 1.0, 0.84, 0.82)
+	)
+
+func _bend_debris_from_slingshot(
+	position: Vector2,
+	tangent: Vector2,
+	radius: float,
+	score: float,
+	combo: int
+) -> int:
+	var affected := 0
+	var radius_squared := radius * radius
+	var max_targets := fusion_debris_bend_max_targets + maxi(int(combo / 2), 0)
+
+	for debris in get_tree().get_nodes_in_group("law_gravity_debris"):
+		if affected >= max_targets:
+			break
+
+		var debris_2d := debris as Node2D
+		if not _is_node_valid(debris_2d):
+			continue
+
+		var offset := debris_2d.global_position - position
+		var dist_squared := offset.length_squared()
+		if dist_squared <= 0.001 or dist_squared > radius_squared:
+			continue
+
+		var radial := offset.normalized()
+		var falloff := 1.0 - sqrt(dist_squared) / radius
+		var impulse := (
+			(radial * 0.68 + tangent * 0.32).normalized()
+			* fusion_debris_bend_force
+			* (0.9 + score + float(combo) * 0.08)
+			* falloff
+		)
+
+		if debris_2d.has_method("apply_fusion_impulse"):
+			debris_2d.call("apply_fusion_impulse", impulse, Color(0.28, 1.0, 0.84, 1.0))
+
+		affected += 1
+
+	return affected
+
+func _pulse_time_lens_from_slingshot(
+	position: Vector2,
+	radius: float,
+	score: float,
+	combo: int,
+	time_stacks: int
+) -> int:
+	var time_manager := _get_time_dilation_manager()
+	var multiplier := clampf(
+		slingshot_time_lens_multiplier - 0.035 * float(time_stacks - 1) - 0.025 * float(combo),
+		0.24,
+		0.72
+	)
+	var duration := 0.48 + score * 0.42 + 0.05 * float(combo)
+	var radius_squared := radius * radius
+	var affected := 0
+	var max_affected := 34 + combo * 3
+
+	for group_name in [&"enemies", &"wave_enemy", &"bosses", &"enemy_projectiles"]:
+		for target in get_tree().get_nodes_in_group(group_name):
+			if affected >= max_affected:
+				return affected
+			var target_2d := target as Node2D
+			if not _is_node_valid(target_2d):
+				continue
+			if target_2d.global_position.distance_squared_to(position) > radius_squared:
+				continue
+
+			if _is_node_valid(time_manager) and time_manager.has_method("apply_local_slow_to_target"):
+				time_manager.call("apply_local_slow_to_target", target_2d, multiplier, duration)
+			else:
+				CombatStatus.apply_local_slow(target_2d, multiplier, duration)
+			affected += 1
+
+	return affected
+
+func _fling_satellites_along_slingshot(tangent: Vector2, score: float, combo: int) -> int:
+	if _captured_projectiles.is_empty():
+		return 0
+
+	var release_ids: Array[int] = []
+	var released := 0
+	var total := _captured_projectiles.size()
+
+	for id in _captured_projectiles.keys():
+		var entry := _captured_projectiles[id] as Dictionary
+		var projectile := instance_from_id(entry.get("projectile_id", -1)) as Node2D
+
+		if not _is_node_valid(projectile):
+			release_ids.append(id)
+			continue
+
+		var spread := 0.0
+		if total > 1:
+			spread = lerpf(-0.34, 0.34, float(released) / float(total - 1))
+
+		_release_satellite(
+			projectile,
+			tangent.rotated(spread),
+			fusion_satellite_arc_speed * (0.82 + score * 0.42) + float(combo) * 42.0
+		)
+
+		release_ids.append(id)
+		released += 1
+
+	for id in release_ids:
+		_captured_projectiles.erase(id)
+
+	return released
+
+func _amplify_resonance_from_slingshot(
+	data: Dictionary,
+	radius: float,
+	orbital_stacks: int,
+	singularity_stacks: int,
+	time_stacks: int
+) -> int:
+	var resonance := _find_resonance_manager()
+	if resonance == null or not resonance.has_method("amplify_slingshot_mastery"):
+		return 0
+
+	var resonance_data := data.duplicate(true)
+	resonance_data["radius"] = radius
+	resonance_data["orbital_stacks"] = orbital_stacks
+	resonance_data["singularity_stacks"] = singularity_stacks
+	resonance_data["time_stacks"] = time_stacks
+	return int(resonance.call("amplify_slingshot_mastery", resonance_data))
+
+func _find_resonance_manager() -> Node:
+	var tree := get_tree()
+	if tree == null:
+		return null
+
+	var managers := tree.get_nodes_in_group("gravity_resonance_manager")
+	for manager in managers:
+		if _is_node_valid(manager):
+			return manager
+
+	var root := tree.current_scene
+	if root == null:
+		return null
+
+	return root.find_child("GravityResonanceManager", true, false)
 
 
 func _try_anchor_satellite_to_debris(
@@ -865,6 +1098,51 @@ func _spawn_fusion_ring(
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.26)
 	tween.tween_callback(ring.queue_free)
 
+func _spawn_powerup_burst(definition: PowerupDefinition, stacks: int) -> void:
+	if not powerup_visuals_enabled or definition == null or not _is_node_valid(_player):
+		return
+
+	var root := get_tree().current_scene
+	if root == null:
+		return
+
+	var burst_color := definition.color
+	var radius := powerup_burst_radius + 24.0 * float(maxi(stacks - 1, 0))
+
+	var ring := Line2D.new()
+	ring.name = "PowerupLawBurst"
+	ring.closed = true
+	ring.antialiased = true
+	ring.width = 6.0
+	ring.default_color = Color(burst_color.r, burst_color.g, burst_color.b, 0.9)
+	ring.points = _circle_points(60, 1.0)
+	ring.global_position = _player.global_position
+	ring.scale = Vector2.ONE * 14.0
+	ring.z_index = 28
+	root.add_child(ring)
+
+	var echo := Line2D.new()
+	echo.name = "PowerupLawEcho"
+	echo.closed = true
+	echo.antialiased = true
+	echo.width = 2.0
+	echo.default_color = Color(1.0, 1.0, 1.0, 0.58)
+	echo.points = _circle_points(36, 1.0)
+	echo.global_position = _player.global_position
+	echo.scale = Vector2.ONE * 8.0
+	echo.z_index = 29
+	root.add_child(echo)
+
+	var tween := ring.create_tween()
+	tween.tween_property(ring, "scale", Vector2.ONE * radius, 0.34)
+	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.34)
+	tween.tween_callback(ring.queue_free)
+
+	var echo_tween := echo.create_tween()
+	echo_tween.tween_property(echo, "scale", Vector2.ONE * (radius * 0.58), 0.18)
+	echo_tween.parallel().tween_property(echo, "modulate:a", 0.0, 0.18)
+	echo_tween.tween_callback(echo.queue_free)
+
 
 func get_law_fusion_debug_state() -> Dictionary:
 	var active: Array[String] = []
@@ -883,6 +1161,9 @@ func get_law_fusion_debug_state() -> Dictionary:
 		and get_stack_count(&"time_fracture_pulse") > 0
 	):
 		active.append("Orbital+Time")
+
+	if _last_fusion_id == &"slingshot_law_convergence" and _now_seconds() - _last_fusion_time < 3.0:
+		active.append("Slingshot+Law")
 
 	return {
 		"active": active,

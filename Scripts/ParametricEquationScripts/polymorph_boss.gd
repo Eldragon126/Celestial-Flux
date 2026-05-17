@@ -39,6 +39,7 @@ extends CharacterBody2D
 #
 # ============================================================================
 
+signal boss_health_changed(current_health: float, max_health: float)
 signal boss_defeated
 signal phase_changed(phase: int)
 
@@ -49,6 +50,8 @@ const BULLET_SCENE = preload("res://Nodes/enemy_bullet.tscn")
 # ============================================================================
 
 @export var max_health := 2400.0
+@export var contact_damage := 24.0
+@export var bullet_spawn_distance := 155.0
 
 var current_health := 2400.0
 
@@ -63,6 +66,7 @@ var t := 0.0
 @export var engine_force := 2400.0
 @export var drag := 1.2
 @export var max_speed := 900.0
+@export var anchor_follow_rate := 2.8
 
 var anchor_position := Vector2.ZERO
 
@@ -79,6 +83,8 @@ var phase := 1
 var body_polygon: Polygon2D
 var collision_polygon: CollisionPolygon2D
 var core_polygon: Polygon2D
+var aura_polygon: Polygon2D
+var spark_particles: GPUParticles2D
 
 # ============================================================================
 # TIMERS
@@ -86,6 +92,8 @@ var core_polygon: Polygon2D
 
 var fire_timer: Timer
 var morph_timer: Timer
+var attack_area: Area2D
+var _rng := RandomNumberGenerator.new()
 
 # ============================================================================
 # READY
@@ -95,7 +103,9 @@ func _ready() -> void:
 
 	add_to_group("bosses")
 	add_to_group("enemies")
+	add_to_group("wave_enemy")
 
+	_rng.randomize()
 	player = get_tree().get_first_node_in_group("Player")
 
 	current_health = max_health
@@ -110,6 +120,12 @@ func _ready() -> void:
 # ============================================================================
 
 func build_visuals() -> void:
+	aura_polygon = Polygon2D.new()
+	aura_polygon.name = "PolymorphAura"
+	aura_polygon.z_index = -4
+	aura_polygon.color = Color(0.2, 0.95, 1.0, 0.13)
+	aura_polygon.polygon = make_circle_points(40, 165.0)
+	add_child(aura_polygon)
 
 	# ------------------------------------------------------------------------
 	# MAIN BODY
@@ -136,6 +152,26 @@ func build_visuals() -> void:
 	collision_polygon = CollisionPolygon2D.new()
 	add_child(collision_polygon)
 
+	attack_area = Area2D.new()
+	attack_area.name = "PolymorphContactArea"
+	attack_area.monitoring = true
+	attack_area.body_entered.connect(_on_contact_body_entered)
+	add_child(attack_area)
+
+	var attack_shape := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = 136.0
+	attack_shape.shape = circle
+	attack_area.add_child(attack_shape)
+
+	spark_particles = GPUParticles2D.new()
+	spark_particles.name = "PolymorphVectorSparks"
+	spark_particles.amount = 96
+	spark_particles.lifetime = 1.4
+	spark_particles.randomness = 0.55
+	spark_particles.process_material = make_particle_material(Color(0.25, 0.95, 1.0, 0.76))
+	add_child(spark_particles)
+
 # ============================================================================
 # TIMERS
 # ============================================================================
@@ -159,12 +195,14 @@ func build_timers() -> void:
 # ============================================================================
 
 func _physics_process(delta: float) -> void:
+	var scaled_delta := delta * CombatStatus.get_time_scale(self)
 
-	t += delta
+	t += scaled_delta
 
 	update_phase()
 
-	if player == null:
+	if player == null or not is_instance_valid(player):
+		player = get_tree().get_first_node_in_group("Player")
 		return
 
 	var offset := get_phase_movement()
@@ -173,7 +211,7 @@ func _physics_process(delta: float) -> void:
 
 	anchor_position = anchor_position.lerp(
 		target,
-		delta * 2.0
+		scaled_delta * anchor_follow_rate
 	)
 
 	var to_target := anchor_position - global_position
@@ -183,20 +221,24 @@ func _physics_process(delta: float) -> void:
 		velocity += (
 			to_target.normalized()
 			* engine_force
-			* delta
+			* scaled_delta
 		)
 
-	velocity -= velocity * drag * delta
+	velocity -= velocity * drag * scaled_delta
 
 	velocity = velocity.limit_length(max_speed)
 
 	move_and_slide()
 
 	# rotation drift
-	rotation += delta * (
+	rotation += scaled_delta * (
 		0.4
 		+ phase * 0.25
 	)
+
+	if aura_polygon != null:
+		aura_polygon.rotation -= scaled_delta * (0.9 + float(phase) * 0.35)
+		aura_polygon.scale = Vector2.ONE * (1.0 + 0.05 * sin(t * 7.0))
 
 # ============================================================================
 # PHASE SYSTEM
@@ -239,8 +281,9 @@ func enter_phase(new_phase: int) -> void:
 				1.0
 			)
 
-			engine_force = 1800.0
-			max_speed = 600.0
+			engine_force = 2200.0
+			max_speed = 780.0
+			anchor_follow_rate = 2.6
 
 			fire_timer.wait_time = 1.6
 
@@ -256,10 +299,11 @@ func enter_phase(new_phase: int) -> void:
 				0.2
 			)
 
-			engine_force = 2400.0
-			max_speed = 900.0
+			engine_force = 3100.0
+			max_speed = 1080.0
+			anchor_follow_rate = 3.0
 
-			fire_timer.wait_time = 1.0
+			fire_timer.wait_time = 0.92
 
 		# ================================================================
 		# PHASE 3
@@ -273,10 +317,11 @@ func enter_phase(new_phase: int) -> void:
 				0.8
 			)
 
-			engine_force = 3400.0
-			max_speed = 1300.0
+			engine_force = 4300.0
+			max_speed = 1450.0
+			anchor_follow_rate = 3.4
 
-			fire_timer.wait_time = 0.7
+			fire_timer.wait_time = 0.62
 
 		# ================================================================
 		# FINAL PHASE
@@ -284,13 +329,17 @@ func enter_phase(new_phase: int) -> void:
 
 		4:
 
-			body_polygon.color = Color.BLACK
-			core_polygon.color = Color.RED
+			body_polygon.color = Color(0.02, 0.0, 0.06, 1.0)
+			core_polygon.color = Color(1.0, 0.08, 0.18, 1.0)
 
 			engine_force = 5200.0
-			max_speed = 2200.0
+			max_speed = 1650.0
+			anchor_follow_rate = 4.0
 
-			fire_timer.wait_time = 0.35
+			fire_timer.wait_time = 0.46
+
+	if aura_polygon != null:
+		aura_polygon.color = Color(body_polygon.color.r, body_polygon.color.g, body_polygon.color.b, 0.16)
 
 # ============================================================================
 # MOVEMENT PATTERNS
@@ -450,7 +499,8 @@ func fire_attack() -> void:
 
 		1:
 
-			fire_ring(6, 600.0)
+			fire_ring(6, 640.0)
+			fire_aimed_fork(3, 760.0, 0.18)
 
 		# ----------------------------------------------------------------
 		# STAR BURST
@@ -458,9 +508,10 @@ func fire_attack() -> void:
 
 		2:
 
-			fire_ring(12, 900.0)
+			fire_ring(10, 980.0)
 
 			fire_spiral(5)
+			fire_aimed_fork(5, 1040.0, 0.14)
 
 		# ----------------------------------------------------------------
 		# CHAOS SPRAY
@@ -468,17 +519,18 @@ func fire_attack() -> void:
 
 		3:
 
-			for i in range(18):
+			for i in range(12):
 
 				var dir = Vector2.RIGHT.rotated(
-					TAU * i / 18.0
-					+ randf() * 0.7
+					TAU * i / 12.0
+					+ _rng.randf_range(-0.24, 0.24)
 				)
 
 				spawn_bullet(
 					dir,
-					randf_range(700.0, 1400.0)
+					_rng.randf_range(860.0, 1420.0)
 				)
+			fire_aimed_fork(7, 1240.0, 0.11)
 
 		# ----------------------------------------------------------------
 		# FINAL PHASE
@@ -486,9 +538,10 @@ func fire_attack() -> void:
 
 		4:
 
-			fire_ring(30, 1800.0)
+			fire_ring(18, 1560.0)
 
-			fire_spiral(14)
+			fire_spiral(8)
+			fire_aimed_fork(9, 1660.0, 0.09)
 
 # ============================================================================
 # FIRE RING
@@ -521,8 +574,21 @@ func fire_spiral(arms: int) -> void:
 
 		spawn_bullet(
 			dir,
-			900.0 + i * 80.0
+			980.0 + i * 75.0
 		)
+
+func fire_aimed_fork(count: int, speed: float, spread_step: float) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+
+	var aim := (player.global_position - global_position).normalized()
+	if aim == Vector2.ZERO:
+		aim = Vector2.RIGHT.rotated(rotation)
+
+	var center := float(count - 1) * 0.5
+	for i in range(count):
+		var offset := (float(i) - center) * spread_step
+		spawn_bullet(aim.rotated(offset), speed)
 
 # ============================================================================
 # SPAWN BULLET
@@ -536,19 +602,24 @@ func spawn_bullet(
 	if get_parent() == null:
 		return
 
+	direction = direction.normalized()
+	if direction == Vector2.ZERO:
+		direction = Vector2.RIGHT.rotated(rotation)
+
 	var bullet = BULLET_SCENE.instantiate()
 
 	bullet.global_position = (
 		global_position
-		+ direction * 100.0
+		+ direction * bullet_spawn_distance
 	)
+	bullet.global_rotation = direction.angle()
+
+	if bullet.has_method("configure_launch"):
+		bullet.call("configure_launch", direction, speed, self)
+	elif bullet.get("initial_speed") != null:
+		bullet.set("initial_speed", speed)
 
 	get_parent().add_child(bullet)
-
-	if bullet.has_method("apply_impulse"):
-		bullet.apply_impulse(
-			direction * speed
-		)
 
 # ============================================================================
 # DAMAGE
@@ -557,6 +628,8 @@ func spawn_bullet(
 func take_damage(amount: float) -> void:
 
 	current_health -= amount
+	current_health = maxf(current_health, 0.0)
+	boss_health_changed.emit(current_health, max_health)
 
 	# pulse effect
 	core_polygon.scale = Vector2.ONE * 1.6
@@ -582,6 +655,19 @@ func die() -> void:
 	boss_defeated.emit()
 
 	queue_free()
+
+func get_health_ratio() -> float:
+	return clampf(current_health / maxf(max_health, 1.0), 0.0, 1.0)
+
+func _on_contact_body_entered(body: Node2D) -> void:
+	if body == null or not body.is_in_group("Player") or not body.has_method("take_damage"):
+		return
+
+	body.take_damage(contact_damage + 6.0 * float(phase - 1))
+	var push := (body.global_position - global_position).normalized()
+	if push == Vector2.ZERO:
+		push = Vector2.RIGHT.rotated(rotation)
+	CombatStatus.add_velocity(body, push * (420.0 + 90.0 * float(phase)))
 
 # ============================================================================
 # SHAPE GENERATORS
@@ -702,3 +788,23 @@ func make_black_sun(
 		)
 
 	return points
+
+func make_particle_material(particle_color: Color) -> ParticleProcessMaterial:
+	var material := ParticleProcessMaterial.new()
+	material.particle_flag_disable_z = true
+	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	material.emission_sphere_radius = 132.0
+	material.spread = 180.0
+	material.initial_velocity_min = 18.0
+	material.initial_velocity_max = 120.0
+	material.orbit_velocity_min = -0.85
+	material.orbit_velocity_max = 1.35
+	material.radial_accel_min = -80.0
+	material.radial_accel_max = 34.0
+	material.gravity = Vector3.ZERO
+	material.scale_min = 1.2
+	material.scale_max = 4.6
+	material.color = particle_color
+	material.turbulence_enabled = true
+	material.turbulence_noise_strength = 0.65
+	return material

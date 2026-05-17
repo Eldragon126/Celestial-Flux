@@ -27,6 +27,11 @@ const SPLITTING_ASTEROID_SCENE = preload("res://Nodes/splitting_asteroid_bot.tsc
 const GRAVITY_HARASSER_SCENE = preload("res://Nodes/gravity_harasser.tscn")
 const SNIPER_TURRET_SCENE = preload("res://Nodes/sniper_turret.tscn")
 const SHIELDER_SUPPORT_SCENE = preload("res://Nodes/shielder_support.tscn")
+const PARAMETRIC_1_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn")
+const PARAMETRIC_2_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn")
+const PARAMETRIC_3_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn")
+const PARAMETRIC_4_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_4.tscn")
+const PARAMETRIC_5_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn")
 
 @export var attach_player_juice = true
 @export var attach_momentum_combat = true
@@ -38,6 +43,7 @@ const SHIELDER_SUPPORT_SCENE = preload("res://Nodes/shielder_support.tscn")
 @export var enable_arena_destabilization = true
 @export var enable_physics_aware_enemy_ai = true
 @export var spawn_showcase_content = false
+@export var spawn_parametric_showcase_content = false
 @export var near_miss_time_charge_multiplier: float = 0.14
 @export_group("Quality")
 @export_enum("Off", "Low", "High") var resonance_visual_quality: int = 2
@@ -136,6 +142,13 @@ func _spawn_showcase_content(level_root: Node, origin: Vector2) -> void:
 	_spawn_node_once(level_root, GRAVITY_HARASSER_SCENE, "ShowcaseGravityHarasser", origin + Vector2(-960.0, 180.0))
 	_spawn_node_once(level_root, SNIPER_TURRET_SCENE, "ShowcaseSniperTurret", origin + Vector2(1450.0, -660.0))
 	_spawn_node_once(level_root, SHIELDER_SUPPORT_SCENE, "ShowcaseShielderSupport", origin + Vector2(-1060.0, 350.0))
+
+	if spawn_parametric_showcase_content:
+		_spawn_node_once(level_root, PARAMETRIC_1_SCENE, "ShowcaseParametricDrifter", origin + Vector2(-720.0, 780.0))
+		_spawn_node_once(level_root, PARAMETRIC_2_SCENE, "ShowcaseParametricVector", origin + Vector2(-360.0, 920.0))
+		_spawn_node_once(level_root, PARAMETRIC_3_SCENE, "ShowcaseParametricPulseMine", origin + Vector2(0.0, 1040.0))
+		_spawn_node_once(level_root, PARAMETRIC_4_SCENE, "ShowcaseParametricDuelist", origin + Vector2(360.0, 920.0))
+		_spawn_node_once(level_root, PARAMETRIC_5_SCENE, "ShowcaseParametricArchitect", origin + Vector2(720.0, 780.0))
 
 func _spawn_node_once(parent: Node, scene: PackedScene, node_name: String, global_pos: Vector2) -> Node:
 	if parent == null:
