@@ -70,7 +70,7 @@ func _physics_process(_delta: float) -> void:
 	if total_grav_accel != Vector2.ZERO:
 		if Engine.time_scale > 1.0 or Engine.time_scale < 0.97 and Engine.time_scale != 0.0:
 			var time_scale_compensation = 1.0 / (Engine.time_scale * Engine.time_scale)
-			apply_force(total_grav_accel * time_scale_compensation * 0.3)
+			apply_force(total_grav_accel * time_scale_compensation * 0.08)
 			#less gravity when time dilation to compensate for bullets dropping faster. Compensation doesn't work by the way.
 		else:
 			apply_force(total_grav_accel)

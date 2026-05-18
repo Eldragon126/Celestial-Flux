@@ -99,7 +99,7 @@ signal flow_state_changed(active: bool, intensity: float)
 @export var flow_speed_cap_bonus: float = 360.0
 
 @export_group("Mastery Feedback")
-@export var slingshot_visuals_enabled: bool = true
+@export var slingshot_visuals_enabled: bool = false
 @export var flow_visuals_enabled: bool = true
 @export var mastery_audio_enabled: bool = true
 @export var mastery_particle_cap: int = 72
