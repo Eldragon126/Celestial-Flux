@@ -175,7 +175,10 @@ func _simulate() -> void:
 # ============================================================
 
 func _draw() -> void:
-
+	if Engine.time_scale > 1.0 or Engine.time_scale < 0.97 and Engine.time_scale != 0.0: #if it's not in a regular time
+		#We just don't draw it if the engine time is off because for some reason the projectile is not working correctly when time slows.
+		#I think it has to do with the apply_force() function of the projectile.
+		return
 	if _points.size() < 2:
 		return
 

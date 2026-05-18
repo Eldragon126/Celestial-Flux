@@ -28,9 +28,9 @@ signal momentum_projectile_spawned(projectile: Node, direction: Vector2)
 @export var gravity_source_refresh_interval: float = 0.35
 
 @export var slingshot_factor: float = 1.5
-@export var slingshot_max_impulse: float = 600.0
+@export var slingshot_max_impulse: float = 800.0
 @export var slingshot_speed_cap: float = 2500.0
-@export var slingshot_cooldown: float = 0.2
+@export var slingshot_cooldown: float = 0.1
 @export var slingshot_min_tangential_speed: float = 210.0
 @export var slingshot_gravity_boost_scale: float = 2.8
 @export var slingshot_sweet_spot_distance: float = 265.0
@@ -44,7 +44,7 @@ signal momentum_projectile_spawned(projectile: Node, direction: Vector2)
 @export var max_gravity_anchors: int = 1
 @export var orbit_control_bonus: float = 0.0
 
-@export var energy_cost_per_work: float = 0.00002
+@export var energy_cost_per_work: float = 0.00001
 @export var minimum_thrust_energy_cost_per_second: float = 5.0
 @export var gravity_charge_per_work: float = 0.0001
 

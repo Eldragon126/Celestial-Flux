@@ -10,3 +10,8 @@ res://Nodes/projectile_predictor.tscn
 res://Scripts/projectile_predictor.gd
 res://Nodes/projectile.tscn
 res://Scripts/projectile.gd
+res://Nodes/ParametricEquationEnemies/polymorph_boss.tscn
+res://Nodes/leech_parasite.tscn
+res://Nodes/base_enemy.tscn
+res://Nodes/player.tscn
+res://Scripts/orbital_trajectory_predictor.gd

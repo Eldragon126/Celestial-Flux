@@ -161,12 +161,13 @@ func _draw() -> void:
 
 		var t = float(i) / _prediction_points.size()
 		var col = danger_color if i < 22 else prediction_color
-
+		
 		draw_line(
 			p1,
 			p2,
 			Color(col.r, col.g, col.b, col.a * (1.0 - t * 0.75)),
 			line_width
 		)
+
 
 	draw_circle(to_local(_player.global_position), 6, Color(0.0, 1.0, 0.6, 0.9))

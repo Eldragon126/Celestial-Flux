@@ -1,5 +1,5 @@
 extends RigidBody2D
-#The bullets are off from the projection predictor when time dialation happens.
+
 # ========================
 # == EXPORT VARIABLES ==
 # ========================
@@ -41,7 +41,6 @@ func _ready() -> void:
 		print("Projectile instantiated at ", global_position)
 
 func _physics_process(_delta: float) -> void:
-
 	var total_grav_accel = Vector2.ZERO
 	
 	# Iterate backwards to safely handle potential deletions
@@ -69,12 +68,24 @@ func _physics_process(_delta: float) -> void:
 			total_grav_accel += dir * strength
 	
 	if total_grav_accel != Vector2.ZERO:
-		apply_force(total_grav_accel)
-	
-	
-		
-		
-		
+		if Engine.time_scale > 1.0 or Engine.time_scale < 0.97 and Engine.time_scale != 0.0:
+			var time_scale_compensation = 1.0 / (Engine.time_scale * Engine.time_scale)
+			apply_force(total_grav_accel * time_scale_compensation * 0.3)
+			#less gravity when time dilation to compensate for bullets dropping faster. Compensation doesn't work by the way.
+		else:
+			apply_force(total_grav_accel)
+			
+
+# ========================
+# == INTEGRATE FORCES ==
+# ========================
+func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
+	# FIX: If the global engine timescale is completely paused, freeze the 
+	# simulation velocities completely so the bullet locks perfectly in place.
+	if Engine.time_scale == 0.0:
+		state.linear_velocity = Vector2.ZERO
+		state.angular_velocity = 0.0
+
 # ========================
 # == LAUNCH LOGIC ==
 # ========================
