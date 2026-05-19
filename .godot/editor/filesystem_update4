@@ -1,6 +1,5 @@
-res://Nodes/wave_director.tscn
+res://Nodes/ParametricEquationEnemies/parametric_testing_center.tscn
 res://Scripts/playershield.gdshader
 res://Scripts/pause_menu.gdshader
 res://Scripts/planet_1.gdshader
 res://Scripts/player.gdshader
-res://Scripts/wave_director.gd
