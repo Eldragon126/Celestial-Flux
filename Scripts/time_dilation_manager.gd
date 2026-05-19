@@ -180,10 +180,10 @@ func _find_player() -> void:
 func _handle_input() -> void:
 	var pressed := Input.is_action_pressed("time_dilation")
 
-	if pressed and not _dilation_input_active:
+	if pressed and not _dilation_input_active and _player.menu_is_hidden == true:
 		_start_dilation()
 
-	elif not pressed and _dilation_input_active:
+	elif not pressed and _dilation_input_active and _player.menu_is_hidden == true:
 		_end_dilation()
 
 	_dilation_input_active = pressed

@@ -17,6 +17,8 @@ const PHYSICS_AWARE_ENEMY_DIRECTOR_SCENE = preload("res://Nodes/physics_aware_en
 
 const PLANET_ATMOSPHERE_SCENE = preload("res://Nodes/planet_atmosphere_dust.tscn")
 const WAVE_DIRECTOR_SCENE = preload("res://Nodes/wave_director.tscn")
+const RUN_DIRECTOR_SCENE = preload("res://Nodes/run_director.tscn")
+const PLAYER_VISUAL_STATE_SCENE = preload("res://Nodes/player_visual_state.tscn")
 
 const UNSTABLE_MOON_SCENE = preload("res://Nodes/unstable_moon.tscn")
 const NEBULA_CLOUD_SCENE = preload("res://Nodes/nebula_cloud.tscn")
@@ -84,6 +86,7 @@ func _install_modular_additions() -> void:
 		if attach_player_juice:
 			_add_child_scene_once(player, THRUSTER_TRAILS_SCENE, "PlayerThrusterTrails")
 			_add_child_scene_once(player, ENGINE_HUM_SCENE, "PlayerEngineHum")
+			_add_child_scene_once(player, PLAYER_VISUAL_STATE_SCENE, "PlayerVisualState")
 
 		if attach_momentum_combat:
 			# Momentum combat stays as a player add-on: it rewards slingshots,
@@ -100,7 +103,9 @@ func _install_modular_additions() -> void:
 			if planet is Node and planet != null:
 				_add_child_scene_once(planet, PLANET_ATMOSPHERE_SCENE, "PlanetAtmosphereDust")
 
+
 	if enable_wave_game and player != null:
+		_add_child_scene_once(level_root, RUN_DIRECTOR_SCENE, "RunDirector")
 		_add_child_scene_once(level_root, WAVE_DIRECTOR_SCENE, "WaveDirector")
 		if enable_physics_aware_enemy_ai:
 			# Enemy AI director adds gravity-aware steering nudges while each

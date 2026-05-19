@@ -1244,3 +1244,15 @@ func _is_node_valid(node: Variant) -> bool:
 		return false
 
 	return true
+
+func export_anchor_stacks() -> Dictionary:
+	var out: Dictionary = {}
+	for id in _stacks.keys():
+		out[String(id)] = int(_stacks[id])
+	return out
+
+
+func import_anchor_stacks(data: Dictionary) -> void:
+	_stacks.clear()
+	for key in data.keys():
+		_stacks[StringName(key)] = int(data[key])

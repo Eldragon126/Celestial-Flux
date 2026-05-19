@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://cjj4qrhruwneh" path="res://Scripts/player.gd" id="1_qlfej"]
 [ext_resource type="Script" uid="uid://bqvpda2clw7pg" path="res://Scripts/player_shield.gd" id="2_qlfej"]
 [ext_resource type="Shader" uid="uid://msjv4m5smmjt" path="res://Scripts/playershield.gdshader" id="3_pie2b"]
+[ext_resource type="PackedScene" uid="uid://icif7lpmm2a1" path="res://Nodes/pause_menu.tscn" id="4_e3gfx"]
 [ext_resource type="Script" uid="uid://cgo7omjjvv108" path="res://Scripts/health_component.gd" id="4_sfp35"]
 [ext_resource type="Script" uid="uid://dpsx3wfpdu82q" path="res://Scripts/energy_component.gd" id="5_8pukx"]
 [ext_resource type="AudioStream" uid="uid://bwdttw7llfjht" path="res://Assets/Sound Effects/PlayerShoot.wav" id="6_r4ynj"]
@@ -113,6 +114,7 @@ texture = SubResource("PlaceholderTexture2D_pie2b")
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Shield" unique_id=1456695965]
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1032448916]
+process_mode = 3
 
 [node name="Health" type="Label" parent="CanvasLayer" unique_id=1346219360]
 offset_left = 7.0
@@ -134,6 +136,8 @@ offset_top = 53.0
 offset_right = 114.0
 offset_bottom = 76.0
 text = "Energy: "
+
+[node name="PauseMenu" parent="CanvasLayer" unique_id=1603217995 instance=ExtResource("4_e3gfx")]
 
 [node name="HealthComponent" type="Node" parent="." unique_id=892177100]
 script = ExtResource("4_sfp35")

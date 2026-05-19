@@ -90,6 +90,11 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_kf5hn")
+menu_root = NodePath("MenuRoot")
+hint_label = NodePath("MenuRoot/HintLabel")
+new_run_button = NodePath("MenuRoot/NewRunButton")
+continue_button = NodePath("MenuRoot/ContinueButton")
+challenge_button = NodePath("MenuRoot/ChallengeButton")
 
 [node name="Label" type="Label" parent="." unique_id=2006295575]
 layout_mode = 0
@@ -104,6 +109,52 @@ theme_override_font_sizes/font_size = 150
 text = "Orbital Drift"
 vertical_alignment = 1
 
+
+[node name="MenuRoot" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -280.0
+offset_right = 220.0
+offset_bottom = -48.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="HintLabel" type="Label" parent="MenuRoot"]
+layout_mode = 2
+custom_minimum_size = Vector2(420, 0)
+theme_override_fonts/font = ExtResource("1_idcrm")
+theme_override_font_sizes/font_size = 22
+text = "Physics-driven waves. Fixed boss milestones. No rhythm until the finale."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="NewRunButton" type="Button" parent="MenuRoot"]
+layout_mode = 2
+custom_minimum_size = Vector2(300, 48)
+theme_override_fonts/font = ExtResource("1_idcrm")
+theme_override_font_sizes/font_size = 28
+text = "New Run"
+
+[node name="ContinueButton" type="Button" parent="MenuRoot"]
+layout_mode = 2
+custom_minimum_size = Vector2(300, 48)
+theme_override_fonts/font = ExtResource("1_idcrm")
+theme_override_font_sizes/font_size = 28
+text = "Continue"
+
+[node name="ChallengeButton" type="Button" parent="MenuRoot"]
+layout_mode = 2
+custom_minimum_size = Vector2(300, 48)
+theme_override_fonts/font = ExtResource("1_idcrm")
+theme_override_font_sizes/font_size = 28
+text = "Challenge Mode"
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=925882595]
 libraries/ = SubResource("AnimationLibrary_joli2")
 autoplay = &"ColorShift"

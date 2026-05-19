@@ -99,10 +99,10 @@ signal flow_state_changed(active: bool, intensity: float)
 @export var flow_speed_cap_bonus: float = 360.0
 
 @export_group("Mastery Feedback")
-@export var slingshot_visuals_enabled: bool = false
+@export var slingshot_visuals_enabled: bool = true
 @export var flow_visuals_enabled: bool = true
 @export var mastery_audio_enabled: bool = true
-@export var mastery_particle_cap: int = 72
+@export var mastery_particle_cap: int = 18
 
 # ========================
 # == INTERNAL STATE ==
@@ -210,7 +210,7 @@ func prepare_projectile(projectile: Node, direction: Vector2) -> void:
 
 
 # ========================
-# == DEBUG INTERFACE (Required by Balance Overlay) ==
+# == DEBUG INTERFACE ==
 # ========================
 func get_momentum_debug_state() -> Dictionary:
 	var state_name := "overload" if _overload_active else ("orbit" if _was_orbiting else "stable")
@@ -231,7 +231,7 @@ func get_momentum_debug_state() -> Dictionary:
 
 
 # ========================
-# == OTHER SYSTEMS (unchanged but cleaned) ==
+# == OTHER SYSTEMS ==
 # ========================
 func _update_orbit_assist(delta: float) -> void:
 	if not orbit_assist_enabled: 
@@ -374,7 +374,7 @@ func _on_slingshot(_source, _grav, _impulse, strength, _speed) -> void:
 	_speed_cap_bonus = maxf(_speed_cap_bonus, strength * 0.5)
 
 func _on_slingshot_mastery_scored(data: Dictionary) -> void:
-	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
+	var score := clampf(float(data.get("score", 0.0)), 0.0, 0.65)
 	if score < mastery_good_threshold:
 		if slingshot_visuals_enabled:
 			_spawn_slingshot_mastery_visual(data, false)
@@ -474,16 +474,16 @@ func _spawn_shockwave_visual(center: Vector2) -> void:
 	ring.name = "KineticShockwave"
 	ring.closed = true
 	ring.antialiased = true
-	ring.width = 5.0
-	ring.default_color = Color(0.42, 0.95, 1.0, 0.78)
+	ring.width = 2.0
+	ring.default_color = Color(0.42, 0.95, 1.0, 0.28)
 	ring.points = _circle_points(48, 1.0)
 	ring.global_position = center
-	ring.scale = Vector2.ONE * 18.0
+	ring.scale = Vector2.ONE * 8.0
 	ring.z_index = 24
 	root.add_child(ring)
 
 	var tween := ring.create_tween()
-	tween.tween_property(ring, "scale", Vector2.ONE * shockwave_radius, 0.24)
+	tween.tween_property(ring, "scale", Vector2.ONE * (shockwave_radius * 0.45), 0.18)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.24)
 	tween.tween_callback(ring.queue_free)
 
@@ -535,7 +535,9 @@ func _extend_mastery_combo(reason: StringName, event_position: Vector2) -> void:
 	data["tier"] = _current_mastery_tier()
 	data["reason"] = reason
 	data["position"] = event_position
-	slingshot_mastery_triggered.emit(data)
+	
+	# BUG FIX 1: This is intentionally removed to stop the HUD from rapidly flashing with redundant triggers
+	# slingshot_mastery_triggered.emit(data) 
 
 	if slingshot_visuals_enabled:
 		_spawn_combo_ping(event_position, reason)
@@ -605,14 +607,14 @@ func _update_flow_visuals(delta: float) -> void:
 		color = Color(1.0, 0.88, 0.32, lerpf(0.26, 0.96, intensity))
 
 	_aura_root.rotation += delta * lerpf(1.4, 4.8, intensity)
-	_aura_root.scale = Vector2.ONE * lerpf(0.92, 1.28, intensity + 0.08 * sin(Time.get_ticks_msec() / 70.0))
+	_aura_root.scale = Vector2.ONE * lerpf(0.96, 1.08, intensity)
 
 	if _aura_ring != null:
-		_aura_ring.width = lerpf(1.4, 5.5, intensity)
+		_aura_ring.width = lerpf(0.8, 2.4, intensity)
 		_aura_ring.default_color = color
 	if _aura_inner != null:
 		_aura_inner.rotation = -_aura_root.rotation * 1.7
-		_aura_inner.width = lerpf(1.0, 3.2, intensity)
+		_aura_inner.width = lerpf(0.6, 1.8, intensity)
 		_aura_inner.default_color = Color(1.0, 1.0, 1.0, color.a * 0.54)
 	if _aura_particles != null:
 		_aura_particles.emitting = intensity > 0.16
@@ -633,8 +635,8 @@ func _spawn_slingshot_mastery_visual(data: Dictionary, mastered: bool) -> void:
 	tangent = tangent.normalized()
 
 	var color := _grade_color(grade, mastered)
-	var radius := lerpf(64.0, 210.0, score)
-	var width := lerpf(2.0, 8.0, score)
+	var radius := lerpf(18.0, 52.0, score)
+	var width := lerpf(1.0, 3.0, score)
 	var duration := lerpf(0.18, 0.34, score)
 
 	var ring := Line2D.new()
@@ -643,45 +645,48 @@ func _spawn_slingshot_mastery_visual(data: Dictionary, mastered: bool) -> void:
 	ring.antialiased = true
 	ring.width = width
 	ring.default_color = color
-	ring.points = _circle_points(64, 1.0)
+	ring.points = _circle_points(80, 10.0)
 	ring.global_position = center
 	ring.rotation = tangent.angle()
-	ring.scale = Vector2.ONE * 16.0
+	# BUG FIX 2: Start the ring much larger so it diffuses the light
+	ring.scale = Vector2.ONE * lerpf(4.0, 8.0, score)
 	ring.z_index = 38
 	root.add_child(ring)
 
 	var vector_line := Line2D.new()
 	vector_line.name = "SlingshotVectorFlash"
 	vector_line.antialiased = true
-	vector_line.width = width * 0.72
-	vector_line.default_color = Color(1.0, 1.0, 1.0, color.a * 0.82)
+	# BUG FIX 3: Thinner and shorter vector flash
+	vector_line.width = width * 0.05
+	vector_line.default_color = Color(1.0, 1.0, 1.0, color.a * 0.12)
 	vector_line.points = PackedVector2Array([
-		-tangent * radius * 0.28,
-		tangent * radius * 1.12,
+		-tangent * radius * 0.05,
+		tangent * radius * 0.15,
 	])
 	vector_line.global_position = center
 	vector_line.z_index = 39
 	root.add_child(vector_line)
 
 	var tween := ring.create_tween()
-	tween.tween_property(ring, "scale", Vector2.ONE * radius, duration)
+	tween.tween_property(ring,"scale",Vector2.ONE * lerpf(10.0, 22.0, score),duration)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, duration)
 	tween.tween_callback(ring.queue_free)
 
 	var line_tween := vector_line.create_tween()
 	line_tween.tween_property(vector_line, "modulate:a", 0.0, duration * 0.78)
-	line_tween.parallel().tween_property(vector_line, "scale", Vector2.ONE * 1.38, duration * 0.78)
+	# Removed the parallel tween here that caused the vector flash to scale and bloom
 	line_tween.tween_callback(vector_line.queue_free)
 
 func _spawn_combo_ping(position: Vector2, reason: StringName) -> void:
-	var color := Color(0.35, 1.0, 0.84, 0.78)
+	var color := Color(0.35, 1.0, 0.84, 0.58)
 	if reason == &"impact":
 		color = Color(1.0, 0.72, 0.26, 0.88)
-	_spawn_transient_ring(position, 80.0 + 18.0 * float(_mastery_combo), color, 0.18, 3.5)
+	_spawn_transient_ring(position, 24.0 + 6.0 * float(_mastery_combo), color, 0.18, 3.5)
 
 func _spawn_impact_mastery_flash(position: Vector2, damage: float) -> void:
-	var radius := 72.0 + clampf(damage, 0.0, 120.0)
-	_spawn_transient_ring(position, radius, Color(1.0, 0.32, 0.18, 0.82), 0.22, 5.0)
+	# BUG FIX 4: Smaller radius base, clamped damage scaling, reduced width and transparency
+	var radius := 36.0 + clampf(damage * 0.5, 0.0, 60.0) 
+	_spawn_transient_ring(position, radius, Color(1.0, 0.32, 0.18, 0.45), 0.22, 2.5)
 
 func _spawn_transient_ring(center: Vector2, radius: float, color: Color, duration: float, width: float) -> void:
 	var root := get_tree().current_scene
@@ -696,7 +701,7 @@ func _spawn_transient_ring(center: Vector2, radius: float, color: Color, duratio
 	ring.default_color = color
 	ring.points = _circle_points(36, 1.0)
 	ring.global_position = center
-	ring.scale = Vector2.ONE * 8.0
+	ring.scale = Vector2.ONE * 2.0
 	ring.z_index = 37
 	root.add_child(ring)
 
@@ -729,13 +734,14 @@ func _play_mastery_whoosh(data: Dictionary) -> void:
 func _grade_color(grade: StringName, mastered: bool) -> Color:
 	match grade:
 		&"apex":
-			return Color(1.0, 0.9, 0.25, 0.98)
+			return Color(1.0, 0.9, 0.25, 0.28)
 		&"perfect":
-			return Color(0.35, 1.0, 0.88, 0.96)
+			return Color(0.35, 1.0, 0.88, 0.66)
 		&"great":
-			return Color(0.22, 0.72, 1.0, 0.88)
+			# BUG FIX 5: Dropped the transparency of the 'great' UI ping down to 0.10
+			return Color(0.22, 0.72, 1.0, 0.10)
 		&"good":
-			return Color(0.42, 0.86, 1.0, 0.72)
+			return Color(0.42, 0.86, 1.0, 0.42)
 	return Color(0.48, 0.66, 0.84, 0.68 if mastered else 0.46)
 
 func _make_flow_particle_material() -> ParticleProcessMaterial:
@@ -752,7 +758,7 @@ func _make_flow_particle_material() -> ParticleProcessMaterial:
 	material.emission_sphere_radius = 42.0
 	material.spread = 180.0
 	material.initial_velocity_min = 20.0
-	material.initial_velocity_max = 120.0
+	material.initial_velocity_max = 4.0
 	material.orbit_velocity_min = -1.2
 	material.orbit_velocity_max = 1.2
 	material.radial_accel_min = -24.0

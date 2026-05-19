@@ -9,13 +9,13 @@
 position = Vector2(-218, 457)
 
 [node name="Planet1" parent="." unique_id=1811765486 instance=ExtResource("3_na8vp")]
-position = Vector2(1496, 624)
+position = Vector2(1129, 1072)
 
 [node name="Planet2" parent="." unique_id=1415521095 instance=ExtResource("3_na8vp")]
-position = Vector2(1132, 608)
+position = Vector2(950, 308)
 
 [node name="Planet3" parent="." unique_id=267943606 instance=ExtResource("3_na8vp")]
-position = Vector2(785, 608)
+position = Vector2(-78, 1012)
 
 [node name="Planet4" parent="." unique_id=1182358223 instance=ExtResource("3_na8vp")]
-position = Vector2(434, 604)
+position = Vector2(-1133, 820)

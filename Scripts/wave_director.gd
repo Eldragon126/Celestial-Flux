@@ -4,6 +4,8 @@ extends Node2D
 # enemies, hazards, HUD feedback, and boss fights into readable waves.
 signal boss_wave
 signal regular_wave
+signal wave_cleared(wave: int)
+signal boss_defeated_anchor(boss_scene_path: String)
 
 const BASE_ENEMY_SCENE = preload("res://Nodes/base_enemy.tscn")
 const BASE_SHOOTER_SCENE = preload("res://Nodes/base_shooter_enemy.tscn")
@@ -56,6 +58,8 @@ var _status_label: Label
 var _boss_panel: PanelContainer
 var _boss_label: Label
 var _boss_bar: ProgressBar
+var _waves_halted: bool = false
+var _last_boss_scene_path: String = ""
 
 func _ready() -> void:
 	_rng.randomize()
@@ -96,11 +100,29 @@ func _start_director() -> void:
 	await get_tree().create_timer(first_wave_delay).timeout
 	_begin_next_wave()
 
+func halt_waves() -> void:
+	_waves_halted = true
+	_wave_running = false
+	_spawning = false
+
+func restore_wave_index(wave: int) -> void:
+	_wave = maxi(wave, 0)
+	if _wave > 0:
+		_banner_label.text = "ANCHOR WAVE %d" % _wave
+
+func get_current_wave() -> int:
+	return _wave
+
 func _begin_next_wave() -> void:
+	if _waves_halted or not _waves_enabled():
+		_banner_label.text = "WAVE DIRECTOR STANDBY"
+		return
 	if _player == null or not is_instance_valid(_player):
 		return
 
 	_wave += 1
+	if RunProgress:
+		RunProgress.sync_phase_from_wave(_wave)
 	_wave_running = true
 	_spawning = true
 	_boss = null
@@ -114,12 +136,14 @@ func _begin_next_wave() -> void:
 	_spawning = false
 
 func _spawn_regular_wave() -> void:
-
 	regular_wave.emit()
 	_banner_label.text = "WAVE %d" % _wave
 	_seed_wave_hazards()
 
 	var roster = _build_wave_roster()
+	var delay: float = spawn_delay
+	if _is_late_game_wave():
+		delay = maxf(spawn_delay * 0.62, 0.22)
 	for i in range(roster.size()):
 		if _player == null or not is_instance_valid(_player):
 			return
@@ -128,7 +152,7 @@ func _spawn_regular_wave() -> void:
 		if enemy != null:
 			_active_enemies.append(enemy)
 
-		await get_tree().create_timer(spawn_delay).timeout
+		await get_tree().create_timer(delay).timeout
 
 func _spawn_boss_wave() -> void:
 	$BossWaveMusic.play()
@@ -139,6 +163,7 @@ func _spawn_boss_wave() -> void:
 	_seed_wave_hazards()
 
 	var boss_scene = _choose_boss_scene()
+	_last_boss_scene_path = boss_scene.resource_path
 	var boss = boss_scene.instantiate()
 	boss.name = "%sWave%d" % [_boss_node_prefix(boss_scene), _wave]
 	boss.set("max_health", 780.0 + 135.0 * float(_wave / boss_every_waves))
@@ -159,6 +184,9 @@ func _spawn_boss_wave() -> void:
 	await get_tree().create_timer(1.2).timeout
 
 func _build_wave_roster() -> Array:
+	if _is_late_game_wave():
+		return _build_late_game_roster()
+
 	var roster: Array = []
 	var count = int(min(4 + _wave, max_regular_enemies))
 
@@ -181,6 +209,18 @@ func _build_wave_roster() -> Array:
 	if _wave >= 6:
 		roster.insert(int(min(5, roster.size())), PARAMETRIC_3_SCENE)
 
+	return roster
+
+
+func _build_late_game_roster() -> Array:
+	var elite: Array = [
+		CHAOS_WISP_SCENE, SHIELD_BREAKER_SCENE, SNIPER_SCENE, HARASSER_SCENE,
+		PARAMETRIC_4_SCENE, PARAMETRIC_5_SCENE, SEEKER_FRAGMENT_SCENE, GRAVITY_LEECH_SCENE,
+	]
+	var roster: Array = []
+	var count: int = mini(8 + int((_wave - RunProgress.LATE_GAME_START_WAVE) * 0.5), max_regular_enemies + 4)
+	for i in range(count):
+		roster.append(elite[i % elite.size()])
 	return roster
 
 func _spawn_enemy(scene: PackedScene, node_name: String) -> Node:
@@ -257,6 +297,10 @@ func _complete_wave() -> void:
 	_wave_running = false
 	_banner_label.text = "WAVE %d CLEARED" % _wave
 	_boss_panel.visible = false
+	wave_cleared.emit(_wave)
+
+	if _waves_halted or not _waves_enabled():
+		return
 
 	await get_tree().create_timer(rest_between_waves).timeout
 	_begin_next_wave()
@@ -275,7 +319,17 @@ func _cleanup_tracking() -> void:
 	_active_hazards = kept_hazards
 
 func _is_boss_wave() -> bool:
+	if RunProgress and not RunProgress.challenge_mode:
+		return RunProgress.is_boss_milestone_wave(_wave)
 	return boss_every_waves > 0 and _wave % boss_every_waves == 0
+
+func _is_late_game_wave() -> bool:
+	return RunProgress and _wave >= RunProgress.LATE_GAME_START_WAVE and _wave <= RunProgress.LATE_GAME_END_WAVE
+
+func _waves_enabled() -> bool:
+	if RunProgress == null:
+		return true
+	return RunProgress.waves_enabled()
 
 func _refresh_player_planet_cache() -> void:
 	if _player != null and _player.has_method("_refresh_gravity_sources"):
@@ -284,6 +338,9 @@ func _refresh_player_planet_cache() -> void:
 		_player.set("planets", get_tree().get_nodes_in_group("planets"))
 
 func _choose_boss_scene() -> PackedScene:
+	if RunProgress and not RunProgress.challenge_mode:
+		return _boss_scene_from_path(RunProgress.get_scheduled_boss_scene_path(_wave))
+
 	var boss_number = max(0, int(float(_wave) / float(max(1, boss_every_waves))) - 1)
 	var boss_index = boss_number % 6
 	if boss_index == 1:
@@ -297,6 +354,21 @@ func _choose_boss_scene() -> PackedScene:
 	if boss_index == 5:
 		return POLYMORPH_BOSS_SCENE
 	return GRAVITY_WARDEN_SCENE
+
+func _boss_scene_from_path(path: String) -> PackedScene:
+	match path:
+		"res://Nodes/accretion_core_boss.tscn":
+			return ACCRETION_CORE_SCENE
+		"res://Nodes/null_vector_seraph_boss.tscn":
+			return NULL_SERAPH_SCENE
+		"res://Nodes/magnetar_twins_boss.tscn":
+			return MAGNETAR_TWINS_SCENE
+		"res://Nodes/rift_weaver_boss.tscn":
+			return RIFT_WEAVER_SCENE
+		"res://Nodes/ParametricEquationEnemies/polymorph_boss.tscn":
+			return POLYMORPH_BOSS_SCENE
+		_:
+			return GRAVITY_WARDEN_SCENE
 
 func _boss_display_name(scene: PackedScene) -> String:
 	if scene == ACCRETION_CORE_SCENE:
@@ -329,6 +401,8 @@ func _on_boss_health_changed(current_health: float, max_health: float) -> void:
 	_boss_bar.value = clampf(current_health, 0.0, _boss_bar.max_value)
 
 func _on_boss_defeated() -> void:
+	if not _last_boss_scene_path.is_empty():
+		boss_defeated_anchor.emit(_last_boss_scene_path)
 	_clear_remaining_wave_enemies()
 	_boss = null
 	_complete_wave()
@@ -429,10 +503,8 @@ func _clear_remaining_wave_enemies() -> void:
 			enemy.queue_free()
 	_active_enemies.clear()
 
-
 func _on_wave_music_finished() -> void:
 	$WaveMusic.play()
-
 
 func _on_boss_wave_music_finished() -> void:
 	$BossWaveMusic.play()

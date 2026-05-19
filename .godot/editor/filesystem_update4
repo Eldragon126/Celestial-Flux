@@ -1,8 +1,6 @@
-res://Nodes/momentum_combat_component.tscn
-res://Scripts/planet_1.gdshader
+res://Nodes/wave_director.tscn
 res://Scripts/playershield.gdshader
+res://Scripts/pause_menu.gdshader
+res://Scripts/planet_1.gdshader
 res://Scripts/player.gdshader
-res://Scripts/momentum_combat_component.gd
-res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn
-res://Scripts/ParametricEquationScripts/parametric_enemy_2.gd
-res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn
+res://Scripts/wave_director.gd

@@ -1,4 +1,3 @@
-
 # Player Controller with Improved Slingshot Mechanics
 extends CharacterBody2D
 
@@ -86,6 +85,8 @@ var _camera_base_rotation: float = 0.0
 var _camera_feedback_offset: Vector2 = Vector2.ZERO
 var _camera_feedback_roll: float = 0.0
 
+var menu_is_hidden := true
+var time_tween: Tween
 # ========================
 # == NODE REFERENCES ==
 # ========================
@@ -125,6 +126,14 @@ func _ready():
 # ========================
 
 func _physics_process(delta: float):
+	# 1. ALWAYS process inputs first so state updates map cleanly to forces
+	handle_input()
+	
+	# 2. Safety Lock: If the cinematic pause menu is actively dropping time scale down,
+	# completely halt space movement processing to prevent calculation stutter.
+	if _is_pause_blocking():
+		return
+
 	_gravity_refresh_elapsed += delta
 
 	var gravity = calculate_gravity()
@@ -132,23 +141,21 @@ func _physics_process(delta: float):
 
 	handle_rotation(delta)
 
-	# 1. Apply forces
+	# Apply forces
 	apply_thrust(delta)
 	apply_slingshot(gravity, delta)
 	apply_gravity(gravity, delta)
 
-	# 2. Movement & resistance
+	# Movement & resistance
 	apply_drag(gravity, delta)
 	update_max_speed(delta)
 
-	# 3. Constraints
+	# Constraints
 	clamp_velocity()
 	move_and_slide()
 
-	# 4. Energy reactions
+	# Energy reactions
 	apply_gravity_recharge(gravity, delta)
-
-	handle_input()
 	update_ui()
 
 # ========================
@@ -224,7 +231,6 @@ func handle_rotation(delta):
 # ========================
 
 func apply_slingshot(gravity: Vector2, delta: float):
-	# Recharges slingshot after cooldown
 	if get_tree().get_first_node_in_group("Orbital_Juice_Manager") == null:
 		apply_regular_slingshot(gravity, delta)
 		return
@@ -233,7 +239,6 @@ func apply_slingshot(gravity: Vector2, delta: float):
 	if not slingshot_ready:
 		return
 
-	# Conditions for slingshot opportunity
 	if not is_instance_valid(closest_planet):
 		return
 	if velocity.length() < 1.0:
@@ -243,7 +248,6 @@ func apply_slingshot(gravity: Vector2, delta: float):
 	if gravity.length_squared() <= 0.001:
 		return
 
-	# Try to allow modification/cancellation by momentum (combat) component
 	var impulse := Vector2.ZERO
 	var radial = global_position - closest_planet.global_position
 	if radial.length_squared() <= 0.001:
@@ -270,25 +274,22 @@ func apply_slingshot(gravity: Vector2, delta: float):
 	if assist_strength > 0:
 		impulse = tangent * assist_strength * (slingshot_factor + orbit_control_bonus) * quality_bonus * delta
 
-		# Cap impulse strength for polish & balance
 		var impulse_cap := slingshot_max_impulse * lerpf(0.88, 1.24, slingshot_score)
 		if impulse.length() > impulse_cap:
 			impulse = impulse.normalized() * impulse_cap
 
 		var momentum_comp = get_node_or_null("MomentumCombatComponent")
 		if momentum_comp != null and momentum_comp.has_method("modify_slingshot_impulse"):
-			# Allow other scripts to modify (dampen, block, enhance, etc)
 			impulse = momentum_comp.modify_slingshot_impulse(impulse, gravity, delta)
 
 		var proposed = velocity + impulse
-		# Clamp so we don't exceed the slingshot speed cap
 		var mastery_speed_cap := slingshot_speed_cap + slingshot_mastery_cap_bonus * slingshot_score
 		if proposed.length() > mastery_speed_cap:
 			var allowed = max(0, mastery_speed_cap - velocity.length())
 			if allowed > 0:
 				impulse = impulse.normalized() * min(impulse.length(), allowed)
 			else:
-				impulse = Vector2.ZERO  # Already at/above the speed cap
+				impulse = Vector2.ZERO
 
 		velocity += impulse
 
@@ -321,12 +322,10 @@ func apply_slingshot(gravity: Vector2, delta: float):
 			velocity.length()
 		)
 		slingshot_mastery_scored.emit(mastery_data)
-		# Setup cooldown for next slingshot
 		if is_inside_tree():
 			get_tree().create_timer(slingshot_cooldown).connect("timeout", Callable(self, "_on_slingshot_cooldown"))
 
 func apply_regular_slingshot(gravity: Vector2, delta: float):
-	
 	last_slingshot_strength = maxf(last_slingshot_strength - delta * 2.0, 0.0)
 	
 	if not is_instance_valid(closest_planet):
@@ -342,7 +341,6 @@ func apply_regular_slingshot(gravity: Vector2, delta: float):
 		current_max_speed = maxf(current_max_speed, slingshot_speed_cap)
 	
 	var grav_dir = gravity.normalized()
-	
 	var tangent = grav_dir.orthogonal()
 	
 	if tangent.dot(velocity) < 0:
@@ -352,7 +350,6 @@ func apply_regular_slingshot(gravity: Vector2, delta: float):
 
 	if accel_tangent > 0 and DRAG_enabled:
 		var impulse = tangent * accel_tangent * (slingshot_factor + orbit_control_bonus) * delta
-
 		velocity += impulse
 		
 		last_slingshot_strength = maxf(last_slingshot_strength, accel_tangent)
@@ -379,7 +376,6 @@ func apply_thrust(delta):
 		return
 
 	var dir = -transform.x.normalized()
-
 	var force = dir * thrust_power
 
 	var predicted_velocity = velocity + force * delta
@@ -547,6 +543,26 @@ func handle_input():
 
 		last_thrust_release = now
 
+	if Input.is_action_just_released("Menu"):
+		var pause_menu = get_pause_menu()
+		if pause_menu:
+			pause_menu.toggle_pause()
+			_sync_pause_menu_state(pause_menu)
+
+
+func _sync_pause_menu_state(pause_menu: Node) -> void:
+	if pause_menu != null and pause_menu.has_method("is_gameplay_blocked"):
+		menu_is_hidden = not bool(pause_menu.call("is_gameplay_blocked"))
+	else:
+		menu_is_hidden = not bool(pause_menu.get("active"))
+
+
+func _is_pause_blocking() -> bool:
+	var pause_menu := get_pause_menu()
+	if pause_menu != null and pause_menu.has_method("is_gameplay_blocked"):
+		return bool(pause_menu.call("is_gameplay_blocked"))
+	return not menu_is_hidden or get_tree().paused
+
 func update_ui():
 	drag_label.text = "Drag: " + ("Enabled" if DRAG_enabled else "Disabled")
 
@@ -575,8 +591,9 @@ func update_ui():
 # ========================
 
 func _process(delta):
-	update_camera(delta)
-	shield_process()
+	if not _is_pause_blocking():
+		update_camera(delta)
+		shield_process()
 
 func update_camera(delta: float):
 	_camera_feedback_offset = _camera_feedback_offset.lerp(
@@ -915,6 +932,8 @@ func _apply_slingshot_camera_feedback(data: Dictionary) -> void:
 		return
 
 	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
+	score = min(score, 0.95)
+	
 	var tangent: Vector2 = data.get("tangent", Vector2.RIGHT)
 	if tangent.length_squared() <= 0.001:
 		tangent = Vector2.RIGHT
@@ -939,3 +958,17 @@ func get_slingshot_debug_state() -> Dictionary:
 	state["last_age"] = Time.get_ticks_msec() / 1000.0 - last_slingshot_time
 	state["cooldown_ready"] = slingshot_ready
 	return state
+	
+func get_pause_menu() -> Node:
+	# First try direct path (works in player scene)
+	var direct = $CanvasLayer/PauseMenu
+	if is_instance_valid(direct):
+		return direct
+	
+	# Fallback: Search the tree (works when player is instanced in main scene)
+	var menu = get_tree().get_first_node_in_group("PauseMenu")
+	if is_instance_valid(menu):
+		return menu
+	
+	# Last resort
+	return get_tree().current_scene.find_child("PauseMenu", true, false)
