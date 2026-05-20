@@ -1,0 +1,2 @@
+The following items are priority fixes to the project.
+- Time dilation no longer works AFTER I use the pause menu once. This needs to be fixed.

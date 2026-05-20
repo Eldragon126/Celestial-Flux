@@ -26,3 +26,17 @@ func _begin_new_run() -> void:
 func _begin_continue() -> void:
 	if RunProgress.load_anchor():
 		get_tree().change_scene_to_file("res://Nodes/the_abyss.tscn")
+
+
+func _on_new_run_button_pressed() -> void:
+	pass # Replace with function body.
+
+
+func _on_continue_button_pressed() -> void:
+	pass # Replace with function body.
+
+
+func _on_challenge_button_pressed() -> void:
+	pass # Replace with function body.
+#These functions are connected from the buttons but they need to be made to actually work.
+# The buttons also need to be a lot more visually appealing. I changed to fonts that look good.

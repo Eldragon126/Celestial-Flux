@@ -2,7 +2,9 @@
 
 [ext_resource type="FontFile" uid="uid://dctcwv6tmjeyv" path="res://Assets/Fonts/LOT.otf" id="1_idcrm"]
 [ext_resource type="Script" uid="uid://dhdhg4km4qnd8" path="res://Scripts/title_screen.gd" id="1_kf5hn"]
+[ext_resource type="FontFile" uid="uid://o7ffc2o1u38m" path="res://Assets/Fonts/searider-falcon-font/SeariderFalconLaser-w1ze6.ttf" id="2_v554h"]
 [ext_resource type="AudioStream" uid="uid://cou7kmndp04qt" path="res://Assets/Songs/Orbital Drift.mp3" id="3_kf5hn"]
+[ext_resource type="FontFile" uid="uid://bni12e87in5aq" path="res://Assets/Fonts/edge-of-the-galaxy-font/EdgeOfTheGalaxyRegular-OVEa6.otf" id="3_kux1l"]
 
 [sub_resource type="Animation" id="Animation_60x4s"]
 resource_name = "ColorShift"
@@ -11,7 +13,7 @@ loop_mode = 2
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Label:theme_override_colors/font_color")
+tracks/0/path = NodePath("CenterContainer/Label:theme_override_colors/font_color")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -26,7 +28,7 @@ length = 0.001
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
-tracks/0/path = NodePath("Label:theme_override_colors/font_color")
+tracks/0/path = NodePath("CenterContainer/Label:theme_override_colors/font_color")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
@@ -90,27 +92,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_kf5hn")
-menu_root = NodePath("MenuRoot")
-hint_label = NodePath("MenuRoot/HintLabel")
-new_run_button = NodePath("MenuRoot/NewRunButton")
-continue_button = NodePath("MenuRoot/ContinueButton")
-challenge_button = NodePath("MenuRoot/ChallengeButton")
 
-[node name="Label" type="Label" parent="." unique_id=2006295575]
-layout_mode = 0
-offset_left = 593.0
-offset_top = 571.0
-offset_right = 1801.0
-offset_bottom = 722.0
-pivot_offset = Vector2(608, 66)
-theme_override_colors/font_color = Color(1, 0, 1, 1)
-theme_override_fonts/font = ExtResource("1_idcrm")
-theme_override_font_sizes/font_size = 150
-text = "Orbital Drift"
-vertical_alignment = 1
-
-
-[node name="MenuRoot" type="VBoxContainer" parent="."]
+[node name="MenuRoot" type="VBoxContainer" parent="." unique_id=1697149353]
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
@@ -126,35 +109,36 @@ grow_vertical = 0
 theme_override_constants/separation = 14
 alignment = 1
 
-[node name="HintLabel" type="Label" parent="MenuRoot"]
-layout_mode = 2
+[node name="HintLabel" type="Label" parent="MenuRoot" unique_id=1529357692]
 custom_minimum_size = Vector2(420, 0)
-theme_override_fonts/font = ExtResource("1_idcrm")
-theme_override_font_sizes/font_size = 22
-text = "Physics-driven waves. Fixed boss milestones. No rhythm until the finale."
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_v554h")
+theme_override_font_sizes/font_size = 50
+text = "Start"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="NewRunButton" type="Button" parent="MenuRoot"]
-layout_mode = 2
+[node name="NewRunButton" type="Button" parent="MenuRoot" unique_id=1719485612]
 custom_minimum_size = Vector2(300, 48)
-theme_override_fonts/font = ExtResource("1_idcrm")
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 28
 text = "New Run"
 
-[node name="ContinueButton" type="Button" parent="MenuRoot"]
-layout_mode = 2
+[node name="ContinueButton" type="Button" parent="MenuRoot" unique_id=1437889268]
 custom_minimum_size = Vector2(300, 48)
-theme_override_fonts/font = ExtResource("1_idcrm")
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 28
 text = "Continue"
 
-[node name="ChallengeButton" type="Button" parent="MenuRoot"]
-layout_mode = 2
+[node name="ChallengeButton" type="Button" parent="MenuRoot" unique_id=2052853003]
 custom_minimum_size = Vector2(300, 48)
-theme_override_fonts/font = ExtResource("1_idcrm")
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 28
 text = "Challenge Mode"
+
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=925882595]
 libraries/ = SubResource("AnimationLibrary_joli2")
 autoplay = &"ColorShift"
@@ -168,4 +152,23 @@ autoplay = true
 libraries/ = SubResource("AnimationLibrary_0v026")
 autoplay = &"AudioFadeIn"
 
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=15630588]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="CenterContainer" unique_id=2006295575]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0, 1, 1)
+theme_override_fonts/font = ExtResource("1_idcrm")
+theme_override_font_sizes/font_size = 150
+text = "Orbital Drift"
+vertical_alignment = 1
+
+[connection signal="pressed" from="MenuRoot/NewRunButton" to="." method="_on_new_run_button_pressed"]
+[connection signal="pressed" from="MenuRoot/ContinueButton" to="." method="_on_continue_button_pressed"]
+[connection signal="pressed" from="MenuRoot/ChallengeButton" to="." method="_on_challenge_button_pressed"]
 [connection signal="finished" from="AudioStreamPlayer" to="." method="_on_audio_stream_player_finished"]
