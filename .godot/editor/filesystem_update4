@@ -1,7 +1,10 @@
-res://Nodes/ParametricEquationEnemies/parametric_testing_center.tscn
+res://Nodes/title_screen.tscn
 res://Scripts/playershield.gdshader
 res://Scripts/pause_menu.gdshader
 res://Scripts/planet_1.gdshader
 res://Scripts/player.gdshader
-res://Nodes/title_screen.tscn
+res://Scripts/enemy_readability_director.gd
+res://Nodes/the_abyss.tscn
 res://Scripts/title_screen.gd
+res://Nodes/player.tscn
+res://Scripts/projectile_predictor.gd

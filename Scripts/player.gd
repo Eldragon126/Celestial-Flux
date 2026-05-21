@@ -5,6 +5,7 @@ signal slingshot_assist_applied(source: Node, gravity: Vector2, impulse: Vector2
 signal slingshot_mastery_scored(data: Dictionary)
 signal slingshot_window_changed(data: Dictionary)
 signal momentum_projectile_spawned(projectile: Node, direction: Vector2)
+signal death_lesson_generated(lesson: String)
 
 # ========================
 # == EXPORT VARIABLES ==
@@ -87,6 +88,9 @@ var _camera_feedback_roll: float = 0.0
 
 var menu_is_hidden := true
 var time_tween: Tween
+var _last_damage_amount: float = 0.0
+var _last_damage_time: float = -999.0
+var _death_in_progress: bool = false
 # ========================
 # == NODE REFERENCES ==
 # ========================
@@ -111,6 +115,7 @@ func _ready():
 	_refresh_gravity_sources(true)
 	_bind_shield()
 	_ensure_powerup_inventory()
+	_connect_pause_menu_state()
 
 	if Settings.input_type == false:
 		camera.ignore_rotation = true
@@ -120,6 +125,19 @@ func _ready():
 		camera.rotation_degrees = 270
 
 	_camera_base_rotation = camera.rotation
+
+func _connect_pause_menu_state() -> void:
+	var pause_menu := get_pause_menu()
+	if pause_menu == null or not pause_menu.has_signal("pause_state_changed"):
+		return
+
+	var callable := Callable(self, "_on_pause_menu_state_changed")
+	if not pause_menu.is_connected("pause_state_changed", callable):
+		pause_menu.connect("pause_state_changed", callable)
+	_sync_pause_menu_state(pause_menu)
+
+func _on_pause_menu_state_changed(blocked: bool) -> void:
+	menu_is_hidden = not blocked
 
 # ========================
 # == PHYSICS LOOP ==
@@ -638,6 +656,8 @@ func shield_process():
 		coll.visible = shields_on
 
 func take_damage(amount: float):
+	_last_damage_amount = amount
+	_last_damage_time = Time.get_ticks_msec() / 1000.0
 	var remaining = amount
 
 	if shield_component != null and shield_component.has_method("take_shield_damage"):
@@ -740,10 +760,32 @@ func _refresh_gravity_sources(force: bool) -> void:
 # ========================
 
 func _on_health_component_died():
-	call_deferred("_go_to_title")
+	if _death_in_progress:
+		return
+
+	_death_in_progress = true
+	death_lesson_generated.emit(_build_death_lesson())
+	call_deferred("_go_to_title_after_lesson")
+
+func _go_to_title_after_lesson() -> void:
+	await get_tree().create_timer(2.2).timeout
+	_go_to_title()
 
 func _go_to_title():
 	get_tree().change_scene_to_file("res://Nodes/title_screen.tscn")
+
+func _build_death_lesson() -> String:
+	var speed := velocity.length()
+	var gravity := calculate_gravity()
+	if gravity.length() > gravity_constant * 1.7:
+		return "DEATH VECTOR: gravity stacked faster than your exit angle. Cross the field edge before it folds."
+	if speed < max_speed * 0.32 and _last_damage_amount > 0.0:
+		return "DEATH VECTOR: low momentum left you pinned. Build speed before trading hits."
+	if speed > max_speed * 1.18:
+		return "DEATH VECTOR: high velocity needs a recovery orbit. Aim for a wide slingshot, then brake."
+	if shield_component != null and shield_component.get("is_broken") == true:
+		return "DEATH VECTOR: shield break is a retreat signal. Drift wide until the bubble reforms."
+	return "DEATH VECTOR: read the nearest field rule first, then move. The arena always telegraphs the law."
 
 func _on_health_component_health_changed(current, _max):
 	health_label.text = "Health: " + str(current)

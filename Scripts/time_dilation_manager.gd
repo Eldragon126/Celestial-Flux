@@ -90,6 +90,7 @@ var _afterimages: Array[Dictionary] = []
 var _local_slow_effects: Dictionary = {}
 
 var _player: CharacterBody2D = null
+var _pause_menu: Node = null
 
 # ============================================================
 # SIGNALS
@@ -140,7 +141,11 @@ func _exit_tree() -> void:
 # ============================================================
 
 func _process(delta: float) -> void:
-	var unscaled_delta = delta if Engine.time_scale == 0 else (delta / Engine.time_scale)
+	var unscaled_delta := _get_unscaled_delta(delta)
+	if _is_gameplay_blocked():
+		_handle_blocked_gameplay()
+		time_scale_changed.emit(current_time_scale, current_dilation_capacity)
+		return
 	
 	_handle_input()
 	_update_capacity(unscaled_delta)
@@ -157,7 +162,10 @@ func _process(delta: float) -> void:
 # ============================================================
 
 func _physics_process(delta: float) -> void:
-	var unscaled_delta = delta if Engine.time_scale == 0 else (delta / Engine.time_scale)
+	var unscaled_delta := _get_unscaled_delta(delta)
+	if _is_gameplay_blocked():
+		_reset_player_isolation()
+		return
 	
 	_update_time_scale(unscaled_delta)
 	_update_field(unscaled_delta)
@@ -173,20 +181,60 @@ func _find_player() -> void:
 	if node is CharacterBody2D:
 		_player = node
 
+func _get_pause_menu() -> Node:
+	if _pause_menu != null and is_instance_valid(_pause_menu) and not _pause_menu.is_queued_for_deletion():
+		return _pause_menu
+
+	_pause_menu = get_tree().get_first_node_in_group("PauseMenu")
+	if _pause_menu != null and is_instance_valid(_pause_menu):
+		return _pause_menu
+
+	var scene := get_tree().current_scene
+	if scene == null:
+		return null
+
+	_pause_menu = scene.find_child("PauseMenu", true, false)
+	return _pause_menu
+
 # ============================================================
 # INPUT
 # ============================================================
 
 func _handle_input() -> void:
 	var pressed := Input.is_action_pressed("time_dilation")
+	if not is_instance_valid(_player):
+		_find_player()
 
-	if pressed and not _dilation_input_active and _player.menu_is_hidden == true:
+	if pressed and not _dilation_input_active:
 		_start_dilation()
 
-	elif not pressed and _dilation_input_active and _player.menu_is_hidden == true:
+	elif not pressed and _dilation_input_active:
 		_end_dilation()
 
 	_dilation_input_active = pressed
+
+func _handle_blocked_gameplay() -> void:
+	if is_dilating:
+		_end_dilation()
+
+	_dilation_input_active = false
+	_afterimage_elapsed = 0.0
+
+	if use_global_time_scale:
+		current_time_scale = base_time_scale
+
+func _is_gameplay_blocked() -> bool:
+	var pause_menu := _get_pause_menu()
+	if pause_menu != null and pause_menu.has_method("is_gameplay_blocked"):
+		return bool(pause_menu.call("is_gameplay_blocked"))
+
+	return get_tree().paused
+
+func _get_unscaled_delta(delta: float) -> float:
+	if Engine.time_scale <= 0.001:
+		return delta
+
+	return delta / Engine.time_scale
 
 # ============================================================
 # START / END
@@ -236,6 +284,9 @@ func _update_capacity(unscaled_delta: float) -> void:
 # ============================================================
 
 func _update_time_scale(unscaled_delta: float) -> void:
+	if _is_gameplay_blocked():
+		return
+
 	var target_scale := base_time_scale
 
 	if is_dilating:

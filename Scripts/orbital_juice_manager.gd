@@ -5,6 +5,10 @@ extends Node2D
 # systems as child nodes or showcase scenes once the main level is ready.
 
 const HUD_SCENE = preload("res://Nodes/orbital_hud.tscn")
+const GAMEPLAY_TEACHING_SCENE = preload("res://Nodes/gameplay_teaching_director.tscn")
+const MECHANIC_AUDIO_SCENE = preload("res://Nodes/mechanic_audio_director.tscn")
+const ENEMY_READABILITY_SCENE = preload("res://Nodes/enemy_readability_director.tscn")
+const PERFORMANCE_BUDGET_SCENE = preload("res://Nodes/performance_budget_director.tscn")
 const THRUSTER_TRAILS_SCENE = preload("res://Nodes/player_thruster_trails.tscn")
 const ENGINE_HUM_SCENE = preload("res://Nodes/player_engine_hum.tscn")
 const CAMERA_SHAKE_SCENE = preload("res://Nodes/player_damage_camera_shake.tscn")
@@ -12,8 +16,10 @@ const SPARK_WATCHER_SCENE = preload("res://Nodes/projectile_spark_watcher.tscn")
 const DEBUG_BALANCE_OVERLAY_SCENE = preload("res://Nodes/debug_balance_overlay.tscn")
 const MOMENTUM_COMBAT_SCENE = preload("res://Nodes/momentum_combat_component.tscn")
 const GRAVITY_RESONANCE_SCENE = preload("res://Nodes/gravity_resonance_manager.tscn")
+const ORBITAL_VFX_DIRECTOR_SCENE = preload("res://Nodes/orbital_vfx_director.tscn")
 const ARENA_DESTABILIZATION_SCENE = preload("res://Nodes/arena_destabilization_manager.tscn")
 const PHYSICS_AWARE_ENEMY_DIRECTOR_SCENE = preload("res://Nodes/physics_aware_enemy_director.tscn")
+const STRESS_TEST_DIRECTOR_SCENE = preload("res://Nodes/stress_test_director.tscn")
 
 const PLANET_ATMOSPHERE_SCENE = preload("res://Nodes/planet_atmosphere_dust.tscn")
 const WAVE_DIRECTOR_SCENE = preload("res://Nodes/wave_director.tscn")
@@ -36,14 +42,20 @@ const PARAMETRIC_4_SCENE = preload("res://Nodes/ParametricEquationEnemies/parame
 const PARAMETRIC_5_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn")
 
 @export var attach_player_juice = true
+@export var attach_gameplay_teaching = true
+@export var attach_mechanic_audio = true
+@export var attach_enemy_readability = true
+@export var attach_performance_budget = true
 @export var attach_momentum_combat = true
 @export var attach_planet_atmospheres = true
 @export var attach_projectile_sparks = true
+@export var attach_orbital_vfx = true
 @export var enable_debug_balance_overlay = true
 @export var enable_gravity_resonance = true
 @export var enable_wave_game = true
 @export var enable_arena_destabilization = true
 @export var enable_physics_aware_enemy_ai = true
+@export var enable_stress_test_tools = false
 @export var spawn_showcase_content = false
 @export var spawn_parametric_showcase_content = false
 @export var near_miss_time_charge_multiplier: float = 0.14
@@ -69,6 +81,10 @@ func _install_modular_additions() -> void:
 	var player = get_tree().get_first_node_in_group("Player")
 
 	_add_child_scene_once(level_root, HUD_SCENE, "OrbitalHUD")
+	if attach_gameplay_teaching:
+		_add_child_scene_once(level_root, GAMEPLAY_TEACHING_SCENE, "GameplayTeachingDirector")
+	if attach_performance_budget:
+		_add_child_scene_once(level_root, PERFORMANCE_BUDGET_SCENE, "PerformanceBudgetDirector")
 	if enable_debug_balance_overlay:
 		# The balance overlay is its own CanvasLayer, so telemetry can be
 		# toggled or removed without changing player, enemy, or wave logic.
@@ -103,6 +119,17 @@ func _install_modular_additions() -> void:
 			if planet is Node and planet != null:
 				_add_child_scene_once(planet, PLANET_ATMOSPHERE_SCENE, "PlanetAtmosphereDust")
 
+	if attach_orbital_vfx:
+		_add_child_scene_once(level_root, ORBITAL_VFX_DIRECTOR_SCENE, "OrbitalVFXDirector")
+
+	if attach_mechanic_audio:
+		_add_child_scene_once(level_root, MECHANIC_AUDIO_SCENE, "MechanicAudioDirector")
+
+	if attach_enemy_readability:
+		_add_child_scene_once(level_root, ENEMY_READABILITY_SCENE, "EnemyReadabilityDirector")
+
+	if enable_stress_test_tools:
+		_add_child_scene_once(level_root, STRESS_TEST_DIRECTOR_SCENE, "StressTestDirector")
 
 	if enable_wave_game and player != null:
 		_add_child_scene_once(level_root, RUN_DIRECTOR_SCENE, "RunDirector")
@@ -224,3 +251,21 @@ func _apply_quality_settings(level_root: Node) -> void:
 	var time_manager := level_root.find_child("TimeDilationManager", true, false)
 	if time_manager != null and time_manager.get("enable_afterimages") != null:
 		time_manager.set("enable_afterimages", enable_time_afterimages and not low_performance_mode)
+
+	var vfx := level_root.find_child("OrbitalVFXDirector", true, false)
+	if vfx != null:
+		if vfx.get("visual_quality") != null:
+			vfx.set("visual_quality", resonance_visual_quality)
+		if vfx.get("low_performance_mode") != null:
+			vfx.set("low_performance_mode", low_performance_mode)
+		if vfx.get("max_particles_per_burst") != null and low_performance_mode:
+			vfx.set("max_particles_per_burst", 34)
+		if vfx.get("max_active_bursts") != null and low_performance_mode:
+			vfx.set("max_active_bursts", 8)
+
+	var budget := level_root.find_child("PerformanceBudgetDirector", true, false)
+	if budget != null:
+		if budget.get("quality_tier") != null:
+			budget.set("quality_tier", 0 if low_performance_mode else resonance_visual_quality)
+		if budget.has_method("apply_budgets"):
+			budget.call("apply_budgets")

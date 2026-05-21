@@ -1,6 +1,7 @@
+VBoxContainer
+Button
 CenterContainer
 CanvasLayer
-Button
 ColorRect
 AudioStreamPlayer
 TextureRect
@@ -12,4 +13,3 @@ Polygon2D
 CollisionShape2D
 StaticBody2D
 GravityComponent
-HealthComponent

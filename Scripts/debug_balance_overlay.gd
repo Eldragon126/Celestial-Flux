@@ -19,9 +19,14 @@ var _time_dilation_manager: Node = null
 var _resonance_manager: Node = null
 var _arena_destabilization_manager: Node = null
 var _physics_aware_enemy_director: Node = null
+var _vfx_director: Node = null
+var _performance_budget_director: Node = null
 
 var _rows: Dictionary = {}
 var _elapsed: float = 0.0
+var _last_frame_msec: int = 0
+var _worst_frame_msec: int = 0
+var _last_frame_tick: int = 0
 
 func _ready() -> void:
 	layer = 90
@@ -33,6 +38,7 @@ func _ready() -> void:
 	set_process(true)
 
 func _process(delta: float) -> void:
+	_sample_frame_time()
 	_elapsed += delta
 	if _elapsed < maxf(update_interval, 0.04):
 		return
@@ -97,8 +103,12 @@ func _build_overlay() -> void:
 	_add_row(rows, &"gravity", "Local G")
 	_add_row(rows, &"time", "Time")
 	_add_row(rows, &"fps", "FPS")
+	_add_row(rows, &"perf", "Perf")
+	_add_row(rows, &"budget", "Budget")
+	_add_row(rows, &"projectiles", "Shots")
 	_add_row(rows, &"resonance", "Resonance")
 	_add_row(rows, &"arena", "Arena")
+	_add_row(rows, &"vfx", "VFX")
 
 func _add_row(parent: VBoxContainer, key: StringName, label_text: String) -> void:
 	var row := HBoxContainer.new()
@@ -156,6 +166,12 @@ func _resolve_references(force: bool) -> void:
 	if force or not _is_valid_node(_physics_aware_enemy_director):
 		_physics_aware_enemy_director = _find_node_by_name(&"PhysicsAwareEnemyDirector")
 
+	if force or not _is_valid_node(_vfx_director):
+		_vfx_director = _find_node_by_name(&"OrbitalVFXDirector")
+
+	if force or not _is_valid_node(_performance_budget_director):
+		_performance_budget_director = _find_node_by_name(&"PerformanceBudgetDirector")
+
 func _update_telemetry() -> void:
 	_set_row(&"wave", _format_wave_state())
 	_set_row(&"enemies", _format_enemy_count())
@@ -170,8 +186,12 @@ func _update_telemetry() -> void:
 	_set_row(&"gravity", _format_local_gravity())
 	_set_row(&"time", _format_time_dilation())
 	_set_row(&"fps", "%d" % Engine.get_frames_per_second())
+	_set_row(&"perf", _format_perf_state())
+	_set_row(&"budget", _format_budget_state())
+	_set_row(&"projectiles", _format_projectile_state())
 	_set_row(&"resonance", _format_resonance_state())
 	_set_row(&"arena", _format_arena_state())
+	_set_row(&"vfx", _format_vfx_state())
 
 # ==================== FORMATTING ====================
 
@@ -340,9 +360,35 @@ func _format_time_dilation() -> String:
 	var capacity := _safe_float(_time_dilation_manager.get("current_dilation_capacity"), 0.0)
 	var max_capacity := maxf(_safe_float(_time_dilation_manager.get("initial_dilation_capacity"), 1.0), 1.0)
 	var dilating := _safe_bool(_time_dilation_manager.get("is_dilating"), false)
+	var pockets := _dictionary_size(_time_dilation_manager.get("_local_slow_effects"))
 	var state := "DILATING" if dilating else "READY"
 
-	return "%s x%.2f %d%%" % [state, scale, int(round(capacity / max_capacity * 100.0))]
+	return "%s x%.2f %d%% P%d" % [state, scale, int(round(capacity / max_capacity * 100.0)), pockets]
+
+func _format_perf_state() -> String:
+	var spike := " SPIKE" if _last_frame_msec >= 24 or _worst_frame_msec >= 34 else ""
+	return "%dms worst %dms%s" % [_last_frame_msec, _worst_frame_msec, spike]
+
+func _format_budget_state() -> String:
+	if not _is_valid_node(_performance_budget_director) or not _performance_budget_director.has_method("get_budget_debug_state"):
+		return "director n/a"
+
+	var state_value: Variant = _performance_budget_director.call("get_budget_debug_state")
+	if typeof(state_value) != TYPE_DICTIONARY:
+		return "state n/a"
+
+	var state: Dictionary = state_value
+	var quality := int(_safe_float(state.get("quality"), 2.0))
+	var quality_text := "LOW" if quality <= 0 else ("MED" if quality == 1 else "HIGH")
+	var enabled := _safe_bool(state.get("enabled"), true)
+	return "%s %s fps %d" % ["ON" if enabled else "OFF", quality_text, int(_safe_float(state.get("fps"), 0.0))]
+
+func _format_projectile_state() -> String:
+	var player_shots := _count_group(&"player_projectiles")
+	var enemy_shots := _count_group(&"enemy_projectiles")
+	var generic := _count_group(&"Projectiles")
+	var total := player_shots + enemy_shots + generic
+	return "%d total P%d E%d G%d" % [total, player_shots, enemy_shots, generic]
 
 func _format_resonance_state() -> String:
 	if not _is_valid_node(_resonance_manager) or not _resonance_manager.has_method("get_active_resonance_zones"):
@@ -401,6 +447,22 @@ func _format_arena_state() -> String:
 
 	return "%s %d%% H%d %.0fs" % [stage, int(round(instability * 100.0)), hazards, next_event]
 
+func _format_vfx_state() -> String:
+	if not _is_valid_node(_vfx_director) or not _vfx_director.has_method("get_vfx_debug_state"):
+		return "director n/a"
+
+	var state_value: Variant = _vfx_director.call("get_vfx_debug_state")
+	if typeof(state_value) != TYPE_DICTIONARY:
+		return "state n/a"
+
+	var state: Dictionary = state_value
+	var active := int(_safe_float(state.get("active_bursts"), 0.0))
+	var cap := int(_safe_float(state.get("burst_cap"), 0.0))
+	var chaos := _safe_float(state.get("chaos"), 0.0)
+	var quality := int(_safe_float(state.get("quality"), 0.0))
+	var quality_text := "OFF" if quality <= 0 else ("LOW" if quality == 1 else "HIGH")
+	return "%s %d/%d chaos %d%%" % [quality_text, active, cap, int(round(chaos * 100.0))]
+
 # ==================== HELPERS ====================
 
 func _calculate_local_gravity() -> Vector2:
@@ -429,6 +491,13 @@ func _calculate_local_gravity() -> Vector2:
 		total += (offset / raw_dist) * gravity_constant * mass / (dist * dist)
 
 	return total
+
+func _sample_frame_time() -> void:
+	var now := Time.get_ticks_msec()
+	var previous := now if _last_frame_tick <= 0 else _last_frame_tick
+	_last_frame_msec = maxi(now - previous, 0)
+	_worst_frame_msec = maxi(maxi(_worst_frame_msec - 1, 0), _last_frame_msec)
+	_last_frame_tick = now
 
 func _nearby_gravity_sources() -> Array[Node2D]:
 	var sources: Array[Node2D] = []
@@ -498,6 +567,16 @@ func _count_valid_nodes(value: Variant) -> int:
 		if _is_valid_node(entry):
 			count += 1
 	return count
+
+func _count_group(group_name: StringName) -> int:
+	var count := 0
+	for node in get_tree().get_nodes_in_group(group_name):
+		if _is_valid_node(node):
+			count += 1
+	return count
+
+func _dictionary_size(value: Variant) -> int:
+	return value.size() if typeof(value) == TYPE_DICTIONARY else 0
 
 func _find_node_by_name(node_name: StringName) -> Node:
 	var root := get_tree().current_scene

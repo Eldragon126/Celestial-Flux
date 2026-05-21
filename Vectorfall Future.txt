@@ -1,37 +1,30 @@
 Now (Check off):
 
-- Make everything beautiful. Gradients are a good way to do this. Think shading to the max, cool colors, and make everything flashy. Don't be afraid to go all out on particle effects as long as they don't bog down the CPU. Feel free to make shading scripts to manage how things look, and feel free to add them to any node as long as it's safe.
+- Make everything beautiful. Gradients are a good way to do this. Think shading to the max, cool colors, and make everything flashy. Don't be afraid to go all out on particle effects as long as they don't bog down the CPU. Feel free to make shading scripts to manage how things look, and feel free to add them to any node as long as it's safe. Make sure that I can go in and manually edit the particles and effects if needed (as in they aren't completely built in GDscript)
 - Make sure everything works correctly.
 Keep pushing toward gravitational personality first: readable rules, then beauty,
 then escalation. The game gets most fun when players can see the law bending
 before the spectacle blooms.
-- Sparkles! Add lots of visual effects for more things! MAXIMIZE JUICE!
+- Sparkles! Add lots of visual effects for more things! MAXIMIZE JUICE! Make sure it's not OVERLY juiced though, for example some effects when you hit a great slingshot or when you hit an enemy hard are too much right now.
 - Gameplay: Maximize enjoyment. Enemies should be difficult but controllable, the player should feel like he or she is actually progressing, and optimize bosses for maximum fun.
 - Add science fiction elements! Just make it fun!
 * Optimize the game for maximum performance.
 * Make every mechanic readable within 1 second.
-* Ensure every death teaches the player something.
-* Reduce visual clutter during high-chaos moments.
 * Make gravity interactions predictable enough to master but chaotic enough to feel dangerous.
 * Design every upgrade to change behavior, not just stats.
 * Prevent dominant strategies so multiple playstyles remain viable.
 * Make movement feel satisfying even without combat.
-* Ensure the first 30 seconds instantly communicate the game fantasy.
-* Build debugging overlays for gravity vectors, performance spikes, enemy pathing, time dilation zones, and projectile counts.
 * Create modular systems so future mechanics are easy to add.
-* Stress test extreme gameplay scenarios with hundreds of projectiles, stacked gravity wells, and extreme velocities.
 * Minimize CPU-heavy physics calculations.
-* Build scalable graphics settings early.
 * Ensure the game still feels good on weaker hardware.
 * Make every enemy silhouette instantly recognizable.
-* Tie visual intensity directly to gameplay intensity.
 * Use motion, distortion, and orbit trails as visual language.
 * Make menus feel like part of the game universe.
 * Give every major mechanic a recognizable sound and visual signature.
 
 Near Future:
 
-* Make it multiplayer.
+* Implement drop-in/drop-out online co-op multiplayer inspired by the feel and accessibility of Terraria, where players can seamlessly join shared runs, survive escalating waves together, and maintain synchronized progression without disrupting the core physics-driven gameplay loop. Design the networking architecture to prioritize deterministic gravity interactions, readable combat clarity, low-latency movement responsiveness, and stable synchronization of projectiles, resonance zones, time dilation systems, upgrades, bosses, and arena events even during high-chaos late-game scenarios.
 * Make every visual better in some way.
 * Have smoother transitions and maximize game juice.
 * Maximize game feel and make it so that the player wants to come back over and over.
@@ -54,7 +47,8 @@ Near Future:
 * Improve combat pacing with cycles of calm, tension, overload, and recovery.
 * Make every run feel different without losing gameplay clarity.
 * Add streamer-friendly and clip-worthy moments.
-
+* Boss rush and secret bosses! Add a boss rush where you have to beat all the bosses back to back and a few secret hidden bosses that you have to somehow fight.
+* Add one final boss before credit system.
 Far Future:
 
 * Sell the game on Steam and other platforms.
@@ -85,7 +79,7 @@ Far Future:
 
 
 Vision:
-At the start and throughout the majority of the game, the experience is fully driven by physics simulation and wave-based progression. Combat is governed by gravity wells, orbital dynamics, time dilation effects, and deterministic enemy behaviors. Waves introduce increasing density, complexity, and interaction between systems, but every outcome is explained through mechanical cause and effect. The player learns through motion, positioning, momentum, and prediction rather than any external timing system. The game is intentionally designed so that success depends entirely on understanding physical relationships within the arena.
+At the start and throughout the majority of the game, the experience is fully driven by physics simulation (when I say physics simulation, I mean a sort of simulation, but more fun than accurate) and wave-based progression. Combat is governed by gravity wells, orbital dynamics, time dilation effects, and deterministic enemy behaviors. Waves introduce increasing density, complexity, and interaction between systems, but every outcome is explained through mechanical cause and effect. The player learns through motion, positioning, momentum, and prediction rather than any external timing system. The game is intentionally designed so that success depends entirely on understanding physical relationships within the arena.
 
 As progression continues, the structure shifts from loosely varied waves into a more deliberate arc of fixed boss encounters. Each boss is introduced at specific milestones and is designed to escalate a core mechanical idea rather than randomize difficulty. These encounters build mastery over gravity manipulation, slingshot movement, and spatial control under pressure. Between bosses, wave content becomes denser and more aggressive, serving as mechanical preparation for the next defined challenge rather than as isolated events. The entire mid-game remains strictly grounded in physics simulation without any external timing or rhythm dependency.
 
@@ -147,10 +141,7 @@ Priority Assignments (Check off):
 
 ## 6. Visual Readability And Performance
 
-- Add quality toggles for resonance visuals, tide particles, afterimages, and distortion overlays.
-- Pool or cap any repeated VFX spawned during combat.
 - Make late-game spectacle scale from readable vector minimalism into controlled neon collapse.
-- Keep the overlay visible while tuning; FPS and local gravity intensity are the truth serum.
 
 ## 7. Audio Hook Handoff
 
