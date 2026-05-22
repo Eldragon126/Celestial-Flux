@@ -6,3 +6,4 @@ The orbital effects themselves are great, but the effects when you hit a "perfec
 
 Make sure ALL bosses and enemies are editable in the inspector (e.g., the polygons are children of the parent, and GPU effects are children of the parent)
 
+Add a version control on the title screen.
