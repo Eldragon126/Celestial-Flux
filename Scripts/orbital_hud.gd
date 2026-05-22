@@ -1,7 +1,10 @@
 extends CanvasLayer
 
 @export var max_arrow_count: int = 8
+@export var max_threat_arrow_count: int = 8
+@export var max_boss_arrow_count: int = 2
 @export var arrow_margin: float = 42.0
+@export var threat_arrow_refresh_interval: float = 0.12
 @export var g_warning_level: float = 850.0
 @export var nearest_field_notice_radius: float = 760.0
 
@@ -24,8 +27,13 @@ var _powerup_notice_label: Label
 var _critical_vignette: ColorRect
 var _vignette_material: ShaderMaterial
 var _arrows: Array[Polygon2D] = []
+var _threat_arrows: Array[Polygon2D] = []
+var _boss_arrows: Array[Polygon2D] = []
+var _threat_targets: Array[Node2D] = []
+var _boss_targets: Array[Node2D] = []
 var _powerup_notice_time := 0.0
 var _powerup_notice_color := Color(0.72, 1.0, 0.96, 1.0)
+var _threat_refresh_elapsed := 999.0
 
 # Cache the current intensity to avoid repeated get_shader_parameter calls
 var _current_vignette_intensity: float = 0.0
@@ -50,6 +58,7 @@ func _process(delta: float) -> void:
 	_update_powerup_notice(delta)
 	_update_health_vignette(delta)
 	_update_nav_arrows(gravity_strength)
+	_update_threat_arrows(delta)
 
 
 # ============================
@@ -183,20 +192,39 @@ func _build_powerup_notice() -> void:
 
 func _build_nav_arrows() -> void:
 	var arrow_layer = Node2D.new()
+	arrow_layer.name = "NavigationArrowLayer"
 	_hud_root.add_child(arrow_layer)
 	
 	for i in range(max_arrow_count):
-		var arrow = Polygon2D.new()
-		arrow.polygon = PackedVector2Array([
-			Vector2(0, -18),
-			Vector2(13, 12),
-			Vector2(0, 6),
-			Vector2(-13, 12),
-		])
-		arrow.color = Color(0.1, 0.95, 0.9, 0.86)
-		arrow.visible = false
+		var arrow := _make_screen_arrow("GravityArrow%d" % i, Color(0.1, 0.95, 0.9, 0.86), 1.0, 1)
 		arrow_layer.add_child(arrow)
 		_arrows.append(arrow)
+
+	for i in range(max_threat_arrow_count):
+		var arrow := _make_screen_arrow("EnemyThreatArrow%d" % i, Color(1.0, 0.72, 0.22, 0.88), 0.82, 2)
+		arrow_layer.add_child(arrow)
+		_threat_arrows.append(arrow)
+
+	for i in range(max_boss_arrow_count):
+		var arrow := _make_screen_arrow("BossThreatArrow%d" % i, Color(1.0, 0.16, 0.1, 0.95), 1.35, 3)
+		arrow_layer.add_child(arrow)
+		_boss_arrows.append(arrow)
+
+
+func _make_screen_arrow(node_name: String, color: Color, arrow_scale: float, z: int) -> Polygon2D:
+	var arrow := Polygon2D.new()
+	arrow.name = node_name
+	arrow.polygon = PackedVector2Array([
+		Vector2(0.0, -18.0),
+		Vector2(13.0, 12.0),
+		Vector2(0.0, 6.0),
+		Vector2(-13.0, 12.0),
+	])
+	arrow.color = color
+	arrow.scale = Vector2.ONE * arrow_scale
+	arrow.z_index = z
+	arrow.visible = false
+	return arrow
 
 
 # ============================
@@ -579,6 +607,96 @@ func _update_nav_arrows(_gravity_strength: float) -> void:
 	# Hide remaining arrows
 	for i in range(arrow_index, _arrows.size()):
 		_arrows[i].visible = false
+
+
+func _update_threat_arrows(delta: float) -> void:
+	_threat_refresh_elapsed += delta
+	if _threat_refresh_elapsed >= maxf(threat_arrow_refresh_interval, 0.05):
+		_threat_refresh_elapsed = 0.0
+		_refresh_threat_arrow_targets()
+
+	_update_target_arrows(_boss_arrows, _boss_targets, Color(1.0, 0.16, 0.1, 0.96), true)
+	_update_target_arrows(_threat_arrows, _threat_targets, Color(1.0, 0.72, 0.22, 0.88), false)
+
+
+func _refresh_threat_arrow_targets() -> void:
+	_boss_targets = _collect_offscreen_targets(&"bosses", max_boss_arrow_count, false)
+	_threat_targets = _collect_offscreen_targets(&"enemies", max_threat_arrow_count, true)
+
+
+func _collect_offscreen_targets(group_name: StringName, limit: int, skip_bosses: bool) -> Array[Node2D]:
+	var targets: Array[Node2D] = []
+	if limit <= 0 or _player == null:
+		return targets
+
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+
+	for node in get_tree().get_nodes_in_group(group_name):
+		var target := node as Node2D
+		if target == null or target == _player or not is_instance_valid(target) or target.is_queued_for_deletion():
+			continue
+		if skip_bosses and target.is_in_group("bosses"):
+			continue
+
+		var screen_pos: Vector2 = canvas_transform * target.global_position
+		if not _is_screen_position_offscreen(screen_pos, viewport_size, 18.0):
+			continue
+
+		targets.append(target)
+
+	targets.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return a.global_position.distance_squared_to(_player.global_position) < b.global_position.distance_squared_to(_player.global_position)
+	)
+
+	if targets.size() > limit:
+		targets.resize(limit)
+	return targets
+
+
+func _update_target_arrows(arrows: Array[Polygon2D], targets: Array[Node2D], base_color: Color, is_boss_arrow: bool) -> void:
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var center: Vector2 = viewport_size * 0.5
+	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var arrow_index := 0
+
+	for target in targets:
+		if arrow_index >= arrows.size():
+			break
+		if target == null or not is_instance_valid(target) or target.is_queued_for_deletion():
+			continue
+
+		var screen_pos: Vector2 = canvas_transform * target.global_position
+		if not _is_screen_position_offscreen(screen_pos, viewport_size, 8.0):
+			continue
+
+		var direction: Vector2 = (screen_pos - center).normalized()
+		if direction == Vector2.ZERO:
+			direction = Vector2.UP
+
+		var arrow := arrows[arrow_index]
+		var distance := _player.global_position.distance_to(target.global_position)
+		var proximity := 1.0 - clampf(distance / 2600.0, 0.0, 1.0)
+		var pulse := 1.0
+		if is_boss_arrow:
+			pulse = 1.0 + 0.08 * sin(Time.get_ticks_msec() / 120.0)
+
+		arrow.position = _project_to_screen_edge(center, direction, viewport_size)
+		arrow.rotation = direction.angle() + PI * 0.5
+		arrow.scale = Vector2.ONE * (1.35 if is_boss_arrow else 0.82) * pulse
+		arrow.color = Color(base_color.r, base_color.g, base_color.b, lerpf(0.62, base_color.a, proximity))
+		arrow.visible = true
+		arrow_index += 1
+
+	for i in range(arrow_index, arrows.size()):
+		arrows[i].visible = false
+
+
+func _is_screen_position_offscreen(screen_pos: Vector2, viewport_size: Vector2, padding: float) -> bool:
+	return (
+		screen_pos.x < -padding or screen_pos.y < -padding or
+		screen_pos.x > viewport_size.x + padding or screen_pos.y > viewport_size.y + padding
+	)
 
 
 func _project_to_screen_edge(center: Vector2, direction: Vector2, viewport_size: Vector2) -> Vector2:

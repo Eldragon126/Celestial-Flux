@@ -38,44 +38,57 @@ func take_damage(amount: float) -> void:
         _health.take_damage(amount)
 
 func _build_body() -> void:
-    _shield_polygon = Polygon2D.new()
-    _shield_polygon.name = "SupportShieldHexPolygon"
-    _shield_polygon.z_index = -1
-    _shield_polygon.color = Color(0.0, 0.82, 1.0, 0.28)
-    _shield_polygon.polygon = _hex_points(62.0)
-    add_child(_shield_polygon)
+    _shield_polygon = get_node_or_null("SupportShieldHexPolygon") as Polygon2D
+    if _shield_polygon == null:
+        _shield_polygon = Polygon2D.new()
+        _shield_polygon.name = "SupportShieldHexPolygon"
+        _shield_polygon.z_index = -1
+        _shield_polygon.color = Color(0.0, 0.82, 1.0, 0.28)
+        add_child(_shield_polygon)
+    if _shield_polygon.polygon.is_empty():
+        _shield_polygon.polygon = _hex_points(62.0)
 
-    var core = Polygon2D.new()
-    core.name = "SupportCorePolygon"
-    core.color = Color(0.12, 0.72, 1.0, 1.0)
-    core.polygon = PackedVector2Array([
-        Vector2(0.0, -24.0),
-        Vector2(24.0, 0.0),
-        Vector2(0.0, 24.0),
-        Vector2(-24.0, 0.0),
-    ])
-    add_child(core)
+    var core := get_node_or_null("SupportCorePolygon") as Polygon2D
+    if core == null:
+        core = Polygon2D.new()
+        core.name = "SupportCorePolygon"
+        core.color = Color(0.12, 0.72, 1.0, 1.0)
+        add_child(core)
+    if core.polygon.is_empty():
+        core.polygon = PackedVector2Array([
+            Vector2(0.0, -24.0),
+            Vector2(24.0, 0.0),
+            Vector2(0.0, 24.0),
+            Vector2(-24.0, 0.0),
+        ])
 
-    var collision = CollisionPolygon2D.new()
-    collision.name = "CollisionPolygon2D"
-    collision.polygon = _shield_polygon.polygon
-    add_child(collision)
+    if not has_node("CollisionPolygon2D"):
+        var collision = CollisionPolygon2D.new()
+        collision.name = "CollisionPolygon2D"
+        collision.polygon = _shield_polygon.polygon
+        add_child(collision)
 
-    var particles = GPUParticles2D.new()
-    particles.name = "ShieldOrbitParticles"
-    particles.z_index = -2
-    particles.amount = 90
-    particles.lifetime = 1.4
-    particles.randomness = 0.5
-    particles.process_material = _make_shield_material()
-    add_child(particles)
+    var particles := get_node_or_null("ShieldOrbitParticles") as GPUParticles2D
+    if particles == null:
+        particles = GPUParticles2D.new()
+        particles.name = "ShieldOrbitParticles"
+        particles.z_index = -2
+        particles.amount = 90
+        particles.lifetime = 1.4
+        particles.randomness = 0.5
+        add_child(particles)
+    if particles.process_material == null:
+        particles.process_material = _make_shield_material()
 
 func _build_health() -> void:
-    _health = HealthComponent.new()
-    _health.name = "HealthComponent"
+    _health = get_node_or_null("HealthComponent") as HealthComponent
+    if _health == null:
+        _health = HealthComponent.new()
+        _health.name = "HealthComponent"
+        add_child(_health)
     _health.max_health = max_health
-    add_child(_health)
-    _health.died.connect(_on_died)
+    if not _health.died.is_connected(_on_died):
+        _health.died.connect(_on_died)
 
 func _find_and_bind_host() -> void:
     var next_host = _find_best_shooter_host(get_tree().current_scene)

@@ -57,7 +57,7 @@ func _boss_physics(delta: float) -> void:
 func _run_attack_pattern() -> void:
 	_telegraph_halos()
 	await get_tree().create_timer(0.36).timeout
-	if get_parent() == null:
+	if is_queued_for_deletion() or get_parent() == null:
 		return
 
 	match current_phase:

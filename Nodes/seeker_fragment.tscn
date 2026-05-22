@@ -7,3 +7,6 @@ gravity_scale = 0.0
 contact_monitor = true
 max_contacts_reported = 2
 script = ExtResource("1_seeker")
+
+[node name="SeekerFragmentPolygon" type="Polygon2D" parent="."]
+color = Color(1, 0.18, 0.12, 1)

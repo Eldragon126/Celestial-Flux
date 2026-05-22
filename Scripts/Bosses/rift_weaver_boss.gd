@@ -40,6 +40,9 @@ func _run_attack_pattern() -> void:
 	_pulse_core()
 	await get_tree().create_timer(0.3).timeout
 
+	if is_queued_for_deletion() or get_parent() == null:
+		return
+
 	if current_phase == 1:
 		_fire_spiral(6)
 	elif current_phase == 2:
@@ -60,43 +63,59 @@ func _on_enter_phase(phase: int) -> void:
 		_core.color = [Color(0.24, 1.0, 0.72, 1.0), Color(0.86, 0.42, 1.0, 1.0), Color(1.0, 0.82, 0.22, 1.0)][phase - 1]
 
 func _build_body() -> void:
-	var hull = Polygon2D.new()
-	hull.name = "RiftWeaverHull"
-	hull.color = Color(0.07, 0.11, 0.12, 1.0)
-	hull.polygon = PackedVector2Array([
-		Vector2(0.0, -100.0),
-		Vector2(88.0, -26.0),
-		Vector2(62.0, 76.0),
-		Vector2(0.0, 112.0),
-		Vector2(-62.0, 76.0),
-		Vector2(-88.0, -26.0),
-	])
-	add_child(hull)
+	var hull := get_node_or_null("RiftWeaverHull") as Polygon2D
+	if hull == null:
+		hull = Polygon2D.new()
+		hull.name = "RiftWeaverHull"
+		hull.color = Color(0.07, 0.11, 0.12, 1.0)
+		add_child(hull)
+	if hull.polygon.is_empty():
+		hull.polygon = PackedVector2Array([
+			Vector2(0.0, -100.0),
+			Vector2(88.0, -26.0),
+			Vector2(62.0, 76.0),
+			Vector2(0.0, 112.0),
+			Vector2(-62.0, 76.0),
+			Vector2(-88.0, -26.0),
+		])
 
-	_core = Polygon2D.new()
-	_core.name = "RiftWeaverCore"
-	_core.color = Color(0.24, 1.0, 0.72, 1.0)
-	_core.polygon = _circle_points(9, 38.0)
-	add_child(_core)
+	_core = get_node_or_null("RiftWeaverCore") as Polygon2D
+	if _core == null:
+		_core = Polygon2D.new()
+		_core.name = "RiftWeaverCore"
+		_core.color = Color(0.24, 1.0, 0.72, 1.0)
+		add_child(_core)
+	if _core.polygon.is_empty():
+		_core.polygon = _circle_points(9, 38.0)
 
-	var collision = CollisionPolygon2D.new()
-	collision.name = "CollisionPolygon2D"
-	collision.polygon = hull.polygon
-	add_child(collision)
+	if not has_node("CollisionPolygon2D"):
+		var collision = CollisionPolygon2D.new()
+		collision.name = "CollisionPolygon2D"
+		collision.polygon = hull.polygon
+		add_child(collision)
 
-	for i in range(3):
+	_rift_lanes.clear()
+	for child in get_children():
+		if child is Polygon2D and String(child.name).begins_with("RiftLane"):
+			_rift_lanes.append(child as Polygon2D)
+
+	for i in range(_rift_lanes.size(), 3):
 		var lane = Polygon2D.new()
 		lane.name = "RiftLane%d" % i
 		lane.z_index = -3
 		lane.color = Color(0.24, 1.0, 0.72, 0.10)
+		add_child(lane)
+		_rift_lanes.append(lane)
+
+	for lane in _rift_lanes:
+		if lane == null or not lane.polygon.is_empty():
+			continue
 		lane.polygon = PackedVector2Array([
 			Vector2(-rift_radius, -rift_width),
 			Vector2(rift_radius, -rift_width),
 			Vector2(rift_radius, rift_width),
 			Vector2(-rift_radius, rift_width),
 		])
-		add_child(lane)
-		_rift_lanes.append(lane)
 
 func _apply_rift_lanes(delta: float) -> void:
 	if player == null:
@@ -109,7 +128,9 @@ func _apply_rift_lanes(delta: float) -> void:
 	for i in range(_rift_lanes.size()):
 		var lane_dir = Vector2.RIGHT.rotated(_lane_angle + TAU * float(i) / float(_rift_lanes.size()))
 		if absf(offset.dot(lane_dir.orthogonal())) <= rift_width:
-			var player_velocity = player.get("velocity")
+			var player_velocity: Variant = player.get("velocity")
+			if not player_velocity is Vector2:
+				return
 			player.set("velocity", player_velocity + lane_dir * lane_force * delta)
 			return
 
@@ -144,7 +165,11 @@ func _fire_spiral(count: int) -> void:
 		var direction = Vector2.RIGHT.rotated(_lane_angle + TAU * float(i) / float(count))
 		var bullet = ENEMY_BULLET_SCENE.instantiate()
 		bullet.global_position = global_position + direction * 112.0
-		bullet.apply_impulse(direction * projectile_speed)
+		bullet.global_rotation = direction.angle()
+		if bullet.has_method("configure_launch"):
+			bullet.call("configure_launch", direction, projectile_speed, self)
+		elif bullet.get("initial_speed") != null:
+			bullet.set("initial_speed", projectile_speed)
 		get_parent().call_deferred("add_child", bullet)
 
 func _spawn_wisps(count: int) -> void:
@@ -169,7 +194,9 @@ func _rift_snap() -> void:
 		return
 	var offset = player.global_position - global_position
 	if offset.length() < 780.0:
-		var player_velocity = player.get("velocity")
+		var player_velocity: Variant = player.get("velocity")
+		if not player_velocity is Vector2:
+			return
 		player.set("velocity", player_velocity.rotated(0.32).limit_length(maxf(player_velocity.length(), 420.0)))
 		CombatStatus.apply_local_slow(player, 0.82, 0.55)
 

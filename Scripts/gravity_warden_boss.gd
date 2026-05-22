@@ -312,7 +312,9 @@ func _on_ram_damage_area_body_entered(body: Node) -> void:
 
 		body.take_damage(14.0 + 5.0 * float(_phase))
 
-		var body_velocity = body.get("velocity")
+		var body_velocity: Variant = body.get("velocity")
+		if not body_velocity is Vector2:
+			return
 		var push = (body_2d.global_position - global_position).normalized()
 		body.set("velocity", body_velocity + push * 520.0)
 
@@ -366,6 +368,10 @@ func _on_health_changed(current_health: float, new_max_health: float) -> void:
 	boss_health_changed.emit(current_health, new_max_health)
 
 func _on_died() -> void:
+	if _fire_timer != null:
+		_fire_timer.stop()
+	if _summon_timer != null:
+		_summon_timer.stop()
 	if get_parent() != null:
 		var sparks = COLLISION_SPARK_SCENE.instantiate()
 		get_parent().add_child(sparks)

@@ -13,6 +13,7 @@ signal death_lesson_generated(lesson: String)
 
 @export var thrust_power: float = 4000.0
 @export var rotation_speed: float = 9.0
+@export var orbit_alignment_assist_strength: float = 0.08
 @export var max_speed: float = 1000.0
 @export var drag: float = 0.97
 @export var idle_drag: float = 0.9
@@ -242,7 +243,7 @@ func handle_rotation(delta):
 			tangent = -tangent
 
 		var target = tangent.angle()
-		rotation = lerp_angle(rotation, target, 0.08)
+		rotation = lerp_angle(rotation, target, clampf(orbit_alignment_assist_strength, 0.0, 1.0))
 
 # ========================
 # == SLINGSHOT SYSTEM ==

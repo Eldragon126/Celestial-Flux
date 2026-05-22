@@ -47,7 +47,6 @@ position = Vector2(5358, 1589)
 
 [node name="OrbitalJuiceManager" type="Node2D" parent="." unique_id=163104507 groups=["Orbital_Juice_Manager"]]
 script = ExtResource("7_juice")
-attach_enemy_readability = false
 
 [node name="TimeDilationManager" type="Node" parent="." unique_id=665013840]
 process_mode = 3

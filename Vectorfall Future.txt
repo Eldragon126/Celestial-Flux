@@ -1,13 +1,7 @@
 Now (Check off):
-
-- Make everything beautiful. Gradients are a good way to do this. Think shading to the max, cool colors, and make everything flashy. Don't be afraid to go all out on particle effects as long as they don't bog down the CPU. Feel free to make shading scripts to manage how things look, and feel free to add them to any node as long as it's safe. Make sure that I can go in and manually edit the particles and effects if needed (as in they aren't completely built in GDscript)
-- Make sure everything works correctly.
-Keep pushing toward gravitational personality first: readable rules, then beauty,
-then escalation. The game gets most fun when players can see the law bending
-before the spectacle blooms.
-- Sparkles! Add lots of visual effects for more things! MAXIMIZE JUICE! Make sure it's not OVERLY juiced though, for example some effects when you hit a great slingshot or when you hit an enemy hard are too much right now.
-- Gameplay: Maximize enjoyment. Enemies should be difficult but controllable, the player should feel like he or she is actually progressing, and optimize bosses for maximum fun.
-- Add science fiction elements! Just make it fun!
+* Make a deterministic editor-based pause menu that is coherent with different options.
+* Add a version control label on the title screen.
+* Instead of just saying "DEATH VECTOR: ...", have a game over scene with the death vector message, also reset player save and load at that point.
 * Optimize the game for maximum performance.
 * Make every mechanic readable within 1 second.
 * Make gravity interactions predictable enough to master but chaotic enough to feel dangerous.
@@ -15,16 +9,16 @@ before the spectacle blooms.
 * Prevent dominant strategies so multiple playstyles remain viable.
 * Make movement feel satisfying even without combat.
 * Create modular systems so future mechanics are easy to add.
-* Minimize CPU-heavy physics calculations.
+* Minimize CPU-heavy physics calculations without taking away from gameplay or mechanics.
 * Ensure the game still feels good on weaker hardware.
 * Make every enemy silhouette instantly recognizable.
 * Use motion, distortion, and orbit trails as visual language.
 * Make menus feel like part of the game universe.
-* Give every major mechanic a recognizable sound and visual signature.
-
+* Give every major mechanic a recognizable sound and visual signature. Sounds come from the developer, I'll drop them in as I make them.
+* Make a clear how to play document containing everything players and devs need to know when coming into the game for the first time.
 Near Future:
 
-* Implement drop-in/drop-out online co-op multiplayer inspired by the feel and accessibility of Terraria, where players can seamlessly join shared runs, survive escalating waves together, and maintain synchronized progression without disrupting the core physics-driven gameplay loop. Design the networking architecture to prioritize deterministic gravity interactions, readable combat clarity, low-latency movement responsiveness, and stable synchronization of projectiles, resonance zones, time dilation systems, upgrades, bosses, and arena events even during high-chaos late-game scenarios.
+* Implement drop-in/drop-out online co-op multiplayer inspired by the feel and accessibility of Terraria, where players can seamlessly join shared runs, survive escalating waves together, and maintain synchronized progression without disrupting the core physics-driven gameplay loop. Design the networking architecture to prioritize deterministic gravity interactions, readable combat clarity, low-latency movement responsiveness, and stable synchronization of projectiles, resonance zones, time dilation systems, upgrades, bosses, and arena events, even during high-chaos late-game scenarios.
 * Make every visual better in some way.
 * Have smoother transitions and maximize game juice.
 * Maximize game feel and make it so that the player wants to come back over and over.
@@ -48,7 +42,7 @@ Near Future:
 * Make every run feel different without losing gameplay clarity.
 * Add streamer-friendly and clip-worthy moments.
 * Boss rush and secret bosses! Add a boss rush where you have to beat all the bosses back to back and a few secret hidden bosses that you have to somehow fight.
-* Add one final boss before credit system.
+* Add one final boss before the credit system.
 Far Future:
 
 * Sell the game on Steam and other platforms.

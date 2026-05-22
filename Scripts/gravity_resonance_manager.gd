@@ -13,6 +13,7 @@ signal resonance_zone_updated(zone_data: Dictionary)
 signal resonance_zone_type_changed(zone_data: Dictionary)
 signal resonance_zone_decayed(zone_id: int)
 signal resonance_zone_decayed_detailed(zone_data: Dictionary)
+signal resonance_instability_changed(zone_data: Dictionary)
 signal debris_ring_requested(ring_data: Dictionary)
 signal chain_implosion_triggered(implosion_data: Dictionary)
 signal fracture_applied(position: Vector2, intensity: float)
@@ -324,6 +325,7 @@ func _merge_resonance_zones(potential_zones: Array[Dictionary], delta: float) ->
 
 			var previous_intensity := float(existing["intensity"])
 			existing["intensity"] = minf(previous_intensity + resonance_buildup_rate * delta, 1.0)
+			existing = _with_runtime_zone_state(existing, 0.0)
 			_active_resonance_zones[existing_idx] = existing
 
 			if previous_type != _zone_type(existing):
@@ -332,9 +334,12 @@ func _merge_resonance_zones(potential_zones: Array[Dictionary], delta: float) ->
 				resonance_field_pulsed.emit(existing)
 			if previous_intensity <= 0.7 and float(existing["intensity"]) > 0.7:
 				resonance_zone_intensified.emit(existing)
+			if _zone_instability_crossed(previous_intensity, float(existing["intensity"])):
+				resonance_instability_changed.emit(existing)
 			resonance_zone_updated.emit(existing)
 		else:
 			potential["intensity"] = 0.3
+			potential = _with_runtime_zone_state(potential, 0.0)
 			_active_resonance_zones.append(potential)
 			resonance_zone_created.emit(potential)
 			resonance_field_pulsed.emit(potential)
@@ -347,7 +352,9 @@ func _merge_resonance_zones(potential_zones: Array[Dictionary], delta: float) ->
 		if bool(zone.get("manual", false)):
 			continue
 
-		zone["intensity"] = float(zone["intensity"]) - resonance_decay_rate * delta
+		var previous_intensity := float(zone["intensity"])
+		zone["intensity"] = previous_intensity - resonance_decay_rate * delta
+		zone = _with_runtime_zone_state(zone, resonance_decay_rate * delta)
 		if float(zone["intensity"]) <= 0.0:
 			resonance_zone_decayed.emit(zone_id)
 			resonance_zone_decayed_detailed.emit(zone)
@@ -355,6 +362,8 @@ func _merge_resonance_zones(potential_zones: Array[Dictionary], delta: float) ->
 			_active_resonance_zones.remove_at(idx)
 		else:
 			_active_resonance_zones[idx] = zone
+			if _zone_instability_crossed(previous_intensity, float(zone["intensity"])):
+				resonance_instability_changed.emit(zone)
 
 func _update_resonance_zones(delta: float) -> void:
 	for zone in _active_resonance_zones:
@@ -385,6 +394,7 @@ func _update_manual_zones(delta: float) -> void:
 		var remaining := float(zone["remaining"])
 		var duration := maxf(float(zone.get("duration", 1.0)), 0.001)
 		zone["intensity"] = clampf(float(zone.get("base_intensity", 0.6)) * minf(1.0, remaining / duration * 2.0), 0.0, 1.0)
+		zone = _with_runtime_zone_state(zone, delta / duration)
 
 		if remaining <= 0.0:
 			var zone_id := int(zone.get("id", 0))
@@ -395,6 +405,32 @@ func _update_manual_zones(delta: float) -> void:
 		else:
 			_active_resonance_zones[idx] = zone
 			resonance_zone_updated.emit(zone)
+
+func _with_runtime_zone_state(zone: Dictionary, decay_delta: float) -> Dictionary:
+	var intensity := clampf(float(zone.get("intensity", 0.0)), 0.0, 1.0)
+	var duration := maxf(float(zone.get("duration", 0.0)), 0.001)
+	var remaining := float(zone.get("remaining", duration))
+	var decay := 1.0 - clampf(remaining / duration, 0.0, 1.0) if bool(zone.get("manual", false)) else clampf(decay_delta, 0.0, 1.0)
+	zone["intensity"] = intensity
+	zone["instability"] = clampf(intensity * lerpf(0.65, 1.0, _zone_instability_bias(_zone_type(zone))), 0.0, 1.0)
+	zone["decay"] = decay
+	zone["decay_state"] = &"decaying" if decay > 0.0 else &"building"
+	return zone
+
+func _zone_instability_crossed(previous_intensity: float, next_intensity: float) -> bool:
+	return int(previous_intensity * 4.0) != int(next_intensity * 4.0)
+
+func _zone_instability_bias(zone_type: int) -> float:
+	match zone_type:
+		ZoneType.INVERSION:
+			return 1.0
+		ZoneType.TEMPORAL_SCAR:
+			return 0.9
+		ZoneType.HARMONIC_ORBIT:
+			return 0.72
+		ZoneType.COMPRESSION:
+			return 0.62
+	return 0.5
 
 func _apply_projectile_acceleration(zone: Dictionary, delta: float) -> void:
 	var center: Vector2 = zone["midpoint"]
@@ -1141,6 +1177,7 @@ func create_manual_resonance_zone(position: Vector2, radius: float, zone_type: i
 		"zone_color": _zone_type_color(clamped_type),
 		"manual": true,
 	}
+	zone = _with_runtime_zone_state(zone, 0.0)
 	_active_resonance_zones.append(zone)
 	resonance_zone_created.emit(zone)
 	resonance_field_pulsed.emit(zone)

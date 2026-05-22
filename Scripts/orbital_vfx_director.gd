@@ -16,6 +16,7 @@ class_name OrbitalVFXDirector
 @export var max_active_bursts: int = 18
 @export var max_particles_per_burst: int = 72
 @export var chaos_clutter_threshold: float = 0.74
+@export var chaos_sample_interval: float = 0.2
 
 @export_group("Templates")
 @export var time_afterimage_template_path: NodePath = ^"Templates/TimeAfterimageBurst"
@@ -30,6 +31,7 @@ var _resonance_manager: Node = null
 var _momentum: Node = null
 var _active_bursts: Array[GPUParticles2D] = []
 var _chaos_intensity: float = 0.0
+var _chaos_sample_elapsed: float = 999.0
 
 @onready var _burst_root: Node2D = $Bursts
 @onready var _time_template: GPUParticles2D = get_node_or_null(time_afterimage_template_path) as GPUParticles2D
@@ -46,9 +48,9 @@ func _ready() -> void:
 	_connect_sources()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	_prune_finished_bursts()
-	_update_chaos_intensity()
+	_update_chaos_intensity(delta)
 
 
 func _resolve_sources() -> void:
@@ -247,7 +249,11 @@ func _prune_finished_bursts() -> void:
 			_active_bursts.remove_at(idx)
 
 
-func _update_chaos_intensity() -> void:
+func _update_chaos_intensity(delta: float) -> void:
+	_chaos_sample_elapsed += delta
+	if _chaos_sample_elapsed < maxf(chaos_sample_interval, 0.05):
+		return
+	_chaos_sample_elapsed = 0.0
 	var projectile_count := get_tree().get_nodes_in_group("Projectiles").size()
 	projectile_count += get_tree().get_nodes_in_group("enemy_projectiles").size()
 	var target_chaos := clampf(float(projectile_count) / 180.0, 0.0, 1.0)

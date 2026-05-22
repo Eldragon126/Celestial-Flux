@@ -120,57 +120,79 @@ func _ready() -> void:
 # ============================================================================
 
 func build_visuals() -> void:
-	aura_polygon = Polygon2D.new()
-	aura_polygon.name = "PolymorphAura"
-	aura_polygon.z_index = -4
-	aura_polygon.color = Color(0.2, 0.95, 1.0, 0.13)
-	aura_polygon.polygon = make_circle_points(40, 165.0)
-	add_child(aura_polygon)
+	aura_polygon = get_node_or_null("PolymorphAura") as Polygon2D
+	if aura_polygon == null:
+		aura_polygon = Polygon2D.new()
+		aura_polygon.name = "PolymorphAura"
+		aura_polygon.z_index = -4
+		aura_polygon.color = Color(0.2, 0.95, 1.0, 0.13)
+		add_child(aura_polygon)
+	if aura_polygon.polygon.is_empty():
+		aura_polygon.polygon = make_circle_points(40, 165.0)
 
 	# ------------------------------------------------------------------------
 	# MAIN BODY
 	# ------------------------------------------------------------------------
 
-	body_polygon = Polygon2D.new()
-	body_polygon.color = Color(0.1, 0.9, 1.0, 1.0)
-	add_child(body_polygon)
+	body_polygon = get_node_or_null("PolymorphBody") as Polygon2D
+	if body_polygon == null:
+		body_polygon = Polygon2D.new()
+		body_polygon.name = "PolymorphBody"
+		body_polygon.color = Color(0.1, 0.9, 1.0, 1.0)
+		add_child(body_polygon)
 
 	# ------------------------------------------------------------------------
 	# CORE
 	# ------------------------------------------------------------------------
 
-	core_polygon = Polygon2D.new()
-	core_polygon.color = Color.WHITE
-	core_polygon.polygon = make_circle_points(24, 26.0)
-
-	add_child(core_polygon)
+	core_polygon = get_node_or_null("PolymorphCore") as Polygon2D
+	if core_polygon == null:
+		core_polygon = Polygon2D.new()
+		core_polygon.name = "PolymorphCore"
+		core_polygon.color = Color.WHITE
+		add_child(core_polygon)
+	if core_polygon.polygon.is_empty():
+		core_polygon.polygon = make_circle_points(24, 26.0)
 
 	# ------------------------------------------------------------------------
 	# COLLISION
 	# ------------------------------------------------------------------------
 
-	collision_polygon = CollisionPolygon2D.new()
-	add_child(collision_polygon)
+	collision_polygon = get_node_or_null("CollisionPolygon2D") as CollisionPolygon2D
+	if collision_polygon == null:
+		collision_polygon = CollisionPolygon2D.new()
+		collision_polygon.name = "CollisionPolygon2D"
+		add_child(collision_polygon)
 
-	attack_area = Area2D.new()
-	attack_area.name = "PolymorphContactArea"
+	attack_area = get_node_or_null("PolymorphContactArea") as Area2D
+	if attack_area == null:
+		attack_area = Area2D.new()
+		attack_area.name = "PolymorphContactArea"
+		add_child(attack_area)
 	attack_area.monitoring = true
-	attack_area.body_entered.connect(_on_contact_body_entered)
-	add_child(attack_area)
+	if not attack_area.body_entered.is_connected(_on_contact_body_entered):
+		attack_area.body_entered.connect(_on_contact_body_entered)
 
-	var attack_shape := CollisionShape2D.new()
-	var circle := CircleShape2D.new()
-	circle.radius = 136.0
-	attack_shape.shape = circle
-	attack_area.add_child(attack_shape)
+	var attack_shape := attack_area.get_node_or_null("ContactShape") as CollisionShape2D
+	if attack_shape == null:
+		attack_shape = CollisionShape2D.new()
+		attack_shape.name = "ContactShape"
+		attack_area.add_child(attack_shape)
+	if attack_shape.shape == null:
+		var circle := CircleShape2D.new()
+		circle.radius = 136.0
+		attack_shape.shape = circle
 
-	spark_particles = GPUParticles2D.new()
-	spark_particles.name = "PolymorphVectorSparks"
-	spark_particles.amount = 96
-	spark_particles.lifetime = 1.4
-	spark_particles.randomness = 0.55
-	spark_particles.process_material = make_particle_material(Color(0.25, 0.95, 1.0, 0.76))
-	add_child(spark_particles)
+	spark_particles = get_node_or_null("PolymorphVectorSparks") as GPUParticles2D
+	if spark_particles == null:
+		spark_particles = GPUParticles2D.new()
+		spark_particles.name = "PolymorphVectorSparks"
+		spark_particles.amount = 96
+		spark_particles.lifetime = 1.4
+		spark_particles.randomness = 0.55
+		add_child(spark_particles)
+	if spark_particles.process_material == null:
+		spark_particles.process_material = make_particle_material(Color(0.25, 0.95, 1.0, 0.76))
 
 # ============================================================================
 # TIMERS

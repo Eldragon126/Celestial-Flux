@@ -80,7 +80,11 @@ func _on_shoot_animation_animation_started(anim_name: StringName) -> void:
 
 		if Player != null and is_instance_valid(Player):
 			var dir: Vector2 = (Player.global_position - global_position).normalized()
-			projectile.apply_impulse(dir * force_of_impulse)
+			if projectile.has_method("configure_launch"):
+				projectile.call("configure_launch", dir, force_of_impulse, self)
+			elif projectile.get("initial_speed") != null:
+				projectile.set("initial_speed", force_of_impulse)
+			projectile.global_rotation = dir.angle()
 		else:
 			Player = get_tree().get_first_node_in_group("Player")
 

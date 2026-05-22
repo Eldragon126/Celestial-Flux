@@ -60,7 +60,9 @@ func _pull_player(delta: float) -> void:
 		_player.set_velocity(player_velocity + pull * delta)
 	else:
 		# fallback for direct variable access
-		var player_velocity = _player.get("velocity")
+		var player_velocity: Variant = _player.get("velocity")
+		if not player_velocity is Vector2:
+			return
 		_player.set("velocity", player_velocity + pull * delta)
 
 # ========================
@@ -68,46 +70,56 @@ func _pull_player(delta: float) -> void:
 # ========================
 
 func _build_body() -> void:
-	var core = Polygon2D.new()
-	core.name = "GravityCorePolygon"
-	core.color = Color(0.08, 0.9, 0.72, 1.0)
-	core.polygon = PackedVector2Array([
-		Vector2(0.0, -34.0),
-		Vector2(30.0, -10.0),
-		Vector2(20.0, 28.0),
-		Vector2(-20.0, 28.0),
-		Vector2(-30.0, -10.0),
-	])
-	add_child(core)
+	var core := get_node_or_null("GravityCorePolygon") as Polygon2D
+	if core == null:
+		core = Polygon2D.new()
+		core.name = "GravityCorePolygon"
+		core.color = Color(0.08, 0.9, 0.72, 1.0)
+		add_child(core)
+	if core.polygon.is_empty():
+		core.polygon = PackedVector2Array([
+			Vector2(0.0, -34.0),
+			Vector2(30.0, -10.0),
+			Vector2(20.0, 28.0),
+			Vector2(-20.0, 28.0),
+			Vector2(-30.0, -10.0),
+		])
 
-	var field = Polygon2D.new()
-	field.name = "GravityFieldPolygon"
-	field.z_index = -2
-	field.color = Color(0.1, 0.95, 0.72, 0.12)
-	field.polygon = _circle_points(42, 92.0)
-	add_child(field)
+	var field := get_node_or_null("GravityFieldPolygon") as Polygon2D
+	if field == null:
+		field = Polygon2D.new()
+		field.name = "GravityFieldPolygon"
+		field.z_index = -2
+		field.color = Color(0.1, 0.95, 0.72, 0.12)
+		add_child(field)
+	if field.polygon.is_empty():
+		field.polygon = _circle_points(42, 92.0)
 
-	var collision = CollisionPolygon2D.new()
-	collision.name = "CollisionPolygon2D"
-	collision.polygon = core.polygon
-	add_child(collision)
+	if not has_node("CollisionPolygon2D"):
+		var collision = CollisionPolygon2D.new()
+		collision.name = "CollisionPolygon2D"
+		collision.polygon = core.polygon
+		add_child(collision)
 
-	var particles = GPUParticles2D.new()
-	particles.name = "GravityFieldParticles"
-	particles.z_index = -1
-	particles.amount = 120
-	particles.lifetime = 1.8
-	particles.randomness = 0.6
-	particles.process_material = _make_field_material()
-	add_child(particles)
+	var particles := get_node_or_null("GravityFieldParticles") as GPUParticles2D
+	if particles == null:
+		particles = GPUParticles2D.new()
+		particles.name = "GravityFieldParticles"
+		particles.z_index = -1
+		particles.amount = 120
+		particles.lifetime = 1.8
+		particles.randomness = 0.6
+		add_child(particles)
+	if particles.process_material == null:
+		particles.process_material = _make_field_material()
 
 func _build_health() -> void:
-	# Create it fresh instead of trying to grab a non-existent or already-parented node
-	_health = HealthComponent.new()
-	_health.name = "HealthComponent"
+	_health = get_node_or_null("HealthComponent") as HealthComponent
+	if _health == null:
+		_health = HealthComponent.new()
+		_health.name = "HealthComponent"
+		add_child(_health)
 	_health.max_health = max_health
-
-	add_child(_health)
 
 	# Connect safely (prevents duplicate signal crash)
 	if not _health.died.is_connected(_on_died):

@@ -43,44 +43,61 @@ func take_damage(amount: float) -> void:
 
 func _build_body() -> void:
 	var radius = 38.0
-	var polygon = Polygon2D.new()
-	polygon.name = "AsteroidBotPolygon"
-	polygon.color = Color(0.72, 0.52, 0.38, 1.0)
-	polygon.polygon = _jagged_circle_points(13, radius)
-	add_child(polygon)
+	var polygon := get_node_or_null("AsteroidBotPolygon") as Polygon2D
+	if polygon == null:
+		polygon = Polygon2D.new()
+		polygon.name = "AsteroidBotPolygon"
+		polygon.color = Color(0.72, 0.52, 0.38, 1.0)
+		add_child(polygon)
+	if polygon.polygon.is_empty():
+		polygon.polygon = _jagged_circle_points(13, radius)
 
-	var collision = CollisionPolygon2D.new()
-	collision.name = "CollisionPolygon2D"
-	collision.polygon = polygon.polygon
-	add_child(collision)
+	if not has_node("CollisionPolygon2D"):
+		var collision = CollisionPolygon2D.new()
+		collision.name = "CollisionPolygon2D"
+		collision.polygon = polygon.polygon
+		add_child(collision)
 
-	var attack_area = Area2D.new()
-	attack_area.name = "AttackArea"
+	var attack_area := get_node_or_null("AttackArea") as Area2D
+	if attack_area == null:
+		attack_area = Area2D.new()
+		attack_area.name = "AttackArea"
+		add_child(attack_area)
 	attack_area.monitoring = true
-	attack_area.body_entered.connect(_on_attack_area_body_entered)
-	add_child(attack_area)
+	if not attack_area.body_entered.is_connected(_on_attack_area_body_entered):
+		attack_area.body_entered.connect(_on_attack_area_body_entered)
 
-	var attack_shape = CollisionShape2D.new()
-	var circle = CircleShape2D.new()
-	circle.radius = radius + 10.0
-	attack_shape.shape = circle
-	attack_area.add_child(attack_shape)
+	var attack_shape := attack_area.get_node_or_null("AttackShape") as CollisionShape2D
+	if attack_shape == null:
+		attack_shape = CollisionShape2D.new()
+		attack_shape.name = "AttackShape"
+		attack_area.add_child(attack_shape)
+	if attack_shape.shape == null:
+		var circle = CircleShape2D.new()
+		circle.radius = radius + 10.0
+		attack_shape.shape = circle
 
-	var particles = GPUParticles2D.new()
-	particles.name = "RockChipParticles"
-	particles.z_index = -1
-	particles.amount = 28
-	particles.lifetime = 1.5
-	particles.randomness = 0.6
-	particles.process_material = _make_chip_material()
-	add_child(particles)
+	var particles := get_node_or_null("RockChipParticles") as GPUParticles2D
+	if particles == null:
+		particles = GPUParticles2D.new()
+		particles.name = "RockChipParticles"
+		particles.z_index = -1
+		particles.amount = 28
+		particles.lifetime = 1.5
+		particles.randomness = 0.6
+		add_child(particles)
+	if particles.process_material == null:
+		particles.process_material = _make_chip_material()
 
 func _build_health() -> void:
-	_health = HealthComponent.new()
-	_health.name = "HealthComponent"
+	_health = get_node_or_null("HealthComponent") as HealthComponent
+	if _health == null:
+		_health = HealthComponent.new()
+		_health.name = "HealthComponent"
+		add_child(_health)
 	_health.max_health = base_health * pow(0.58, split_generation)
-	add_child(_health)
-	_health.died.connect(_on_died)
+	if not _health.died.is_connected(_on_died):
+		_health.died.connect(_on_died)
 
 func _on_attack_area_body_entered(body: Node) -> void:
 	if body.is_in_group("Player") and body.has_method("take_damage"):

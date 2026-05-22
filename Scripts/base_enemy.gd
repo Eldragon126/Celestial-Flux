@@ -29,11 +29,6 @@ func _ready() -> void:
 	_refresh_planets()
 
 
-func _physics_process(delta: float) -> void:
-	if is_instance_valid(trail_particles):
-		trail_particles.global_position = global_position
-
-
 func _process(delta: float) -> void:
 	delta *= CombatStatus.get_time_scale(self)
 	_gravity_refresh_elapsed += delta
@@ -105,7 +100,9 @@ func take_damage(amount: float) -> void:
 func _on_health_component_died() -> void:
 	if is_instance_valid(trail_particles):
 		trail_particles.emitting = false
-		trail_particles.reparent(get_tree().get_current_scene())
+		trail_particles.reparent(get_tree().get_current_scene(), true)
+		if trail_particles.has_method("fade_and_free"):
+			trail_particles.call("fade_and_free")
 
 	queue_free()
 

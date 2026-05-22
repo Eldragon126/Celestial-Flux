@@ -4,3 +4,17 @@
 
 [node name="MagnetarTwinsBoss" type="CharacterBody2D" groups=["Objects_With_Gravity", "bosses", "enemies", "planets", "wave_enemy"]]
 script = ExtResource("1_magnetar")
+
+[node name="NorthMagnetarLobe" type="Polygon2D" parent="."]
+z_index = -2
+color = Color(0.26, 0.86, 1, 0.52)
+
+[node name="SouthMagnetarLobe" type="Polygon2D" parent="."]
+z_index = -2
+color = Color(1, 0.18, 0.72, 0.52)
+
+[node name="MagnetarHull" type="Polygon2D" parent="."]
+color = Color(0.08, 0.06, 0.18, 1)
+
+[node name="MagnetarCore" type="Polygon2D" parent="."]
+color = Color(0.96, 0.25, 0.92, 1)

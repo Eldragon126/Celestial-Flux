@@ -71,7 +71,11 @@ func _explode() -> void:
         var direction = Vector2(cos(angle), sin(angle))
         var bullet = ENEMY_BULLET_SCENE.instantiate()
         bullet.global_position = global_position + direction * (radius + 14.0)
-        bullet.apply_impulse(direction * bullet_speed)
+        bullet.global_rotation = direction.angle()
+        if bullet.has_method("configure_launch"):
+            bullet.call("configure_launch", direction, bullet_speed, self)
+        elif bullet.get("initial_speed") != null:
+            bullet.set("initial_speed", bullet_speed)
         parent.call_deferred("add_child", bullet)
 
     var sparks = COLLISION_SPARK_SCENE.instantiate()

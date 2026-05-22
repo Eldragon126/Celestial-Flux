@@ -41,7 +41,7 @@ func _run_attack_pattern() -> void:
 	_telegraph_pulse()
 	await get_tree().create_timer(0.34).timeout
 
-	if get_parent() == null:
+	if is_queued_for_deletion() or get_parent() == null:
 		return
 
 	if current_phase == 1:
@@ -70,29 +70,41 @@ func _on_enter_phase(phase: int) -> void:
 		_core.color = [Color(0.04, 0.95, 0.84, 1.0), Color(0.82, 0.28, 1.0, 1.0), Color(1.0, 0.16, 0.08, 1.0)][phase - 1]
 
 func _build_body() -> void:
-	_aura = Polygon2D.new()
-	_aura.name = "AccretionAura"
-	_aura.z_index = -3
-	_aura.color = Color(0.12, 0.86, 1.0, 0.11)
-	_aura.polygon = _circle_points(64, 170.0)
-	add_child(_aura)
+	if has_node("AccretionAura"):
+		_aura = get_node("AccretionAura") as Polygon2D
+	else:
+		_aura = Polygon2D.new()
+		_aura.name = "AccretionAura"
+		_aura.z_index = -3
+		_aura.color = Color(0.12, 0.86, 1.0, 0.11)
+		add_child(_aura)
+	if _aura != null and _aura.polygon.is_empty():
+		_aura.polygon = _circle_points(64, 170.0)
 
-	var shell = Polygon2D.new()
-	shell.name = "AccretionShell"
-	shell.color = Color(0.12, 0.08, 0.24, 1.0)
-	shell.polygon = _circle_points(12, 118.0)
-	add_child(shell)
+	var shell := get_node_or_null("AccretionShell") as Polygon2D
+	if shell == null:
+		shell = Polygon2D.new()
+		shell.name = "AccretionShell"
+		shell.color = Color(0.12, 0.08, 0.24, 1.0)
+		add_child(shell)
+	if shell.polygon.is_empty():
+		shell.polygon = _circle_points(12, 118.0)
 
-	_core = Polygon2D.new()
-	_core.name = "AccretionCore"
-	_core.color = Color(0.04, 0.95, 0.84, 1.0)
-	_core.polygon = _circle_points(10, 56.0)
-	add_child(_core)
+	if has_node("AccretionCore"):
+		_core = get_node("AccretionCore") as Polygon2D
+	else:
+		_core = Polygon2D.new()
+		_core.name = "AccretionCore"
+		_core.color = Color(0.04, 0.95, 0.84, 1.0)
+		add_child(_core)
+	if _core != null and _core.polygon.is_empty():
+		_core.polygon = _circle_points(10, 56.0)
 
-	var collision = CollisionPolygon2D.new()
-	collision.name = "CollisionPolygon2D"
-	collision.polygon = shell.polygon
-	add_child(collision)
+	if not has_node("CollisionPolygon2D"):
+		var collision = CollisionPolygon2D.new()
+		collision.name = "CollisionPolygon2D"
+		collision.polygon = shell.polygon
+		add_child(collision)
 
 func _pull_player(delta: float) -> void:
 	if player == null or not is_instance_valid(player):
@@ -103,7 +115,9 @@ func _pull_player(delta: float) -> void:
 	if distance <= 1.0 or distance > gravity_radius:
 		return
 
-	var player_velocity = player.get("velocity")
+	var player_velocity: Variant = player.get("velocity")
+	if not player_velocity is Vector2:
+		return
 	var pull = offset.normalized() * gravity_strength * mass / maxf(distance * distance, 1600.0)
 	player.set("velocity", player_velocity + pull * delta)
 
@@ -111,9 +125,13 @@ func _spawn_radial_bullets(count: int, speed: float) -> void:
 	for i in range(count):
 		var direction = Vector2.RIGHT.rotated(TAU * float(i) / float(count) + _orbit_angle * 0.35)
 		var bullet = ENEMY_BULLET_SCENE.instantiate()
-		get_parent().call_deferred("add_child", bullet)
 		bullet.global_position = global_position + direction * 132.0
-		bullet.apply_impulse(direction * speed)
+		bullet.global_rotation = direction.angle()
+		if bullet.has_method("configure_launch"):
+			bullet.call("configure_launch", direction, speed, self)
+		elif bullet.get("initial_speed") != null:
+			bullet.set("initial_speed", speed)
+		get_parent().call_deferred("add_child", bullet)
 
 func _spawn_debris_ring(count: int) -> void:
 	for i in range(count):

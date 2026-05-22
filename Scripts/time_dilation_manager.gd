@@ -109,10 +109,13 @@ signal local_time_pocket_entered(
 )
 
 signal local_time_pocket_expired(target_id: int)
+signal pocket_entered(target: Node, multiplier: float, duration: float)
+signal pocket_exited(target_id: int)
 
 signal afterimage_spawned(position: Vector2, velocity: Vector2)
 
 signal time_tear_intensity_changed(intensity: float)
+signal instability_changed(intensity: float)
 
 # ============================================================
 # READY
@@ -472,6 +475,7 @@ func apply_local_slow_to_target(
 	if was_new or clamped_multiplier < previous_multiplier - 0.01:
 		_dampen_velocity_for_local_slow(target, clamped_multiplier)
 		local_time_pocket_entered.emit(target, clamped_multiplier, duration)
+		pocket_entered.emit(target, clamped_multiplier, duration)
 
 # ============================================================
 # UPDATE LOCAL EFFECTS
@@ -531,6 +535,7 @@ func _remove_local_slow(id: int) -> void:
 	_local_slow_effects.erase(id)
 
 	local_time_pocket_expired.emit(id)
+	pocket_exited.emit(id)
 
 # ============================================================
 # CLEAR ALL
@@ -650,6 +655,7 @@ func _emit_tear_intensity_if_changed() -> void:
 		return
 	_last_tear_intensity = intensity
 	time_tear_intensity_changed.emit(intensity)
+	instability_changed.emit(intensity)
 
 
 func _dampen_velocity_for_local_slow(target: Node, multiplier: float) -> void:

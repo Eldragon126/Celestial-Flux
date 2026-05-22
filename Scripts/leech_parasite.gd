@@ -50,51 +50,68 @@ func take_damage(amount: float) -> void:
 		_health.take_damage(amount)
 
 func _build_body() -> void:
-	var body_poly = Polygon2D.new()
-	body_poly.name = "ParasitePolygon"
-	body_poly.color = Color(0.75, 0.08, 0.42, 1.0)
-	body_poly.polygon = PackedVector2Array([
-		Vector2(24.0, 0.0),
-		Vector2(6.0, 16.0),
-		Vector2(-22.0, 10.0),
-		Vector2(-34.0, 0.0),
-		Vector2(-22.0, -10.0),
-		Vector2(6.0, -16.0),
-	])
-	add_child(body_poly)
+	var body_poly := get_node_or_null("ParasitePolygon") as Polygon2D
+	if body_poly == null:
+		body_poly = Polygon2D.new()
+		body_poly.name = "ParasitePolygon"
+		body_poly.color = Color(0.75, 0.08, 0.42, 1.0)
+		add_child(body_poly)
+	if body_poly.polygon.is_empty():
+		body_poly.polygon = PackedVector2Array([
+			Vector2(24.0, 0.0),
+			Vector2(6.0, 16.0),
+			Vector2(-22.0, 10.0),
+			Vector2(-34.0, 0.0),
+			Vector2(-22.0, -10.0),
+			Vector2(6.0, -16.0),
+		])
 
-	var collision = CollisionPolygon2D.new()
-	collision.name = "CollisionPolygon2D"
-	collision.polygon = body_poly.polygon
-	add_child(collision)
+	if not has_node("CollisionPolygon2D"):
+		var collision = CollisionPolygon2D.new()
+		collision.name = "CollisionPolygon2D"
+		collision.polygon = body_poly.polygon
+		add_child(collision)
 
-	var bite_area = Area2D.new()
-	bite_area.name = "AttachArea"
+	var bite_area := get_node_or_null("AttachArea") as Area2D
+	if bite_area == null:
+		bite_area = Area2D.new()
+		bite_area.name = "AttachArea"
+		add_child(bite_area)
 	bite_area.monitoring = true
-	bite_area.body_entered.connect(_on_attach_area_body_entered)
-	add_child(bite_area)
+	if not bite_area.body_entered.is_connected(_on_attach_area_body_entered):
+		bite_area.body_entered.connect(_on_attach_area_body_entered)
 
-	var bite_shape = CollisionShape2D.new()
-	var circle = CircleShape2D.new()
-	circle.radius = 44.0
-	bite_shape.shape = circle
-	bite_area.add_child(bite_shape)
+	var bite_shape := bite_area.get_node_or_null("AttachShape") as CollisionShape2D
+	if bite_shape == null:
+		bite_shape = CollisionShape2D.new()
+		bite_shape.name = "AttachShape"
+		bite_area.add_child(bite_shape)
+	if bite_shape.shape == null:
+		var circle = CircleShape2D.new()
+		circle.radius = 44.0
+		bite_shape.shape = circle
 
-	var particles = GPUParticles2D.new()
-	particles.name = "LeechTrailParticles"
-	particles.z_index = -1
-	particles.amount = 45
-	particles.lifetime = 1.1
-	particles.randomness = 0.5
-	particles.process_material = _make_trail_material()
-	add_child(particles)
+	var particles := get_node_or_null("LeechTrailParticles") as GPUParticles2D
+	if particles == null:
+		particles = GPUParticles2D.new()
+		particles.name = "LeechTrailParticles"
+		particles.z_index = -1
+		particles.amount = 45
+		particles.lifetime = 1.1
+		particles.randomness = 0.5
+		add_child(particles)
+	if particles.process_material == null:
+		particles.process_material = _make_trail_material()
 
 func _build_health() -> void:
-	_health = HealthComponent.new()
-	_health.name = "HealthComponent"
+	_health = get_node_or_null("HealthComponent") as HealthComponent
+	if _health == null:
+		_health = HealthComponent.new()
+		_health.name = "HealthComponent"
+		add_child(_health)
 	_health.max_health = max_health
-	add_child(_health)
-	_health.died.connect(_on_died)
+	if not _health.died.is_connected(_on_died):
+		_health.died.connect(_on_died)
 
 func _build_damage_timer() -> void:
 	_damage_timer = Timer.new()

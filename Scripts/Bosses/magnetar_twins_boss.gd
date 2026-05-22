@@ -41,6 +41,9 @@ func _run_attack_pattern() -> void:
 	_pulse_core()
 	await get_tree().create_timer(0.22).timeout
 
+	if is_queued_for_deletion() or get_parent() == null:
+		return
+
 	if current_phase == 1:
 		_fire_paired_shots()
 	elif current_phase == 2:
@@ -60,33 +63,43 @@ func _on_enter_phase(phase: int) -> void:
 		_core.color = [Color(0.96, 0.25, 0.92, 1.0), Color(0.25, 0.86, 1.0, 1.0), Color(1.0, 0.28, 0.18, 1.0)][phase - 1]
 
 func _build_body() -> void:
-	_north_lobe = _make_lobe("NorthMagnetarLobe", Color(0.26, 0.86, 1.0, 0.52))
-	_south_lobe = _make_lobe("SouthMagnetarLobe", Color(1.0, 0.18, 0.72, 0.52))
+	_north_lobe = _get_or_make_lobe("NorthMagnetarLobe", Color(0.26, 0.86, 1.0, 0.52))
+	_south_lobe = _get_or_make_lobe("SouthMagnetarLobe", Color(1.0, 0.18, 0.72, 0.52))
 
-	var hull = Polygon2D.new()
-	hull.name = "MagnetarHull"
-	hull.color = Color(0.08, 0.06, 0.18, 1.0)
-	hull.polygon = _circle_points(10, 94.0)
-	add_child(hull)
+	var hull := get_node_or_null("MagnetarHull") as Polygon2D
+	if hull == null:
+		hull = Polygon2D.new()
+		hull.name = "MagnetarHull"
+		hull.color = Color(0.08, 0.06, 0.18, 1.0)
+		add_child(hull)
+	if hull.polygon.is_empty():
+		hull.polygon = _circle_points(10, 94.0)
 
-	_core = Polygon2D.new()
-	_core.name = "MagnetarCore"
-	_core.color = Color(0.96, 0.25, 0.92, 1.0)
-	_core.polygon = _circle_points(8, 42.0)
-	add_child(_core)
+	_core = get_node_or_null("MagnetarCore") as Polygon2D
+	if _core == null:
+		_core = Polygon2D.new()
+		_core.name = "MagnetarCore"
+		_core.color = Color(0.96, 0.25, 0.92, 1.0)
+		add_child(_core)
+	if _core.polygon.is_empty():
+		_core.polygon = _circle_points(8, 42.0)
 
-	var collision = CollisionPolygon2D.new()
-	collision.name = "CollisionPolygon2D"
-	collision.polygon = hull.polygon
-	add_child(collision)
+	if not has_node("CollisionPolygon2D"):
+		var collision = CollisionPolygon2D.new()
+		collision.name = "CollisionPolygon2D"
+		collision.polygon = hull.polygon
+		add_child(collision)
 
-func _make_lobe(node_name: String, color: Color) -> Polygon2D:
-	var lobe = Polygon2D.new()
-	lobe.name = node_name
-	lobe.z_index = -2
-	lobe.color = color
-	lobe.polygon = _circle_points(24, 46.0)
-	add_child(lobe)
+func _get_or_make_lobe(node_name: String, color: Color) -> Polygon2D:
+	var lobe := get_node_or_null(node_name) as Polygon2D
+	if lobe == null:
+		lobe = Polygon2D.new()
+		lobe.name = node_name
+		lobe.z_index = -2
+		lobe.color = color
+		add_child(lobe)
+	if lobe.polygon.is_empty():
+		lobe.polygon = _circle_points(24, 46.0)
 	return lobe
 
 func _apply_lobe_forces(delta: float) -> void:
@@ -100,7 +113,9 @@ func _apply_lobe_forces(delta: float) -> void:
 		var distance = offset.length()
 		if distance <= 1.0 or distance > 540.0:
 			continue
-		var player_velocity = player.get("velocity")
+		var player_velocity: Variant = player.get("velocity")
+		if not player_velocity is Vector2:
+			continue
 		var polarity = _polarity_sign if lobe == _north_lobe else -_polarity_sign
 		player.set("velocity", player_velocity + offset.normalized() * lobe_force * polarity * delta * 540.0 / maxf(distance, 90.0))
 
@@ -129,7 +144,11 @@ func _fire_paired_shots() -> void:
 func _spawn_bullet(direction: Vector2, speed: float) -> void:
 	var bullet = ENEMY_BULLET_SCENE.instantiate()
 	bullet.global_position = global_position + direction * 118.0
-	bullet.apply_impulse(direction * speed)
+	bullet.global_rotation = direction.angle()
+	if bullet.has_method("configure_launch"):
+		bullet.call("configure_launch", direction, speed, self)
+	elif bullet.get("initial_speed") != null:
+		bullet.set("initial_speed", speed)
 	get_parent().call_deferred("add_child", bullet)
 
 func _spawn_orbiter_pair() -> void:
@@ -157,7 +176,9 @@ func _magnetic_inversion() -> void:
 	_polarity_timer = 0.0
 	var offset = player.global_position - global_position
 	if offset.length() < 760.0:
-		var player_velocity = player.get("velocity")
+		var player_velocity: Variant = player.get("velocity")
+		if not player_velocity is Vector2:
+			return
 		player.set("velocity", player_velocity + offset.normalized() * 460.0)
 		if player.has_method("apply_shield_disruption"):
 			player.call("apply_shield_disruption", 0.38, 0.75)

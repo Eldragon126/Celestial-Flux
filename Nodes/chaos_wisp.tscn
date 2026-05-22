@@ -4,3 +4,15 @@
 
 [node name="ChaosWisp" type="CharacterBody2D" groups=["enemies"]]
 script = ExtResource("1_wisp")
+
+[node name="ChaosWispGlow" type="Polygon2D" parent="."]
+z_index = -1
+color = Color(0.16, 1, 0.44, 0.26)
+
+[node name="ChaosWispCore" type="Polygon2D" parent="."]
+color = Color(0.2, 1, 0.46, 1)
+
+[node name="AttackArea" type="Area2D" parent="."]
+monitoring = true
+
+[node name="AttackShape" type="CollisionShape2D" parent="AttackArea"]

@@ -4,3 +4,22 @@
 
 [node name="RiftWeaverBoss" type="CharacterBody2D" groups=["Objects_With_Gravity", "bosses", "enemies", "planets", "wave_enemy"]]
 script = ExtResource("1_rift")
+
+[node name="RiftWeaverHull" type="Polygon2D" parent="."]
+color = Color(0.07, 0.11, 0.12, 1)
+polygon = PackedVector2Array(0, -100, 88, -26, 62, 76, 0, 112, -62, 76, -88, -26)
+
+[node name="RiftWeaverCore" type="Polygon2D" parent="."]
+color = Color(0.24, 1, 0.72, 1)
+
+[node name="RiftLane0" type="Polygon2D" parent="."]
+z_index = -3
+color = Color(0.24, 1, 0.72, 0.1)
+
+[node name="RiftLane1" type="Polygon2D" parent="."]
+z_index = -3
+color = Color(0.24, 1, 0.72, 0.1)
+
+[node name="RiftLane2" type="Polygon2D" parent="."]
+z_index = -3
+color = Color(0.24, 1, 0.72, 0.1)

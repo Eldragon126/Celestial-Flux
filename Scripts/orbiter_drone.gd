@@ -59,47 +59,64 @@ func take_damage(amount: float) -> void:
 		_health.take_damage(amount)
 
 func _build_body() -> void:
-	var core = Polygon2D.new()
-	core.name = "OrbiterCorePolygon"
-	core.color = Color(0.72, 0.25, 1.0, 1.0)
-	core.polygon = PackedVector2Array([
-		Vector2(0.0, -30.0),
-		Vector2(28.0, 0.0),
-		Vector2(0.0, 30.0),
-		Vector2(-28.0, 0.0),
-	])
-	add_child(core)
+	var core := get_node_or_null("OrbiterCorePolygon") as Polygon2D
+	if core == null:
+		core = Polygon2D.new()
+		core.name = "OrbiterCorePolygon"
+		core.color = Color(0.72, 0.25, 1.0, 1.0)
+		add_child(core)
+	if core.polygon.is_empty():
+		core.polygon = PackedVector2Array([
+			Vector2(0.0, -30.0),
+			Vector2(28.0, 0.0),
+			Vector2(0.0, 30.0),
+			Vector2(-28.0, 0.0),
+		])
 
-	_telegraph_ring = Polygon2D.new()
-	_telegraph_ring.name = "BurstTelegraphRing"
-	_telegraph_ring.z_index = -1
-	_telegraph_ring.color = Color(0.72, 0.25, 1.0, 0.18)
-	_telegraph_ring.polygon = _circle_points(18, 48.0)
-	add_child(_telegraph_ring)
+	_telegraph_ring = get_node_or_null("BurstTelegraphRing") as Polygon2D
+	if _telegraph_ring == null:
+		_telegraph_ring = Polygon2D.new()
+		_telegraph_ring.name = "BurstTelegraphRing"
+		_telegraph_ring.z_index = -1
+		_telegraph_ring.color = Color(0.72, 0.25, 1.0, 0.18)
+		add_child(_telegraph_ring)
+	if _telegraph_ring.polygon.is_empty():
+		_telegraph_ring.polygon = _circle_points(18, 48.0)
 
-	var collision = CollisionPolygon2D.new()
-	collision.name = "CollisionPolygon2D"
-	collision.polygon = core.polygon
-	add_child(collision)
+	if not has_node("CollisionPolygon2D"):
+		var collision = CollisionPolygon2D.new()
+		collision.name = "CollisionPolygon2D"
+		collision.polygon = core.polygon
+		add_child(collision)
 
-	var attack_area = Area2D.new()
-	attack_area.name = "AttackArea"
+	var attack_area := get_node_or_null("AttackArea") as Area2D
+	if attack_area == null:
+		attack_area = Area2D.new()
+		attack_area.name = "AttackArea"
+		add_child(attack_area)
 	attack_area.monitoring = true
-	attack_area.body_entered.connect(_on_attack_area_body_entered)
-	add_child(attack_area)
+	if not attack_area.body_entered.is_connected(_on_attack_area_body_entered):
+		attack_area.body_entered.connect(_on_attack_area_body_entered)
 
-	var attack_shape = CollisionShape2D.new()
-	var circle = CircleShape2D.new()
-	circle.radius = 42.0
-	attack_shape.shape = circle
-	attack_area.add_child(attack_shape)
+	var attack_shape := attack_area.get_node_or_null("AttackShape") as CollisionShape2D
+	if attack_shape == null:
+		attack_shape = CollisionShape2D.new()
+		attack_shape.name = "AttackShape"
+		attack_area.add_child(attack_shape)
+	if attack_shape.shape == null:
+		var circle = CircleShape2D.new()
+		circle.radius = 42.0
+		attack_shape.shape = circle
 
 func _build_health() -> void:
-	_health = HealthComponent.new()
-	_health.name = "HealthComponent"
+	_health = get_node_or_null("HealthComponent") as HealthComponent
+	if _health == null:
+		_health = HealthComponent.new()
+		_health.name = "HealthComponent"
+		add_child(_health)
 	_health.max_health = max_health
-	add_child(_health)
-	_health.died.connect(_on_died)
+	if not _health.died.is_connected(_on_died):
+		_health.died.connect(_on_died)
 
 func _build_timer() -> void:
 	_burst_timer = Timer.new()
@@ -118,6 +135,8 @@ func _telegraph_and_burst() -> void:
 		tween.tween_property(_telegraph_ring, "color:a", 0.18, 0.18)
 
 	await get_tree().create_timer(0.26).timeout
+	if is_queued_for_deletion():
+		return
 	_fire_radial_burst()
 
 func _fire_radial_burst() -> void:
@@ -128,9 +147,13 @@ func _fire_radial_burst() -> void:
 	for i in range(burst_projectiles):
 		var direction = Vector2.RIGHT.rotated(offset + TAU * float(i) / float(burst_projectiles))
 		var bullet = ENEMY_BULLET_SCENE.instantiate()
-		get_parent().call_deferred("add_child", bullet)
 		bullet.global_position = global_position + direction * 44.0
-		bullet.apply_impulse(direction * burst_speed)
+		bullet.global_rotation = direction.angle()
+		if bullet.has_method("configure_launch"):
+			bullet.call("configure_launch", direction, burst_speed, self)
+		elif bullet.get("initial_speed") != null:
+			bullet.set("initial_speed", burst_speed)
+		get_parent().call_deferred("add_child", bullet)
 
 func _get_orbit_anchor() -> Node2D:
 	var best = _player

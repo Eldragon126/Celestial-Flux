@@ -64,28 +64,37 @@ func _predicted_player_position() -> Vector2:
 	if _player == null:
 		return global_position
 
-	var player_velocity = _player.get("velocity")
+	var player_velocity: Variant = _player.get("velocity")
+	if not player_velocity is Vector2:
+		player_velocity = Vector2.ZERO
 	return _player.global_position + player_velocity * lead_time
 
 func _build_body() -> void:
-	var collision = CollisionPolygon2D.new()
 	var poly = _fragment_points(30.0 * pow(0.68, generation))
-	collision.name = "CollisionPolygon2D"
-	collision.polygon = poly
-	add_child(collision)
+	if not has_node("CollisionPolygon2D"):
+		var collision = CollisionPolygon2D.new()
+		collision.name = "CollisionPolygon2D"
+		collision.polygon = poly
+		add_child(collision)
 
-	var visual = Polygon2D.new()
-	visual.name = "SeekerFragmentPolygon"
-	visual.color = Color(1.0, 0.18, 0.12, 1.0)
-	visual.polygon = poly
-	add_child(visual)
+	var visual := get_node_or_null("SeekerFragmentPolygon") as Polygon2D
+	if visual == null:
+		visual = Polygon2D.new()
+		visual.name = "SeekerFragmentPolygon"
+		visual.color = Color(1.0, 0.18, 0.12, 1.0)
+		add_child(visual)
+	if visual.polygon.is_empty():
+		visual.polygon = poly
 
 func _build_health() -> void:
-	_health = HealthComponent.new()
-	_health.name = "HealthComponent"
+	_health = get_node_or_null("HealthComponent") as HealthComponent
+	if _health == null:
+		_health = HealthComponent.new()
+		_health.name = "HealthComponent"
+		add_child(_health)
 	_health.max_health = max_health * pow(0.55, generation)
-	add_child(_health)
-	_health.died.connect(_on_died)
+	if not _health.died.is_connected(_on_died):
+		_health.died.connect(_on_died)
 
 func _calculate_gravity() -> Vector2:
 	var total = Vector2.ZERO

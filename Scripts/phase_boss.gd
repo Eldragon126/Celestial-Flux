@@ -63,6 +63,8 @@ func exit_phase(phase: int) -> void:
 	_on_exit_phase(phase)
 
 func attack_pattern_loop() -> void:
+	if is_queued_for_deletion() or current_phase <= 0:
+		return
 	_run_attack_pattern()
 
 func on_damage_taken(_amount: float) -> void:
@@ -81,12 +83,16 @@ func _on_exit_phase(_phase: int) -> void:
 	pass
 
 func _build_health() -> void:
-	health = HealthComponent.new()
-	health.name = "HealthComponent"
+	health = get_node_or_null("HealthComponent") as HealthComponent
+	if health == null:
+		health = HealthComponent.new()
+		health.name = "HealthComponent"
+		add_child(health)
 	health.max_health = max_health
-	add_child(health)
-	health.health_changed.connect(_on_health_changed)
-	health.died.connect(_on_died)
+	if not health.health_changed.is_connected(_on_health_changed):
+		health.health_changed.connect(_on_health_changed)
+	if not health.died.is_connected(_on_died):
+		health.died.connect(_on_died)
 
 func _build_attack_timer() -> void:
 	attack_timer = Timer.new()
@@ -109,5 +115,7 @@ func _on_health_changed(current_health: float, new_max_health: float) -> void:
 	boss_health_changed.emit(current_health, new_max_health)
 
 func _on_died() -> void:
+	if attack_timer != null:
+		attack_timer.stop()
 	boss_defeated.emit()
 	queue_free()

@@ -56,42 +56,59 @@ func take_damage(amount: float) -> void:
 		_health.take_damage(amount)
 
 func _build_body() -> void:
-	var glow = Polygon2D.new()
-	glow.name = "ChaosWispGlow"
-	glow.z_index = -1
-	glow.color = Color(0.16, 1.0, 0.44, 0.26)
-	glow.polygon = _circle_points(18, 42.0)
-	add_child(glow)
+	var glow := get_node_or_null("ChaosWispGlow") as Polygon2D
+	if glow == null:
+		glow = Polygon2D.new()
+		glow.name = "ChaosWispGlow"
+		glow.z_index = -1
+		glow.color = Color(0.16, 1.0, 0.44, 0.26)
+		add_child(glow)
+	if glow.polygon.is_empty():
+		glow.polygon = _circle_points(18, 42.0)
 
-	var core = Polygon2D.new()
-	core.name = "ChaosWispCore"
-	core.color = Color(0.2, 1.0, 0.46, 1.0)
-	core.polygon = _circle_points(7, 22.0)
-	add_child(core)
+	var core := get_node_or_null("ChaosWispCore") as Polygon2D
+	if core == null:
+		core = Polygon2D.new()
+		core.name = "ChaosWispCore"
+		core.color = Color(0.2, 1.0, 0.46, 1.0)
+		add_child(core)
+	if core.polygon.is_empty():
+		core.polygon = _circle_points(7, 22.0)
 
-	var collision = CollisionPolygon2D.new()
-	collision.name = "CollisionPolygon2D"
-	collision.polygon = core.polygon
-	add_child(collision)
+	if not has_node("CollisionPolygon2D"):
+		var collision = CollisionPolygon2D.new()
+		collision.name = "CollisionPolygon2D"
+		collision.polygon = core.polygon
+		add_child(collision)
 
-	var attack_area = Area2D.new()
-	attack_area.name = "AttackArea"
+	var attack_area := get_node_or_null("AttackArea") as Area2D
+	if attack_area == null:
+		attack_area = Area2D.new()
+		attack_area.name = "AttackArea"
+		add_child(attack_area)
 	attack_area.monitoring = true
-	attack_area.body_entered.connect(_on_attack_area_body_entered)
-	add_child(attack_area)
+	if not attack_area.body_entered.is_connected(_on_attack_area_body_entered):
+		attack_area.body_entered.connect(_on_attack_area_body_entered)
 
-	var shape = CollisionShape2D.new()
-	var circle = CircleShape2D.new()
-	circle.radius = 34.0
-	shape.shape = circle
-	attack_area.add_child(shape)
+	var shape := attack_area.get_node_or_null("AttackShape") as CollisionShape2D
+	if shape == null:
+		shape = CollisionShape2D.new()
+		shape.name = "AttackShape"
+		attack_area.add_child(shape)
+	if shape.shape == null:
+		var circle = CircleShape2D.new()
+		circle.radius = 34.0
+		shape.shape = circle
 
 func _build_health() -> void:
-	_health = HealthComponent.new()
-	_health.name = "HealthComponent"
+	_health = get_node_or_null("HealthComponent") as HealthComponent
+	if _health == null:
+		_health = HealthComponent.new()
+		_health.name = "HealthComponent"
+		add_child(_health)
 	_health.max_health = max_health
-	add_child(_health)
-	_health.died.connect(_on_died)
+	if not _health.died.is_connected(_on_died):
+		_health.died.connect(_on_died)
 
 func _pick_chaos_vector() -> void:
 	_vector_elapsed = 0.0
