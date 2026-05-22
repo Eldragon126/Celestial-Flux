@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://cxpw4dpxa72ea"]
+
+[ext_resource type="Script" uid="uid://bdcq8qrb1no4a" path="res://Scripts/Bosses/centrifuge_marshal_boss.gd" id="1_boss"]
+
+[node name="CentrifugeMarshalBoss" type="CharacterBody2D" unique_id=445667139 groups=["Objects_With_Gravity", "bosses", "enemies", "planets", "wave_enemy"]]
+script = ExtResource("1_boss")
+
+[node name="CentrifugeAura" type="Polygon2D" parent="." unique_id=698269621]
+z_index = -3
+color = Color(0.2, 0.82, 1, 0.1)
+
+[node name="CentrifugeCore" type="Polygon2D" parent="." unique_id=236575683]
+color = Color(0.35, 0.95, 1, 1)
+
+[node name="ShearHaloLine0" type="Line2D" parent="." unique_id=997292594]
+z_index = -4
+width = 2.4
+default_color = Color(0.35, 0.95, 1, 0.28)
+
+[node name="ShearHaloLine1" type="Line2D" parent="." unique_id=1579634316]
+z_index = -4
+width = 2.4
+default_color = Color(0.35, 0.95, 1, 0.28)
+
+[node name="ShearHaloLine2" type="Line2D" parent="." unique_id=2055837180]
+z_index = -4
+width = 2.4
+default_color = Color(0.35, 0.95, 1, 0.28)

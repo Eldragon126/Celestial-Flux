@@ -1,0 +1,57 @@
+[gd_scene format=3 uid="uid://bft736y7vrfdv"]
+
+[ext_resource type="Script" uid="uid://b21qhaniop41p" path="res://Scripts/the_abyss.gd" id="1_hmxhb"]
+[ext_resource type="PackedScene" uid="uid://bar4e30caja5p" path="res://Nodes/player.tscn" id="2_souor"]
+[ext_resource type="PackedScene" uid="uid://nfcuwc1hcu21" path="res://Nodes/black_hole.tscn" id="6_hmxhb"]
+[ext_resource type="Script" uid="uid://dk5kb2f3tf0y7" path="res://Scripts/time_dilation_manager.gd" id="6_r4pno"]
+[ext_resource type="Script" uid="uid://bik4q8pcaj1vy" path="res://Scripts/orbital_juice_manager.gd" id="7_juice"]
+
+[sub_resource type="Animation" id="Animation_souor"]
+resource_name = "Shoot"
+length = 0.4
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_7nq7w"]
+_data = {
+&"Shoot": SubResource("Animation_souor")
+}
+
+[sub_resource type="Environment" id="Environment_7nq7w"]
+background_mode = 3
+tonemap_mode = 3
+glow_enabled = true
+glow_intensity = 1.0
+fog_light_energy = 16.0
+fog_sun_scatter = 1.0
+fog_density = 0.715
+fog_height = -51.44
+fog_height_density = 16.0
+
+[node name="TheAbyss" type="Node2D" unique_id=189259211]
+script = ExtResource("1_hmxhb")
+planets_to_spawn = 6
+max_spawn_radius = 5000.0
+
+[node name="Player" parent="." unique_id=943672105 instance=ExtResource("2_souor")]
+position = Vector2(135, 227)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Player" unique_id=410853447]
+libraries/ = SubResource("AnimationLibrary_7nq7w")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1315056544]
+environment = SubResource("Environment_7nq7w")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="." unique_id=487829994]
+
+[node name="BlackHole" parent="." unique_id=1841234195 instance=ExtResource("6_hmxhb")]
+position = Vector2(5358, 1589)
+
+[node name="OrbitalJuiceManager" type="Node2D" parent="." unique_id=163104507 groups=["Orbital_Juice_Manager"]]
+script = ExtResource("7_juice")
+
+[node name="TimeDilationManager" type="Node" parent="." unique_id=665013840]
+process_mode = 3
+script = ExtResource("6_r4pno")
+use_global_time_scale = true
+metadata/_custom_type_script = "uid://dk5kb2f3tf0y7"
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=871820821]

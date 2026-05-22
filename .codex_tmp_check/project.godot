@@ -1,0 +1,17 @@
+config_version=5
+
+[application]
+config/name="OrbitronCheck"
+config/features=PackedStringArray("4.6")
+
+[autoload]
+Settings="*res://Scripts/settings.gd"
+RunProgress="*res://Scripts/run_progress.gd"
+
+[display]
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[physics]
+2d/default_gravity=0.0
+2d/default_gravity_vector=Vector2(0, 0)

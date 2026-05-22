@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/sniper_turret.gd" id="1_sniper"]
+
+[node name="SniperTurret" type="StaticBody2D"]
+script = ExtResource("1_sniper")
+
+[node name="TurretBasePolygon" type="Polygon2D" parent="."]
+color = Color(0.52, 0.14, 0.28, 1)
+
+[node name="SniperBarrelPolygon" type="Polygon2D" parent="."]
+color = Color(0, 0.88, 0.98, 1)
+
+[node name="ChargeParticles" type="GPUParticles2D" parent="."]
+position = Vector2(96, 0)
+emitting = false
+amount = 50
+lifetime = 0.6
+one_shot = true
+explosiveness = 1.0

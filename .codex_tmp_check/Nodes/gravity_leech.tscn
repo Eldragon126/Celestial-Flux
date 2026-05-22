@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://deeaihs58vwn"]
+
+[ext_resource type="Script" uid="uid://qtg8tt4a5xxq" path="res://Scripts/gravity_leech.gd" id="1_leech"]
+
+[node name="GravityLeech" type="CharacterBody2D" unique_id=332173923 groups=["Objects_With_Gravity", "enemies", "planets"]]
+script = ExtResource("1_leech")
+
+[node name="GravityLeechPolygon" type="Polygon2D" parent="."]
+color = Color(0.16, 0.46, 1, 1)
+
+[node name="DistortionFieldPolygon" type="Polygon2D" parent="."]
+z_index = -1
+color = Color(0.16, 0.46, 1, 0.12)
+
+[node name="DrainArea" type="Area2D" parent="."]
+monitoring = true
+
+[node name="DrainShape" type="CollisionShape2D" parent="DrainArea"]

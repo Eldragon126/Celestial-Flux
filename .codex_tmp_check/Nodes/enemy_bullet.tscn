@@ -1,0 +1,47 @@
+[gd_scene format=3 uid="uid://byxnprvxc3q3y"]
+
+[ext_resource type="Script" uid="uid://c28my4rfviwr7" path="res://Scripts/enemy_bullet.gd" id="1_a5yi5"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_a5yi5"]
+radius = 6.0827627
+
+[sub_resource type="Gradient" id="Gradient_sxmqc"]
+offsets = PackedFloat32Array(0.01459854, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_hs4g0"]
+gradient = SubResource("Gradient_sxmqc")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5071225, 0.50427353)
+fill_to = Vector2(0.8974359, 0.12820514)
+
+[node name="EnemyBullet" type="RigidBody2D" unique_id=1240722569 groups=["Projectiles", "enemy_projectiles"]]
+scale = Vector2(2, 2)
+mass = 0.25
+gravity_scale = 0.0
+contact_monitor = true
+max_contacts_reported = 2
+script = ExtResource("1_a5yi5")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=384327214]
+shape = SubResource("CircleShape2D_a5yi5")
+
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1761201752]
+energy = 2.0
+texture = SubResource("GradientTexture2D_hs4g0")
+
+[node name="Polygon2D" type="Polygon2D" parent="." unique_id=924676051]
+position = Vector2(43, 24)
+color = Color(0.99999684, 0.08704468, 0.7096414, 1)
+polygon = PackedVector2Array(-49, -24, -43, -18, -36.90355, -24.008644, -43, -30)
+uv = PackedVector2Array(-79.76105, -18.890343, -43.38037, 21.039673, 2.7609863, -21.552338, -36.281677, -76.56702)
+
+[node name="Timer" type="Timer" parent="." unique_id=92940570]
+wait_time = 60.0
+one_shot = true
+autostart = true
+
+[connection signal="body_entered" from="." to="." method="_on_body_entered"]
+[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]

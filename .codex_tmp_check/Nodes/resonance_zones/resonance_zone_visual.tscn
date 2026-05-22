@@ -1,0 +1,95 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://Scripts/resonance_zone_visual.gd" id="1_zone"]
+
+[sub_resource type="Gradient" id="Gradient_zone"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(0.2, 0.85, 1, 0.9, 0.05, 0.55, 1, 0.5, 0.02, 0.1, 0.5, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_zone"]
+gradient = SubResource("Gradient_zone")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_zone"]
+particle_flag_disable_z = true
+emission_shape = 1
+emission_sphere_radius = 48.0
+spread = 180.0
+initial_velocity_min = 8.0
+initial_velocity_max = 42.0
+orbit_velocity_min = -0.8
+orbit_velocity_max = 0.8
+gravity = Vector3(0, 0, 0)
+scale_min = 0.8
+scale_max = 3.2
+color_ramp = SubResource("GradientTexture1D_zone")
+
+[node name="ResonanceZoneVisual" type="Node2D"]
+z_index = -8
+script = ExtResource("1_zone")
+
+[node name="Core" type="Polygon2D" parent="."]
+z_index = -10
+color = Color(0.1, 0.75, 1, 0.18)
+
+[node name="ZoneParticles" type="GPUParticles2D" parent="."]
+z_index = -9
+amount = 32
+lifetime = 1.8
+randomness = 0.62
+process_material = SubResource("ParticleProcessMaterial_zone")
+
+[node name="OuterRing" type="Line2D" parent="."]
+z_index = -7
+closed = true
+width = 2.5
+default_color = Color(0.2, 0.9, 1, 0.75)
+
+[node name="InnerAccent" type="Line2D" parent="."]
+z_index = -6
+closed = true
+width = 1.4
+default_color = Color(1, 1, 1, 0.35)
+
+[node name="RuleGlyph0" type="Line2D" parent="."]
+z_index = -5
+width = 1.8
+
+[node name="RuleGlyph1" type="Line2D" parent="."]
+z_index = -5
+width = 1.8
+
+[node name="RuleGlyph2" type="Line2D" parent="."]
+z_index = -5
+width = 1.8
+
+[node name="RuleGlyph3" type="Line2D" parent="."]
+z_index = -5
+width = 1.8
+
+[node name="RuleGlyph4" type="Line2D" parent="."]
+z_index = -5
+width = 1.8
+
+[node name="RuleGlyph5" type="Line2D" parent="."]
+z_index = -5
+width = 1.8
+
+[node name="RuleGlyph6" type="Line2D" parent="."]
+z_index = -5
+width = 1.8
+
+[node name="RuleGlyph7" type="Line2D" parent="."]
+z_index = -5
+width = 1.8
+
+[node name="RuleLabel" type="Label" parent="."]
+z_index = -4
+offset_left = -106.0
+offset_top = -38.0
+offset_right = 106.0
+offset_bottom = -12.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "ZONE"
+horizontal_alignment = 1
+vertical_alignment = 1

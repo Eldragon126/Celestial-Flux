@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/shield_breaker_unit.gd" id="1_breaker"]
+
+[node name="ShieldBreakerUnit" type="CharacterBody2D" groups=["enemies"]]
+script = ExtResource("1_breaker")
+
+[node name="ShieldBreakerPolygon" type="Polygon2D" parent="."]
+color = Color(1, 0.16, 0.08, 1)
+
+[node name="DisruptionPulseRing" type="Polygon2D" parent="."]
+z_index = -1
+color = Color(1, 0.2, 0.08, 0.13)
+
+[node name="AttackArea" type="Area2D" parent="."]
+monitoring = true
+
+[node name="AttackShape" type="CollisionShape2D" parent="AttackArea"]

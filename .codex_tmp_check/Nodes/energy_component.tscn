@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://bk2ho773tc5mq"]
+
+[ext_resource type="Script" uid="uid://dpsx3wfpdu82q" path="res://Scripts/energy_component.gd" id="1_p8a5y"]
+
+[node name="EnergyComponent" type="Node" unique_id=1909979689]
+script = ExtResource("1_p8a5y")
+metadata/_custom_type_script = "uid://dpsx3wfpdu82q"

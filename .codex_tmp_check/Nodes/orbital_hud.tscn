@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://tkmwkw1ctkmd"]
+
+[ext_resource type="Script" uid="uid://c20asakrkjcem" path="res://Scripts/orbital_hud.gd" id="1_hud"]
+
+[node name="OrbitalHUD" type="CanvasLayer" unique_id=1161624231]
+script = ExtResource("1_hud")

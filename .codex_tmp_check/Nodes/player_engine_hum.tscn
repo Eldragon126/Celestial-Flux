@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/player_engine_hum.gd" id="1_hum"]
+
+[node name="PlayerEngineHum" type="AudioStreamPlayer2D"]
+script = ExtResource("1_hum")

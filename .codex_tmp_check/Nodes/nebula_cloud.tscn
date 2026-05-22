@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/nebula_cloud.gd" id="1_nebula"]
+
+[node name="NebulaCloud" type="Area2D"]
+script = ExtResource("1_nebula")

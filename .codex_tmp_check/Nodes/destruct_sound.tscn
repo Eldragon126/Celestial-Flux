@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://6p80c8esvo5c"]
+
+[ext_resource type="AudioStream" uid="uid://c58mjoxgl4g15" path="res://Assets/Sound Effects/explosion.wav" id="1_q4frp"]
+[ext_resource type="Script" uid="uid://busm8j8lq1yal" path="res://Scripts/destruct_sound.gd" id="2_1yt4s"]
+
+[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_1yt4s"]
+playback_mode = 1
+random_volume_offset_db = 10.0
+streams_count = 1
+stream_0/stream = ExtResource("1_q4frp")
+
+[node name="DestructSound" type="AudioStreamPlayer2D" unique_id=1796253815]
+stream = SubResource("AudioStreamRandomizer_1yt4s")
+bus = &"Player Sound Effects"
+script = ExtResource("2_1yt4s")
+
+[connection signal="finished" from="." to="." method="_on_finished"]

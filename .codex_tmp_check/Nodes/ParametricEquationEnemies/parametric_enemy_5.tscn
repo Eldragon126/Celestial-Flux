@@ -1,0 +1,46 @@
+[gd_scene format=3 uid="uid://c10f52t6u7nk2"]
+
+[ext_resource type="Script" uid="uid://bwsalobcwxpw7" path="res://Scripts/ParametricEquationScripts/parametric_enemy_2.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cgo7omjjvv108" path="res://Scripts/health_component.gd" id="2_health"]
+[ext_resource type="Script" uid="uid://baqf8o2ugmdvj" path="res://Scripts/gravity_component.gd" id="3_gravity"]
+
+[node name="ParametricSwarmArchitect" type="CharacterBody2D" unique_id=646356104 groups=["ParametricEnemies", "enemies"]]
+motion_mode = 1
+script = ExtResource("1_script")
+movement_type = 25
+equation_speed = 1.25
+orbit_scale = 340.0
+anchor_follow_speed = 2.8
+engine_thrust = 2100.0
+drag = 1.15
+max_speed = 760.0
+pursuit_bias = 0.34
+contact_damage = 22.0
+A = 360.0
+B = 260.0
+a = 5.0
+b = 4.0
+
+[node name="HealthComponent" type="Node" parent="." unique_id=1821001339]
+script = ExtResource("2_health")
+max_health = 420.0
+
+[node name="GravityComponent" type="Node" parent="." unique_id=709227806]
+script = ExtResource("3_gravity")
+gravity_constant = 95.0
+
+[node name="Body" type="Polygon2D" parent="." unique_id=1039969354]
+color = Color(1, 0.72, 0.12, 1)
+polygon = PackedVector2Array(54, 0, 24, 24, 0, 36, -24, 24, -54, 0, -24, -24, 0, -36, 24, -24)
+
+[node name="Collision" type="CollisionPolygon2D" parent="." unique_id=2077841001]
+polygon = PackedVector2Array(54, 0, 24, 24, 0, 36, -24, 24, -54, 0, -24, -24, 0, -36, 24, -24)
+
+[node name="Attack" type="Area2D" parent="." unique_id=174588934]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Attack" unique_id=389669003]
+polygon = PackedVector2Array(62, 0, 28, 28, 0, 44, -28, 28, -62, 0, -28, -28, 0, -44, 28, -28)
+
+[connection signal="died" from="HealthComponent" to="." method="_on_health_component_died"]
+[connection signal="health_changed" from="HealthComponent" to="." method="_on_health_component_health_changed"]
+[connection signal="body_entered" from="Attack" to="." method="_on_attack_body_entered"]

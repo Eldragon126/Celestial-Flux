@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/splitting_asteroid_bot.gd" id="1_split"]
+
+[node name="SplittingAsteroidBot" type="CharacterBody2D"]
+script = ExtResource("1_split")
+
+[node name="AsteroidBotPolygon" type="Polygon2D" parent="."]
+color = Color(0.72, 0.52, 0.38, 1)
+
+[node name="AttackArea" type="Area2D" parent="."]
+monitoring = true
+
+[node name="AttackShape" type="CollisionShape2D" parent="AttackArea"]
+
+[node name="RockChipParticles" type="GPUParticles2D" parent="."]
+z_index = -1
+amount = 28
+lifetime = 1.5
+randomness = 0.6
