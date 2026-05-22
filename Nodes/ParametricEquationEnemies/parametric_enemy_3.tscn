@@ -19,7 +19,6 @@ polygon = PackedVector2Array(-100, 0, 0, -100, 100, 0, 0, 100)
 
 [node name="HealthComponent" type="Node" parent="." unique_id=1515886988]
 script = ExtResource("2_rf05n")
-max_health = 1000.0
 metadata/_custom_type_script = "uid://cgo7omjjvv108"
 
 [node name="GravityComponent" type="Node" parent="." unique_id=1790313093]
