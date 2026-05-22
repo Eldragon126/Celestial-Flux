@@ -12,7 +12,7 @@ position = Vector2(465, 147)
 position = Vector2(-25, -2156)
 
 [node name="Planet2" parent="." unique_id=1745803084 instance=ExtResource("2_mbwu6")]
-position = Vector2(-31, 16)
+position = Vector2(-196, 171)
 
 [node name="Planet3" parent="." unique_id=1742669191 instance=ExtResource("2_mbwu6")]
 position = Vector2(181, 1325)

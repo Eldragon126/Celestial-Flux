@@ -1,1 +1,7 @@
 Some of the particle effects are NOT ATTACHED! Specifically, one that has white particles that burst in one direction. I know because, as a player, I see it spawning at the origin, and I don't know where it's supposed to work.
+
+Similar to the gravity arrows, make boss arrows and enemy arrows so that the player can know what to kill and where to kill it. 
+
+Do a run-through on EVERY boss and make sure each boss is completely fixed and works well.
+
+Make sure ALL bosses and enemies are editable in the inspector (e.g., the polygons are children of the parent, and GPU effects are children of the parent)

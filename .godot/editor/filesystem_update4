@@ -12,3 +12,6 @@ res://Scripts/wave_director.gd
 res://Nodes/centrifuge_marshal_boss.tscn
 res://Scripts/Bosses/centrifuge_marshal_boss.gd
 res://Scripts/the_abyss.gd
+res://Nodes/base_enemy.tscn
+res://Nodes/boss_v_player.tscn
+res://Nodes/ParametricEquationEnemies/parametric_testing_center.tscn
