@@ -3,4 +3,12 @@ res://Scripts/playershield.gdshader
 res://Scripts/pause_menu.gdshader
 res://Scripts/planet_1.gdshader
 res://Scripts/player.gdshader
-res://Scripts/title_screen.gd
+res://Nodes/the_abyss.tscn
+res://Scripts/debug_balance_overlay.gd
+res://Scripts/gameplay_teaching_director.gd
+res://Scripts/orbital_juice_manager.gd
+res://Scripts/run_progress.gd
+res://Scripts/wave_director.gd
+res://Nodes/centrifuge_marshal_boss.tscn
+res://Scripts/Bosses/centrifuge_marshal_boss.gd
+res://Scripts/the_abyss.gd

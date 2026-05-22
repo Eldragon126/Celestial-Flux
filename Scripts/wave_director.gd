@@ -28,6 +28,7 @@ const NULL_SERAPH_SCENE = preload("res://Nodes/null_vector_seraph_boss.tscn")
 const MAGNETAR_TWINS_SCENE = preload("res://Nodes/magnetar_twins_boss.tscn")
 const RIFT_WEAVER_SCENE = preload("res://Nodes/rift_weaver_boss.tscn")
 const POLYMORPH_BOSS_SCENE = preload("res://Nodes/ParametricEquationEnemies/polymorph_boss.tscn")
+const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.tscn")
 const PARAMETRIC_1_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn")
 const PARAMETRIC_2_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn")
 const PARAMETRIC_3_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn")
@@ -41,6 +42,10 @@ const PARAMETRIC_5_SCENE = preload("res://Nodes/ParametricEquationEnemies/parame
 @export var max_spawn_radius = 1220.0
 @export var boss_every_waves = 5
 @export var max_regular_enemies = 10
+@export var recovery_wave_interval: int = 4
+@export var recovery_spawn_multiplier: float = 0.55
+@export var recovery_rest_bonus: float = 2.5
+@export var early_wave_fire_rate_bonus: float = 1.38
 
 var _player: Node2D = null
 var _level_root: Node = null
@@ -141,6 +146,12 @@ func _spawn_regular_wave() -> void:
 	_seed_wave_hazards()
 
 	var roster = _build_wave_roster()
+	if recovery_wave_interval > 0 and _wave % recovery_wave_interval == 0:
+		var trimmed: Array = []
+		var keep_count := maxi(2, int(float(roster.size()) * recovery_spawn_multiplier))
+		for i in range(mini(keep_count, roster.size())):
+			trimmed.append(roster[i])
+		roster = trimmed
 	var delay: float = spawn_delay
 	if _is_late_game_wave():
 		delay = maxf(spawn_delay * 0.62, 0.22)
@@ -247,7 +258,10 @@ func _tune_enemy_for_wave(enemy: Node) -> void:
 	if enemy.get("max_speed") != null:
 		enemy.set("max_speed", float(enemy.get("max_speed")) * minf(1.0 + float(_wave) * 0.025, 1.45))
 	if enemy.get("fire_interval") != null:
-		enemy.set("fire_interval", maxf(float(enemy.get("fire_interval")) - float(_wave) * 0.045, 0.7))
+		var fire_interval := maxf(float(enemy.get("fire_interval")) - float(_wave) * 0.045, 0.7)
+		if _wave >= 2 and _wave <= 4:
+			fire_interval *= early_wave_fire_rate_bonus
+		enemy.set("fire_interval", fire_interval)
 
 	var health = enemy.get_node_or_null("HealthComponent")
 	if health != null:
@@ -302,7 +316,10 @@ func _complete_wave() -> void:
 	if _waves_halted or not _waves_enabled():
 		return
 
-	await get_tree().create_timer(rest_between_waves).timeout
+	var extra_rest := 0.0
+	if _is_late_game_wave() and _wave % 3 == 0:
+		extra_rest = recovery_rest_bonus
+	await get_tree().create_timer(rest_between_waves + extra_rest).timeout
 	_begin_next_wave()
 
 func _cleanup_tracking() -> void:
@@ -342,7 +359,7 @@ func _choose_boss_scene() -> PackedScene:
 		return _boss_scene_from_path(RunProgress.get_scheduled_boss_scene_path(_wave))
 
 	var boss_number = max(0, int(float(_wave) / float(max(1, boss_every_waves))) - 1)
-	var boss_index = boss_number % 6
+	var boss_index = boss_number % 7
 	if boss_index == 1:
 		return ACCRETION_CORE_SCENE
 	if boss_index == 2:
@@ -353,6 +370,8 @@ func _choose_boss_scene() -> PackedScene:
 		return RIFT_WEAVER_SCENE
 	if boss_index == 5:
 		return POLYMORPH_BOSS_SCENE
+	if boss_index == 6:
+		return CENTRIFUGE_MARSHAL_SCENE
 	return GRAVITY_WARDEN_SCENE
 
 func _boss_scene_from_path(path: String) -> PackedScene:
@@ -367,6 +386,8 @@ func _boss_scene_from_path(path: String) -> PackedScene:
 			return RIFT_WEAVER_SCENE
 		"res://Nodes/ParametricEquationEnemies/polymorph_boss.tscn":
 			return POLYMORPH_BOSS_SCENE
+		"res://Nodes/centrifuge_marshal_boss.tscn":
+			return CENTRIFUGE_MARSHAL_SCENE
 		_:
 			return GRAVITY_WARDEN_SCENE
 
@@ -381,6 +402,8 @@ func _boss_display_name(scene: PackedScene) -> String:
 		return "TIDAL RIFT WEAVER"
 	if scene == POLYMORPH_BOSS_SCENE:
 		return "THE POLYMORPH"
+	if scene == CENTRIFUGE_MARSHAL_SCENE:
+		return "CENTRIFUGE MARSHAL"
 	return "GRAVITY WARDEN"
 
 func _boss_node_prefix(scene: PackedScene) -> String:
@@ -394,6 +417,8 @@ func _boss_node_prefix(scene: PackedScene) -> String:
 		return "RiftWeaver"
 	if scene == POLYMORPH_BOSS_SCENE:
 		return "Polymorph"
+	if scene == CENTRIFUGE_MARSHAL_SCENE:
+		return "CentrifugeMarshal"
 	return "GravityWarden"
 
 func _on_boss_health_changed(current_health: float, max_health: float) -> void:

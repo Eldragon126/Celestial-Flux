@@ -2,6 +2,7 @@ extends Control
 
 @onready var audio_player: AudioStreamPlayer = $AudioStreamPlayer
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
+@onready var _starfield_backdrop: ColorRect = get_node_or_null("StarfieldBackdrop") as ColorRect
 
 func _ready() -> void:
 	if not RunProgress:
@@ -21,6 +22,8 @@ func _on_audio_stream_player_finished() -> void:
 
 
 func _process(_delta: float) -> void:
+	if _starfield_backdrop != null and _starfield_backdrop.material != null:
+		_starfield_backdrop.material.set_shader_parameter("real_time", Time.get_ticks_msec() / 1000.0)
 	if Input.is_action_just_pressed("Confirm") and Input.is_key_pressed(KEY_SHIFT):
 		if RunProgress.has_anchor:
 			_begin_continue()

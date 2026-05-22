@@ -22,6 +22,7 @@ class_name OrbitalVFXDirector
 @export var shockwave_template_path: NodePath = ^"Templates/KineticImpactBurst"
 @export var resonance_template_path: NodePath = ^"Templates/ResonanceLawBurst"
 @export var slingshot_template_path: NodePath = ^"Templates/SlingshotSparkleBurst"
+@export var ambient_template_path: NodePath = ^"Templates/AmbientSparkBurst"
 
 var _player: Node = null
 var _time_manager: Node = null
@@ -35,6 +36,7 @@ var _chaos_intensity: float = 0.0
 @onready var _shockwave_template: GPUParticles2D = get_node_or_null(shockwave_template_path) as GPUParticles2D
 @onready var _resonance_template: GPUParticles2D = get_node_or_null(resonance_template_path) as GPUParticles2D
 @onready var _slingshot_template: GPUParticles2D = get_node_or_null(slingshot_template_path) as GPUParticles2D
+@onready var _ambient_template: GPUParticles2D = get_node_or_null(ambient_template_path) as GPUParticles2D
 
 
 func _ready() -> void:
@@ -64,7 +66,7 @@ func _resolve_sources() -> void:
 
 
 func _configure_templates() -> void:
-	for template in [_time_template, _shockwave_template, _resonance_template, _slingshot_template]:
+	for template in [_time_template, _shockwave_template, _resonance_template, _slingshot_template, _ambient_template]:
 		if template == null:
 			continue
 		template.visible = false
@@ -80,6 +82,9 @@ func _connect_sources() -> void:
 	_connect_signal(_resonance_manager, &"resonance_field_pulsed", Callable(self, "_on_resonance_zone_pulsed"))
 	_connect_signal(_momentum, &"kinetic_shockwave_created", Callable(self, "_on_kinetic_shockwave_created"))
 	_connect_signal(_momentum, &"slingshot_mastery_triggered", Callable(self, "_on_slingshot_mastery_triggered"))
+	_connect_signal(_momentum, &"near_miss_velocity_gained", Callable(self, "_on_near_miss_velocity_gained"))
+	_connect_signal(_resonance_manager, &"resonance_zone_entered", Callable(self, "_on_resonance_zone_entered"))
+	call_deferred("_connect_ambient_sources")
 
 
 func _connect_signal(source: Node, signal_name: StringName, callable: Callable) -> void:
@@ -105,7 +110,7 @@ func _on_local_time_pocket_entered(target: Node, multiplier: float, _duration: f
 
 func _on_afterimage_spawned(position: Vector2, velocity: Vector2) -> void:
 	var speed_intensity := clampf(velocity.length() / 1600.0, 0.15, 0.72)
-	_spawn_burst(_slingshot_template, position, speed_intensity, Color(0.32, 1.0, 0.92, 1.0))
+	_spawn_burst(_time_template, position, speed_intensity, Color(0.32, 1.0, 0.92, 1.0))
 
 
 func _on_resonance_zone_pulsed(zone_data: Dictionary) -> void:
@@ -122,7 +127,57 @@ func _on_kinetic_shockwave_created(shockwave_data: Dictionary) -> void:
 	_spawn_burst(_shockwave_template, position, intensity, Color(1.0, 0.68, 0.28, 1.0))
 
 
+func _connect_ambient_sources() -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var wave_director := scene.find_child("WaveDirector", true, false)
+	_connect_signal(wave_director, &"wave_cleared", Callable(self, "_on_wave_cleared"))
+	if _player != null:
+		var inventory := _player.get_node_or_null("PowerupInventory")
+		_connect_signal(inventory, &"powerup_applied", Callable(self, "_on_powerup_applied"))
+		_connect_signal(inventory, &"orbital_satellite_captured", Callable(self, "_on_orbital_satellite_captured"))
+
+
+func _on_near_miss_velocity_gained(_target: Node, _amount: float) -> void:
+	var player_2d := _player as Node2D
+	if player_2d == null:
+		return
+	_spawn_burst(_ambient_template, player_2d.global_position, 0.28, Color(0.55, 1.0, 0.92, 1.0))
+
+
+func _on_resonance_zone_entered(zone_data: Dictionary) -> void:
+	var position: Vector2 = zone_data.get("midpoint", Vector2.ZERO)
+	var intensity := clampf(float(zone_data.get("intensity", 0.35)), 0.12, 0.55)
+	var color: Color = zone_data.get("zone_color", Color(0.2, 0.75, 1.0, 1.0))
+	_spawn_burst(_ambient_template, position, intensity, color)
+
+
+func _on_wave_cleared(_wave: int) -> void:
+	var player_2d := _player as Node2D
+	if player_2d == null:
+		return
+	_spawn_burst(_ambient_template, player_2d.global_position, 0.42, Color(0.35, 1.0, 0.88, 1.0))
+
+
+func _on_powerup_applied(_definition: PowerupDefinition, _stacks: int) -> void:
+	var player_2d := _player as Node2D
+	if player_2d == null:
+		return
+	_spawn_burst(_resonance_template, player_2d.global_position, 0.48, Color(1.0, 0.82, 0.28, 1.0))
+
+
+func _on_orbital_satellite_captured(projectile: Node, _stacks: int) -> void:
+	var projectile_2d := projectile as Node2D
+	if projectile_2d == null:
+		return
+	_spawn_burst(_ambient_template, projectile_2d.global_position, 0.36, Color(1.0, 0.86, 0.32, 1.0))
+
+
 func _on_slingshot_mastery_triggered(data: Dictionary) -> void:
+	var coordinator := JuiceCoordinator.find_coordinator(get_tree())
+	if coordinator != null and not coordinator.should_spawn_slingshot_vfx(data):
+		return
 	var player_2d := _player as Node2D
 	var fallback := player_2d.global_position if player_2d != null else global_position
 	var position: Vector2 = data.get("position", fallback)

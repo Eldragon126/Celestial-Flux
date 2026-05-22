@@ -39,6 +39,7 @@ func _process(_delta: float) -> void:
 
 
 func _connect_sources() -> void:
+	var scene := get_tree().current_scene
 	_resolve_sources()
 	_connect_signal(_time_manager, &"dilation_started", Callable(self, "_on_dilation_started"))
 	_connect_signal(_time_manager, &"dilation_ended", Callable(self, "_on_dilation_ended"))
@@ -52,6 +53,20 @@ func _connect_sources() -> void:
 	_connect_signal(_inventory, &"law_fusion_triggered", Callable(self, "_on_law_fusion_triggered"))
 	_connect_signal(_shield, &"shield_broken", Callable(self, "_on_shield_broken"))
 	_connect_signal(_shield, &"shield_restored", Callable(self, "_on_shield_restored"))
+	_connect_signal(_resonance_manager, &"resonance_zone_decayed_detailed", Callable(self, "_on_resonance_zone_decayed"))
+	_connect_signal(_momentum, &"kinetic_overload_ended", Callable(self, "_on_kinetic_overload_ended"))
+	_connect_signal(_time_manager, &"time_tear_intensity_changed", Callable(self, "_on_time_tear_intensity_changed"))
+	_connect_ambient_audio_sources(scene)
+
+
+func _connect_ambient_audio_sources(scene: Node) -> void:
+	if scene == null:
+		return
+	var arena := scene.find_child("ArenaDestabilizationManager", true, false)
+	_connect_signal(arena, &"chaos_level_changed", Callable(self, "_on_chaos_level_changed"))
+	for pocket in get_tree().get_nodes_in_group("gravity_tide_pocket"):
+		_connect_signal(pocket, &"pocket_activated", Callable(self, "_on_tide_pocket_activated"))
+		_connect_signal(pocket, &"pocket_expired", Callable(self, "_on_tide_pocket_expired"))
 
 
 func _resolve_sources() -> void:
@@ -107,6 +122,9 @@ func _on_kinetic_shockwave_created(shockwave_data: Dictionary) -> void:
 
 
 func _on_slingshot_mastery_triggered(data: Dictionary) -> void:
+	var coordinator := JuiceCoordinator.find_coordinator(get_tree())
+	if coordinator != null and not coordinator.should_play_slingshot_audio(data):
+		return
 	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
 	var position: Vector2 = data.get("position", _player.global_position if _player != null else Vector2.ZERO)
 	_play_positional_cue(PLAYER_SHOOT_STREAM, position, momentum_cue_volume_db - 2.0, lerpf(1.05, 1.72, score))
@@ -127,6 +145,35 @@ func _on_shield_broken() -> void:
 
 func _on_shield_restored(_amount: float, _current_energy: float, _max_capacity: float) -> void:
 	_play_player_cue(PLAYER_SHOOT_STREAM, shield_cue_volume_db - 2.0, 1.22)
+
+
+func _on_resonance_zone_decayed(zone_data: Dictionary) -> void:
+	var position: Vector2 = zone_data.get("midpoint", Vector2.ZERO)
+	_play_positional_cue(PLAYER_SHOOT_STREAM, position, resonance_cue_volume_db - 6.0, 0.52)
+
+
+func _on_kinetic_overload_ended(speed: float) -> void:
+	_play_player_cue(PLAYER_SHOOT_STREAM, momentum_cue_volume_db - 5.0, lerpf(0.7, 0.95, clampf(speed / 2000.0, 0.0, 1.0)))
+
+
+func _on_chaos_level_changed(value: float) -> void:
+	if value < 0.55:
+		return
+	_play_player_cue(PLAYER_SHOOT_STREAM, resonance_cue_volume_db - 8.0, lerpf(0.82, 1.1, value))
+
+
+func _on_tide_pocket_activated(_mode: int, position: Vector2) -> void:
+	_play_positional_cue(PLAYER_SHOOT_STREAM, position, time_cue_volume_db - 4.0, 0.88)
+
+
+func _on_tide_pocket_expired(_mode: int, position: Vector2) -> void:
+	_play_positional_cue(PLAYER_SHOOT_STREAM, position, time_cue_volume_db - 7.0, 0.62)
+
+
+func _on_time_tear_intensity_changed(intensity: float) -> void:
+	if intensity < 0.2:
+		return
+	_play_player_cue(PLAYER_SHOOT_STREAM, time_cue_volume_db - 2.0, lerpf(0.75, 1.25, intensity))
 
 
 func _play_zone_cue(zone_data: Dictionary, volume_offset: float) -> void:

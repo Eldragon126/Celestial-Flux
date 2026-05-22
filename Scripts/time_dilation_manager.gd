@@ -91,6 +91,7 @@ var _local_slow_effects: Dictionary = {}
 
 var _player: CharacterBody2D = null
 var _pause_menu: Node = null
+var _last_tear_intensity: float = 0.0
 
 # ============================================================
 # SIGNALS
@@ -110,6 +111,8 @@ signal local_time_pocket_entered(
 signal local_time_pocket_expired(target_id: int)
 
 signal afterimage_spawned(position: Vector2, velocity: Vector2)
+
+signal time_tear_intensity_changed(intensity: float)
 
 # ============================================================
 # READY
@@ -156,6 +159,7 @@ func _process(delta: float) -> void:
 		current_time_scale,
 		current_dilation_capacity
 	)
+	_emit_tear_intensity_if_changed()
 
 # ============================================================
 # PHYSICS
@@ -632,6 +636,21 @@ func _restore_global_time() -> void:
 
 	if sync_audio_pitch:
 		AudioServer.playback_speed_scale = base_time_scale
+
+func _emit_tear_intensity_if_changed() -> void:
+	var dilation_depth := 0.0
+	if is_dilating:
+		dilation_depth = clampf(1.0 - current_time_scale, 0.0, 1.0)
+	var capacity_ratio := 1.0
+	if initial_dilation_capacity > 0.0:
+		capacity_ratio = clampf(current_dilation_capacity / initial_dilation_capacity, 0.0, 1.0)
+	var local_pressure := clampf(float(_local_slow_effects.size()) / 12.0, 0.0, 1.0)
+	var intensity := clampf(dilation_depth * 0.55 + (1.0 - capacity_ratio) * 0.25 + local_pressure * 0.2, 0.0, 1.0)
+	if absf(intensity - _last_tear_intensity) < 0.03:
+		return
+	_last_tear_intensity = intensity
+	time_tear_intensity_changed.emit(intensity)
+
 
 func _dampen_velocity_for_local_slow(target: Node, multiplier: float) -> void:
 	if target.is_in_group("player_projectiles") or target.is_in_group("Player"):

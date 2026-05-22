@@ -61,6 +61,7 @@ var _time_dilation_manager: Node = null
 func _ready() -> void:
 	add_to_group("arena_hazard")
 	add_to_group("arena_destabilization_hazard")
+	add_to_group("gravity_tide_pocket")
 	_apply_mode_gravity_groups()
 
 	monitoring = true

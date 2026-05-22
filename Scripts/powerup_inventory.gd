@@ -229,6 +229,9 @@ func _apply_effect(definition: PowerupDefinition, stacks: int) -> void:
 					float(_player.get("orbit_control_bonus")) + definition.secondary_amount
 				)
 
+		&"momentum_shockwave_law":
+			_apply_momentum_shockwave_law(stacks)
+
 
 func _get_stack_for_effect(effect_type: StringName) -> int:
 	var best := 0
@@ -251,6 +254,7 @@ func _update_law_rules(delta: float) -> void:
 		return
 
 	_connect_momentum_component()
+	_update_momentum_shockwave_law()
 	_update_orbital_satellites(delta)
 	_update_singularity_death_hooks()
 	_update_time_fracture_storage(delta)
@@ -572,6 +576,30 @@ func _update_time_fracture_storage(delta: float) -> void:
 			_fling_satellites_with_time_fracture(impulse, stacks)
 
 	_was_time_dilating = is_dilating
+
+
+func _update_momentum_shockwave_law() -> void:
+	var stacks := get_stack_count(&"momentum_shockwave_law")
+	if _momentum_component == null or not is_instance_valid(_momentum_component):
+		return
+	if _momentum_component.get("shockwaves_enabled") != null:
+		_momentum_component.set("shockwaves_enabled", stacks > 0)
+	if stacks <= 0:
+		return
+	var definition := PowerupLibrary.get_definition(&"momentum_shockwave_law")
+	if definition == null:
+		return
+	if _momentum_component.get("shockwave_radius") != null:
+		_momentum_component.set("shockwave_radius", definition.radius + 40.0 * float(stacks - 1))
+	if _momentum_component.get("shockwave_force") != null:
+		_momentum_component.set("shockwave_force", 520.0 * definition.amount * (1.0 + definition.secondary_amount * float(stacks - 1)))
+
+
+func _apply_momentum_shockwave_law(stacks: int) -> void:
+	_update_momentum_shockwave_law()
+	if stacks <= 0:
+		return
+	trigger_player_action()
 
 
 func _connect_momentum_component() -> void:

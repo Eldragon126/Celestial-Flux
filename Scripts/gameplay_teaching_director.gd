@@ -85,6 +85,12 @@ func _update_context_prompt() -> void:
 	if _prompt_elapsed < prompt_interval:
 		return
 
+	var boss_hint := _upcoming_boss_hint()
+	if not boss_hint.is_empty():
+		_prompt_elapsed = 0.0
+		_show_prompt(boss_hint, Color(1.0, 0.82, 0.28, 1.0))
+		return
+
 	var projectile_count := _projectile_count()
 	if projectile_count >= max_projectile_warning_count:
 		_prompt_elapsed = 0.0
@@ -131,6 +137,35 @@ func _show_prompt(text: String, color: Color) -> void:
 	_prompt_label.text = text
 	_prompt_label.modulate = color
 	_root.visible = true
+
+
+func _upcoming_boss_hint() -> String:
+	if RunProgress == null:
+		return ""
+	var scene := get_tree().current_scene
+	if scene == null:
+		return ""
+	var wave_director := scene.find_child("WaveDirector", true, false)
+	if wave_director == null or not wave_director.has_method("get_current_wave"):
+		return ""
+	var next_wave := int(wave_director.call("get_current_wave")) + 1
+	if not RunProgress.is_boss_milestone_wave(next_wave):
+		return ""
+	var hints := [
+		"WARDEN APPROACHES: READ RESONANCE FIELDS",
+		"ACCRETION CORE: DODGE COMPRESSION DEBRIS",
+		"NULL SERAPH: WATCH TIME DISRUPTION LANES",
+		"MAGNETAR TWINS: TRACK PUSH/PULL WINDOWS",
+		"RIFT WEAVER: RIFT LANES MEET TIDE POCKETS",
+		"POLYMORPH: LAWS WILL SHIFT MID-FIGHT",
+		"CENTRIFUGE MARSHAL: DODGE ROTATING SHEAR HALOS",
+	]
+	var index := 0
+	for milestone in RunProgress.BOSS_MILESTONE_WAVES:
+		if milestone == next_wave:
+			break
+		index += 1
+	return hints[mini(index, hints.size() - 1)]
 
 
 func _projectile_count() -> int:

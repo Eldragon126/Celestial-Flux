@@ -973,8 +973,15 @@ func _apply_slingshot_camera_feedback(data: Dictionary) -> void:
 	if camera == null:
 		return
 
+	var coordinator := JuiceCoordinator.find_coordinator(get_tree())
+	if coordinator != null and not coordinator.should_apply_slingshot_camera(data):
+		return
+
 	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
 	score = min(score, 0.95)
+	var kick_scale := 1.0
+	if coordinator != null:
+		kick_scale = coordinator.camera_kick_scale_for_tier(coordinator.slingshot_tier_from_data(data))
 	
 	var tangent: Vector2 = data.get("tangent", Vector2.RIGHT)
 	if tangent.length_squared() <= 0.001:
@@ -987,10 +994,10 @@ func _apply_slingshot_camera_feedback(data: Dictionary) -> void:
 	elif grade == &"apex":
 		grade_boost = 1.55
 
-	_camera_feedback_offset += -tangent.normalized() * slingshot_camera_kick * (0.25 + score) * grade_boost
+	_camera_feedback_offset += -tangent.normalized() * slingshot_camera_kick * (0.25 + score) * grade_boost * kick_scale
 	_camera_feedback_offset = _camera_feedback_offset.limit_length(slingshot_camera_kick * 2.2)
 	var roll_axis := tangent.x if absf(tangent.x) > 0.05 else tangent.y
-	_camera_feedback_roll += slingshot_camera_roll * (0.25 + score) * grade_boost * signf(roll_axis)
+	_camera_feedback_roll += slingshot_camera_roll * (0.25 + score) * grade_boost * kick_scale * signf(roll_axis)
 	_camera_feedback_roll = clampf(_camera_feedback_roll, -slingshot_camera_roll * 2.1, slingshot_camera_roll * 2.1)
 
 func get_slingshot_debug_state() -> Dictionary:

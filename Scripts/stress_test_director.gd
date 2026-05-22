@@ -35,6 +35,7 @@ func run_extreme_arena_stress() -> void:
 	var origin := _player.global_position if _player != null else global_position
 	_spawn_gravity_wells(origin)
 	_spawn_projectile_storm(origin)
+	call_deferred("validate_performance_budgets")
 
 
 func clear_stress_test() -> void:
@@ -72,6 +73,38 @@ func _spawn_projectile_storm(origin: Vector2) -> void:
 			body.set_meta(&"stress_test_spawned", true)
 
 		_spawned.append(projectile)
+
+
+func validate_performance_budgets() -> Dictionary:
+	var scene := get_tree().current_scene
+	var report := {
+		"fps": Engine.get_frames_per_second(),
+		"projectiles": get_tree().get_nodes_in_group("Projectiles").size(),
+		"enemy_projectiles": get_tree().get_nodes_in_group("enemy_projectiles").size(),
+		"within_budget": true,
+	}
+	if scene == null:
+		return report
+
+	var budget := scene.find_child("PerformanceBudgetDirector", true, false)
+	if budget != null and budget.has_method("apply_budgets"):
+		budget.call("apply_budgets")
+	if budget != null and budget.has_method("get_budget_debug_state"):
+		report.merge(budget.call("get_budget_debug_state"), true)
+
+	var vfx := scene.find_child("OrbitalVFXDirector", true, false)
+	if vfx != null and vfx.has_method("get_vfx_debug_state"):
+		var vfx_state: Dictionary = vfx.call("get_vfx_debug_state")
+		report["vfx"] = vfx_state
+		var burst_cap := int(vfx_state.get("burst_cap", 99))
+		var active_bursts := int(vfx_state.get("active_bursts", 0))
+		report["within_budget"] = active_bursts <= burst_cap
+
+	var resonance := scene.find_child("GravityResonanceManager", true, false)
+	if resonance != null:
+		report["resonance_particle_cap"] = resonance.get("max_visual_particles_per_zone")
+
+	return report
 
 
 func _clear_spawned() -> void:

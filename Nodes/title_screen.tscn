@@ -5,6 +5,17 @@
 [ext_resource type="FontFile" uid="uid://o7ffc2o1u38m" path="res://Assets/Fonts/searider-falcon-font/SeariderFalconLaser-w1ze6.ttf" id="2_v554h"]
 [ext_resource type="AudioStream" uid="uid://cou7kmndp04qt" path="res://Assets/Songs/Orbital Drift.mp3" id="3_kf5hn"]
 [ext_resource type="FontFile" uid="uid://bni12e87in5aq" path="res://Assets/Fonts/edge-of-the-galaxy-font/EdgeOfTheGalaxyRegular-OVEa6.otf" id="3_kux1l"]
+[ext_resource type="Shader" uid="uid://cwu0khh13q40b" path="res://Scripts/pause_menu.gdshader" id="4_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_title"]
+shader = ExtResource("4_shader")
+shader_parameter/lineas = 48
+shader_parameter/velocidad = 0.85
+shader_parameter/ondulacion = 0.19
+shader_parameter/frecuencia = 5.0
+shader_parameter/color_a = Color(0.02, 0.08, 0.18, 0.2)
+shader_parameter/color_b = Color(0.08, 0.32, 0.62, 0.2)
+shader_parameter/real_time = 0.0
 
 [sub_resource type="Animation" id="Animation_60x4s"]
 resource_name = "ColorShift"
@@ -93,6 +104,16 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_kf5hn")
+
+[node name="StarfieldBackdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+material = SubResource("ShaderMaterial_title")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=925882595]
 libraries/ = SubResource("AnimationLibrary_joli2")

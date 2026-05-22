@@ -46,6 +46,7 @@ func apply_budgets() -> void:
 	_apply_vfx_budget(scene, low, medium)
 	_apply_enemy_ai_budget(scene, low, medium)
 	_apply_player_budget(low)
+	_apply_juice_coordinator_budget(scene, low)
 
 
 func _apply_resonance_budget(scene: Node, low: bool, medium: bool) -> void:
@@ -87,6 +88,14 @@ func _apply_enemy_ai_budget(scene: Node, low: bool, medium: bool) -> void:
 	_set_if_present(director, "max_tracked_enemies", 20 if low else (28 if medium else 34))
 	_set_if_present(director, "max_gravity_sources_sampled", 4 if low else 6)
 	_set_if_present(director, "max_bodies_per_field", 26 if low else (36 if medium else 48))
+
+
+func _apply_juice_coordinator_budget(scene: Node, low: bool) -> void:
+	var juice := scene.find_child("JuiceCoordinator", true, false)
+	if juice == null:
+		return
+	_set_if_present(juice, "low_performance_mode", low)
+	_set_if_present(juice, "disable_mastery_line2d", low)
 
 
 func _apply_player_budget(low: bool) -> void:

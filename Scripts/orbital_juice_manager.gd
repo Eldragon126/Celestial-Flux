@@ -17,6 +17,9 @@ const DEBUG_BALANCE_OVERLAY_SCENE = preload("res://Nodes/debug_balance_overlay.t
 const MOMENTUM_COMBAT_SCENE = preload("res://Nodes/momentum_combat_component.tscn")
 const GRAVITY_RESONANCE_SCENE = preload("res://Nodes/gravity_resonance_manager.tscn")
 const ORBITAL_VFX_DIRECTOR_SCENE = preload("res://Nodes/orbital_vfx_director.tscn")
+const JUICE_COORDINATOR_SCENE = preload("res://Nodes/juice_coordinator.tscn")
+const TIME_DILATION_SCENE = preload("res://Nodes/time_dilation_manager.tscn")
+const VISUAL_ESCALATION_SCENE = preload("res://Nodes/visual_escalation_director.tscn")
 const ARENA_DESTABILIZATION_SCENE = preload("res://Nodes/arena_destabilization_manager.tscn")
 const PHYSICS_AWARE_ENEMY_DIRECTOR_SCENE = preload("res://Nodes/physics_aware_enemy_director.tscn")
 const STRESS_TEST_DIRECTOR_SCENE = preload("res://Nodes/stress_test_director.tscn")
@@ -40,6 +43,7 @@ const PARAMETRIC_2_SCENE = preload("res://Nodes/ParametricEquationEnemies/parame
 const PARAMETRIC_3_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn")
 const PARAMETRIC_4_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_4.tscn")
 const PARAMETRIC_5_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn")
+const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.tscn")
 
 @export var attach_player_juice = true
 @export var attach_gameplay_teaching = true
@@ -55,9 +59,17 @@ const PARAMETRIC_5_SCENE = preload("res://Nodes/ParametricEquationEnemies/parame
 @export var enable_wave_game = true
 @export var enable_arena_destabilization = true
 @export var enable_physics_aware_enemy_ai = true
+@export_group("Developer Showcase")
 @export var enable_stress_test_tools = false
+@export var run_stress_test_on_ready = false
 @export var spawn_showcase_content = false
+@export var spawn_showcase_boss = true
 @export var spawn_parametric_showcase_content = false
+@export var showcase_alongside_wave_game = false
+@export var enable_dev_hotkeys = true
+@export var dev_showcase_key: int = KEY_F6
+@export var dev_stress_key: int = KEY_F8
+@export var dev_clear_stress_key: int = KEY_F9
 @export var near_miss_time_charge_multiplier: float = 0.14
 @export_group("Quality")
 @export_enum("Off", "Low", "High") var resonance_visual_quality: int = 2
@@ -66,10 +78,28 @@ const PARAMETRIC_5_SCENE = preload("res://Nodes/ParametricEquationEnemies/parame
 @export var low_performance_mode: bool = false
 
 var _installed = false
+var _stress_director: Node = null
 
 func _ready() -> void:
+	add_to_group("orbital_juice_manager")
 	# Defer installation so every existing level node has run its own _ready.
 	call_deferred("_install_modular_additions")
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not enable_dev_hotkeys:
+		return
+	var key_event := event as InputEventKey
+	if key_event == null or not key_event.pressed or key_event.echo:
+		return
+	if key_event.keycode == dev_showcase_key:
+		spawn_showcase_content_now()
+		get_viewport().set_input_as_handled()
+	elif key_event.keycode == dev_stress_key:
+		run_stress_test_now()
+		get_viewport().set_input_as_handled()
+	elif key_event.keycode == dev_clear_stress_key:
+		clear_stress_test_now()
+		get_viewport().set_input_as_handled()
 
 func _install_modular_additions() -> void:
 	if _installed:
@@ -93,10 +123,15 @@ func _install_modular_additions() -> void:
 	if attach_projectile_sparks:
 		_add_child_scene_once(level_root, SPARK_WATCHER_SCENE, "ProjectileSparkWatcher")
 
+	_add_child_scene_once(level_root, JUICE_COORDINATOR_SCENE, "JuiceCoordinator")
+
 	if enable_gravity_resonance:
 		# Resonance is the shared gravity telemetry layer: arena escalation,
 		# projectiles, VFX, and future audio hooks can all listen here.
 		_add_child_scene_once(level_root, GRAVITY_RESONANCE_SCENE, "GravityResonanceManager")
+
+	_add_child_scene_once(level_root, TIME_DILATION_SCENE, "TimeDilationManager")
+	_add_child_scene_once(level_root, VISUAL_ESCALATION_SCENE, "VisualEscalationDirector")
 
 	if player != null:
 		if attach_player_juice:
@@ -129,24 +164,26 @@ func _install_modular_additions() -> void:
 		_add_child_scene_once(level_root, ENEMY_READABILITY_SCENE, "EnemyReadabilityDirector")
 
 	if enable_stress_test_tools:
-		_add_child_scene_once(level_root, STRESS_TEST_DIRECTOR_SCENE, "StressTestDirector")
+		_stress_director = _add_child_scene_once(level_root, STRESS_TEST_DIRECTOR_SCENE, "StressTestDirector")
+		_configure_stress_director(run_stress_test_on_ready)
 
-	if enable_wave_game and player != null:
+	var run_wave_game := enable_wave_game and player != null and not (spawn_showcase_content and not showcase_alongside_wave_game)
+	if run_wave_game:
 		_add_child_scene_once(level_root, RUN_DIRECTOR_SCENE, "RunDirector")
 		_add_child_scene_once(level_root, WAVE_DIRECTOR_SCENE, "WaveDirector")
 		if enable_physics_aware_enemy_ai:
-			# Enemy AI director adds gravity-aware steering nudges while each
-			# enemy keeps ownership of its core script and attack behavior.
 			_add_child_scene_once(level_root, PHYSICS_AWARE_ENEMY_DIRECTOR_SCENE, "PhysicsAwareEnemyDirector")
 		if enable_arena_destabilization:
-			# Arena destabilization escalates the battlefield through additive
-			# hazards and emits chaos signals for later audio/VFX integration.
 			_add_child_scene_once(level_root, ARENA_DESTABILIZATION_SCENE, "ArenaDestabilizationManager")
-	elif spawn_showcase_content and player != null:
+
+	if spawn_showcase_content and player != null:
 		_spawn_showcase_content(level_root, player.global_position)
 		_refresh_player_planet_cache(player)
 
 	_apply_quality_settings(level_root)
+
+	if run_stress_test_on_ready:
+		call_deferred("run_stress_test_now")
 
 func _add_child_scene_once(parent: Node, scene: PackedScene, child_name: String) -> Node:
 	if parent == null:
@@ -158,6 +195,58 @@ func _add_child_scene_once(parent: Node, scene: PackedScene, child_name: String)
 	child.name = child_name
 	parent.add_child(child)
 	return child
+
+func spawn_showcase_content_now() -> void:
+	var level_root := get_tree().current_scene
+	var player := get_tree().get_first_node_in_group("Player")
+	if level_root == null or player == null:
+		return
+	_spawn_showcase_content(level_root, player.global_position)
+	_refresh_player_planet_cache(player)
+
+
+func run_stress_test_now() -> Dictionary:
+	var level_root := get_tree().current_scene
+	if level_root == null:
+		return {"ok": false}
+	if _stress_director == null or not is_instance_valid(_stress_director):
+		_stress_director = _add_child_scene_once(level_root, STRESS_TEST_DIRECTOR_SCENE, "StressTestDirector")
+	_configure_stress_director_enabled()
+	if _stress_director != null and _stress_director.has_method("run_extreme_arena_stress"):
+		_stress_director.call("run_extreme_arena_stress")
+	if _stress_director != null and _stress_director.has_method("validate_performance_budgets"):
+		return _stress_director.call("validate_performance_budgets")
+	return {"ok": true}
+
+
+func clear_stress_test_now() -> void:
+	if _stress_director != null and is_instance_valid(_stress_director) and _stress_director.has_method("clear_stress_test"):
+		_stress_director.call("clear_stress_test")
+
+
+func get_juice_debug_state() -> Dictionary:
+	var stress_state := {}
+	if _stress_director != null and _stress_director.has_method("get_stress_debug_state"):
+		stress_state = _stress_director.call("get_stress_debug_state")
+	return {
+		"showcase_enabled": spawn_showcase_content,
+		"stress_tools_enabled": enable_stress_test_tools,
+		"stress": stress_state,
+	}
+
+
+func _configure_stress_director_enabled() -> void:
+	if _stress_director == null:
+		return
+	if _stress_director.get("enabled") != null:
+		_stress_director.set("enabled", true)
+
+
+func _configure_stress_director(run_on_ready: bool) -> void:
+	_configure_stress_director_enabled()
+	if _stress_director.get("run_on_ready") != null:
+		_stress_director.set("run_on_ready", run_on_ready)
+
 
 func _spawn_showcase_content(level_root: Node, origin: Vector2) -> void:
 	# The positions are intentionally spread around the starting player area so
@@ -174,6 +263,9 @@ func _spawn_showcase_content(level_root: Node, origin: Vector2) -> void:
 	_spawn_node_once(level_root, GRAVITY_HARASSER_SCENE, "ShowcaseGravityHarasser", origin + Vector2(-960.0, 180.0))
 	_spawn_node_once(level_root, SNIPER_TURRET_SCENE, "ShowcaseSniperTurret", origin + Vector2(1450.0, -660.0))
 	_spawn_node_once(level_root, SHIELDER_SUPPORT_SCENE, "ShowcaseShielderSupport", origin + Vector2(-1060.0, 350.0))
+
+	if spawn_showcase_boss:
+		_spawn_node_once(level_root, CENTRIFUGE_MARSHAL_SCENE, "ShowcaseCentrifugeMarshal", origin + Vector2(0.0, -920.0))
 
 	if spawn_parametric_showcase_content:
 		_spawn_node_once(level_root, PARAMETRIC_1_SCENE, "ShowcaseParametricDrifter", origin + Vector2(-720.0, 780.0))
@@ -269,3 +361,10 @@ func _apply_quality_settings(level_root: Node) -> void:
 			budget.set("quality_tier", 0 if low_performance_mode else resonance_visual_quality)
 		if budget.has_method("apply_budgets"):
 			budget.call("apply_budgets")
+
+	var juice_coord := level_root.find_child("JuiceCoordinator", true, false)
+	if juice_coord != null:
+		if juice_coord.get("low_performance_mode") != null:
+			juice_coord.set("low_performance_mode", low_performance_mode)
+		if juice_coord.get("disable_mastery_line2d") != null:
+			juice_coord.set("disable_mastery_line2d", low_performance_mode)

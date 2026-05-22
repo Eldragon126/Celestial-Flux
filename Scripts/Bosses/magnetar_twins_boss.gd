@@ -121,8 +121,10 @@ func _fire_paired_shots() -> void:
 	if aim == Vector2.ZERO:
 		aim = Vector2.RIGHT.rotated(rotation)
 
-	for angle in [-0.18, 0.18]:
-		_spawn_bullet(aim.rotated(angle), projectile_speed)
+	if _polarity_sign > 0.0:
+		_spawn_bullet(aim, projectile_speed * 0.94)
+	else:
+		_spawn_bullet(aim.rotated(-0.12), projectile_speed * 0.88)
 
 func _spawn_bullet(direction: Vector2, speed: float) -> void:
 	var bullet = ENEMY_BULLET_SCENE.instantiate()

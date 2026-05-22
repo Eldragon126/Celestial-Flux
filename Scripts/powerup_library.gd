@@ -6,6 +6,7 @@ const SINGULARITY_AMPLIFIER = preload("res://Scripts/Powerups/singularity_amplif
 const TIME_FRACTURE_PULSE = preload("res://Scripts/Powerups/time_fracture_pulse.tres")
 const SHIELD_OVERCHARGE = preload("res://Scripts/Powerups/shield_overcharge.tres")
 const ORBITAL_TETHER_UPGRADE = preload("res://Scripts/Powerups/orbital_tether_upgrade.tres")
+const MOMENTUM_SHOCKWAVE_LAW = preload("res://Scripts/Powerups/momentum_shockwave_law.tres")
 
 static func get_all_definitions() -> Array[PowerupDefinition]:
 	return [
@@ -13,6 +14,7 @@ static func get_all_definitions() -> Array[PowerupDefinition]:
 		TIME_FRACTURE_PULSE,
 		SHIELD_OVERCHARGE,
 		ORBITAL_TETHER_UPGRADE,
+		MOMENTUM_SHOCKWAVE_LAW,
 	]
 
 static func get_definition(powerup_id: StringName) -> PowerupDefinition:

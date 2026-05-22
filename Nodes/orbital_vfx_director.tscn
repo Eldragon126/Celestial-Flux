@@ -158,6 +158,17 @@ randomness = 0.52
 fixed_fps = 60
 process_material = SubResource("ParticleProcessMaterial_sling")
 
+[node name="AmbientSparkBurst" type="GPUParticles2D" parent="Templates"]
+visible = false
+emitting = false
+amount = 28
+lifetime = 0.32
+one_shot = true
+explosiveness = 0.72
+randomness = 0.48
+fixed_fps = 60
+process_material = SubResource("ParticleProcessMaterial_sling")
+
 [node name="Bursts" type="Node2D" parent="."]
 top_level = true
 z_index = 42

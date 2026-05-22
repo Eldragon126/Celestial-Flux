@@ -72,6 +72,65 @@ func get_health_ratio() -> float:
 	return clampf(_health.current_health / _health.max_health, 0.0, 1.0)
 
 func _build_body() -> void:
+	if has_node("GravityAuraPolygon"):
+		_aura_polygon = get_node("GravityAuraPolygon") as Polygon2D
+		_core_polygon = get_node("WardenCorePolygon") as Polygon2D
+		if _aura_polygon != null and _aura_polygon.polygon.is_empty():
+			_aura_polygon.polygon = _circle_points(56, 148.0)
+		if _core_polygon != null and _core_polygon.polygon.is_empty():
+			_core_polygon.polygon = _circle_points(8, 42.0)
+	else:
+		_build_body_polygons()
+
+	if has_node("CollisionPolygon2D"):
+		return
+
+	var hull_polygon := PackedVector2Array([
+		Vector2(116.0, 0.0),
+		Vector2(58.0, 64.0),
+		Vector2(-28.0, 84.0),
+		Vector2(-106.0, 34.0),
+		Vector2(-126.0, 0.0),
+		Vector2(-106.0, -34.0),
+		Vector2(-28.0, -84.0),
+		Vector2(58.0, -64.0),
+	])
+	if has_node("WardenHullPolygon"):
+		var hull_node := get_node("WardenHullPolygon") as Polygon2D
+		if hull_node != null:
+			hull_polygon = hull_node.polygon
+
+	var collision = CollisionPolygon2D.new()
+	collision.name = "CollisionPolygon2D"
+	collision.polygon = hull_polygon
+	add_child(collision)
+
+	var attack_area = Area2D.new()
+	attack_area.name = "RamDamageArea"
+	attack_area.monitoring = true
+	attack_area.body_entered.connect(_on_ram_damage_area_body_entered)
+	add_child(attack_area)
+
+	var attack_shape = CollisionShape2D.new()
+	var circle = CircleShape2D.new()
+	circle.radius = 132.0
+	attack_shape.shape = circle
+	attack_area.add_child(attack_shape)
+
+	if has_node("BossGravityParticles"):
+		return
+
+	var particles = GPUParticles2D.new()
+	particles.name = "BossGravityParticles"
+	particles.z_index = -2
+	particles.amount = 120
+	particles.lifetime = 2.2
+	particles.randomness = 0.65
+	particles.process_material = _make_gravity_material()
+	add_child(particles)
+
+
+func _build_body_polygons() -> void:
 	_aura_polygon = Polygon2D.new()
 	_aura_polygon.name = "GravityAuraPolygon"
 	_aura_polygon.z_index = -3
@@ -100,31 +159,6 @@ func _build_body() -> void:
 	_core_polygon.polygon = _circle_points(8, 42.0)
 	add_child(_core_polygon)
 
-	var collision = CollisionPolygon2D.new()
-	collision.name = "CollisionPolygon2D"
-	collision.polygon = hull.polygon
-	add_child(collision)
-
-	var attack_area = Area2D.new()
-	attack_area.name = "RamDamageArea"
-	attack_area.monitoring = true
-	attack_area.body_entered.connect(_on_ram_damage_area_body_entered)
-	add_child(attack_area)
-
-	var attack_shape = CollisionShape2D.new()
-	var circle = CircleShape2D.new()
-	circle.radius = 132.0
-	attack_shape.shape = circle
-	attack_area.add_child(attack_shape)
-
-	var particles = GPUParticles2D.new()
-	particles.name = "BossGravityParticles"
-	particles.z_index = -2
-	particles.amount = 120
-	particles.lifetime = 2.2
-	particles.randomness = 0.65
-	particles.process_material = _make_gravity_material()
-	add_child(particles)
 
 func _build_health() -> void:
 	_health = HealthComponent.new()
@@ -223,16 +257,15 @@ func _fire_pattern() -> void:
 
 	if _phase == 1:
 		_command_resonance_field(GravityResonanceManager.ZoneType.HARMONIC_ORBIT)
-		_spawn_bullet(aim, projectile_speed)
+		_spawn_bullet(aim, projectile_speed * 0.92)
 	elif _phase == 2:
 		_command_resonance_field(GravityResonanceManager.ZoneType.COMPRESSION)
-		for angle in [-0.22, 0.0, 0.22]:
-			_spawn_bullet(aim.rotated(angle), projectile_speed * 1.05)
+		_spawn_bullet(aim, projectile_speed * 1.02)
 	else:
 		_command_resonance_field(GravityResonanceManager.ZoneType.INVERSION)
-		for i in range(8):
-			var ring_dir = aim.rotated(TAU * float(i) / 8.0 + _orbit_angle * 0.4)
-			_spawn_bullet(ring_dir, projectile_speed * 0.86)
+		for i in range(4):
+			var ring_dir = aim.rotated(TAU * float(i) / 4.0 + _orbit_angle * 0.4)
+			_spawn_bullet(ring_dir, projectile_speed * 0.82)
 
 func _spawn_bullet(direction: Vector2, speed: float) -> void:
 	var bullet = ENEMY_BULLET_SCENE.instantiate()

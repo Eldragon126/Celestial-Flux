@@ -10,10 +10,19 @@
 [ext_resource type="Script" uid="uid://i6fhtodnnkja" path="res://Scripts/orbital_trajectory_predictor.gd" id="7_0bouj"]
 [ext_resource type="Script" uid="uid://br88kgexjpay7" path="res://Scripts/gravity_visualization_component.gd" id="8_2hphp"]
 [ext_resource type="Script" uid="uid://8e10xg8c2op6" path="res://Scripts/projectile_predictor.gd" id="9_2hphp"]
+[ext_resource type="Shader" uid="uid://y7se2euonj6q" path="res://Scripts/player_hull.gdshader" id="10_hull"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_aoxlc"]
 radius = 8.0
 height = 60.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_hull"]
+shader = ExtResource("10_hull")
+shader_parameter/hull_color = Color(0.12, 0.72, 1, 0.92)
+shader_parameter/rim_color = Color(0.55, 1, 1, 1)
+shader_parameter/rim_strength = 0.85
+shader_parameter/pulse_speed = 2.4
+shader_parameter/pulse_amount = 0.22
 
 [sub_resource type="Gradient" id="Gradient_qlfej"]
 offsets = PackedFloat32Array(0.04347826, 0.48369566, 1)
@@ -81,7 +90,9 @@ drag_horizontal_enabled = true
 drag_vertical_enabled = true
 
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=141735977]
+material = SubResource("ShaderMaterial_hull")
 scale = Vector2(1.2552391, 1)
+color = Color(0.12, 0.72, 1, 0.92)
 offset = Vector2(16.18665, 0)
 polygon = PackedVector2Array(-16.18665, 16, -1.8467522, 0, -16.18665, -17, -51.23973, 0)
 

@@ -66,7 +66,7 @@ signal flow_state_changed(active: bool, intensity: float)
 @export var kinetic_impact_target_knockback: float = 380.0
 
 @export_group("Momentum Shockwaves")
-@export var shockwaves_enabled: bool = true
+@export var shockwaves_enabled: bool = false
 @export var shockwave_min_speed: float = 1050.0
 @export var shockwave_radius: float = 250.0
 @export var shockwave_force: float = 520.0
@@ -103,6 +103,7 @@ signal flow_state_changed(active: bool, intensity: float)
 @export var flow_visuals_enabled: bool = true
 @export var mastery_audio_enabled: bool = true
 @export var mastery_particle_cap: int = 18
+@export var great_ring_min_score: float = 0.7
 
 # ========================
 # == INTERNAL STATE ==
@@ -118,6 +119,7 @@ var _was_orbiting: bool = false
 
 var _near_miss_cooldowns: Dictionary = {}
 var _impact_cooldowns: Dictionary = {}
+var _last_impact_had_shockwave: bool = false
 var _mastery_combo: int = 0
 var _mastery_timer: float = 0.0
 var _flow_active: bool = false
@@ -358,7 +360,9 @@ func _on_impact(body: Node) -> void:
 		if _mastery_timer > 0.0:
 			var impact_position := _node_position_or_player(body)
 			_extend_mastery_combo(&"impact", impact_position)
-			_spawn_impact_mastery_flash(impact_position, damage)
+			_last_impact_had_shockwave = shockwaves_enabled and speed >= shockwave_min_speed
+			if _should_spawn_impact_mastery_flash(impact_position, damage):
+				_spawn_impact_mastery_flash(impact_position, damage)
 		if shockwaves_enabled and speed >= shockwave_min_speed:
 			_create_kinetic_shockwave(body, speed)
 
@@ -402,9 +406,9 @@ func _on_slingshot_mastery_scored(data: Dictionary) -> void:
 	momentum_combo_changed.emit(_mastery_combo, _current_mastery_tier(), _mastery_timer)
 	slingshot_mastery_triggered.emit(enriched)
 
-	if slingshot_visuals_enabled:
+	if slingshot_visuals_enabled and _should_spawn_slingshot_ring(enriched):
 		_spawn_slingshot_mastery_visual(enriched, true)
-	if mastery_audio_enabled:
+	if mastery_audio_enabled and _should_play_slingshot_audio(enriched):
 		_play_mastery_whoosh(enriched)
 
 func modify_slingshot_impulse(impulse: Vector2, _gravity: Vector2, _delta: float) -> Vector2:
@@ -620,7 +624,34 @@ func _update_flow_visuals(delta: float) -> void:
 		_aura_particles.emitting = intensity > 0.16
 		_aura_particles.amount = int(lerpf(12.0, float(mastery_particle_cap), intensity))
 
+func _should_spawn_slingshot_ring(data: Dictionary) -> bool:
+	var coordinator := JuiceCoordinator.find_coordinator(get_tree())
+	if coordinator != null:
+		return coordinator.should_spawn_slingshot_ring(data)
+	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
+	return score >= great_ring_min_score
+
+
+func _should_play_slingshot_audio(data: Dictionary) -> bool:
+	var coordinator := JuiceCoordinator.find_coordinator(get_tree())
+	if coordinator != null:
+		return coordinator.should_play_slingshot_audio(data)
+	return float(data.get("score", 0.0)) >= mastery_good_threshold
+
+
+func _should_spawn_impact_mastery_flash(_position: Vector2, _damage: float) -> bool:
+	var coordinator := JuiceCoordinator.find_coordinator(get_tree())
+	if coordinator != null:
+		return coordinator.should_spawn_impact_mastery_ring(
+			coordinator.get_chaos_intensity(get_tree()),
+			_last_impact_had_shockwave
+		)
+	return not _last_impact_had_shockwave
+
+
 func _spawn_slingshot_mastery_visual(data: Dictionary, mastered: bool) -> void:
+	if mastered and not _should_spawn_slingshot_ring(data):
+		return
 	var root := get_tree().current_scene
 	if root == null:
 		return

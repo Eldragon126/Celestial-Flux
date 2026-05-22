@@ -16,6 +16,8 @@ signal tidal_surge_triggered(enemy: Node, position: Vector2, radius: float)
 @export var gravity_source_refresh_interval: float = 0.4
 @export var max_bodies_per_field: int = 48
 @export var max_nudge_per_second: float = 520.0
+@export var late_game_nudge_scale: float = 0.58
+@export var late_game_max_tracked: int = 22
 @export var debug_logging: bool = false
 
 @export_group("Orbit Hunters")
@@ -110,11 +112,14 @@ func _refresh_targets() -> void:
 	
 	var kept := {}
 	var tracked_count := 0
-	
+	var track_cap := max_tracked_enemies
+	if _wave_nudge_scale() < 0.95:
+		track_cap = mini(track_cap, late_game_max_tracked)
+
 	for enemy in valid_enemies:
 		if not is_instance_valid(enemy):
 			continue
-		if tracked_count >= max_tracked_enemies:
+		if tracked_count >= track_cap:
 			break
 			
 		var id := enemy.get_instance_id()
@@ -394,10 +399,24 @@ func _refresh_gravity_sources() -> void:
 	if max_gravity_sources_sampled > 0 and _gravity_sources.size() > max_gravity_sources_sampled:
 		_gravity_sources.resize(max_gravity_sources_sampled)
 
+func _wave_nudge_scale() -> float:
+	if RunProgress == null:
+		return 1.0
+	var scene := get_tree().current_scene
+	if scene == null:
+		return 1.0
+	var wave_director := scene.find_child("WaveDirector", true, false)
+	if wave_director == null or not wave_director.has_method("get_current_wave"):
+		return 1.0
+	if int(wave_director.call("get_current_wave")) >= RunProgress.LATE_GAME_START_WAVE:
+		return late_game_nudge_scale
+	return 1.0
+
+
 func _apply_limited_impulse(enemy: Node, profile: StringName, impulse: Vector2, delta: float) -> void:
 	if impulse == Vector2.ZERO or not is_instance_valid(enemy):
 		return
-	var limited := impulse.limit_length(max_nudge_per_second) * delta
+	var limited := impulse.limit_length(max_nudge_per_second * _wave_nudge_scale()) * delta
 	CombatStatus.add_velocity(enemy, limited)
 	enemy_physics_nudge.emit(enemy, profile, limited)
 

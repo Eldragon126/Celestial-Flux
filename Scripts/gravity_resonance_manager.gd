@@ -18,9 +18,12 @@ signal chain_implosion_triggered(implosion_data: Dictionary)
 signal fracture_applied(position: Vector2, intensity: float)
 signal resonance_field_pulsed(zone_data: Dictionary)
 signal slingshot_resonance_amplified(zone_data: Dictionary)
+signal resonance_zone_entered(zone_data: Dictionary)
 
 enum ZoneType { COMPRESSION, SLIPSTREAM, INVERSION, TEMPORAL_SCAR, HARMONIC_ORBIT }
 enum VisualQuality { OFF, LOW, HIGH }
+
+const ZONE_VISUAL_SCENE := preload("res://Nodes/resonance_zones/resonance_zone_visual.tscn")
 
 const ZONE_TYPE_NAMES = {
 	ZoneType.COMPRESSION: &"compression",
@@ -121,6 +124,7 @@ var _source_refresh_elapsed: float = 999.0
 var _detection_elapsed: float = 999.0
 var _visual_root: Node2D = null
 var _zone_visuals: Dictionary = {}
+var _player_inside_zone_ids: Dictionary = {}
 var _time_dilation_manager: Node = null
 var _manual_zone_counter := 900000
 
@@ -790,79 +794,51 @@ func _update_zone_visual(zone: Dictionary, delta: float) -> void:
 		particles.emitting = intensity > 0.24 and resonance_visual_quality == VisualQuality.HIGH
 		if material != null:
 			material.emission_sphere_radius = radius * 0.86
+	_track_player_zone_entry(zone)
+
+func _track_player_zone_entry(zone: Dictionary) -> void:
+	var player := get_tree().get_first_node_in_group("Player") as Node2D
+	if player == null:
+		return
+	var zone_id := int(zone.get("id", 0))
+	if zone_id == 0:
+		return
+	var center: Vector2 = zone.get("midpoint", Vector2.ZERO)
+	var radius := _zone_radius(zone)
+	var inside := player.global_position.distance_squared_to(center) <= radius * radius
+	var was_inside := _player_inside_zone_ids.has(zone_id)
+	if inside and not was_inside:
+		_player_inside_zone_ids[zone_id] = true
+		if player.has_method("get_resonance_zone_at_position"):
+			var zone_data: Variant = call("get_resonance_zone_at_position", player.global_position)
+			if typeof(zone_data) == TYPE_DICTIONARY and not zone_data.is_empty():
+				resonance_zone_entered.emit(zone_data)
+	elif not inside and was_inside:
+		_player_inside_zone_ids.erase(zone_id)
+
 
 func _make_zone_visual(zone_id: int, zone_type: int) -> Dictionary:
 	_ensure_visual_root()
 	if _visual_root == null:
 		return {}
 
-	var root := Node2D.new()
-	root.name = "ResonanceZone_%d" % zone_id
-	root.z_index = -8
-	_visual_root.add_child(root)
+	var visual_node := ZONE_VISUAL_SCENE.instantiate() as ResonanceZoneVisual
+	if visual_node == null:
+		return {}
 
-	var core := Polygon2D.new()
-	core.name = "Core"
-	core.z_index = -10
-	root.add_child(core)
+	visual_node.name = "ResonanceZone_%d" % zone_id
+	_visual_root.add_child(visual_node)
 
-	var ring := Line2D.new()
-	ring.name = "OuterRing"
-	ring.closed = true
-	ring.antialiased = true
-	ring.z_index = -7
-	root.add_child(ring)
-
-	var accent := Line2D.new()
-	accent.name = "InnerAccent"
-	accent.closed = true
-	accent.antialiased = true
-	accent.z_index = -6
-	root.add_child(accent)
-
-	var glyphs: Array[Line2D] = []
-	for i in range(8):
-		var glyph := Line2D.new()
-		glyph.name = "RuleGlyph%d" % i
-		glyph.antialiased = true
-		glyph.z_index = -5
-		glyph.width = 1.8
-		root.add_child(glyph)
-		glyphs.append(glyph)
-
-	var label := Label.new()
-	label.name = "RuleLabel"
-	label.z_index = -4
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 12)
-	label.add_theme_color_override("font_color", Color.WHITE)
-	root.add_child(label)
-
-	var particles: GPUParticles2D = null
+	var visual := visual_node.to_visual_dictionary()
+	var particles := visual.get("particles") as GPUParticles2D
 	var material: ParticleProcessMaterial = null
-	if resonance_visual_quality == VisualQuality.HIGH and max_visual_particles_per_zone > 0:
-		particles = GPUParticles2D.new()
-		particles.name = "ZoneParticles"
-		particles.z_index = -9
+	if resonance_visual_quality == VisualQuality.HIGH and max_visual_particles_per_zone > 0 and particles != null:
 		particles.amount = max_visual_particles_per_zone
-		particles.lifetime = 1.8
-		particles.randomness = 0.62
 		material = _make_zone_particle_material(zone_type)
 		particles.process_material = material
-		root.add_child(particles)
-
-	return {
-		"root": root,
-		"core": core,
-		"ring": ring,
-		"accent": accent,
-		"glyphs": glyphs,
-		"label": label,
-		"particles": particles,
-		"particle_material": material,
-		"zone_type": zone_type,
-	}
+		visual["particle_material"] = material
+	visual["zone_type"] = zone_type
+	return visual
 
 func _update_zone_glyphs(glyphs: Array, zone_type: int, radius: float, intensity: float, base_color: Color) -> void:
 	var visible := enable_zone_glyphs and intensity > 0.16

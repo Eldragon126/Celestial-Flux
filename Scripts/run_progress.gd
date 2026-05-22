@@ -19,7 +19,7 @@ signal run_completed
 const SAVE_PATH := "user://run_anchor.save"
 const SAVE_VERSION := 1
 
-const BOSS_MILESTONE_WAVES: Array[int] = [5, 10, 15, 20, 25, 30]
+const BOSS_MILESTONE_WAVES: Array[int] = [5, 10, 15, 20, 25, 30, 35]
 const LATE_GAME_START_WAVE := 31
 const LATE_GAME_END_WAVE := 35
 const RUPTURE_DURATION_SEC := 75.0
@@ -31,6 +31,7 @@ const BOSS_SCENE_PATHS: Array[String] = [
 	"res://Nodes/magnetar_twins_boss.tscn",
 	"res://Nodes/rift_weaver_boss.tscn",
 	"res://Nodes/ParametricEquationEnemies/polymorph_boss.tscn",
+	"res://Nodes/centrifuge_marshal_boss.tscn",
 ]
 
 var phase: Phase = Phase.PHYSICS_WAVES

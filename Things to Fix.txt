@@ -1,2 +1,1 @@
-The following items are priority fixes to the project.
-- Time dilation no longer works AFTER I use the pause menu once. This needs to be fixed.
+Some of the particle effects are NOT ATTACHED! Specifically, one that has white particles that burst in one direction. I know because, as a player, I see it spawning at the origin, and I don't know where it's supposed to work.

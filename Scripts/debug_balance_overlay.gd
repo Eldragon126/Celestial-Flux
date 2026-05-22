@@ -21,6 +21,7 @@ var _arena_destabilization_manager: Node = null
 var _physics_aware_enemy_director: Node = null
 var _vfx_director: Node = null
 var _performance_budget_director: Node = null
+var _juice_manager: Node = null
 
 var _rows: Dictionary = {}
 var _elapsed: float = 0.0
@@ -109,6 +110,7 @@ func _build_overlay() -> void:
 	_add_row(rows, &"resonance", "Resonance")
 	_add_row(rows, &"arena", "Arena")
 	_add_row(rows, &"vfx", "VFX")
+	_add_row(rows, &"stress", "Stress")
 
 func _add_row(parent: VBoxContainer, key: StringName, label_text: String) -> void:
 	var row := HBoxContainer.new()
@@ -172,6 +174,9 @@ func _resolve_references(force: bool) -> void:
 	if force or not _is_valid_node(_performance_budget_director):
 		_performance_budget_director = _find_node_by_name(&"PerformanceBudgetDirector")
 
+	if force or not _is_valid_node(_juice_manager):
+		_juice_manager = get_tree().get_first_node_in_group("orbital_juice_manager")
+
 func _update_telemetry() -> void:
 	_set_row(&"wave", _format_wave_state())
 	_set_row(&"enemies", _format_enemy_count())
@@ -192,6 +197,7 @@ func _update_telemetry() -> void:
 	_set_row(&"resonance", _format_resonance_state())
 	_set_row(&"arena", _format_arena_state())
 	_set_row(&"vfx", _format_vfx_state())
+	_set_row(&"stress", _format_stress_state())
 
 # ==================== FORMATTING ====================
 
@@ -462,6 +468,21 @@ func _format_vfx_state() -> String:
 	var quality := int(_safe_float(state.get("quality"), 0.0))
 	var quality_text := "OFF" if quality <= 0 else ("LOW" if quality == 1 else "HIGH")
 	return "%s %d/%d chaos %d%%" % [quality_text, active, cap, int(round(chaos * 100.0))]
+
+
+func _format_stress_state() -> String:
+	if not _is_valid_node(_juice_manager) or not _juice_manager.has_method("get_juice_debug_state"):
+		return "F6 showcase F8 stress F9 clear"
+
+	var juice_state: Dictionary = _juice_manager.call("get_juice_debug_state")
+	var stress: Dictionary = juice_state.get("stress", {})
+	if stress.is_empty():
+		return "idle (F8 run)"
+
+	var spawned := int(stress.get("spawned", 0))
+	var projectiles := int(stress.get("projectile_count", 0))
+	var wells := int(stress.get("gravity_well_count", 0))
+	return "on %d nodes %d shots %d wells" % [spawned, projectiles, wells]
 
 # ==================== HELPERS ====================
 
