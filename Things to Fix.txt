@@ -1,3 +1,8 @@
-Do a run-through on EVERY boss and make sure each boss is completely fixed and works well.
+Do a run-through on EVERY boss and make sure each boss is completely fixed and works well. Bosses are way too easy with the exception of the polymorph boss. They basically kill themselves, especially when they have their own mass, because the player can use momentum combat to kill them super quickly. Momentum Combat needs to be adjusted.
+
+Enemy bullets orbit the player in a strange way. I expect them to have a force toward the player, but the bullets now "clip" into a fixed orbit that makes the game super easy.
+
+The orbital effects themselves are great, but the effects when you hit a "perfect" or "great" orbit are flash-bangs to players' eyes.
 
 Make sure ALL bosses and enemies are editable in the inspector (e.g., the polygons are children of the parent, and GPU effects are children of the parent)
+

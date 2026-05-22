@@ -1,0 +1,169 @@
+
+# 🌌 CORE PLAYER SFX
+
+* Player thrust / movement loop (low engine hum)
+* Boost burst (sharp acceleration whoosh)
+* Velocity wind shear (speed-based air tearing)
+* Direction change skid (inertia “snap” sound)
+* Low-speed drift hum (idle movement field noise)
+
+---
+
+# 🕳️ GRAVITY ABILITIES
+
+### Singularity System
+
+* Singularity spawn (deep inward bass fold)
+* Gravity pull loop (continuous suction hum)
+* Object capture “snap-in” sound
+* Compression buildup (rising pressure tone)
+* Collapse implosion (sub-bass drop + vacuum pop)
+* Singularity release / decay (low frequency unravel)
+
+### Repulsion System
+
+* Pulse charge-up (expanding tension rise)
+* Pulse release burst (shockwave air ring)
+* Knockback impact hits (multi-object ricochet pops)
+* Force field expansion ring (circular whoosh)
+
+### Orbital Tether
+
+* Tether attach (magnetic lock click)
+* Tether tension loop (elastic humming tone)
+* Orbit stabilization sound (locking resonance)
+* Tether break (sharp snap + echo recoil)
+
+### Gravity Shield
+
+* Shield activation (dome hum ignition)
+* Shield sustain loop (rotating harmonic field)
+* Impact deflection (curved hit distortion)
+* Shield break (crack + low collapse pulse)
+
+### Time Fracture
+
+* Time slow activation (glitch inhale)
+* Time distortion loop (warped ticking layer)
+* Micro stutter effect (audio frame skip)
+* Time restore snap (clean re-sync pulse)
+
+---
+
+# ☄️ ENEMY SFX
+
+### Small enemies (asteroids / drones)
+
+* Movement spin hum
+* Spin acceleration pitch rise
+* Collision light crack
+* Fragment break-off chirp
+* Death pop / debris scatter
+
+### Fast swarm enemies
+
+* Electrical buzzing cluster loop
+* Individual pass-by zips
+* Swarm density resonance (group hum)
+* Swarm death silence cut
+
+### Heavy enemies
+
+* Slow gravitational drag hum
+* Armor grinding movement sound
+* Impact heavy slam (low + mid layered hit)
+* Core destruction collapse (deep echo fall)
+
+### Elite enemies
+
+* Dual-tone presence hum
+* Phase shift movement sound
+* Ability activation signature burst
+* Death vacuum silence + delayed echo burst
+
+---
+
+# 💥 COMBAT & PHYSICS INTERACTIONS
+
+* Projectile launch sound (force snap / energy release)
+* Projectile flight whistling (velocity-dependent)
+* Hit impact (layered collision: entry + impact + rebound)
+* Armor hit vs weak hit variation
+* Multi-collision chain reaction sounds
+* Object-to-object collision (mass-dependent pitch shift)
+* Explosion (radial bass burst + debris scatter)
+* Shockwave propagation ring sound
+* Ricochet / bounce sound (angular metallic pop)
+
+---
+
+# 🌠 GRAVITY FIELD SFX (WORLD SYSTEM)
+
+* Gravity well activation hum
+* Continuous pull field loop
+* Gravity intensity ramp sound
+* Orbit path “whoosh loop” (circular motion cue)
+* Repulsion field ambient pressure noise
+* Field overlap interference distortion
+
+---
+
+# 🧠 UI / SYSTEM SFX
+
+* Menu open (system ignition click)
+* Menu navigation (orbital tick / lock-in sound)
+* Selection confirm (resonant click pulse)
+* Back / cancel (soft reverse fold tone)
+* Upgrade purchase (energy transfer chime)
+* Wave start (system boot surge)
+* Wave end (collapse release tone)
+* Score tick increments (tiny metallic pulse)
+* Death / run failure (gravity collapse drop + silence)
+
+---
+
+# 🪐 UPGRADES SFX (FAMILY IDENTITY)
+
+### Singularity upgrades
+
+* Deep folding resonance tone
+
+### Momentum upgrades
+
+* Rising pitch acceleration sweep
+
+### Repulsion upgrades
+
+* Expanding burst + pressure pop
+
+### Time Fracture upgrades
+
+* Glitch stutter + temporal echo
+
+### Orbital upgrades
+
+* Circular stereo swirl + harmonic lock-in
+
+---
+
+# 🌌 ENVIRONMENT / AMBIENCE
+
+* Arena low-frequency hum layer
+* Chaos-level distortion noise floor
+* Background particle shimmer
+* Spatial instability drift noise
+* High-wave interference static
+* “Reality pressure” sub-bass layer
+
+---
+
+# 🕳️ SPECIAL SYSTEM EVENTS
+
+* Gravity overload warning pulse
+* Arena instability warning distortion
+* Fracture wave transition crash sound
+* Boss spawn arrival distortion sweep
+* Boss phase shift sound (reality snap)
+* Near-death UI pulse (heartbeat + compression tone)
+
+---
