@@ -1,3 +1,4 @@
+Camera2D
 VBoxContainer
 Button
 CenterContainer
@@ -12,4 +13,3 @@ Area2D
 Polygon2D
 CollisionShape2D
 StaticBody2D
-GravityComponent

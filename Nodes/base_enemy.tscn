@@ -104,6 +104,9 @@ metadata/_custom_type_script = "uid://cgo7omjjvv108"
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="AttackArea" unique_id=131326220]
 polygon = PackedVector2Array(-36, 1, -36, -1, 0, -14, 22, 0, 0, 14)
 
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1198559868]
+zoom = Vector2(4, 4)
+
 [connection signal="finished" from="GPUParticles2D2" to="GPUParticles2D2" method="_on_finished"]
 [connection signal="died" from="HealthComponent" to="." method="_on_health_component_died"]
 [connection signal="body_entered" from="AttackArea" to="." method="_on_attack_area_body_entered"]

@@ -54,7 +54,7 @@ func _begin_continue() -> void:
 
 # UI Helper
 func _update_button_visibility() -> void:
-	var continue_btn = $MenuRoot/ContinueButton
+	var continue_btn = $Menu/ContinueButton
 	if continue_btn:
 		continue_btn.visible = RunProgress.has_anchor
 		continue_btn.disabled = not RunProgress.has_anchor
