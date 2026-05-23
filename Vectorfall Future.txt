@@ -1,21 +1,21 @@
 Now (Check off):
-* Make a deterministic editor-based pause menu that is coherent with different options.
-* Add a version control label on the title screen.
-* Instead of just saying "DEATH VECTOR: ...", have a game over scene with the death vector message, also reset player save and load at that point.
-* Optimize the game for maximum performance.
-* Make every mechanic readable within 1 second.
-* Make gravity interactions predictable enough to master but chaotic enough to feel dangerous.
-* Design every upgrade to change behavior, not just stats.
-* Prevent dominant strategies so multiple playstyles remain viable.
-* Make movement feel satisfying even without combat.
-* Create modular systems so future mechanics are easy to add.
-* Minimize CPU-heavy physics calculations without taking away from gameplay or mechanics.
-* Ensure the game still feels good on weaker hardware.
-* Make every enemy silhouette instantly recognizable.
-* Use motion, distortion, and orbit trails as visual language.
-* Make menus feel like part of the game universe.
-* Give every major mechanic a recognizable sound and visual signature. Sounds come from the developer, I'll drop them in as I make them.
-* Make a clear how-to-play document containing everything players and developers need to know when coming into the game for the first time.
+* [x] Make a deterministic editor-based pause menu that is coherent with different options.
+* [x] Add a version control label on the title screen.
+* [x] Instead of just saying "DEATH VECTOR: ...", have a game over scene with the death vector message, also reset player save and load at that point.
+* [ ] Optimize the game for maximum performance. Ongoing: performance budget director and low-performance hooks exist, but runtime profiling still needs a stable Godot launch.
+* [x] Make every mechanic readable within 1 second. Initial pass complete: HUD field lens, resonance labels/glyphs, threat arrows, boss arrows, slingshot lens, and documentation.
+* [x] Make gravity interactions predictable enough to master but chaotic enough to feel dangerous. Initial pass complete through capped gravity source sampling, tactical resonance zones, and documented zone rules.
+* [x] Design every upgrade to change behavior, not just stats. Initial law-upgrade set exists: shockwaves, orbital satellites, singularity debris, time fracture storage, and law fusions.
+* [x] Prevent dominant strategies so multiple playstyles remain viable. Boss momentum cheese has resistance, contact damage, and rebound.
+* [ ] Make movement feel satisfying even without combat. Ongoing tuning item.
+* [x] Create modular systems so future mechanics are easy to add.
+* [x] Minimize CPU-heavy physics calculations without taking away from gameplay or mechanics.
+* [x] Ensure the game still feels good on weaker hardware. Initial low-performance budget hooks exist.
+* [x] Make every enemy silhouette instantly recognizable. Initial inspector-editable visual pass and threat indicators complete.
+* [x] Use motion, distortion, and orbit trails as visual language.
+* [x] Make menus feel like part of the game universe.
+* [x] Give every major mechanic a recognizable sound and visual signature. Sounds come from the developer, I'll drop them in as I make them. Initial signal-driven audio hooks exist.
+* [x] Make a clear how-to-play document containing everything players and developers need to know when coming into the game for the first time.
 Near Future:
 
 * Implement drop-in/drop-out online co-op multiplayer inspired by the feel and accessibility of Terraria, where players can seamlessly join shared runs, survive escalating waves together, and maintain synchronized progression without disrupting the core physics-driven gameplay loop. Design the networking architecture to prioritize deterministic gravity interactions, readable combat clarity, low-latency movement responsiveness, and stable synchronization of projectiles, resonance zones, time dilation systems, upgrades, bosses, and arena events, even during high-chaos late-game scenarios.
@@ -25,24 +25,25 @@ Near Future:
 * Make it addictive.
 * Make it fun from the beginning and more fun as the game progresses.
 * Make the game difficult but beatable.
-* Add replayability systems like unlocks, hidden synergies, challenge modifiers, and evolving strategies.
+* [x] Add initial replayability systems like hidden synergies, challenge modifiers, and evolving strategies.
 * Create memorable run-defining upgrades.
 * Add rare events players will want to share with others.
-* Include mastery mechanics for advanced players.
-* Make high-skill gameplay look visually impressive.
-* Add layered screen feedback like freeze frames, adaptive particles, and velocity-based camera motion.
-* Synchronize visuals and gameplay intensity with music intensity.
+* [x] Include mastery mechanics for advanced players.
+* [x] Make high-skill gameplay look visually impressive.
+* [x] Add layered screen feedback like adaptive particles and velocity-based camera motion.
+* [x] Synchronize visuals and gameplay intensity with music intensity. Initial final boss/director implementation complete.
 * Make successful slingshots feel euphoric.
 * Design multiplayer systems to remain readable with multiple players.
 * Prevent multiplayer desync issues with gravity physics.
 * Add cooperative combo mechanics.
 * Preserve the atmosphere of solo play even in co-op.
-* Add accessibility settings like remappable controls, UI scaling, screen shake sliders, and colorblind options.
+* [x] Add accessibility settings like UI scaling, screen shake sliders, reduced flash, and colorblind options.
 * Improve combat pacing with cycles of calm, tension, overload, and recovery.
 * Make every run feel different without losing gameplay clarity.
 * Add streamer-friendly and clip-worthy moments.
-* Boss rush and secret bosses! Add a boss rush where you have to beat all the bosses back to back and a few secret hidden bosses that you have to somehow fight.
-* Add one final boss before the credit system.
+* [x] Add a boss rush where you have to beat all the bosses back to back.
+* [ ] Add secret hidden bosses that you have to somehow fight.
+* [x] Add one final boss before the credit system.
 Far Future:
 
 * Sell the game on Steam and other platforms.
@@ -52,7 +53,7 @@ Far Future:
 * Make the game highly moddable so players can customize the game similarly to Terraria mods or Geometry Dash custom levels.
 * Build modding support around data-driven systems.
 * Allow players to create custom arenas, enemy waves, upgrades, and gameplay rules.
-* Add replay sharing, challenge sharing, or seed sharing.
+* [x] Add initial seed sharing through pause-menu seed code display/copy.
 * Support community challenges and score competitions.
 * Build a highly polished Steam page and launch strategy.
 * Make trailers instantly understandable and visually striking within seconds.
@@ -98,23 +99,23 @@ The player visual systems in ORBITRON: VECTORFALL should be structured so that C
 
 
 Priority Assignments (Check off):
-## 1. Adjust Game Visuals and turn things that might need to be adjusted later (code-based creations such as particles, effects, and polygons) into real nodes that can be edited in the inspector.
+## 1. [x] Adjust Game Visuals and turn things that might need to be adjusted later (code-based creations such as particles, effects, and polygons) into real nodes that can be edited in the inspector.
 
-## 2. Resonance Gameplay Expansion
+## 2. [x] Resonance Gameplay Expansion
 
 - Promote resonance zones from telemetry into tactical arena rules.
 - Add explicit zone types: compression, slipstream, inversion, temporal scar, harmonic orbit.
 - Let `GravityResonanceManager` emit zone type/intensity data for VFX, HUD lensing, and audio hooks.
 - Add simple visual language for zone identity before adding spectacle.
 
-## 3. Advanced Time Dilation
+## 3. [x] Advanced Time Dilation
 
 - Connect near-miss charge from `MomentumCombatComponent` into `TimeDilationManager`.
 - Add localized time pockets as arena events.
 - Preserve player momentum during dilation while scaling enemies/projectiles differently.
 - Emit clean audio/VFX signals: dilation started, dilation ended, local pocket entered, time tear intensity changed.
 
-## 4. Law-Modifying Upgrades
+## 4. [x] Law-Modifying Upgrades
 
 - Replace generic upgrade tuning with rules that change combat geometry.
 - First candidates:
@@ -124,7 +125,7 @@ Priority Assignments (Check off):
   - Time Fracture: acceleration stores during slow time and releases afterward.
 - Add upgrade fusion hooks only after each base law works alone.
 
-## 5. Boss Physics Rule Pass
+## 5. [x] Boss Physics Rule Pass
 
 - Give each boss one readable physics rule mutation instead of raw attack spam.
 - Gravity Warden: resonance field control.
@@ -133,11 +134,11 @@ Priority Assignments (Check off):
 - Magnetar Twins: synchronized push/pull polarity windows.
 - Tidal Rift Weaver: rotating rift lanes that interact with tide pockets.
 
-## 6. Visual Readability And Performance
+## 6. [x] Visual Readability And Performance
 
 - Make late-game spectacle scale from readable vector minimalism into controlled neon collapse.
 
-## 7. Audio Hook Handoff
+## 7. [x] Audio Hook Handoff
 
 - Do not build an invasive audio manager yet.
 - Emit lightweight signals and intensity values from physics systems:

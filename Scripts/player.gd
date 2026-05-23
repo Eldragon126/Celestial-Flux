@@ -765,15 +765,19 @@ func _on_health_component_died():
 		return
 
 	_death_in_progress = true
-	death_lesson_generated.emit(_build_death_lesson())
-	call_deferred("_go_to_title_after_lesson")
+	var lesson := _build_death_lesson()
+	RunProgress.set_last_death_message(lesson)
+	death_lesson_generated.emit(lesson)
+	call_deferred("_go_to_game_over_after_lesson")
 
-func _go_to_title_after_lesson() -> void:
-	await get_tree().create_timer(2.2).timeout
-	_go_to_title()
+func _go_to_game_over_after_lesson() -> void:
+	await get_tree().create_timer(1.05).timeout
+	_go_to_game_over()
 
-func _go_to_title():
-	get_tree().change_scene_to_file("res://Nodes/title_screen.tscn")
+func _go_to_game_over() -> void:
+	Engine.time_scale = 1.0
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://Nodes/game_over_scene.tscn")
 
 func _build_death_lesson() -> String:
 	var speed := velocity.length()

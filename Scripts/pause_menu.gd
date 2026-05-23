@@ -11,6 +11,8 @@ signal pause_state_changed(blocked: bool)
 @export var music_fade_in_duration: float = 0.5
 @export var music_fade_out_duration: float = 0.15
 @export var target_music_volume_db: float = -10.0
+@export var title_scene_path: String = "res://Nodes/title_screen.tscn"
+@export var run_scene_path: String = "res://Nodes/the_abyss.tscn"
 
 @export_group("Pulse")
 @export var enable_pulse: bool = true
@@ -18,6 +20,15 @@ signal pause_state_changed(blocked: bool)
 @export var pulse_speed: float = 1.35
 
 @onready var music_player: AudioStreamPlayer = $PauseMusic
+@onready var resume_button: Button = get_node_or_null("MenuPanel/MenuRows/ResumeButton") as Button
+@onready var restart_button: Button = get_node_or_null("MenuPanel/MenuRows/RestartButton") as Button
+@onready var title_button: Button = get_node_or_null("MenuPanel/MenuRows/TitleButton") as Button
+@onready var ui_scale_slider: HSlider = get_node_or_null("MenuPanel/MenuRows/UIScaleRow/UIScaleSlider") as HSlider
+@onready var shake_slider: HSlider = get_node_or_null("MenuPanel/MenuRows/ShakeRow/ShakeSlider") as HSlider
+@onready var reduce_flash_check: CheckBox = get_node_or_null("MenuPanel/MenuRows/FlashRow/ReduceFlashCheck") as CheckBox
+@onready var color_mode_option: OptionButton = get_node_or_null("MenuPanel/MenuRows/ColorRow/ColorModeOption") as OptionButton
+@onready var seed_label: Label = get_node_or_null("MenuPanel/MenuRows/SeedRow/SeedLabel") as Label
+@onready var copy_seed_button: Button = get_node_or_null("MenuPanel/MenuRows/SeedRow/CopySeedButton") as Button
 
 var active := false
 var is_transitioning := false
@@ -27,6 +38,7 @@ var shader_time := 0.0
 var transition_tween: Tween
 var music_tween: Tween
 var pre_pause_time_scale: float = 1.0
+var _seed_copy_feedback_time: float = 0.0
 
 
 func _ready() -> void:
@@ -36,6 +48,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	music_player.process_mode = Node.PROCESS_MODE_ALWAYS
 	music_player.volume_db = -80.0
+	_connect_buttons()
+	_setup_accessibility_controls()
 
 
 func _process(_delta: float) -> void:
@@ -48,6 +62,8 @@ func _process(_delta: float) -> void:
 	if active and enable_pulse:
 		pulse_time += real_delta * pulse_speed
 		scale = Vector2.ONE * (1.0 + sin(pulse_time) * pulse_strength)
+	if active:
+		_update_seed_label(real_delta)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -169,3 +185,112 @@ func _kill_tweens() -> void:
 	if music_tween:
 		music_tween.kill()
 		music_tween = null
+
+
+func _connect_buttons() -> void:
+	if resume_button != null and not resume_button.pressed.is_connected(_on_resume_pressed):
+		resume_button.pressed.connect(_on_resume_pressed)
+	if restart_button != null and not restart_button.pressed.is_connected(_on_restart_pressed):
+		restart_button.pressed.connect(_on_restart_pressed)
+	if title_button != null and not title_button.pressed.is_connected(_on_title_pressed):
+		title_button.pressed.connect(_on_title_pressed)
+	if copy_seed_button != null and not copy_seed_button.pressed.is_connected(_on_copy_seed_pressed):
+		copy_seed_button.pressed.connect(_on_copy_seed_pressed)
+
+
+func _setup_accessibility_controls() -> void:
+	if Settings == null:
+		return
+
+	if ui_scale_slider != null:
+		ui_scale_slider.value = Settings.ui_scale
+		if not ui_scale_slider.value_changed.is_connected(_on_ui_scale_changed):
+			ui_scale_slider.value_changed.connect(_on_ui_scale_changed)
+
+	if shake_slider != null:
+		shake_slider.value = Settings.screen_shake_scale
+		if not shake_slider.value_changed.is_connected(_on_shake_changed):
+			shake_slider.value_changed.connect(_on_shake_changed)
+
+	if reduce_flash_check != null:
+		reduce_flash_check.button_pressed = Settings.reduce_flash
+		if not reduce_flash_check.toggled.is_connected(_on_reduce_flash_toggled):
+			reduce_flash_check.toggled.connect(_on_reduce_flash_toggled)
+
+	if color_mode_option != null:
+		color_mode_option.clear()
+		color_mode_option.add_item("STANDARD", 0)
+		color_mode_option.add_item("DEUTERANOPIA", 1)
+		color_mode_option.add_item("PROTANOPIA", 2)
+		color_mode_option.add_item("TRITANOPIA", 3)
+		color_mode_option.select(clampi(Settings.colorblind_mode, 0, color_mode_option.item_count - 1))
+		if not color_mode_option.item_selected.is_connected(_on_color_mode_selected):
+			color_mode_option.item_selected.connect(_on_color_mode_selected)
+
+
+func _on_resume_pressed() -> void:
+	if active:
+		_exit_pause()
+
+
+func _on_restart_pressed() -> void:
+	_force_unpause()
+	RunProgress.begin_new_run(false)
+	get_tree().change_scene_to_file(run_scene_path)
+
+
+func _on_title_pressed() -> void:
+	_force_unpause()
+	if RunProgress != null:
+		RunProgress.clear_anchor()
+	get_tree().change_scene_to_file(title_scene_path)
+
+
+func _on_copy_seed_pressed() -> void:
+	if RunProgress == null:
+		return
+	DisplayServer.clipboard_set(RunProgress.get_run_seed_code())
+	if copy_seed_button != null:
+		copy_seed_button.text = "COPIED"
+		_seed_copy_feedback_time = 1.0
+
+
+func _update_seed_label(delta: float) -> void:
+	if seed_label == null or RunProgress == null:
+		return
+	seed_label.text = "SEED %s" % RunProgress.get_run_seed_code()
+	_seed_copy_feedback_time = maxf(_seed_copy_feedback_time - delta, 0.0)
+	if copy_seed_button != null and copy_seed_button.text == "COPIED" and _seed_copy_feedback_time <= 0.0:
+		copy_seed_button.text = "COPY SEED"
+
+
+func _on_ui_scale_changed(value: float) -> void:
+	Settings.set_ui_scale(value)
+
+
+func _on_shake_changed(value: float) -> void:
+	Settings.set_screen_shake_scale(value)
+
+
+func _on_reduce_flash_toggled(enabled: bool) -> void:
+	Settings.set_reduce_flash(enabled)
+
+
+func _on_color_mode_selected(index: int) -> void:
+	if color_mode_option == null:
+		return
+	Settings.set_colorblind_mode(color_mode_option.get_item_id(index))
+
+
+func _force_unpause() -> void:
+	_kill_tweens()
+	active = false
+	is_transitioning = false
+	visible = false
+	scale = Vector2.ONE
+	Engine.time_scale = 1.0
+	get_tree().paused = false
+	if music_player != null:
+		music_player.stop()
+		music_player.volume_db = -80.0
+	_emit_pause_state()

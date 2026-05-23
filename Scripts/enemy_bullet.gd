@@ -70,7 +70,7 @@ func _auto_launch() -> void:
 		print("Enemy projectile auto-launched | Speed: ", linear_velocity.length())
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	var time_scale := CombatStatus.get_time_scale(self)
 	var total_force = Vector2.ZERO
 	
@@ -96,15 +96,19 @@ func _physics_process(_delta: float) -> void:
 			var strength = gravity_constant * p_mass / (effective_dist * effective_dist)
 			total_force += dir * strength * time_scale
 	
-	# Homing
-	if is_homing and is_instance_valid(target):
-		var homing_dir = (target.global_position - global_position).normalized()
-		total_force += homing_dir * homing_strength * time_scale
-		# Face target while homing
-		global_rotation = lerp_angle(global_rotation, homing_dir.angle(), clampf(time_scale, 0.12, 1.0))
-	
 	if total_force != Vector2.ZERO:
 		apply_force(total_force)
+
+	# Homing steering bends velocity toward the player instead of adding a radial force.
+	# That preserves curved bullets without letting them settle into harmless stable orbits.
+	if is_homing and is_instance_valid(target):
+		var homing_offset := target.global_position - global_position
+		if homing_offset.length_squared() > 1.0:
+			var homing_dir := homing_offset.normalized()
+			var desired_speed := clampf(linear_velocity.length(), initial_speed * 0.65, max_speed)
+			var desired_velocity := homing_dir * desired_speed
+			linear_velocity = linear_velocity.move_toward(desired_velocity, homing_strength * time_scale * delta)
+			global_rotation = lerp_angle(global_rotation, homing_dir.angle(), clampf(time_scale * delta * 8.0, 0.04, 0.32))
 	
 	# Speed cap
 	var effective_max_speed := max_speed * lerpf(0.42, 1.0, time_scale)

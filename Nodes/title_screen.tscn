@@ -105,7 +105,8 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_kf5hn")
 
-[node name="StarfieldBackdrop" type="ColorRect" parent="."]
+[node name="StarfieldBackdrop" type="ColorRect" parent="." unique_id=525539224]
+material = SubResource("ShaderMaterial_title")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -113,7 +114,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-material = SubResource("ShaderMaterial_title")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=925882595]
 libraries/ = SubResource("AnimationLibrary_joli2")
@@ -141,7 +141,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(1, 0, 1, 1)
 theme_override_fonts/font = ExtResource("1_idcrm")
 theme_override_font_sizes/font_size = 150
-text = "Orbital Drift"
+text = "VECTOR ANOMALY"
 vertical_alignment = 1
 
 [node name="Menu" type="VBoxContainer" parent="." unique_id=1362757039]
@@ -152,7 +152,7 @@ anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -210.0
-offset_top = -296.0
+offset_top = -360.0
 offset_right = 210.0
 offset_bottom = -118.0
 grow_horizontal = 2
@@ -185,7 +185,32 @@ theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 50
 text = "Challenge Mode"
 
+[node name="BossRushButton" type="Button" parent="Menu" unique_id=1290493900]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
+theme_override_font_sizes/font_size = 50
+text = "Boss Rush"
+
+[node name="VersionLabel" type="Label" parent="." unique_id=1069735682]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -210.0
+offset_top = -44.0
+offset_right = -24.0
+offset_bottom = -18.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.62, 0.9, 1, 0.62)
+theme_override_font_sizes/font_size = 18
+text = "v1.0.4.6"
+horizontal_alignment = 2
+
 [connection signal="finished" from="AudioStreamPlayer" to="." method="_on_audio_stream_player_finished"]
 [connection signal="pressed" from="Menu/NewRunButton" to="." method="_on_new_run_button_pressed"]
 [connection signal="pressed" from="Menu/ContinueButton" to="." method="_on_continue_button_pressed"]
 [connection signal="pressed" from="Menu/ChallengeButton" to="." method="_on_challenge_button_pressed"]
+[connection signal="pressed" from="Menu/BossRushButton" to="." method="_on_boss_rush_button_pressed"]

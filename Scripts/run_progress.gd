@@ -39,10 +39,13 @@ var wave_index: int = 0
 var bosses_defeated: int = 0
 var run_seed: int = 0
 var challenge_mode: bool = false
+var boss_rush_mode: bool = false
 var arena_flags: Dictionary = {}
+var challenge_modifiers: Dictionary = {}
 var powerup_stacks: Dictionary = {}
 var has_anchor: bool = false
 var run_finished: bool = false
+var last_death_message: String = ""
 
 var _rng := RandomNumberGenerator.new()
 
@@ -55,14 +58,28 @@ func begin_new_run(use_challenge: bool = false) -> void:
 	_rng.randomize()
 	run_seed = int(_rng.randi())
 	challenge_mode = use_challenge
+	boss_rush_mode = false
 	run_finished = false
 	wave_index = 0
 	bosses_defeated = 0
 	arena_flags.clear()
+	challenge_modifiers.clear()
 	powerup_stacks.clear()
+	last_death_message = ""
 	phase = Phase.CHALLENGE if challenge_mode else Phase.PHYSICS_WAVES
 	phase_changed.emit(Phase.PHYSICS_WAVES, phase)
 	clear_anchor()
+
+
+func begin_boss_rush() -> void:
+	begin_new_run(true)
+	boss_rush_mode = true
+	challenge_modifiers = {
+		"boss_rush": true,
+		"wave_rest_multiplier": 0.6,
+		"boss_health_multiplier": 1.12,
+	}
+	arena_flags["boss_rush"] = true
 
 
 func sync_phase_from_wave(wave: int) -> void:
@@ -92,9 +109,12 @@ func on_boss_defeated(boss_scene_path: String) -> void:
 	var idx := BOSS_SCENE_PATHS.find(boss_scene_path)
 	if idx >= 0:
 		bosses_defeated = maxi(bosses_defeated, idx + 1)
+		if idx < BOSS_MILESTONE_WAVES.size():
+			wave_index = maxi(wave_index, BOSS_MILESTONE_WAVES[idx])
 	if challenge_mode or phase >= Phase.RUPTURE:
 		return
-	if bosses_defeated >= BOSS_SCENE_PATHS.size() and wave_index >= LATE_GAME_END_WAVE:
+	var final_boss_defeated := idx == BOSS_SCENE_PATHS.size() - 1
+	if final_boss_defeated or (bosses_defeated >= BOSS_SCENE_PATHS.size() and wave_index >= LATE_GAME_END_WAVE):
 		enter_rupture()
 
 
@@ -158,7 +178,9 @@ func save_anchor() -> bool:
 		"bosses_defeated": bosses_defeated,
 		"run_seed": run_seed,
 		"challenge_mode": challenge_mode,
+		"boss_rush_mode": boss_rush_mode,
 		"arena_flags": arena_flags,
+		"challenge_modifiers": challenge_modifiers,
 		"powerup_stacks": powerup_stacks,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -193,7 +215,9 @@ func load_anchor() -> bool:
 	bosses_defeated = int(data.get("bosses_defeated", 0))
 	run_seed = int(data.get("run_seed", 0))
 	challenge_mode = bool(data.get("challenge_mode", false))
+	boss_rush_mode = bool(data.get("boss_rush_mode", false))
 	arena_flags = data.get("arena_flags", {})
+	challenge_modifiers = data.get("challenge_modifiers", {})
 	powerup_stacks = data.get("powerup_stacks", {})
 	run_finished = phase >= Phase.CREDITS
 	has_anchor = true
@@ -205,3 +229,12 @@ func clear_anchor() -> void:
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(SAVE_PATH)
 	has_anchor = false
+
+
+func set_last_death_message(message: String) -> void:
+	last_death_message = message
+
+
+func get_run_seed_code() -> String:
+	var mode := "boss_rush" if boss_rush_mode else ("challenge" if challenge_mode else "standard")
+	return "%s:%d:%d" % [mode, run_seed, wave_index]

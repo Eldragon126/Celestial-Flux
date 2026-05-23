@@ -1,0 +1,89 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://Scripts/music_resonance_boss.gd" id="1_boss"]
+
+[sub_resource type="Gradient" id="Gradient_trail"]
+offsets = PackedFloat32Array(0, 0.55, 1)
+colors = PackedColorArray(0.42, 1, 0.92, 0.72, 0.82, 0.36, 1, 0.48, 0.05, 0.1, 0.42, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_trail"]
+gradient = SubResource("Gradient_trail")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_trail"]
+particle_flag_disable_z = true
+emission_shape = 1
+emission_sphere_radius = 108.0
+spread = 180.0
+initial_velocity_min = 18.0
+initial_velocity_max = 92.0
+orbit_velocity_min = -0.8
+orbit_velocity_max = 1.2
+gravity = Vector3(0, 0, 0)
+radial_accel_min = -24.0
+radial_accel_max = 34.0
+scale_min = 1.4
+scale_max = 5.8
+color_ramp = SubResource("GradientTexture1D_trail")
+turbulence_enabled = true
+turbulence_noise_strength = 0.44
+
+[sub_resource type="Gradient" id="Gradient_light"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.42, 1, 0.92, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_light"]
+gradient = SubResource("Gradient_light")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[node name="MusicResonanceBoss" type="CharacterBody2D" groups=["Objects_With_Gravity", "bosses", "enemies", "planets", "wave_enemy"]]
+script = ExtResource("1_boss")
+
+[node name="ResonanceHull" type="Polygon2D" parent="."]
+z_index = 1
+color = Color(0.22, 0.7, 1, 0.78)
+polygon = PackedVector2Array(104, 0, 90.06664, 52, 52, 90.06664, 0, 104, -52, 90.06664, -90.06664, 52, -104, 0, -90.06664, -52, -52, -90.06664, 0, -104, 52, -90.06664, 90.06664, -52)
+
+[node name="ResonanceCore" type="Polygon2D" parent="."]
+z_index = 2
+color = Color(0.84, 1, 0.95, 1)
+polygon = PackedVector2Array(44, 0, 31.1127, 31.1127, 0, 44, -31.1127, 31.1127, -44, 0, -31.1127, -31.1127, 0, -44, 31.1127, -31.1127)
+
+[node name="ResonanceRing0" type="Line2D" parent="."]
+z_index = 0
+points = PackedVector2Array(128, 0, 0, 128, -128, 0, 0, -128, 128, 0)
+closed = true
+width = 2.2
+default_color = Color(0.42, 1, 0.92, 0.34)
+
+[node name="ResonanceRing1" type="Line2D" parent="."]
+z_index = 0
+points = PackedVector2Array(170, 0, 0, 170, -170, 0, 0, -170, 170, 0)
+closed = true
+width = 2.2
+default_color = Color(0.82, 0.36, 1, 0.3)
+
+[node name="ResonanceRing2" type="Line2D" parent="."]
+z_index = 0
+points = PackedVector2Array(212, 0, 0, 212, -212, 0, 0, -212, 212, 0)
+closed = true
+width = 2.2
+default_color = Color(1, 0.82, 0.25, 0.26)
+
+[node name="ResonanceTrail" type="GPUParticles2D" parent="."]
+z_index = -1
+amount = 72
+lifetime = 1.1
+randomness = 0.46
+fixed_fps = 45
+process_material = SubResource("ParticleProcessMaterial_trail")
+
+[node name="PointLight2D" type="PointLight2D" parent="."]
+energy = 1.55
+texture = SubResource("GradientTexture2D_light")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+polygon = PackedVector2Array(106, 0, 91.79869, 53, 53, 91.79869, 0, 106, -53, 91.79869, -91.79869, 53, -106, 0, -91.79869, -53, -53, -91.79869, 0, -106, 53, -91.79869, 91.79869, -53)

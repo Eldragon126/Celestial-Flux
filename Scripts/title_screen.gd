@@ -1,19 +1,24 @@
 extends Control
 
+@export var version_string: String = "v1.0.4.6"
+
 @onready var audio_player: AudioStreamPlayer = $AudioStreamPlayer
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 @onready var _starfield_backdrop: ColorRect = get_node_or_null("StarfieldBackdrop") as ColorRect
+@onready var _version_label: Label = get_node_or_null("VersionLabel") as Label
+
 
 func _ready() -> void:
 	if not RunProgress:
 		push_error("RunProgress autoload not found!")
 		return
-	
+
 	if audio_player:
 		audio_player.finished.connect(_on_audio_stream_player_finished, CONNECT_ONE_SHOT)
-	
+
 	_update_button_visibility()
-	print("✅ Title Screen ready | Has anchor: ", RunProgress.has_anchor)
+	_update_version_label()
+	print("Title Screen ready | Has anchor: ", RunProgress.has_anchor)
 
 
 func _on_audio_stream_player_finished() -> void:
@@ -29,7 +34,6 @@ func _process(_delta: float) -> void:
 			_begin_continue()
 
 
-# Button Callbacks
 func _on_new_run_button_pressed() -> void:
 	_begin_new_run(false)
 
@@ -42,7 +46,11 @@ func _on_challenge_button_pressed() -> void:
 	_begin_new_run(true)
 
 
-# Core Logic
+func _on_boss_rush_button_pressed() -> void:
+	RunProgress.begin_boss_rush()
+	get_tree().change_scene_to_file("res://Nodes/the_abyss.tscn")
+
+
 func _begin_new_run(use_challenge: bool = false) -> void:
 	RunProgress.begin_new_run(use_challenge)
 	get_tree().change_scene_to_file("res://Nodes/the_abyss.tscn")
@@ -55,9 +63,15 @@ func _begin_continue() -> void:
 		_begin_new_run(false)
 
 
-# UI Helper
 func _update_button_visibility() -> void:
-	var continue_btn = $Menu/ContinueButton
+	var continue_btn := get_node_or_null("Menu/ContinueButton") as Button
 	if continue_btn:
 		continue_btn.visible = RunProgress.has_anchor
 		continue_btn.disabled = not RunProgress.has_anchor
+
+
+func _update_version_label() -> void:
+	if _version_label == null:
+		return
+	var project_version := String(ProjectSettings.get_setting("application/config/version", ""))
+	_version_label.text = project_version if not project_version.is_empty() else version_string

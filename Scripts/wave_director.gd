@@ -177,7 +177,10 @@ func _spawn_boss_wave() -> void:
 	_last_boss_scene_path = boss_scene.resource_path
 	var boss = boss_scene.instantiate()
 	boss.name = "%sWave%d" % [_boss_node_prefix(boss_scene), _wave]
-	boss.set("max_health", 780.0 + 135.0 * float(_wave / boss_every_waves))
+	var boss_health := 780.0 + 135.0 * float(_wave / boss_every_waves)
+	if RunProgress and RunProgress.boss_rush_mode:
+		boss_health *= float(RunProgress.challenge_modifiers.get("boss_health_multiplier", 1.12))
+	boss.set("max_health", boss_health)
 	_level_root.add_child(boss)
 	boss.global_position = _spawn_position_for_index(_wave)
 	_refresh_player_planet_cache()
@@ -319,7 +322,10 @@ func _complete_wave() -> void:
 	var extra_rest := 0.0
 	if _is_late_game_wave() and _wave % 3 == 0:
 		extra_rest = recovery_rest_bonus
-	await get_tree().create_timer(rest_between_waves + extra_rest).timeout
+	var rest = rest_between_waves + extra_rest
+	if RunProgress and RunProgress.boss_rush_mode:
+		rest *= float(RunProgress.challenge_modifiers.get("wave_rest_multiplier", 0.6))
+	await get_tree().create_timer(rest).timeout
 	_begin_next_wave()
 
 func _cleanup_tracking() -> void:
@@ -336,6 +342,8 @@ func _cleanup_tracking() -> void:
 	_active_hazards = kept_hazards
 
 func _is_boss_wave() -> bool:
+	if RunProgress and RunProgress.boss_rush_mode:
+		return true
 	if RunProgress and not RunProgress.challenge_mode:
 		return RunProgress.is_boss_milestone_wave(_wave)
 	return boss_every_waves > 0 and _wave % boss_every_waves == 0
@@ -355,6 +363,9 @@ func _refresh_player_planet_cache() -> void:
 		_player.set("planets", get_tree().get_nodes_in_group("planets"))
 
 func _choose_boss_scene() -> PackedScene:
+	if RunProgress and RunProgress.boss_rush_mode:
+		var index = max(_wave - 1, 0) % RunProgress.BOSS_SCENE_PATHS.size()
+		return _boss_scene_from_path(RunProgress.BOSS_SCENE_PATHS[index])
 	if RunProgress and not RunProgress.challenge_mode:
 		return _boss_scene_from_path(RunProgress.get_scheduled_boss_scene_path(_wave))
 

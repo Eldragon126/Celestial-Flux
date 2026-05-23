@@ -64,6 +64,10 @@ signal flow_state_changed(active: bool, intensity: float)
 @export var kinetic_impact_cooldown: float = 0.42
 @export var kinetic_impact_player_boost: float = 58.0
 @export var kinetic_impact_target_knockback: float = 380.0
+@export var boss_kinetic_damage_multiplier: float = 0.35
+@export var boss_contact_damage: float = 15.0
+@export var boss_contact_bounce_min_speed: float = 800.0
+@export var boss_contact_bounce_speed_multiplier: float = 0.8
 
 @export_group("Momentum Shockwaves")
 @export var shockwaves_enabled: bool = false
@@ -353,6 +357,9 @@ func _on_impact(body: Node) -> void:
 		var damage = lerpf(kinetic_impact_damage_min, kinetic_impact_damage_max, clampf(speed / kinetic_impact_full_speed, 0.0, 1.0))
 		if _mastery_combo > 0:
 			damage *= 1.0 + float(_mastery_combo) * mastery_impact_damage_bonus_per_combo
+		if body.is_in_group("bosses"):
+			damage *= boss_kinetic_damage_multiplier
+			_apply_boss_contact_rebound(body, speed)
 		body.call("take_damage", damage)
 		_speed_cap_bonus = maxf(_speed_cap_bonus, impact_speed_cap_bonus)
 		_impact_cooldowns[id] = Time.get_ticks_msec() + (kinetic_impact_cooldown * 1000)
@@ -468,6 +475,7 @@ func _create_kinetic_shockwave(primary_target: Node, speed: float) -> void:
 
 	if shockwave_visual_enabled:
 		_spawn_shockwave_visual(center)
+
 
 func _spawn_shockwave_visual(center: Vector2) -> void:
 	var root := get_tree().current_scene
@@ -712,12 +720,13 @@ func _spawn_combo_ping(position: Vector2, reason: StringName) -> void:
 	var color := Color(0.35, 1.0, 0.84, 0.58)
 	if reason == &"impact":
 		color = Color(1.0, 0.72, 0.26, 0.88)
+	color.a = _flash_alpha(color.a)
 	_spawn_transient_ring(position, 24.0 + 6.0 * float(_mastery_combo), color, 0.18, 3.5)
 
 func _spawn_impact_mastery_flash(position: Vector2, damage: float) -> void:
 	# BUG FIX 4: Smaller radius base, clamped damage scaling, reduced width and transparency
 	var radius := 36.0 + clampf(damage * 0.5, 0.0, 60.0) 
-	_spawn_transient_ring(position, radius, Color(1.0, 0.32, 0.18, 0.45), 0.22, 2.5)
+	_spawn_transient_ring(position, radius, Color(1.0, 0.32, 0.18, _flash_alpha(0.45)), 0.22, 2.5)
 
 func _spawn_transient_ring(center: Vector2, radius: float, color: Color, duration: float, width: float) -> void:
 	var root := get_tree().current_scene
@@ -765,15 +774,33 @@ func _play_mastery_whoosh(data: Dictionary) -> void:
 func _grade_color(grade: StringName, mastered: bool) -> Color:
 	match grade:
 		&"apex":
-			return Color(1.0, 0.9, 0.25, 0.28)
+			return Color(1.0, 0.9, 0.25, _flash_alpha(0.10))
 		&"perfect":
-			return Color(0.35, 1.0, 0.88, 0.66)
+			return Color(0.35, 1.0, 0.88, _flash_alpha(0.18))
 		&"great":
-			# BUG FIX 5: Dropped the transparency of the 'great' UI ping down to 0.10
-			return Color(0.22, 0.72, 1.0, 0.10)
+			return Color(0.22, 0.72, 1.0, _flash_alpha(0.08))
 		&"good":
-			return Color(0.42, 0.86, 1.0, 0.42)
-	return Color(0.48, 0.66, 0.84, 0.68 if mastered else 0.46)
+			return Color(0.42, 0.86, 1.0, _flash_alpha(0.12))
+	return Color(0.48, 0.66, 0.84, _flash_alpha(0.68 if mastered else 0.46))
+
+
+func _apply_boss_contact_rebound(body: Node, speed: float) -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	if boss_contact_damage > 0.0 and _player.has_method("take_damage"):
+		_player.call("take_damage", boss_contact_damage)
+
+	var body_2d := body as Node2D
+	var push_dir := Vector2.ZERO
+	if body_2d != null:
+		push_dir = _player.global_position - body_2d.global_position
+	if push_dir.length_squared() <= 0.001:
+		push_dir = -_player.velocity.normalized()
+	if push_dir.length_squared() <= 0.001:
+		push_dir = Vector2.UP
+
+	_player.velocity = push_dir.normalized() * maxf(speed * boss_contact_bounce_speed_multiplier, boss_contact_bounce_min_speed)
 
 func _make_flow_particle_material() -> ParticleProcessMaterial:
 	var gradient := Gradient.new()
@@ -799,6 +826,12 @@ func _make_flow_particle_material() -> ParticleProcessMaterial:
 	material.scale_max = 4.8
 	material.color_ramp = texture
 	return material
+
+
+func _flash_alpha(alpha: float) -> float:
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return Settings.flash_alpha(alpha)
+	return alpha
 
 func _node_position_or_player(node: Node) -> Vector2:
 	var node_2d := node as Node2D

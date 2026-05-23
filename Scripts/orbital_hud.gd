@@ -40,11 +40,17 @@ var _threat_refresh_elapsed := 999.0
 
 # Cache the current intensity to avoid repeated get_shader_parameter calls
 var _current_vignette_intensity: float = 0.0
+var _last_ui_scale: float = 1.0
 
 func _ready() -> void:
 	layer = 40
 	_build_hud()
 	_player = get_tree().get_first_node_in_group("Player") as Node2D
+	_apply_accessibility_settings()
+	if Settings != null and Settings.has_signal("accessibility_changed"):
+		var callable := Callable(self, "_on_accessibility_changed")
+		if not Settings.is_connected("accessibility_changed", callable):
+			Settings.connect("accessibility_changed", callable)
 
 
 func _process(delta: float) -> void:
@@ -63,6 +69,7 @@ func _process(delta: float) -> void:
 	_update_health_vignette(delta)
 	_update_nav_arrows(gravity_strength)
 	_update_threat_arrows(delta)
+	_apply_accessibility_settings()
 
 
 # ============================
@@ -230,7 +237,7 @@ func _make_screen_arrow(node_name: String, color: Color, arrow_scale: float, z: 
 		Vector2(0.0, 6.0),
 		Vector2(-13.0, 12.0),
 	])
-	arrow.color = color
+	arrow.color = _readability_color(color)
 	arrow.scale = Vector2.ONE * arrow_scale
 	arrow.z_index = z
 	arrow.visible = false
@@ -268,7 +275,7 @@ func _update_gravity_meter() -> float:
 	
 	_g_bar.value = clampf(strength, 0.0, g_warning_level)
 	_g_label.text = "G %03d" % int(round(strength))
-	_g_label.modulate = Color(1, 0.16, 0.1) if strength >= g_warning_level * 0.72 else Color(0.78, 1, 0.96)
+	_g_label.modulate = _readability_color(Color(1, 0.16, 0.1) if strength >= g_warning_level * 0.72 else Color(0.78, 1, 0.96))
 	
 	return strength
 
@@ -404,7 +411,7 @@ func _update_time_lens() -> void:
 
 	if _time_dilation_manager == null or not is_instance_valid(_time_dilation_manager):
 		_time_label.text = "TIME OFFLINE"
-		_time_label.modulate = Color(0.48, 0.78, 0.84, 1.0)
+		_time_label.modulate = _readability_color(Color(0.48, 0.78, 0.84, 1.0))
 		return
 
 	var capacity := float(_time_dilation_manager.get("current_dilation_capacity") or 0.0)
@@ -414,7 +421,7 @@ func _update_time_lens() -> void:
 	var state := "DILATING" if dilating else "READY"
 
 	_time_label.text = "TIME %s  x%.2f %d%%" % [state, scale, int(round(capacity / maximum * 100.0))]
-	_time_label.modulate = Color(0.72, 0.38, 1.0, 1.0) if dilating else Color(0.72, 1.0, 0.96, 1.0)
+	_time_label.modulate = _readability_color(Color(0.72, 0.38, 1.0, 1.0) if dilating else Color(0.72, 1.0, 0.96, 1.0))
 
 func _update_horizon_lens() -> void:
 	if _horizon_label == null:
@@ -422,7 +429,7 @@ func _update_horizon_lens() -> void:
 
 	if _event_horizon_manager == null or not is_instance_valid(_event_horizon_manager):
 		_horizon_label.text = "HORIZON QUIET"
-		_horizon_label.modulate = Color(0.48, 0.78, 0.84, 1.0)
+		_horizon_label.modulate = _readability_color(Color(0.48, 0.78, 0.84, 1.0))
 		return
 
 	var state := {}
@@ -437,13 +444,13 @@ func _update_horizon_lens() -> void:
 
 	if active:
 		_horizon_label.text = "HORIZON ESCAPE  %03d%%" % int(round(intensity * 100.0))
-		_horizon_label.modulate = Color(1.0, 0.22, 0.12, 1.0).lerp(Color(0.72, 0.36, 1.0, 1.0), intensity * 0.55)
+		_horizon_label.modulate = _readability_color(Color(1.0, 0.22, 0.12, 1.0).lerp(Color(0.72, 0.36, 1.0, 1.0), intensity * 0.55))
 	elif cooldown > 0.0:
 		_horizon_label.text = "HORIZON RECOVER  %.0fs" % cooldown
-		_horizon_label.modulate = Color(0.78, 0.54, 1.0, 1.0)
+		_horizon_label.modulate = _readability_color(Color(0.78, 0.54, 1.0, 1.0))
 	else:
 		_horizon_label.text = "HORIZON QUIET"
-		_horizon_label.modulate = Color(0.48, 0.78, 0.84, 1.0)
+		_horizon_label.modulate = _readability_color(Color(0.48, 0.78, 0.84, 1.0))
 
 func _update_slingshot_lens() -> void:
 	if _slingshot_label == null or _slingshot_bar == null:
@@ -470,7 +477,7 @@ func _update_slingshot_lens() -> void:
 		int(round(tangential)),
 		int(round(distance)),
 	]
-	_slingshot_label.modulate = color
+	_slingshot_label.modulate = _readability_color(color)
 
 	if _combo_label == null:
 		return
@@ -493,13 +500,13 @@ func _update_slingshot_lens() -> void:
 
 	if combo > 0:
 		_combo_label.text = "VECTOR CHAIN x%d  %s %.1fs" % [combo, tier, timer]
-		_combo_label.modulate = Color(1.0, 0.9, 0.28, 1.0) if tier == "GOD_VECTOR" else Color(0.34, 1.0, 0.86, 1.0)
+		_combo_label.modulate = _readability_color(Color(1.0, 0.9, 0.28, 1.0) if tier == "GOD_VECTOR" else Color(0.34, 1.0, 0.86, 1.0))
 	elif flow_active:
 		_combo_label.text = "FLOW ONLINE  %03d%%" % int(round(flow_intensity * 100.0))
-		_combo_label.modulate = Color(0.28, 0.9, 1.0, 1.0)
+		_combo_label.modulate = _readability_color(Color(0.28, 0.9, 1.0, 1.0))
 	else:
 		_combo_label.text = "VECTOR CHAIN --"
-		_combo_label.modulate = Color(0.48, 0.78, 0.84, 1.0)
+		_combo_label.modulate = _readability_color(Color(0.48, 0.78, 0.84, 1.0))
 
 func _slingshot_color(state: String, score: float) -> Color:
 	match state:
@@ -517,7 +524,7 @@ func _slingshot_color(state: String, score: float) -> Color:
 
 func _set_field_text(text: String, color: Color) -> void:
 	_field_label.text = text
-	_field_label.modulate = Color(color.r, color.g, color.b, 1.0)
+	_field_label.modulate = _readability_color(Color(color.r, color.g, color.b, 1.0))
 
 func _on_powerup_applied(definition: PowerupDefinition, stacks: int) -> void:
 	if definition == null or _powerup_notice_label == null:
@@ -787,7 +794,8 @@ func _update_target_arrows(arrows: Array[Polygon2D], targets: Array[Node2D], bas
 		arrow.position = _project_to_screen_edge(center, direction, viewport_size)
 		arrow.rotation = direction.angle() + PI * 0.5
 		arrow.scale = Vector2.ONE * (1.35 if is_boss_arrow else 0.82) * pulse
-		arrow.color = Color(base_color.r, base_color.g, base_color.b, lerpf(0.62, base_color.a, proximity))
+		var adjusted_color := _readability_color(base_color)
+		arrow.color = Color(adjusted_color.r, adjusted_color.g, adjusted_color.b, lerpf(0.62, adjusted_color.a, proximity))
 		arrow.visible = true
 		arrow_index += 1
 
@@ -807,3 +815,23 @@ func _project_to_screen_edge(center: Vector2, direction: Vector2, viewport_size:
 	var scale_x: float = safe_half.x / maxf(absf(direction.x), 0.001)
 	var scale_y: float = safe_half.y / maxf(absf(direction.y), 0.001)
 	return center + direction * minf(scale_x, scale_y)
+
+
+func _on_accessibility_changed(_settings: Dictionary) -> void:
+	_apply_accessibility_settings(true)
+
+
+func _apply_accessibility_settings(force: bool = false) -> void:
+	if _hud_root == null or Settings == null:
+		return
+	var scale_value := clampf(float(Settings.ui_scale), 0.75, 1.35)
+	if not force and is_equal_approx(scale_value, _last_ui_scale):
+		return
+	_last_ui_scale = scale_value
+	_hud_root.scale = Vector2.ONE * scale_value
+
+
+func _readability_color(color: Color) -> Color:
+	if Settings != null and Settings.has_method("apply_readability_color"):
+		return Settings.apply_readability_color(color)
+	return color

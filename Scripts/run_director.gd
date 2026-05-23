@@ -7,6 +7,9 @@ var _wave_director: Node = null
 var _rupture: Node = null
 var _finale: Node = null
 var _level_root: Node = null
+var _banner_canvas: CanvasLayer = null
+var _banner_label: Label = null
+var _banner_tween: Tween = null
 
 
 func _ready() -> void:
@@ -31,8 +34,11 @@ func _bootstrap() -> void:
 				_wave_director.connect("boss_defeated_anchor", boss_cb)
 
 	if not RunProgress.challenge_mode:
-		RunProgress.phase_changed.connect(_on_phase_changed)
+		var phase_cb := Callable(self, "_on_phase_changed")
+		if not RunProgress.phase_changed.is_connected(phase_cb):
+			RunProgress.phase_changed.connect(phase_cb)
 
+	_build_phase_banner()
 	_apply_loaded_anchor()
 	_on_phase_changed(RunProgress.Phase.PHYSICS_WAVES, RunProgress.phase)
 
@@ -62,8 +68,10 @@ func _on_boss_defeated(boss_scene_path: String) -> void:
 func _on_phase_changed(_old: RunProgress.Phase, new_phase: RunProgress.Phase) -> void:
 	match new_phase:
 		RunProgress.Phase.RUPTURE:
+			_show_phase_banner("LAWS CRACKING: WAVE GENERATOR OFFLINE", Color(1.0, 0.34, 0.16, 1.0))
 			_start_rupture()
 		RunProgress.Phase.MUSIC_FINALE:
+			_show_phase_banner("RESONANCE SINGULARITY ONLINE", Color(0.72, 0.95, 1.0, 1.0))
 			_start_music_finale()
 		RunProgress.Phase.CREDITS:
 			_go_to_credits()
@@ -128,3 +136,71 @@ func _get_powerup_inventory() -> Node:
 	if player == null:
 		return null
 	return player.get_node_or_null("PowerupInventory")
+
+
+func _build_phase_banner() -> void:
+	if _level_root == null or _banner_canvas != null:
+		return
+
+	_banner_canvas = CanvasLayer.new()
+	_banner_canvas.name = "RunPhaseBannerCanvas"
+	_banner_canvas.layer = 90
+	_level_root.add_child(_banner_canvas)
+
+	var panel := PanelContainer.new()
+	panel.name = "RunPhaseBanner"
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.offset_left = -500.0
+	panel.offset_right = 500.0
+	panel.offset_top = 82.0
+	panel.offset_bottom = 142.0
+	panel.modulate.a = 0.0
+	panel.add_theme_stylebox_override("panel", _make_banner_style(Color(0.02, 0.012, 0.018, 0.82), Color(1.0, 0.3, 0.14, 0.58)))
+	_banner_canvas.add_child(panel)
+
+	_banner_label = Label.new()
+	_banner_label.name = "RunPhaseBannerLabel"
+	_banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_banner_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_banner_label.theme_type_variation = &"HeaderSmall"
+	_banner_label.add_theme_font_size_override("font_size", 28)
+	_banner_label.text = ""
+	panel.add_child(_banner_label)
+
+
+func _show_phase_banner(message: String, color: Color) -> void:
+	if _banner_canvas == null:
+		_build_phase_banner()
+	if _banner_canvas == null or _banner_label == null:
+		return
+
+	var panel := _banner_label.get_parent() as Control
+	if panel == null:
+		return
+
+	_banner_label.text = message
+	_banner_label.modulate = color
+	panel.modulate.a = 0.0
+
+	if _banner_tween != null:
+		_banner_tween.kill()
+	_banner_tween = create_tween()
+	_banner_tween.tween_property(panel, "modulate:a", 1.0, 0.18)
+	_banner_tween.tween_interval(2.35)
+	_banner_tween.tween_property(panel, "modulate:a", 0.0, 0.45)
+
+
+func _make_banner_style(fill: Color, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.border_color = border
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	return style
