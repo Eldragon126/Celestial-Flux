@@ -1,8 +1,0 @@
-[gd_scene load_steps=2 format=3]
-
-[ext_resource type="Script" path="res://Scripts/time_dilation_manager.gd" id="1_time"]
-
-[node name="TimeDilationManager" type="Node"]
-process_mode = 3
-script = ExtResource("1_time")
-use_global_time_scale = true

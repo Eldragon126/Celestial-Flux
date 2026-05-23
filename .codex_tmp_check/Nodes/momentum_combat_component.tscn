@@ -1,6 +1,0 @@
-[gd_scene format=3 uid="uid://boftuak0vklmb"]
-
-[ext_resource type="Script" uid="uid://chh48hfsnblto" path="res://Scripts/momentum_combat_component.gd" id="1_momentum"]
-
-[node name="MomentumCombatComponent" type="Node2D" unique_id=971193161]
-script = ExtResource("1_momentum")

@@ -1,6 +1,0 @@
-[gd_scene format=3 uid="uid://bvgernfkw2s3v"]
-
-[ext_resource type="Script" uid="uid://3kk15v0og3sb" path="res://Scripts/projectile_predictor_component.gd" id="1_uo0el"]
-
-[node name="projectile_predictor_component" type="Node2D" unique_id=617526727]
-script = ExtResource("1_uo0el")

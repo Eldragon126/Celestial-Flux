@@ -1,6 +1,0 @@
-[gd_scene format=3]
-
-[ext_resource type="Script" path="res://Scripts/player_damage_camera_shake.gd" id="1_shake"]
-
-[node name="DamageCameraShake" type="Node"]
-script = ExtResource("1_shake")

@@ -1,6 +1,0 @@
-[gd_scene format=3]
-
-[ext_resource type="Script" path="res://Scripts/enemy_readability_director.gd" id="1_read"]
-
-[node name="EnemyReadabilityDirector" type="Node"]
-script = ExtResource("1_read")

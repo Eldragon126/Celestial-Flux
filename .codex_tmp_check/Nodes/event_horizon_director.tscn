@@ -1,7 +1,0 @@
-[gd_scene format=3]
-
-[ext_resource type="Script" path="res://Scripts/event_horizon_director.gd" id="1_horizon"]
-
-[node name="EventHorizonDirector" type="Node2D"]
-process_mode = 3
-script = ExtResource("1_horizon")

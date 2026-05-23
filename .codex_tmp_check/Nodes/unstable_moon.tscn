@@ -1,6 +1,0 @@
-[gd_scene format=3]
-
-[ext_resource type="Script" path="res://Scripts/unstable_moon.gd" id="1_moon"]
-
-[node name="UnstableMoon" type="StaticBody2D" groups=["planets"]]
-script = ExtResource("1_moon")
