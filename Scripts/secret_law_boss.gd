@@ -166,7 +166,7 @@ func _spawn_projectile_pattern() -> void:
 	if get_parent() == null:
 		return
 	var aim := (player.global_position - global_position).angle()
-	var count := projectile_count + current_phase * 2
+	var count = projectile_count + current_phase * 2
 	for i in range(count):
 		var spread := (float(i) - float(count - 1) * 0.5) * 0.18
 		var dir := Vector2.from_angle(aim + spread)
