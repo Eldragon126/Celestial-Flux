@@ -7,3 +7,5 @@ I don't understand what any of the rings do. Inversion Repel, Harmonic Fracture 
 UI Scale on the pause menu does not work because the arrows go off-screen when it expands.
 
 The boss rush currently doesn't work.
+
+The projectile trajectory visualizer, which is a child of the player, is decent sometimes and wildly off other times. It needs to be fixed.
