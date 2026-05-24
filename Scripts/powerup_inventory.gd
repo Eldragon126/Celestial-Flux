@@ -7,6 +7,7 @@ signal orbital_satellite_captured(projectile: Node, stacks: int)
 signal gravity_debris_spawned(debris: Node, source_enemy: Node)
 signal time_fracture_released(impulse: Vector2)
 signal law_fusion_triggered(fusion_id: StringName, fusion_data: Dictionary)
+signal apex_vector_released(data: Dictionary)
 
 @export_node_path("Node2D") var player_path: NodePath = ^".."
 @export var action_pulse_cooldown: float = 0.65
@@ -44,11 +45,19 @@ signal law_fusion_triggered(fusion_id: StringName, fusion_data: Dictionary)
 @export var slingshot_convergence_cooldown: float = 0.32
 @export var slingshot_time_lens_multiplier: float = 0.46
 
+@export_group("Apex Vector Core")
+@export var apex_vector_score_threshold: float = 0.82
+@export var apex_vector_charge_required: int = 2
+@export var apex_vector_release_force: float = 520.0
+@export var apex_vector_damage: float = 12.0
+@export var apex_vector_max_targets: int = 24
+
 var _player: Node2D = null
 var _stacks: Dictionary = {}
 var _timed_effects: Dictionary = {}
 var _time_pulse_ready := 0.0
 var _next_slingshot_convergence_time := 0.0
+var _apex_vector_charge := 0
 
 # instance_id -> data
 var _captured_projectiles: Dictionary = {}
@@ -68,6 +77,7 @@ var _last_fusion_time := -999.0
 
 func _ready() -> void:
 	_player = get_node_or_null(player_path) as Node2D
+	_connect_player_slingshot_mastery()
 	set_process(true)
 
 
@@ -232,6 +242,9 @@ func _apply_effect(definition: PowerupDefinition, stacks: int) -> void:
 		&"momentum_shockwave_law":
 			_apply_momentum_shockwave_law(stacks)
 
+		&"apex_vector_core":
+			_apply_apex_vector_core(definition, stacks)
+
 
 func _get_stack_for_effect(effect_type: StringName) -> int:
 	var best := 0
@@ -254,6 +267,7 @@ func _update_law_rules(delta: float) -> void:
 		return
 
 	_connect_momentum_component()
+	_connect_player_slingshot_mastery()
 	_update_momentum_shockwave_law()
 	_update_orbital_satellites(delta)
 	_update_singularity_death_hooks()
@@ -602,6 +616,22 @@ func _apply_momentum_shockwave_law(stacks: int) -> void:
 	trigger_player_action()
 
 
+func _apply_apex_vector_core(definition: PowerupDefinition, stacks: int) -> void:
+	if not _is_node_valid(_player) or definition == null or stacks <= 0:
+		return
+	if _player.get("slingshot_gravity_boost_scale") != null:
+		_player.set(
+			"slingshot_gravity_boost_scale",
+			float(_player.get("slingshot_gravity_boost_scale")) + definition.amount
+		)
+	if _player.get("slingshot_mastery_cap_bonus") != null:
+		_player.set(
+			"slingshot_mastery_cap_bonus",
+			float(_player.get("slingshot_mastery_cap_bonus")) + definition.secondary_amount * 1000.0
+		)
+	_connect_player_slingshot_mastery()
+
+
 func _connect_momentum_component() -> void:
 	if _is_node_valid(_momentum_component):
 		return
@@ -625,6 +655,16 @@ func _connect_momentum_component() -> void:
 
 		if not _momentum_component.is_connected("slingshot_mastery_triggered", mastery_callable):
 			_momentum_component.connect("slingshot_mastery_triggered", mastery_callable)
+
+
+func _connect_player_slingshot_mastery() -> void:
+	if not _is_node_valid(_player):
+		return
+	if not _player.has_signal("slingshot_mastery_scored"):
+		return
+	var callable := Callable(self, "_on_player_slingshot_mastery_scored")
+	if not _player.is_connected("slingshot_mastery_scored", callable):
+		_player.connect("slingshot_mastery_scored", callable)
 
 
 func _on_kinetic_shockwave_created(shockwave_data: Dictionary) -> void:
@@ -775,6 +815,129 @@ func _on_slingshot_mastery_triggered(data: Dictionary) -> void:
 		radius,
 		Color(0.28, 1.0, 0.84, 0.82)
 	)
+
+
+func _on_player_slingshot_mastery_scored(data: Dictionary) -> void:
+	var stacks := get_stack_count(&"apex_vector_core")
+	if stacks <= 0:
+		return
+
+	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
+	if score < apex_vector_score_threshold:
+		return
+
+	var required := maxi(1, apex_vector_charge_required - mini(stacks - 1, 1))
+	_apex_vector_charge += 1
+	if _apex_vector_charge < required:
+		return
+
+	_apex_vector_charge = 0
+	_release_apex_vector(data, stacks)
+
+
+func _release_apex_vector(data: Dictionary, stacks: int) -> void:
+	if not _is_node_valid(_player):
+		return
+
+	var position_value: Variant = data.get("position", _player.global_position)
+	var position: Vector2 = position_value if position_value is Vector2 else _player.global_position
+	var tangent_value: Variant = data.get("tangent", _body_velocity(_player).normalized())
+	var tangent: Vector2 = tangent_value if tangent_value is Vector2 else _body_velocity(_player).normalized()
+	if tangent.length_squared() <= 0.001:
+		tangent = Vector2.RIGHT.rotated(_player.global_rotation)
+	tangent = tangent.normalized()
+
+	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
+	var definition := PowerupLibrary.get_definition(&"apex_vector_core")
+	var base_radius := 380.0
+	if definition != null and definition.radius > 0.0:
+		base_radius = definition.radius
+	var radius := base_radius + 70.0 * float(stacks - 1) + score * 54.0
+	var force := apex_vector_release_force * (1.0 + 0.18 * float(stacks - 1) + score * 0.22)
+	var damage := apex_vector_damage * (1.0 + 0.42 * float(stacks - 1) + score * 0.34)
+
+	var affected := _affect_apex_vector_targets(position, tangent, radius, force, damage)
+	var resonance_id := _spawn_apex_vector_resonance(position, tangent, radius, stacks)
+
+	var payload := {
+		"position": position,
+		"tangent": tangent,
+		"radius": radius,
+		"force": force,
+		"damage": damage,
+		"affected": affected,
+		"stacks": stacks,
+		"score": score,
+		"resonance_id": resonance_id,
+	}
+	_emit_law_fusion(&"apex_vector_core", payload)
+	apex_vector_released.emit(payload)
+	_spawn_fusion_ring(position, radius, Color(0.36, 1.0, 0.84, 0.74))
+
+
+func _affect_apex_vector_targets(
+	position: Vector2,
+	tangent: Vector2,
+	radius: float,
+	force: float,
+	damage: float
+) -> int:
+	var radius_squared := radius * radius
+	var affected := 0
+	var seen := {}
+
+	for group_name in [&"enemies", &"wave_enemy", &"bosses", &"enemy_projectiles"]:
+		for target in get_tree().get_nodes_in_group(group_name):
+			if affected >= apex_vector_max_targets:
+				return affected
+
+			var target_2d := target as Node2D
+			if not _is_node_valid(target_2d) or target_2d == _player:
+				continue
+
+			var target_id := target_2d.get_instance_id()
+			if seen.has(target_id):
+				continue
+			seen[target_id] = true
+
+			var offset := target_2d.global_position - position
+			var distance_squared := offset.length_squared()
+			if distance_squared > radius_squared:
+				continue
+
+			var distance := sqrt(distance_squared)
+			var radial := offset.normalized()
+			if radial == Vector2.ZERO:
+				radial = tangent
+			var falloff := clampf(1.0 - distance / maxf(radius, 1.0), 0.18, 1.0)
+			var impulse_dir := (tangent * 0.72 + radial * 0.28).normalized()
+			CombatStatus.add_velocity(target_2d, impulse_dir * force * falloff)
+
+			if not target_2d.is_in_group("enemy_projectiles") and target_2d.has_method("take_damage"):
+				target_2d.call("take_damage", damage * falloff)
+
+			affected += 1
+
+	return affected
+
+
+func _spawn_apex_vector_resonance(
+	position: Vector2,
+	tangent: Vector2,
+	radius: float,
+	stacks: int
+) -> int:
+	var resonance := _find_resonance_manager()
+	if resonance == null or not resonance.has_method("create_manual_resonance_zone"):
+		return 0
+	return int(resonance.call(
+		"create_manual_resonance_zone",
+		position + tangent * radius * 0.22,
+		radius * 0.72,
+		GravityResonanceManager.ZoneType.HARMONIC_ORBIT,
+		0.68 + 0.06 * float(stacks - 1),
+		2.1 + 0.24 * float(stacks - 1)
+	))
 
 func _bend_debris_from_slingshot(
 	position: Vector2,
@@ -1111,8 +1274,8 @@ func _spawn_fusion_ring(
 	ring.name = "LawFusionRing"
 	ring.closed = true
 	ring.antialiased = true
-	ring.width = 4.0
-	ring.default_color = ring_color
+	ring.width = 2.6
+	ring.default_color = _safe_flash_color(ring_color, 0.5)
 	ring.points = _circle_points(54, 1.0)
 	ring.global_position = center
 	ring.scale = Vector2.ONE * 18.0
@@ -1122,7 +1285,7 @@ func _spawn_fusion_ring(
 
 	var tween := ring.create_tween()
 
-	tween.tween_property(ring, "scale", Vector2.ONE * radius, 0.26)
+	tween.tween_property(ring, "scale", Vector2.ONE * minf(radius, 620.0), 0.24)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.26)
 	tween.tween_callback(ring.queue_free)
 
@@ -1141,8 +1304,8 @@ func _spawn_powerup_burst(definition: PowerupDefinition, stacks: int) -> void:
 	ring.name = "PowerupLawBurst"
 	ring.closed = true
 	ring.antialiased = true
-	ring.width = 6.0
-	ring.default_color = Color(burst_color.r, burst_color.g, burst_color.b, 0.9)
+	ring.width = 3.2
+	ring.default_color = _safe_flash_color(Color(burst_color.r, burst_color.g, burst_color.b, 0.62), 0.42)
 	ring.points = _circle_points(60, 1.0)
 	ring.global_position = _player.global_position
 	ring.scale = Vector2.ONE * 14.0
@@ -1154,7 +1317,7 @@ func _spawn_powerup_burst(definition: PowerupDefinition, stacks: int) -> void:
 	echo.closed = true
 	echo.antialiased = true
 	echo.width = 2.0
-	echo.default_color = Color(1.0, 1.0, 1.0, 0.58)
+	echo.default_color = _safe_flash_color(Color(1.0, 1.0, 1.0, 0.28), 0.22)
 	echo.points = _circle_points(36, 1.0)
 	echo.global_position = _player.global_position
 	echo.scale = Vector2.ONE * 8.0
@@ -1170,6 +1333,13 @@ func _spawn_powerup_burst(definition: PowerupDefinition, stacks: int) -> void:
 	echo_tween.tween_property(echo, "scale", Vector2.ONE * (radius * 0.58), 0.18)
 	echo_tween.parallel().tween_property(echo, "modulate:a", 0.0, 0.18)
 	echo_tween.tween_callback(echo.queue_free)
+
+
+func _safe_flash_color(color: Color, alpha_cap: float) -> Color:
+	var alpha := minf(color.a, alpha_cap)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		alpha = Settings.flash_alpha(alpha)
+	return Color(color.r, color.g, color.b, alpha)
 
 
 func get_law_fusion_debug_state() -> Dictionary:
@@ -1192,6 +1362,9 @@ func get_law_fusion_debug_state() -> Dictionary:
 
 	if _last_fusion_id == &"slingshot_law_convergence" and _now_seconds() - _last_fusion_time < 3.0:
 		active.append("Slingshot+Law")
+
+	if get_stack_count(&"apex_vector_core") > 0:
+		active.append("Apex Vector")
 
 	return {
 		"active": active,

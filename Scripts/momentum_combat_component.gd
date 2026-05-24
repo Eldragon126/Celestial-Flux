@@ -385,7 +385,7 @@ func _on_slingshot(_source, _grav, _impulse, strength, _speed) -> void:
 	_speed_cap_bonus = maxf(_speed_cap_bonus, strength * 0.5)
 
 func _on_slingshot_mastery_scored(data: Dictionary) -> void:
-	var score := clampf(float(data.get("score", 0.0)), 0.0, 0.65)
+	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
 	if score < mastery_good_threshold:
 		if slingshot_visuals_enabled:
 			_spawn_slingshot_mastery_visual(data, false)
@@ -548,7 +548,7 @@ func _extend_mastery_combo(reason: StringName, event_position: Vector2) -> void:
 	data["reason"] = reason
 	data["position"] = event_position
 	
-	# BUG FIX 1: This is intentionally removed to stop the HUD from rapidly flashing with redundant triggers
+	# Combo extensions use a small local ping; the main mastery signal is reserved for fresh slingshots.
 	# slingshot_mastery_triggered.emit(data) 
 
 	if slingshot_visuals_enabled:
@@ -674,9 +674,9 @@ func _spawn_slingshot_mastery_visual(data: Dictionary, mastered: bool) -> void:
 	tangent = tangent.normalized()
 
 	var color := _grade_color(grade, mastered)
-	var radius := lerpf(18.0, 52.0, score)
-	var width := lerpf(1.0, 3.0, score)
-	var duration := lerpf(0.18, 0.34, score)
+	var radius := lerpf(18.0, 46.0, score)
+	var width := lerpf(0.9, 2.2, score)
+	var duration := lerpf(0.16, 0.28, score)
 
 	var ring := Line2D.new()
 	ring.name = "SlingshotMasteryRing"
@@ -687,17 +687,15 @@ func _spawn_slingshot_mastery_visual(data: Dictionary, mastered: bool) -> void:
 	ring.points = _circle_points(80, 10.0)
 	ring.global_position = center
 	ring.rotation = tangent.angle()
-	# BUG FIX 2: Start the ring much larger so it diffuses the light
-	ring.scale = Vector2.ONE * lerpf(4.0, 8.0, score)
+	ring.scale = Vector2.ONE * lerpf(3.0, 6.2, score)
 	ring.z_index = 38
 	root.add_child(ring)
 
 	var vector_line := Line2D.new()
 	vector_line.name = "SlingshotVectorFlash"
 	vector_line.antialiased = true
-	# BUG FIX 3: Thinner and shorter vector flash
 	vector_line.width = width * 0.05
-	vector_line.default_color = Color(1.0, 1.0, 1.0, color.a * 0.12)
+	vector_line.default_color = Color(1.0, 1.0, 1.0, _flash_alpha(color.a * 0.08))
 	vector_line.points = PackedVector2Array([
 		-tangent * radius * 0.05,
 		tangent * radius * 0.15,
@@ -707,7 +705,7 @@ func _spawn_slingshot_mastery_visual(data: Dictionary, mastered: bool) -> void:
 	root.add_child(vector_line)
 
 	var tween := ring.create_tween()
-	tween.tween_property(ring,"scale",Vector2.ONE * lerpf(10.0, 22.0, score),duration)
+	tween.tween_property(ring, "scale", Vector2.ONE * lerpf(7.0, 16.0, score), duration)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, duration)
 	tween.tween_callback(ring.queue_free)
 
@@ -724,8 +722,7 @@ func _spawn_combo_ping(position: Vector2, reason: StringName) -> void:
 	_spawn_transient_ring(position, 24.0 + 6.0 * float(_mastery_combo), color, 0.18, 3.5)
 
 func _spawn_impact_mastery_flash(position: Vector2, damage: float) -> void:
-	# BUG FIX 4: Smaller radius base, clamped damage scaling, reduced width and transparency
-	var radius := 36.0 + clampf(damage * 0.5, 0.0, 60.0) 
+	var radius := 36.0 + clampf(damage * 0.5, 0.0, 60.0)
 	_spawn_transient_ring(position, radius, Color(1.0, 0.32, 0.18, _flash_alpha(0.45)), 0.22, 2.5)
 
 func _spawn_transient_ring(center: Vector2, radius: float, color: Color, duration: float, width: float) -> void:

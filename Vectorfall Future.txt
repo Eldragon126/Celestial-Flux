@@ -7,7 +7,7 @@ Now (Check off):
 * [x] Make gravity interactions predictable enough to master but chaotic enough to feel dangerous. Initial pass complete through capped gravity source sampling, tactical resonance zones, and documented zone rules.
 * [x] Design every upgrade to change behavior, not just stats. Initial law-upgrade set exists: shockwaves, orbital satellites, singularity debris, time fracture storage, and law fusions.
 * [x] Prevent dominant strategies so multiple playstyles remain viable. Boss momentum cheese has resistance, contact damage, and rebound.
-* [ ] Make movement feel satisfying even without combat. Ongoing tuning item.
+* [x] Make movement feel satisfying even without combat. Initial control-feel pass complete: counter-thrust and lateral thrust now give cleaner braking, course correction, and orbit exits without adding new buttons.
 * [x] Create modular systems so future mechanics are easy to add.
 * [x] Minimize CPU-heavy physics calculations without taking away from gameplay or mechanics.
 * [x] Ensure the game still feels good on weaker hardware. Initial low-performance budget hooks exist.
@@ -26,23 +26,23 @@ Near Future:
 * Make it fun from the beginning and more fun as the game progresses.
 * Make the game difficult but beatable.
 * [x] Add initial replayability systems like hidden synergies, challenge modifiers, and evolving strategies.
-* Create memorable run-defining upgrades.
-* Add rare events players will want to share with others.
+* [x] Create memorable run-defining upgrades. Initial pass complete: Apex Vector Core turns high-grade slingshots into charged vector releases with enemy knockback, damage, and resonance.
+* [x] Add rare events players will want to share with others. Initial pass complete: RunVariationDirector can trigger deterministic rare arena events like comet choir, gravity bloom, and null aurora.
 * [x] Include mastery mechanics for advanced players.
 * [x] Make high-skill gameplay look visually impressive.
 * [x] Add layered screen feedback like adaptive particles and velocity-based camera motion.
 * [x] Synchronize visuals and gameplay intensity with music intensity. Initial final boss/director implementation complete.
-* Make successful slingshots feel euphoric.
+* [x] Make successful slingshots feel euphoric. Initial pass complete: perfect/apex mastery scoring is restored, camera/VFX/audio hooks remain intact, and flash brightness is capped so success reads as speed and control instead of a screen wash.
 * Design multiplayer systems to remain readable with multiple players.
 * Prevent multiplayer desync issues with gravity physics.
 * Add cooperative combo mechanics.
 * Preserve the atmosphere of solo play even in co-op.
 * [x] Add accessibility settings like UI scaling, screen shake sliders, reduced flash, and colorblind options.
-* Improve combat pacing with cycles of calm, tension, overload, and recovery.
-* Make every run feel different without losing gameplay clarity.
-* Add streamer-friendly and clip-worthy moments.
+* [x] Improve combat pacing with cycles of calm, tension, overload, and recovery. Initial pass complete: RunVariationDirector tunes wave spawn/rest cadence by pacing state.
+* [x] Make every run feel different without losing gameplay clarity. Initial pass complete: seeded run laws adjust player, wave, resonance, time, and arena behavior through named modifiers.
+* [x] Add streamer-friendly and clip-worthy moments. Initial pass complete: rare event banners, secret-boss awakenings, and Apex Vector Core releases create readable share moments.
 * [x] Add a boss rush where you have to beat all the bosses back to back.
-* [ ] Add secret hidden bosses that you have to somehow fight.
+* [x] Add secret hidden bosses that you have to somehow fight. Initial pass complete: Vector Shade awakens from chained apex slingshots, and Chronal Mirror awakens through temporal-scar play.
 * [x] Add one final boss before the credit system.
 Far Future:
 
@@ -148,7 +148,5 @@ Priority Assignments (Check off):
   - tide pocket activated/expired
   - time dilation started/ended
 - Let manual sound design bind to those hooks.
-
-
 
 

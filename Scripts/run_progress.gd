@@ -111,6 +111,12 @@ func on_boss_defeated(boss_scene_path: String) -> void:
 		bosses_defeated = maxi(bosses_defeated, idx + 1)
 		if idx < BOSS_MILESTONE_WAVES.size():
 			wave_index = maxi(wave_index, BOSS_MILESTONE_WAVES[idx])
+	if boss_rush_mode:
+		if bosses_defeated >= BOSS_SCENE_PATHS.size():
+			run_finished = true
+			run_completed.emit()
+			clear_anchor()
+		return
 	if challenge_mode or phase >= Phase.RUPTURE:
 		return
 	var final_boss_defeated := idx == BOSS_SCENE_PATHS.size() - 1
@@ -155,6 +161,8 @@ func is_boss_milestone_wave(wave: int) -> bool:
 
 
 func waves_enabled() -> bool:
+	if challenge_mode or boss_rush_mode:
+		return not run_finished
 	return phase <= Phase.LATE_GAME and not run_finished
 
 

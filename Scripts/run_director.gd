@@ -56,13 +56,13 @@ func _apply_loaded_anchor() -> void:
 func _on_wave_cleared(wave: int) -> void:
 	RunProgress.on_wave_cleared(wave)
 	RunProgress.capture_powerup_stacks(_get_powerup_inventory())
-	RunProgress.save_anchor()
+	_save_anchor_if_run_active()
 
 
 func _on_boss_defeated(boss_scene_path: String) -> void:
 	RunProgress.on_boss_defeated(boss_scene_path)
 	RunProgress.capture_powerup_stacks(_get_powerup_inventory())
-	RunProgress.save_anchor()
+	_save_anchor_if_run_active()
 
 
 func _on_phase_changed(_old: RunProgress.Phase, new_phase: RunProgress.Phase) -> void:
@@ -136,6 +136,13 @@ func _get_powerup_inventory() -> Node:
 	if player == null:
 		return null
 	return player.get_node_or_null("PowerupInventory")
+
+
+func _save_anchor_if_run_active() -> void:
+	if RunProgress.run_finished:
+		RunProgress.clear_anchor()
+		return
+	RunProgress.save_anchor()
 
 
 func _build_phase_banner() -> void:

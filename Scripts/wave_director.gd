@@ -118,9 +118,36 @@ func restore_wave_index(wave: int) -> void:
 func get_current_wave() -> int:
 	return _wave
 
+func register_secret_boss(boss: Node, display_name: String) -> void:
+	if boss == null or not is_instance_valid(boss):
+		return
+
+	_boss = boss
+	_last_boss_scene_path = ""
+	_wave_running = true
+	_spawning = false
+	if not _active_enemies.has(boss):
+		_active_enemies.append(boss)
+
+	_boss_panel.visible = true
+	_boss_label.text = display_name
+	_banner_label.text = "SECRET BOSS: %s" % display_name
+
+	$BossWaveMusic.play()
+	$WaveMusic.stream_paused = true
+	$"BossWaveMusic/Volume Intro".play("Volume Intro")
+
+	var health_callable := Callable(self, "_on_boss_health_changed")
+	if boss.has_signal("boss_health_changed") and not boss.is_connected("boss_health_changed", health_callable):
+		boss.connect("boss_health_changed", health_callable)
+
+	var defeat_callable := Callable(self, "_on_secret_boss_defeated")
+	if boss.has_signal("boss_defeated") and not boss.is_connected("boss_defeated", defeat_callable):
+		boss.connect("boss_defeated", defeat_callable)
+
 func _begin_next_wave() -> void:
 	if _waves_halted or not _waves_enabled():
-		_banner_label.text = "WAVE DIRECTOR STANDBY"
+		_banner_label.text = "BOSS RUSH CLEARED" if RunProgress and RunProgress.boss_rush_mode and RunProgress.run_finished else "WAVE DIRECTOR STANDBY"
 		return
 	if _player == null or not is_instance_valid(_player):
 		return
@@ -317,6 +344,8 @@ func _complete_wave() -> void:
 	wave_cleared.emit(_wave)
 
 	if _waves_halted or not _waves_enabled():
+		if RunProgress and RunProgress.boss_rush_mode and RunProgress.run_finished:
+			_banner_label.text = "BOSS RUSH CLEARED"
 		return
 
 	var extra_rest := 0.0
@@ -439,6 +468,14 @@ func _on_boss_health_changed(current_health: float, max_health: float) -> void:
 func _on_boss_defeated() -> void:
 	if not _last_boss_scene_path.is_empty():
 		boss_defeated_anchor.emit(_last_boss_scene_path)
+	_clear_remaining_wave_enemies()
+	_boss = null
+	_complete_wave()
+	$WaveMusic.play()
+	$BossWaveMusic.stream_paused = true
+	$"WaveMusic/Volume Intro".play("Volume Intro")
+
+func _on_secret_boss_defeated() -> void:
 	_clear_remaining_wave_enemies()
 	_boss = null
 	_complete_wave()

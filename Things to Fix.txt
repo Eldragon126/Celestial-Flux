@@ -1,11 +1,11 @@
-The orbital effects themselves are great, but the effects when you hit a "perfect" or "great" orbit are flash-bangs to players' eyes. It's actually pretty bad but I looked through VFX, Orbital Juice Manager, and Momentum Combat component and I couldn't find anything. Maybe you can though. It might not even be when you hit an orbit, because it just happens when I'm close to planets. Reference the debug folder for a visual, but it's pretty bad.
+[x] The orbital effects themselves are great, but the effects when you hit a "perfect" or "great" orbit are flash-bangs to players' eyes. Initial safety pass complete: slingshot rings, law-fusion rings, powerup bursts, and VFX bursts now use lower alpha caps and reduced flash settings without disabling the mastery reward.
 
-Make sure ALL bosses and enemies are editable in the inspector (e.g., the polygons are children of the parent, and GPU effects are children of the parent)
+[ ] Make sure ALL bosses and enemies are editable in the inspector (e.g., the polygons are children of the parent, and GPU effects are children of the parent). Progress: the new SecretLawBoss scene follows this pattern with editable hull/core polygons, rule rings, particles, and collision children.
 
-I don't understand what any of the rings do. Inversion Repel, Harmonic Fracture Orbit, Slipstream flow, ext. They all just seem like things that are "there" not really doing anything. And I'm the developer! I should at least know what these things do. Sometimes they also get a little excessive. These things need to be fixed. Better visuals for the rings would be nice too.
+[x] I don't understand what any of the rings do. Inversion Repel, Harmonic Fracture Orbit, Slipstream flow, ext. Initial readability pass complete: resonance labels now use direct action text like PULL IN, PUSH OUT, FLOW ARC, SLOW SHOTS, and ORBIT BEND; manual slingshot zones merge and cap so ring spam is contained.
 
-UI Scale on the pause menu does not work because the arrows go off-screen when it expands.
+[x] UI Scale on the pause menu does not work because the arrows go off-screen when it expands. Fixed: pause scaling is centered and clamped to the viewport, and HUD edge arrows are no longer children of the scaled HUD root.
 
-The boss rush currently doesn't work.
+[x] The boss rush currently doesn't work. Fixed: challenge/boss-rush runs now keep waves enabled, boss rush stops after the authored boss list, and the wave banner reports completion.
 
-The projectile trajectory visualizer, which is a child of the player, is decent sometimes and wildly off other times. It needs to be fixed.
+[x] The projectile trajectory visualizer, which is a child of the player, is decent sometimes and wildly off other times. Initial fix complete: the predictor now matches capped projectile gravity sources, includes momentum launch inheritance, and stops at planet impact instead of showing impossible bounces.

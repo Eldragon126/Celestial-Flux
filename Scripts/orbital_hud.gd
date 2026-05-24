@@ -32,6 +32,7 @@ var _vignette_material: ShaderMaterial
 var _arrows: Array[Polygon2D] = []
 var _threat_arrows: Array[Polygon2D] = []
 var _boss_arrows: Array[Polygon2D] = []
+var _arrow_layer: Node2D
 var _threat_targets: Array[Node2D] = []
 var _boss_targets: Array[Node2D] = []
 var _powerup_notice_time := 0.0
@@ -208,23 +209,23 @@ func _build_powerup_notice() -> void:
 
 
 func _build_nav_arrows() -> void:
-	var arrow_layer = Node2D.new()
-	arrow_layer.name = "NavigationArrowLayer"
-	_hud_root.add_child(arrow_layer)
+	_arrow_layer = Node2D.new()
+	_arrow_layer.name = "NavigationArrowLayer"
+	add_child(_arrow_layer)
 	
 	for i in range(max_arrow_count):
 		var arrow := _make_screen_arrow("GravityArrow%d" % i, Color(0.1, 0.95, 0.9, 0.86), 1.0, 1)
-		arrow_layer.add_child(arrow)
+		_arrow_layer.add_child(arrow)
 		_arrows.append(arrow)
 
 	for i in range(max_threat_arrow_count):
 		var arrow := _make_screen_arrow("EnemyThreatArrow%d" % i, Color(1.0, 0.72, 0.22, 0.88), 0.82, 2)
-		arrow_layer.add_child(arrow)
+		_arrow_layer.add_child(arrow)
 		_threat_arrows.append(arrow)
 
 	for i in range(max_boss_arrow_count):
 		var arrow := _make_screen_arrow("BossThreatArrow%d" % i, Color(1.0, 0.16, 0.1, 0.95), 1.35, 3)
-		arrow_layer.add_child(arrow)
+		_arrow_layer.add_child(arrow)
 		_boss_arrows.append(arrow)
 
 

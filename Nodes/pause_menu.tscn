@@ -110,12 +110,10 @@ text = "READABILITY"
 horizontal_alignment = 1
 
 [node name="UIScaleRow" type="HBoxContainer" parent="MenuPanel/MenuRows" unique_id=1476470194]
-visible = false
 layout_mode = 2
 theme_override_constants/separation = 12
 
 [node name="Label" type="Label" parent="MenuPanel/MenuRows/UIScaleRow" unique_id=1803133201]
-visible = false
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
@@ -123,7 +121,6 @@ text = "UI SCALE"
 vertical_alignment = 1
 
 [node name="UIScaleSlider" type="HSlider" parent="MenuPanel/MenuRows/UIScaleRow" unique_id=487082012]
-visible = false
 custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 min_value = 0.75

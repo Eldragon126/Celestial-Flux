@@ -9,6 +9,8 @@
 - `TimeDilationManager` applies player-safe dilation plus localized time pockets through metadata and lightweight signals.
 - `OrbitalVFXDirector` listens to gameplay signals and spawns capped burst particles from inspector-editable templates.
 - `PerformanceBudgetDirector` adjusts particle and VFX budgets for quality tiers.
+- `RunVariationDirector` applies seed-named run laws, pacing states, and deterministic rare events.
+- `SecretBossDirector` listens for hidden mastery conditions and registers optional bosses with the wave UI.
 
 ## Particle Rules
 
@@ -49,6 +51,12 @@ The system samples targets on a short interval and only draws arrows for offscre
 
 Every zone dictionary includes type, color, rule label, intensity, instability, decay, and decay state. Signals are intentionally lightweight so VFX, HUD, audio, and future gameplay systems can bind without creating a monolithic manager.
 
+Current visual readability rules:
+
+- In-world labels use action language, not system jargon: `PULL IN`, `PUSH OUT`, `FLOW ARC`, `SLOW SHOTS`, and `ORBIT BEND`.
+- Manual slingshot-created resonance zones merge with nearby matching zones and cap their active count to avoid unreadable ring stacks.
+- Resonance visual alpha is intentionally subdued; gameplay meaning should come from shape, direction, and label before brightness.
+
 ## Time Dilation Architecture
 
 `TimeDilationManager` avoids global slowdown by default. It keeps player motion responsive while applying local time pockets to enemies, bosses, and enemy projectiles. Existing signals remain, and aliases are provided for broader system hooks:
@@ -66,6 +74,33 @@ Targets read `local_time_scale` metadata through `CombatStatus` or manager helpe
 `PhaseBoss` provides shared health, phase, and attack timer behavior. Individual bosses own their readable physics mutation. Async telegraphs should always bail if the boss has been queued for deletion before firing the attack.
 
 Projectile attacks should use `enemy_bullet.configure_launch(direction, speed, source)` so source collision exceptions and spawn safety are deterministic.
+
+## Secret Bosses
+
+`SecretBossDirector` adds optional hidden boss routes without changing authored campaign milestones:
+
+- `Vector Shade` awakens after chained apex-quality slingshots once the run is deep enough.
+- `Chronal Mirror` awakens from repeated temporal-scar interaction later in the run.
+
+When a hidden boss appears, the director calls `WaveDirector.register_secret_boss()`. The wave director shows the boss panel, pauses regular wave completion around the secret boss, and does not emit a campaign boss anchor when the secret boss dies.
+
+`SecretLawBoss` extends `PhaseBoss` and keeps its visuals scene-authored: hull/core polygons, rule rings, particles, and collision children remain editable in the inspector. Its variants mutate motion rules through vector shear or temporal gates, then drop guaranteed powerup rewards.
+
+## Run Variation And Pacing
+
+`RunVariationDirector` makes run seeds visible in play through named modifiers instead of hidden stat drift:
+
+- `Comet Wake`: stronger slingshot and gravity-charge feel.
+- `Dense Stars`: denser enemy/resonance pressure.
+- `Temporal Draft`: faster time-dilation charge and arena events.
+- `Quiet Recovery`: longer recovery windows and shorter hazard tails.
+- `Volatile Lattice`: higher arena instability and easier resonance formation.
+
+The same director cycles wave pacing through `calm`, `tension`, `overload`, and `recovery` by tuning wave spawn delay and rest windows. Rare events are deterministic from seed/wave/modifier, so shareable moments can be reproduced by seed code.
+
+## Apex Vector Core
+
+`Apex Vector Core` is the first dedicated slingshot-defining powerup. It boosts mastery slingshot capacity and turns repeated high-grade slingshots into an Apex Vector release: nearby enemies and hostile projectiles are flung along the player's tangent, enemies take modest damage, and a harmonic-orbit resonance zone is created for follow-up play.
 
 ## Endgame Flow
 
@@ -85,4 +120,14 @@ Player death stores `RunProgress.last_death_message`, then changes to `res://Nod
 
 `RunProgress.begin_boss_rush()` starts a boss-only challenge profile. `WaveDirector` treats every boss-rush wave as a boss wave, cycles the authored boss list deterministically, reduces rest windows, and applies the boss health modifier from `challenge_modifiers`.
 
+Boss Rush now stays wave-enabled even though it uses challenge state, and it completes after the authored boss list has been defeated once. Completion marks the run finished and stops the wave director instead of looping forever.
+
 The pause menu displays `RunProgress.get_run_seed_code()` and can copy it to the clipboard. The current format is `mode:seed:wave`.
+
+Pause and HUD scaling are separated: the pause panel scales around its center and clamps to the viewport, while offscreen HUD arrows live outside the scaled HUD root so larger UI settings do not push arrows offscreen.
+
+## Projectile Prediction And Flash Safety
+
+The player projectile predictor now mirrors the projectile's capped gravity-source sampling, launch speed inheritance from momentum, and planet-hit behavior. If a shot would hit a planet, the predictor stops at impact because the actual projectile is destroyed there.
+
+Flash-heavy success feedback should use `Settings.flash_alpha()` or an explicit low alpha cap. Slingshot mastery, law fusion rings, powerup bursts, and VFX bursts all follow this rule so perfect movement can feel rewarding without becoming a full-screen flash.

@@ -28,13 +28,20 @@ Standard progression:
 Challenge progression:
 
 - `Challenge Mode` starts the normal scene with challenge flags and skips authored endgame transitions.
-- `Boss Rush` starts a deterministic boss-only sequence using the same boss order as standard progression, shorter rest windows, and slightly increased boss health.
+- `Boss Rush` starts a deterministic boss-only sequence using the same boss order as standard progression, shorter rest windows, and slightly increased boss health. It ends after the authored boss list has been cleared once.
+
+Optional hidden progression:
+
+- `Vector Shade` can awaken from chained apex slingshot mastery after the run has reached mid-game pressure.
+- `Chronal Mirror` can awaken from repeated temporal-scar interaction later in the run.
+- Secret bosses use the wave boss UI, but they do not count as authored campaign boss anchors.
 
 ## Player Systems
 
 - Thrust spends energy and accelerates along the ship vector.
 - Drag toggle lets players choose control or momentum preservation.
 - Dash gives a burst of emergency velocity.
+- Counter-thrust and lateral thrust have extra control authority, making braking, orbit exits, and course corrections feel responsive even outside combat.
 - Gravity pulls from capped nearby gravity sources for performance and deterministic readability.
 - Slingshot assists reward tangential movement around gravity sources.
 - Slingshot mastery grades are `good`, `great`, `perfect`, and `apex`.
@@ -55,6 +62,8 @@ Each zone emits type, display name, rule name, color, intensity, instability, an
 
 Arena instability is handled by `ArenaDestabilizationManager`. It raises chaos from waves, enemies, resonance count, boss presence, and endgame state. It spawns tide pockets, unstable moons, nebula shears, wormhole shear, and finale storm events.
 
+`RunVariationDirector` applies one named seeded run law per run, then cycles combat pacing through calm, tension, overload, and recovery. It can also fire deterministic rare events from the active seed, wave, and run modifier so shareable moments can be reproduced from the pause-menu seed code.
+
 ## Time Dilation
 
 `TimeDilationManager` keeps player momentum responsive while slowing enemies and projectiles. It supports global player-triggered dilation, local time pockets, near-miss charge, time tear intensity, and alias signals for future audio/VFX bindings.
@@ -70,6 +79,7 @@ Current powerup definitions:
 - `Shield Overcharge`: restores shield energy and temporarily raises shield capacity.
 - `Orbital Tether Upgrade`: increases gravity anchor/control capacity and captures enemy projectiles as temporary satellites.
 - `Momentum Shockwave Law`: enables high-speed impact shockwaves.
+- `Apex Vector Core`: boosts mastery slingshot capacity and charges high-grade slingshots into a tangent release that flings threats, damages enemies, and creates a harmonic-orbit resonance zone.
 
 Current law fusions:
 
@@ -77,6 +87,7 @@ Current law fusions:
 - Singularity + Orbital lets satellites anchor around gravity debris.
 - Orbital + Time releases satellites with time-fracture velocity.
 - Slingshot Law Convergence converts high-skill slingshots into resonance, projectile capture, debris bends, or local slow depending on active stacks.
+- Apex Vector Core emits its own law-fusion event for HUD/VFX/audio hooks when the charged release fires.
 
 ## Enemies
 
@@ -108,6 +119,8 @@ Bosses mutate physics rules instead of acting as raw bullet spawners:
 - The Polymorph: parametric phase boss with shape/state changes.
 - Centrifuge Marshal: wave 35 capstone with shear halos that bend crossed trajectories.
 - The Resonance Singularity: final music-driven boss with beat-synced pulses, projectile sweeps, and local gravity collapse.
+- Vector Shade: hidden vector-shear boss triggered by chained apex slingshots.
+- Chronal Mirror: hidden temporal-gate boss triggered by temporal-scar mastery.
 
 ## HUD, Readability, And Accessibility
 
@@ -134,7 +147,7 @@ These settings live on the existing `Settings` autoload and are exposed in the p
 ## Menus And State Flow
 
 - Title Screen: starts standard run, continues an anchor, starts challenge mode, starts boss rush, and displays version.
-- Pause Menu: freezes gameplay simulation, keeps UI responsive, and offers resume, restart, title abort, accessibility settings, and a copyable run seed code.
+- Pause Menu: freezes gameplay simulation, keeps UI responsive, and offers resume, restart, title abort, accessibility settings, and a copyable run seed code. Its scale is centered and viewport-clamped.
 - Game Over: displays `RunProgress.last_death_message`, clears the progress anchor, and offers retry/title.
 - Credits: separate non-hostile end state after the final boss.
 
@@ -150,4 +163,4 @@ The game uses capped sampling and modular directors instead of full scene scans 
 
 ## Current Known Runtime Caveat
 
-Static checks pass for the edited files, but runtime validation is blocked until the local Godot native crash is resolved. Do not treat unlaunched systems as playtested until the engine starts cleanly.
+Resource/link sweeps pass for the edited files, but runtime validation is blocked until Godot can be launched from the local environment. Do not treat unlaunched systems as playtested until the engine starts cleanly.

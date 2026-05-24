@@ -20,6 +20,7 @@ signal pause_state_changed(blocked: bool)
 @export var pulse_speed: float = 1.35
 
 @onready var music_player: AudioStreamPlayer = $PauseMusic
+@onready var menu_panel: PanelContainer = get_node_or_null("MenuPanel") as PanelContainer
 @onready var resume_button: Button = get_node_or_null("MenuPanel/MenuRows/ResumeButton") as Button
 @onready var restart_button: Button = get_node_or_null("MenuPanel/MenuRows/RestartButton") as Button
 @onready var title_button: Button = get_node_or_null("MenuPanel/MenuRows/TitleButton") as Button
@@ -39,6 +40,7 @@ var transition_tween: Tween
 var music_tween: Tween
 var pre_pause_time_scale: float = 1.0
 var _seed_copy_feedback_time: float = 0.0
+var _menu_base_scale := Vector2.ONE
 
 
 func _ready() -> void:
@@ -50,6 +52,7 @@ func _ready() -> void:
 	music_player.volume_db = -80.0
 	_connect_buttons()
 	_setup_accessibility_controls()
+	_apply_menu_scale()
 
 
 func _process(_delta: float) -> void:
@@ -61,7 +64,7 @@ func _process(_delta: float) -> void:
 
 	if active and enable_pulse:
 		pulse_time += real_delta * pulse_speed
-		scale = Vector2.ONE * (1.0 + sin(pulse_time) * pulse_strength)
+		_set_menu_panel_scale(_menu_base_scale * (1.0 + sin(pulse_time) * pulse_strength))
 	if active:
 		_update_seed_label(real_delta)
 
@@ -157,7 +160,7 @@ func _on_exit_tween_finished() -> void:
 	Engine.time_scale = pre_pause_time_scale
 	is_transitioning = false
 	visible = false
-	scale = Vector2.ONE
+	_set_menu_panel_scale(_menu_base_scale)
 	_emit_pause_state()
 
 
@@ -266,6 +269,7 @@ func _update_seed_label(delta: float) -> void:
 
 func _on_ui_scale_changed(value: float) -> void:
 	Settings.set_ui_scale(value)
+	_apply_menu_scale()
 
 
 func _on_shake_changed(value: float) -> void:
@@ -287,10 +291,35 @@ func _force_unpause() -> void:
 	active = false
 	is_transitioning = false
 	visible = false
-	scale = Vector2.ONE
+	_set_menu_panel_scale(_menu_base_scale)
 	Engine.time_scale = 1.0
 	get_tree().paused = false
 	if music_player != null:
 		music_player.stop()
 		music_player.volume_db = -80.0
 	_emit_pause_state()
+
+
+func _apply_menu_scale() -> void:
+	if menu_panel == null or Settings == null:
+		return
+	var requested_scale := clampf(float(Settings.ui_scale), 0.75, 1.35)
+	var viewport_size := get_viewport_rect().size
+	var base_size := menu_panel.size
+	if base_size.x <= 1.0 or base_size.y <= 1.0:
+		base_size = Vector2(570.0, 530.0)
+	var fit_scale := minf(
+		viewport_size.x / maxf(base_size.x + 56.0, 1.0),
+		viewport_size.y / maxf(base_size.y + 56.0, 1.0)
+	)
+	var final_scale := clampf(minf(requested_scale, fit_scale), 0.75, 1.35)
+	_menu_base_scale = Vector2.ONE * final_scale
+	_set_menu_panel_scale(_menu_base_scale)
+
+
+func _set_menu_panel_scale(next_scale: Vector2) -> void:
+	if menu_panel == null:
+		return
+	var panel_size := menu_panel.size
+	menu_panel.pivot_offset = panel_size * 0.5 if panel_size.x > 1.0 and panel_size.y > 1.0 else Vector2(285.0, 265.0)
+	menu_panel.scale = next_scale

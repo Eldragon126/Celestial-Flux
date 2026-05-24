@@ -105,6 +105,9 @@ const ZONE_COLORS = {
 @export var enable_zone_glyphs: bool = true
 @export var max_visual_particles_per_zone: int = 42
 @export var visual_ring_segments: int = 72
+@export var resonance_visual_alpha_scale: float = 0.62
+@export var maximum_manual_resonance_zones: int = 4
+@export var manual_zone_merge_distance: float = 120.0
 
 @export_group("Debris And Fractures")
 @export var enable_debris_compression: bool = true
@@ -793,7 +796,7 @@ func _update_zone_visual(zone: Dictionary, delta: float) -> void:
 	var intensity := clampf(float(zone.get("intensity", 0.0)), 0.0, 1.0)
 	var zone_type := _zone_type(zone)
 	var base_color := _zone_type_color(zone_type)
-	var life_alpha := lerpf(0.1, 0.72, intensity)
+	var life_alpha := lerpf(0.08, 0.52, intensity) * clampf(resonance_visual_alpha_scale, 0.1, 1.0)
 	var previous_type := int(visual.get("zone_type", -1))
 	if previous_type != zone_type:
 		material = _make_zone_particle_material(zone_type)
@@ -812,15 +815,15 @@ func _update_zone_visual(zone: Dictionary, delta: float) -> void:
 		core.color = Color(base_color.r, base_color.g, base_color.b, life_alpha * 0.2)
 	if ring != null:
 		ring.points = _circle_points(maxi(24, visual_ring_segments), radius)
-		ring.width = lerpf(1.8, 4.8, intensity)
+		ring.width = lerpf(1.4, 3.2, intensity)
 		ring.default_color = Color(base_color.r, base_color.g, base_color.b, life_alpha)
 	if accent != null:
 		accent.points = _circle_points(maxi(18, int(visual_ring_segments / 2)), radius * 0.58)
-		accent.width = lerpf(1.0, 2.6, intensity)
-		accent.default_color = Color(1.0, 1.0, 1.0, life_alpha * 0.36)
+		accent.width = lerpf(0.8, 1.8, intensity)
+		accent.default_color = Color(1.0, 1.0, 1.0, life_alpha * 0.24)
 	if label != null:
 		label.visible = enable_zone_labels and intensity > 0.16
-		label.text = "%s  %s" % [_zone_display_name(zone_type).to_upper(), _zone_rule_name(zone_type)]
+		label.text = _zone_readable_label(zone_type)
 		label.position = Vector2(-106.0, -radius - 38.0)
 		label.size = Vector2(212.0, 26.0)
 		label.modulate = Color(base_color.r, base_color.g, base_color.b, lerpf(0.42, 0.92, intensity))
@@ -878,7 +881,7 @@ func _make_zone_visual(zone_id: int, zone_type: int) -> Dictionary:
 
 func _update_zone_glyphs(glyphs: Array, zone_type: int, radius: float, intensity: float, base_color: Color) -> void:
 	var visible := enable_zone_glyphs and intensity > 0.16
-	var alpha := lerpf(0.18, 0.86, intensity)
+	var alpha := lerpf(0.14, 0.62, intensity) * clampf(resonance_visual_alpha_scale, 0.1, 1.0)
 
 	for i in range(glyphs.size()):
 		var glyph := glyphs[i] as Line2D
@@ -1035,6 +1038,20 @@ func _zone_rule_name(zone_type: int) -> String:
 func _zone_rule_hint(zone_type: int) -> String:
 	return String(ZONE_RULE_HINTS.get(zone_type, "Bodies fall toward the core"))
 
+func _zone_readable_label(zone_type: int) -> String:
+	match zone_type:
+		ZoneType.COMPRESSION:
+			return "PULL IN"
+		ZoneType.SLIPSTREAM:
+			return "FLOW ARC"
+		ZoneType.INVERSION:
+			return "PUSH OUT"
+		ZoneType.TEMPORAL_SCAR:
+			return "SLOW SHOTS"
+		ZoneType.HARMONIC_ORBIT:
+			return "ORBIT BEND"
+	return _zone_rule_name(zone_type)
+
 func _zone_type_color(zone_type: int) -> Color:
 	return ZONE_COLORS.get(zone_type, Color(0.22, 0.72, 1.0, 1.0))
 
@@ -1156,6 +1173,10 @@ func amplify_slingshot_mastery(data: Dictionary) -> int:
 	return zone_id
 
 func create_manual_resonance_zone(position: Vector2, radius: float, zone_type: int = ZoneType.HARMONIC_ORBIT, intensity: float = 0.65, duration: float = 2.0) -> int:
+	var merged_id := _merge_nearby_manual_zone(position, radius, zone_type, intensity, duration)
+	if merged_id != 0:
+		return merged_id
+
 	_manual_zone_counter += 1
 	var zone_id := _manual_zone_counter
 	var clamped_type := clampi(zone_type, ZoneType.COMPRESSION, ZoneType.HARMONIC_ORBIT)
@@ -1179,6 +1200,57 @@ func create_manual_resonance_zone(position: Vector2, radius: float, zone_type: i
 	}
 	zone = _with_runtime_zone_state(zone, 0.0)
 	_active_resonance_zones.append(zone)
+	_prune_manual_zones()
 	resonance_zone_created.emit(zone)
 	resonance_field_pulsed.emit(zone)
 	return zone_id
+
+
+func _merge_nearby_manual_zone(position: Vector2, radius: float, zone_type: int, intensity: float, duration: float) -> int:
+	var merge_distance_squared := manual_zone_merge_distance * manual_zone_merge_distance
+	for idx in range(_active_resonance_zones.size()):
+		var zone := _active_resonance_zones[idx]
+		if not bool(zone.get("manual", false)):
+			continue
+		if _zone_type(zone) != zone_type:
+			continue
+		var midpoint: Vector2 = zone.get("midpoint", Vector2.ZERO)
+		if midpoint.distance_squared_to(position) > merge_distance_squared:
+			continue
+
+		zone["midpoint"] = midpoint.lerp(position, 0.45)
+		zone["radius"] = maxf(float(zone.get("radius", radius)), radius)
+		zone["distance"] = float(zone["radius"]) * 2.0
+		zone["base_intensity"] = maxf(float(zone.get("base_intensity", intensity)), intensity)
+		zone["intensity"] = maxf(float(zone.get("intensity", intensity)), intensity)
+		zone["duration"] = maxf(float(zone.get("duration", duration)), duration)
+		zone["remaining"] = maxf(float(zone.get("remaining", duration)), duration)
+		zone = _with_runtime_zone_state(zone, 0.0)
+		_active_resonance_zones[idx] = zone
+		resonance_zone_updated.emit(zone)
+		return int(zone.get("id", 0))
+	return 0
+
+
+func _prune_manual_zones() -> void:
+	if maximum_manual_resonance_zones <= 0:
+		return
+	var manual_indices: Array[int] = []
+	for idx in range(_active_resonance_zones.size()):
+		if bool(_active_resonance_zones[idx].get("manual", false)):
+			manual_indices.append(idx)
+	if manual_indices.size() <= maximum_manual_resonance_zones:
+		return
+	manual_indices.sort_custom(func(a: int, b: int) -> bool:
+		return float(_active_resonance_zones[a].get("remaining", 0.0)) < float(_active_resonance_zones[b].get("remaining", 0.0))
+	)
+	var remove_count := manual_indices.size() - maximum_manual_resonance_zones
+	var remove_ids: Array[int] = []
+	for remove_slot in range(remove_count):
+		remove_ids.append(int(_active_resonance_zones[manual_indices[remove_slot]].get("id", 0)))
+	for zone_id in remove_ids:
+		_remove_zone_visual(zone_id)
+		for idx in range(_active_resonance_zones.size() - 1, -1, -1):
+			if int(_active_resonance_zones[idx].get("id", 0)) == zone_id:
+				_active_resonance_zones.remove_at(idx)
+				break

@@ -25,6 +25,8 @@ const GRAVITY_SCAR_MANAGER_SCENE = preload("res://Nodes/gravity_scar_manager.tsc
 const EVENT_HORIZON_DIRECTOR_SCENE = preload("res://Nodes/event_horizon_director.tscn")
 const PHYSICS_AWARE_ENEMY_DIRECTOR_SCENE = preload("res://Nodes/physics_aware_enemy_director.tscn")
 const STRESS_TEST_DIRECTOR_SCENE = preload("res://Nodes/stress_test_director.tscn")
+const SECRET_BOSS_DIRECTOR_SCENE = preload("res://Nodes/secret_boss_director.tscn")
+const RUN_VARIATION_DIRECTOR_SCENE = preload("res://Nodes/run_variation_director.tscn")
 
 const PLANET_ATMOSPHERE_SCENE = preload("res://Nodes/planet_atmosphere_dust.tscn")
 const WAVE_DIRECTOR_SCENE = preload("res://Nodes/wave_director.tscn")
@@ -63,6 +65,8 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var enable_wave_game = true
 @export var enable_arena_destabilization = true
 @export var enable_physics_aware_enemy_ai = true
+@export var enable_secret_bosses = true
+@export var enable_run_variation = true
 @export_group("Developer Showcase")
 @export var enable_stress_test_tools = false
 @export var run_stress_test_on_ready = false
@@ -183,6 +187,10 @@ func _install_modular_additions() -> void:
 			_add_child_scene_once(level_root, PHYSICS_AWARE_ENEMY_DIRECTOR_SCENE, "PhysicsAwareEnemyDirector")
 		if enable_arena_destabilization:
 			_add_child_scene_once(level_root, ARENA_DESTABILIZATION_SCENE, "ArenaDestabilizationManager")
+		if enable_run_variation:
+			_add_child_scene_once(level_root, RUN_VARIATION_DIRECTOR_SCENE, "RunVariationDirector")
+		if enable_secret_bosses:
+			_add_child_scene_once(level_root, SECRET_BOSS_DIRECTOR_SCENE, "SecretBossDirector")
 
 	if spawn_showcase_content and player != null:
 		_spawn_showcase_content(level_root, player.global_position)

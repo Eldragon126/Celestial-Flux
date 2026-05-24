@@ -15,6 +15,7 @@ class_name OrbitalVFXDirector
 @export var low_performance_mode: bool = false
 @export var max_active_bursts: int = 18
 @export var max_particles_per_burst: int = 72
+@export var max_burst_alpha: float = 0.68
 @export var chaos_clutter_threshold: float = 0.74
 @export var chaos_sample_interval: float = 0.2
 
@@ -225,7 +226,7 @@ func _on_slingshot_mastery_triggered(data: Dictionary) -> void:
 	var color := Color(0.28, 1.0, 0.88, 1.0)
 	if StringName(data.get("tier", &"idle")) == &"god_vector":
 		color = Color(1.0, 0.86, 0.28, 1.0)
-	_spawn_burst(_slingshot_template, position, score, color)
+	_spawn_burst(_slingshot_template, position, minf(score, 0.76), color)
 
 
 func _spawn_burst(template: GPUParticles2D, position: Vector2, intensity: float, color: Color) -> void:
@@ -272,7 +273,9 @@ func _active_burst_cap() -> int:
 
 
 func _burst_modulate(color: Color, intensity: float) -> Color:
-	var alpha := lerpf(0.44, 1.0, clampf(intensity, 0.0, 1.0))
+	var alpha := lerpf(0.28, max_burst_alpha, clampf(intensity, 0.0, 1.0))
+	if Settings != null and Settings.has_method("flash_alpha"):
+		alpha = Settings.flash_alpha(alpha)
 	return Color(color.r, color.g, color.b, alpha)
 
 

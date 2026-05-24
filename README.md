@@ -1,9 +1,22 @@
-# Orbital Drift (Celestial Flux)
-A fast-paced, gravity-defying space shooter where every battle unfolds in the vastness of space.
+# ORBITRON: VECTORFALL (Celestial Flux)
+A physics roguelike arena game about weaponizing gravity, momentum, and spacetime collapse.
 
-Vision: Pilot a nimble spaceship through intense waves of enemies, mastering orbital gravity to sling yourself around the battlefield, dodge incoming fire, and unleash torrents of bullets. With explosive combat, stunning GPU particle effects, and simple yet satisfying controls, survival gets more chaotic with every wave.
-Between the waves, take a breath to explore fun planets and hidden cosmic pockets for upgrades and secrets.
-Small in scope but big on fun — pure arcade action with just the right touch of exploration.
+Vision: Pilot a nimble ship through escalating waves, fixed boss milestones, unstable resonance zones, localized time dilation, and late-game reality collapse. The core skill is movement: slingshot around gravity sources, preserve momentum, read field rules quickly, and turn dangerous physics into survival.
+
+Current focus areas:
+- Movement feel and readable orbital mastery.
+- Resonance zones that clearly communicate what they do.
+- Bosses that mutate physics rules instead of relying on raw spam.
+- Seeded run laws, rare events, and hidden bosses that make runs worth replaying.
+- Run-defining powerups that turn mastery movement into combat moments.
+- Accessibility and performance settings that keep the game readable on weaker hardware.
+- Documentation that keeps contributors aligned with the current ORBITRON direction.
+
+Developer references:
+- `GAME_SYSTEMS_AND_PROGRESSION.md`
+- `ORBITRON_SYSTEMS.md`
+- `Vectorfall Future.txt`
+- `Things to Fix.txt`
 
 Made to be pure fun!
 # To the Players

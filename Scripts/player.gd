@@ -21,6 +21,8 @@ signal death_lesson_generated(lesson: String)
 @export var dash_speed_cap: float = 2300.0
 @export var absolute_velocity_cap: float = 2800.0
 @export var high_speed_thrust_falloff_start: float = 0.86
+@export var counter_thrust_control_bonus: float = 0.32
+@export var lateral_thrust_control_bonus: float = 0.18
 
 @export var gravity_constant: float = 400.0
 @export var min_grav_dist: float = 50.0
@@ -417,6 +419,13 @@ func apply_thrust(delta):
 		var hard_cap := _get_current_hard_speed_cap()
 		var speed := velocity.length()
 		var forward_speed := velocity.dot(dir)
+		if speed > 1.0:
+			var thrust_alignment := forward_speed / speed
+			if thrust_alignment < -0.2:
+				scale *= 1.0 + counter_thrust_control_bonus * absf(thrust_alignment)
+			elif absf(thrust_alignment) < 0.45:
+				var lateral_control := 1.0 - absf(thrust_alignment) / 0.45
+				scale *= 1.0 + lateral_thrust_control_bonus * lateral_control
 		var falloff_start := hard_cap * high_speed_thrust_falloff_start
 		if forward_speed > 0.0 and speed > falloff_start:
 			var remaining := maxf(hard_cap - speed, 0.0)
