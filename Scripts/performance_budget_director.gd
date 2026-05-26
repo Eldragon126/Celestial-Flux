@@ -49,6 +49,7 @@ func apply_budgets() -> void:
 	_apply_enemy_ai_budget(scene, low, medium)
 	_apply_player_budget(low)
 	_apply_juice_coordinator_budget(scene, low)
+	_apply_new_director_budget(scene, low, medium)
 
 
 func _apply_resonance_budget(scene: Node, low: bool, medium: bool) -> void:
@@ -119,6 +120,22 @@ func _apply_juice_coordinator_budget(scene: Node, low: bool) -> void:
 		return
 	_set_if_present(juice, "low_performance_mode", low)
 	_set_if_present(juice, "disable_mastery_line2d", low)
+
+
+func _apply_new_director_budget(scene: Node, low: bool, medium: bool) -> void:
+	var late_instability := scene.find_child("LateGameInstabilityDirector", true, false)
+	if late_instability != null:
+		_set_if_present(late_instability, "max_targets_per_event", 16 if low else (22 if medium else 28))
+		_set_if_present(late_instability, "event_interval", 16.0 if low else 13.0)
+	var coop_combo := scene.find_child("CoopComboDirector", true, false)
+	if coop_combo != null:
+		_set_if_present(coop_combo, "max_slow_targets", 12 if low else (18 if medium else 24))
+	var adaptive_music := scene.find_child("AdaptiveMusicStateDirector", true, false)
+	if adaptive_music != null:
+		_set_if_present(adaptive_music, "sample_interval", 0.35 if low else 0.2)
+	var transition := scene.find_child("RunTransitionDirector", true, false)
+	if transition != null:
+		_set_if_present(transition, "wash_alpha", 0.18 if low else 0.28)
 
 
 func _apply_player_budget(low: bool) -> void:

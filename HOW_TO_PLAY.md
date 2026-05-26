@@ -84,6 +84,12 @@ Each standard run can apply a seeded arena law profile. These are alternate aren
 
 Late game can also trigger impossible-physics events such as resonance overfolds, temporal splinters, gravity braids, and collapse lanes. They are dangerous, but capped and rule-driven.
 
+## Difficulty And Death Readouts
+
+The game should stay hard without hiding why you failed. Recovery windows can flex slightly after waves based on player condition and mastery, but enemies, bosses, gravity, and resonance rules are not silently weakened.
+
+On death, the game over screen shows a death vector lesson plus a concrete readout: wave, speed, nearby field rule, chaos level, projectile density, and whether a boss law was active.
+
 ## Co-op Foundation
 
 Full online co-op is not live yet. The first co-op mechanic foundation exists: shared vector events can combine into a co-op resonance payoff that bends local space and slows nearby threats. Future networking will feed those same deterministic event hooks.
@@ -123,3 +129,4 @@ The pause menu exposes readability controls:
 - Debug hotkeys live on `OrbitalJuiceManager` when `enable_dev_hotkeys` is enabled.
 - Full online co-op is future work. `MultiplayerSyncFoundation` currently provides deterministic snapshot/readability hooks only.
 - `ArenaRuleDirector`, `LateGameInstabilityDirector`, `CoopComboDirector`, and `AdaptiveMusicStateDirector` are modular child systems installed by `OrbitalJuiceManager`.
+- `RunTransitionDirector`, `FairPacingDirector`, and `DeathFairnessDirector` add polish, beatable pacing, and fair failure context without owning combat logic.

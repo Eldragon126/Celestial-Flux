@@ -1,4 +1,4 @@
-# ORBITRON: VECTORFALL Brand And Marketing Plan
+# VECTOR ANOMALY Brand And Marketing Plan
 
 This document keeps marketing, store copy, trailer direction, and visual identity aligned with the game identity:
 
@@ -33,7 +33,7 @@ Market it as:
 
 Short description:
 
-`ORBITRON: VECTORFALL is a physics-driven roguelike arena survival game about slingshotting through gravity wells, bending projectiles through resonance zones, and surviving a collapsing simulation through momentum mastery.`
+`VECTOR ANOMALY is a physics-driven roguelike arena survival game about slingshotting through gravity wells, bending projectiles through resonance zones, and surviving a collapsing simulation through momentum mastery.`
 
 Long description structure:
 
@@ -108,7 +108,7 @@ Priority captures:
 
 First viewport:
 
-- ORBITRON: VECTORFALL
+- VECTOR ANOMALY
 - animated or video background of orbit combat
 - one-line hook
 - wishlist button when ready
@@ -121,6 +121,30 @@ Sections:
 - Seeded Runs And Challenges
 - Media Kit
 - Mailing List / Wishlist
+
+## Budget-Friendly Marketing Loop
+
+Weekly low-cost rhythm:
+
+1. Capture one readable impossible-recovery clip.
+2. Post the clip with the hook: `How is this even being controlled?`
+3. Add one short explanation of the physics rule involved.
+4. Point viewers to the wishlist or mailing-list link.
+5. Save the seed/challenge code so players can try the same run later.
+
+Priority channels:
+
+- TikTok / YouTube Shorts for impossible recoveries.
+- Steam community posts for development updates.
+- Reddit/Discord only when sharing concrete mechanics or playtest builds.
+- Devlogs focused on physics rules, not generic feature lists.
+
+Do not spend paid marketing budget until:
+
+- the Steam page exists
+- the first trailer communicates orbit combat in three seconds
+- there are at least ten clean GIF-worthy clips
+- the demo or playtest path is stable
 
 ## Visual Identity Rules
 

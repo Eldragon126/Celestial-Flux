@@ -116,7 +116,7 @@ func _hash_group(group_name: StringName, limit: int) -> int:
 	var acc := 17
 	var count := mini(nodes.size(), maxi(limit, 0))
 	for i in range(count):
-		var node := nodes[i]
+		var node = nodes[i]
 		if not is_instance_valid(node):
 			continue
 		acc = _mix_hash(acc, _node_sync_token(node))

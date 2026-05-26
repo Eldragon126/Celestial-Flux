@@ -18,6 +18,9 @@
 - `ArenaRuleDirector` applies seeded arena law profiles for alternate arena physics.
 - `LateGameInstabilityDirector` injects capped impossible-physics events in late game.
 - `AdaptiveMusicStateDirector` emits music intensity layers and beat hints from gameplay pressure.
+- `RunTransitionDirector` provides scene-authored visual punctuation for major state changes.
+- `FairPacingDirector` adjusts recovery windows from player condition/mastery without changing physics depth.
+- `DeathFairnessDirector` appends concrete death context to game-over lessons.
 
 ## Particle Rules
 
@@ -127,6 +130,26 @@ This keeps the separation blueprint intact: the difference between arenas is phy
 - `collapse_lane`: compression zones laid across the player's movement line.
 
 The director uses existing resonance, arena, and time APIs, so events remain readable, inspectable, and bounded.
+
+## Transition Juice
+
+`RunTransitionDirector` is a `CanvasLayer` with editable child nodes:
+
+- `Wash`
+- `VectorLine`
+- `TransitionLabel`
+
+It listens to wave, boss, arena-law, impossible-event, co-op combo, Rupture, and finale signals. The effect is deliberately brief and non-blocking so it adds juice without hiding the player or pausing the simulation.
+
+## Fair Pacing And Death Readouts
+
+`FairPacingDirector` preserves difficulty through physics but adjusts recovery time after wave clears:
+
+- low health: longer recovery
+- broken shield: modestly longer recovery
+- recent mastery: slightly shorter recovery
+
+`DeathFairnessDirector` samples readable context and updates `RunProgress.last_death_message` after the player emits a death lesson. The game-over scene then shows both the lesson and the concrete run readout.
 
 ## Multiplayer Sync Foundation
 

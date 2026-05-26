@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://c0me62f0vg3sc"]
 
-[ext_resource type="Script" path="res://Scripts/multiplayer_sync_foundation.gd" id="1_sync"]
+[ext_resource type="Script" uid="uid://b24mhpb3hmrmh" path="res://Scripts/multiplayer_sync_foundation.gd" id="1_sync"]
 
-[node name="MultiplayerSyncFoundation" type="Node"]
+[node name="MultiplayerSyncFoundation" type="Node" unique_id=1264929550]
 script = ExtResource("1_sync")

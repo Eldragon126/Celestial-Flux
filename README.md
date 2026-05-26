@@ -1,4 +1,4 @@
-# ORBITRON: VECTORFALL (Celestial Flux)
+# VECTOR ANOMALY (Celestial Flux)
 A physics roguelike arena game about weaponizing gravity, momentum, and spacetime collapse.
 
 Vision: Pilot a nimble ship through escalating waves, fixed boss milestones, unstable resonance zones, localized time dilation, and late-game reality collapse. The core skill is movement: slingshot around gravity sources, preserve momentum, read field rules quickly, and turn dangerous physics into survival.
@@ -17,8 +17,14 @@ Developer references:
 - `ORBITRON_SYSTEMS.md`
 - `Vectorfall Future.txt`
 - `Things to Fix.txt`
+- 
 
 Made to be pure fun!
+
+# Current Playable Website Build
+- https://eldragon126.github.io/VECTOR-ANOMALY-Website/
+- This functions, but it lags a lot.
+
 # To the Players
   For any feedback on the game, please email me (eldensimmons1@gmail.com) or text me (208) 821-0245 your feedback. Any and all feedback is appreciated.
   Feedback on the Discord Server also works: https://discord.gg/HstMJMkCtb

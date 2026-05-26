@@ -34,6 +34,9 @@ const ARENA_RULE_DIRECTOR_SCENE = preload("res://Nodes/arena_rule_director.tscn"
 const LATE_GAME_INSTABILITY_DIRECTOR_SCENE = preload("res://Nodes/late_game_instability_director.tscn")
 const COOP_COMBO_DIRECTOR_SCENE = preload("res://Nodes/coop_combo_director.tscn")
 const ADAPTIVE_MUSIC_STATE_DIRECTOR_SCENE = preload("res://Nodes/adaptive_music_state_director.tscn")
+const RUN_TRANSITION_DIRECTOR_SCENE = preload("res://Nodes/run_transition_director.tscn")
+const DEATH_FAIRNESS_DIRECTOR_SCENE = preload("res://Nodes/death_fairness_director.tscn")
+const FAIR_PACING_DIRECTOR_SCENE = preload("res://Nodes/fair_pacing_director.tscn")
 
 const PLANET_ATMOSPHERE_SCENE = preload("res://Nodes/planet_atmosphere_dust.tscn")
 const WAVE_DIRECTOR_SCENE = preload("res://Nodes/wave_director.tscn")
@@ -81,6 +84,9 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var enable_late_game_instability = true
 @export var enable_coop_combos = true
 @export var enable_adaptive_music_state = true
+@export var enable_run_transitions = true
+@export var enable_death_fairness = true
+@export var enable_fair_pacing = true
 @export_group("Developer Showcase")
 @export var enable_stress_test_tools = false
 @export var run_stress_test_on_ready = false
@@ -143,6 +149,8 @@ func _install_modular_additions() -> void:
 		_add_child_scene_once(level_root, MULTIPLAYER_SYNC_FOUNDATION_SCENE, "MultiplayerSyncFoundation")
 	if enable_adaptive_music_state:
 		_add_child_scene_once(level_root, ADAPTIVE_MUSIC_STATE_DIRECTOR_SCENE, "AdaptiveMusicStateDirector")
+	if enable_run_transitions:
+		_add_child_scene_once(level_root, RUN_TRANSITION_DIRECTOR_SCENE, "RunTransitionDirector")
 	if enable_debug_balance_overlay:
 		# The balance overlay is its own CanvasLayer, so telemetry can be
 		# toggled or removed without changing player, enemy, or wave logic.
@@ -183,6 +191,8 @@ func _install_modular_additions() -> void:
 
 	if enable_coop_combos:
 		_add_child_scene_once(level_root, COOP_COMBO_DIRECTOR_SCENE, "CoopComboDirector")
+	if enable_death_fairness:
+		_add_child_scene_once(level_root, DEATH_FAIRNESS_DIRECTOR_SCENE, "DeathFairnessDirector")
 
 	if attach_planet_atmospheres:
 		for planet in get_tree().get_nodes_in_group("planets"):
@@ -214,6 +224,8 @@ func _install_modular_additions() -> void:
 			_add_child_scene_once(level_root, ARENA_RULE_DIRECTOR_SCENE, "ArenaRuleDirector")
 		if enable_late_game_instability:
 			_add_child_scene_once(level_root, LATE_GAME_INSTABILITY_DIRECTOR_SCENE, "LateGameInstabilityDirector")
+		if enable_fair_pacing:
+			_add_child_scene_once(level_root, FAIR_PACING_DIRECTOR_SCENE, "FairPacingDirector")
 		if enable_run_variation:
 			_add_child_scene_once(level_root, RUN_VARIATION_DIRECTOR_SCENE, "RunVariationDirector")
 		if enable_secret_bosses:

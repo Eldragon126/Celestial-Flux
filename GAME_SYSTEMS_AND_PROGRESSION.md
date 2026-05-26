@@ -79,6 +79,8 @@ Arena instability is handled by `ArenaDestabilizationManager`. It raises chaos f
 - `Gravity Braid`: paired slipstream/inversion tide events.
 - `Collapse Lane`: compression zones arranged across the player's movement line.
 
+`FairPacingDirector` adjusts only recovery windows, not enemy stats or physics rules. Low health and broken shields can slightly extend the next rest window, while recent mastery can tighten the cadence. This keeps runs difficult but beatable without silently simplifying mechanics.
+
 ## Replay, Scores, And Challenge Codes
 
 `RunScoreTracker` is a signal-driven scoring foundation for future community challenges. It scores wave clears, authored boss kills, secret boss kills, perfect/apex slingshots, event-horizon escapes, and rare events without polling every frame.
@@ -170,6 +172,10 @@ Accessibility settings currently include:
 
 These settings live on the existing `Settings` autoload and are exposed in the pause menu.
 
+`RunTransitionDirector` adds scene-authored transition polish for major state changes: regular waves, boss waves, wave clears, arena laws, impossible events, co-op combos, Rupture, and the music finale. It is visual punctuation only; it never pauses or drives gameplay.
+
+`DeathFairnessDirector` samples recent run context and appends a readable death readout to the game-over lesson. The readout includes wave, speed, field rule, chaos, projectile density, and whether a boss law was active.
+
 ## Multiplayer Foundation
 
 Full online co-op is not implemented yet. `MultiplayerSyncFoundation` is a passive preparation layer that preserves solo gameplay while defining how future co-op should stay deterministic and readable.
@@ -217,6 +223,11 @@ The game uses capped sampling and modular directors instead of full scene scans 
 - Time dilation caps affected targets per tick.
 - VFX directors pool/cap active bursts and reduce quality in low-performance mode.
 - PerformanceBudgetDirector can auto-lower budgets when FPS drops.
+- PerformanceBudgetDirector now also budgets late-game instability events, co-op combo target counts, adaptive music sampling, and transition wash alpha.
+
+## Universe And Tone
+
+`ORBITRON_UNIVERSE_GUIDE.md` defines the simulation fiction, system terms, progression-as-story, and writing rules. The game should talk like a failing physics system giving survival telemetry, not like a generic space shooter.
 
 ## Current Known Runtime Caveat
 

@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>VECTOR ANOMALY — Physics Roguelike Arena Survival</title>
+	<meta name="description" content="VECTOR ANOMALY is a physics-driven roguelike arena survival game about slingshotting through gravity wells, bending projectiles through resonance zones, and surviving a collapsing simulation through momentum mastery.">
+	<meta name="theme-color" content="#05070a">
+	<meta name="robots" content="index, follow">
+	<meta property="og:title" content="VECTOR ANOMALY">
+	<meta property="og:description" content="Weaponize gravity and momentum inside a universe whose physical laws are collapsing.">
+	<meta property="og:type" content="website">
+	<meta property="og:image" content="assets/og-image.svg">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="VECTOR ANOMALY">
+	<meta name="twitter:description" content="Master impossible momentum. Orbit combat inside a collapsing physics simulation.">
+	<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="styles.css">
+	<script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "VideoGame",
+		"name": "VECTOR ANOMALY",
+		"alternateName": "ORBITRON: VECTORFALL",
+		"description": "A physics-driven roguelike arena survival game about slingshotting through gravity wells and surviving a collapsing simulation through momentum mastery.",
+		"genre": ["Roguelike", "Action"],
+		"playMode": "SinglePlayer",
+		"applicationCategory": "Game",
+		"operatingSystem": "Windows",
+		"gamePlatform": "Steam"
+	}
+	</script>
+</head>
+<body>
+	<a class="skip-link" href="#main">Skip to content</a>
+
+	<header class="site-header" data-header>
+		<a class="brand" href="#top">
+			<span class="brand-mark" aria-hidden="true"></span>
+			VECTOR ANOMALY
+		</a>
+		<button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>
+			<span class="sr-only">Menu</span>
+			<span class="nav-toggle-bar" aria-hidden="true"></span>
+			<span class="nav-toggle-bar" aria-hidden="true"></span>
+		</button>
+		<nav id="site-nav" class="site-nav" aria-label="Primary" data-site-nav>
+			<a href="#orbit">Orbit</a>
+			<a href="#progression">Run</a>
+			<a href="#collapse">Collapse</a>
+			<a href="#bosses">Bosses</a>
+			<a href="#gallery">Gallery</a>
+			<a href="#trailer">Trailer</a>
+			<a href="#seeds">Seeds</a>
+			<a href="#media">Media</a>
+			<a class="nav-cta" href="#wishlist">Wishlist</a>
+		</nav>
+	</header>
+
+	<main id="main">
+		<section class="hero" id="top" aria-label="VECTOR ANOMALY">
+			<canvas id="vectorfall-canvas" aria-hidden="true"></canvas>
+			<div class="hero-grid" aria-hidden="true"></div>
+			<div class="hero-scanline" aria-hidden="true"></div>
+
+			<div class="hero-copy reveal">
+				<p class="telemetry hero-telemetry">
+					<span>SIM_STATE</span>
+					<span class="telemetry-value" data-telemetry="phase">COLLAPSING</span>
+					<span class="telemetry-sep">|</span>
+					<span>LAWS</span>
+					<span class="telemetry-value telemetry-warn" data-telemetry="laws">UNSTABLE</span>
+					<span class="telemetry-sep">|</span>
+					<span>FPS</span>
+					<span class="telemetry-value" data-telemetry="fps">—</span>
+				</p>
+				<p class="kicker">Physics roguelike arena survival</p>
+				<h1>VECTOR ANOMALY</h1>
+				<p class="hero-tagline">Master impossible momentum.</p>
+				<p class="lead">Weaponize gravity and momentum inside a universe whose physical laws are collapsing. Orbit, drift, slingshot, recover — and survive deterministic chaos through control, not stats.</p>
+				<div class="actions">
+					<a class="primary-action" href="#wishlist" data-wishlist-cta>Wishlist Signal</a>
+					<a class="secondary-action" href="#trailer">Watch Structure</a>
+					<a class="secondary-action" href="#media">Press Kit</a>
+				</div>
+				<div class="platform-row">
+					<span class="platform-badge platform-steam" data-steam-badge>Steam — uplink pending</span>
+					<span class="platform-badge">Solo · High skill · Readable chaos</span>
+				</div>
+				<ul class="hero-signals" aria-label="Core promises">
+					<li>Orbit combat, not bullet hell</li>
+					<li>Readable physics collapse</li>
+					<li>High-skill recoveries</li>
+				</ul>
+			</div>
+
+			<a class="scroll-hint" href="#orbit" aria-label="Scroll to Orbit Combat">
+				<span class="telemetry">SCROLL</span>
+				<span class="scroll-hint-line" aria-hidden="true"></span>
+			</a>
+		</section>
+
+		<section class="strip strip-features" aria-label="Feature highlights">
+			<div class="section-inner">
+				<ul class="bullet-strip">
+					<li>Movement is the main weapon</li>
+					<li>Bend shots through gravity &amp; resonance</li>
+					<li>Bosses mutate physics rules</li>
+					<li>Law upgrades, not stat bumps</li>
+					<li>Shareable seeded runs</li>
+					<li>Rupture &amp; music finale</li>
+				</ul>
+			</div>
+		</section>
+
+		<section id="orbit" class="band">
+			<div class="section-inner orbit-layout">
+				<div class="reveal">
+					<p class="kicker">Movement is the weapon</p>
+					<h2>Orbit Combat</h2>
+					<p>Every survival decision starts with trajectory. Dive into gravity wells, exit on a tangent, convert panic into speed, and bend enemy fire through fields you can read before you commit.</p>
+					<p class="section-note">Not a twin-stick shooter. Not a generic neon roguelike. Orbit combat where precision movement is how you win.</p>
+					<ul class="feature-list feature-list-inline">
+						<li><span class="feature-label">SLINGSHOT</span> Gravity wells as launch vectors</li>
+						<li><span class="feature-label">PREDICT</span> Curved paths &amp; readable telegraphs</li>
+						<li><span class="feature-label">RECOVER</span> Impossible saves through momentum mastery</li>
+						<li><span class="feature-label">APEX</span> Perfect slingshots trigger resonance payoff</li>
+					</ul>
+				</div>
+				<figure class="orbit-diagram reveal" aria-label="Diagram: player orbit, velocity vector, and gravity well">
+					<canvas id="orbit-diagram-canvas" width="420" height="420" aria-hidden="true"></canvas>
+					<figcaption class="diagram-legend">
+						<span><i class="legend-dot legend-player"></i> Player</span>
+						<span><i class="legend-dot legend-velocity"></i> Velocity</span>
+						<span><i class="legend-dot legend-threat"></i> Threat arc</span>
+						<span><i class="legend-dot legend-well"></i> Gravity well</span>
+					</figcaption>
+				</figure>
+			</div>
+		</section>
+
+		<section id="progression" class="band band-dark">
+			<div class="section-inner">
+				<div class="section-head reveal">
+					<p class="kicker">Readable run arc</p>
+					<h2>From Orbit Drills To Collapse</h2>
+					<p class="section-lead">Lead with movement. Escalate the arena. Mutate the laws. Finish when sound becomes the timing of reality.</p>
+				</div>
+				<ol class="run-timeline reveal">
+					<li class="run-phase">
+						<p class="telemetry">PHASE 01</p>
+						<h3>Physics Waves</h3>
+						<p>Learn gravity, resonance, and curved threat lines. Early waves teach movement without combat spam.</p>
+					</li>
+					<li class="run-phase run-phase-amber">
+						<p class="telemetry">PHASE 02</p>
+						<h3>Boss Milestones</h3>
+						<p>Waves 5–35 — each boss is a new law to read, not a HP check. Telegraph → commit → recover.</p>
+					</li>
+					<li class="run-phase">
+						<p class="telemetry">PHASE 03</p>
+						<h3>Late Game Elite Roster</h3>
+						<p>Waves 31–34 stack arena instability before the capstone. The field gets meaner, not noisier.</p>
+					</li>
+					<li class="run-phase run-phase-red">
+						<p class="telemetry">PHASE 04</p>
+						<h3>Rupture</h3>
+						<p>Familiar laws recombine. Visual collapse stays controlled — deterministic chaos you can learn.</p>
+					</li>
+					<li class="run-phase run-phase-cyan">
+						<p class="telemetry">PHASE 05</p>
+						<h3>Music Finale</h3>
+						<p>Resonance Singularity — a synchronized final encounter where rhythm defines when reality breaks.</p>
+					</li>
+				</ol>
+				<div class="law-grid reveal">
+					<article class="law-card">
+						<p class="telemetry">UPGRADE // LAW</p>
+						<h3>Law Changes</h3>
+						<p>Pickups rewrite how physics behaves — shockwaves, tether fusion, temporal scars — not +10% damage.</p>
+					</article>
+					<article class="law-card">
+						<p class="telemetry">UPGRADE // FUSION</p>
+						<h3>Law Fusions</h3>
+						<p>Combine laws for new arena behavior. Build a run identity from rules, not rarity tiers.</p>
+					</article>
+					<article class="law-card">
+						<p class="telemetry">UPGRADE // MASTERY</p>
+						<h3>Readable Deaths</h3>
+						<p>Every failure telegraphs its law. Survive next time with better orbit, not better rolls.</p>
+					</article>
+				</div>
+			</div>
+		</section>
+
+		<section id="collapse" class="band">
+			<div class="section-inner">
+				<div class="section-head reveal">
+					<p class="kicker">The arena becomes the enemy</p>
+					<h2>Collapsing Physics</h2>
+					<p class="section-lead">Waves escalate through gravity wells, resonance zones, temporal scars, and instability events — until familiar laws recombine into controlled collapse.</p>
+				</div>
+				<div class="rule-grid reveal">
+					<article class="rule-card">
+						<p class="telemetry">FIELD // GRAVITY_WELL</p>
+						<h3>Gravity Wells</h3>
+						<p>Pull, sling, and thread shots around massive bodies. The dominant rule is always visible.</p>
+					</article>
+					<article class="rule-card rule-card-amber">
+						<p class="telemetry">FIELD // RESONANCE</p>
+						<h3>Resonance Zones</h3>
+						<p>Zones that reward clean orbit timing with amplified slingshot and readable glyph language.</p>
+					</article>
+					<article class="rule-card rule-card-red">
+						<p class="telemetry">FIELD // TIME_SCAR</p>
+						<h3>Temporal Scars</h3>
+						<p>Time dilation tears the arena open. Survive by reading when reality slows — not by tanking hits.</p>
+					</article>
+					<article class="rule-card">
+						<p class="telemetry">EVENT // RUPTURE</p>
+						<h3>Rupture</h3>
+						<p>Late-game visual collapse where known laws stack into new threat combinations. Controlled chaos, not random noise.</p>
+					</article>
+				</div>
+			</div>
+		</section>
+
+		<section id="bosses" class="band band-dark">
+			<div class="section-inner">
+				<div class="section-head reveal">
+					<p class="kicker">Not damage sponges</p>
+					<h2>Bosses As Rule Mutations</h2>
+					<p class="section-lead">Each milestone boss rewrites how the simulation behaves. Learn the law, read the telegraph, survive the recovery.</p>
+				</div>
+				<div class="boss-grid reveal">
+					<article class="boss-card" data-boss="warden">
+						<p class="telemetry">WAVE 05</p>
+						<h3>Gravity Warden</h3>
+						<p>Channels gravity lanes — position breaks the rule.</p>
+					</article>
+					<article class="boss-card" data-boss="accretion">
+						<p class="telemetry">WAVE 10</p>
+						<h3>Accretion Core</h3>
+						<p>Orbital debris fields tighten your escape windows.</p>
+					</article>
+					<article class="boss-card" data-boss="seraph">
+						<p class="telemetry">WAVE 15</p>
+						<h3>Null Vector Seraph</h3>
+						<p>Velocity cancellation zones punish straight-line panic.</p>
+					</article>
+					<article class="boss-card" data-boss="twins">
+						<p class="telemetry">WAVE 20</p>
+						<h3>Magnetar Twins</h3>
+						<p>Dual gravity poles force figure-eight survival lines.</p>
+					</article>
+					<article class="boss-card" data-boss="rift">
+						<p class="telemetry">WAVE 25</p>
+						<h3>Tidal Rift Weaver</h3>
+						<p>Rift seams bend space — shots and bodies curve together.</p>
+					</article>
+					<article class="boss-card" data-boss="polymorph">
+						<p class="telemetry">WAVE 30</p>
+						<h3>The Polymorph</h3>
+						<p>Parametric motion — the arena equation changes mid-fight.</p>
+					</article>
+					<article class="boss-card boss-card-capstone" data-boss="marshal">
+						<p class="telemetry">WAVE 35 // CAPSTONE</p>
+						<h3>Centrifuge Marshal</h3>
+						<p>Rotating shear halos twist velocity when crossed. Orbit the boss, respect the rings.</p>
+					</article>
+				</div>
+			</div>
+		</section>
+
+		<section id="gallery" class="band">
+			<div class="section-inner">
+				<div class="section-head reveal">
+					<p class="kicker">Readable spectacle</p>
+					<h2>Capture Targets</h2>
+					<p class="section-lead">Placeholder frames below show the composition each screenshot must satisfy. Swap with real captures when ready.</p>
+				</div>
+				<div class="gallery-grid reveal">
+					<figure class="capture-frame capture-orbit">
+						<div class="capture-hud">
+							<span class="telemetry">CAPTURE_01</span>
+							<span>GRAVITY_DOMINANT</span>
+						</div>
+						<div class="capture-scene" aria-hidden="true"></div>
+						<figcaption>Early orbit — player, well, escape vector visible</figcaption>
+					</figure>
+					<figure class="capture-frame capture-resonance">
+						<div class="capture-hud">
+							<span class="telemetry">CAPTURE_02</span>
+							<span>RESONANCE_APEX</span>
+						</div>
+						<div class="capture-scene" aria-hidden="true"></div>
+						<figcaption>Resonance zone with readable glyph</figcaption>
+					</figure>
+					<figure class="capture-frame capture-boss">
+						<div class="capture-hud">
+							<span class="telemetry">CAPTURE_03</span>
+							<span>BOSS_TELEGRAPH</span>
+						</div>
+						<div class="capture-scene" aria-hidden="true"></div>
+						<figcaption>Boss telegraph + player trajectory</figcaption>
+					</figure>
+					<figure class="capture-frame capture-horizon">
+						<div class="capture-hud">
+							<span class="telemetry">CAPTURE_04</span>
+							<span>EVENT_HORIZON</span>
+						</div>
+						<div class="capture-scene" aria-hidden="true"></div>
+						<figcaption>Event horizon escape</figcaption>
+					</figure>
+					<figure class="capture-frame capture-rupture">
+						<div class="capture-hud">
+							<span class="telemetry">CAPTURE_05</span>
+							<span>RUPTURE_STATE</span>
+						</div>
+						<div class="capture-scene" aria-hidden="true"></div>
+						<figcaption>Rupture visual collapse</figcaption>
+					</figure>
+					<figure class="capture-frame capture-finale">
+						<div class="capture-hud">
+							<span class="telemetry">CAPTURE_06</span>
+							<span>RESONANCE_SINGULARITY</span>
+						</div>
+						<div class="capture-scene" aria-hidden="true"></div>
+						<figcaption>Music finale pulse</figcaption>
+					</figure>
+				</div>
+			</div>
+		</section>
+
+		<section id="trailer" class="band band-dark">
+			<div class="section-inner trailer-layout">
+				<div class="reveal">
+					<p class="kicker">First 3 seconds decide everything</p>
+					<h2>Trailer Beat Sheet</h2>
+					<p class="section-lead">Open on a slingshot escape through a gravity well. Title + <strong>MASTER IMPOSSIBLE MOMENTUM</strong>. Never hide the player. Never drown silhouettes in bloom.</p>
+					<div class="trailer-video-placeholder" role="img" aria-label="Trailer placeholder — bind Steam or YouTube embed here">
+						<p class="telemetry">MEDIA // TRAILER_PENDING</p>
+						<p>Embed URL binds via <code>site.config.js</code></p>
+					</div>
+				</div>
+				<ol class="trailer-beats reveal">
+					<li>
+						<span class="beat-time">0:00–0:03</span>
+						<strong>Hook</strong>
+						<span>Slingshot escape + title card. One readable threat cluster.</span>
+					</li>
+					<li>
+						<span class="beat-time">0:03–0:13</span>
+						<strong>Teach</strong>
+						<span>Clean movement, gravity arrows, apex slingshot → resonance payoff.</span>
+					</li>
+					<li>
+						<span class="beat-time">0:13–0:35</span>
+						<strong>Rules</strong>
+						<span>Each boss as a physics law. Telegraph → survival → recovery.</span>
+					</li>
+					<li>
+						<span class="beat-time">0:35–0:45</span>
+						<strong>Collapse</strong>
+						<span>Rare event or event horizon. Late-game visual escalation.</span>
+					</li>
+					<li>
+						<span class="beat-time">0:45–0:55</span>
+						<strong>Finale</strong>
+						<span>Rupture → music-sync pulse → hard title or credits calm.</span>
+					</li>
+				</ol>
+			</div>
+		</section>
+
+		<section id="seeds" class="band">
+			<div class="section-inner split">
+				<div class="reveal">
+					<p class="kicker">Deterministic chaos</p>
+					<h2>Seeded Runs &amp; Challenges</h2>
+					<p>Rare events fire on readable seeds so runs become shareable proof-of-skill, not loot rolls. Boss rush, secret bosses, and challenge codes let players attempt the same collapse you survived.</p>
+					<p class="section-note">Every death should feel readable — survivable next time with better control.</p>
+					<div class="seed-demo">
+						<p class="telemetry">DEMO // CHALLENGE_CODE</p>
+						<code class="seed-code" data-seed-display>VA-7F3A-COLLAPSE</code>
+						<button type="button" class="secondary-action seed-copy" data-copy-seed>Copy Seed</button>
+						<p class="seed-copy-feedback" data-copy-feedback hidden>Copied to clipboard</p>
+					</div>
+				</div>
+				<div class="signal-stack reveal">
+					<div class="signal-panel">
+						<span class="telemetry">CHALLENGE // SEED</span>
+						<strong>Shareable Runs</strong>
+						<span>Post the clip. Save the seed. Let them try the same impossible recovery.</span>
+					</div>
+					<div class="signal-panel signal-panel-cyan">
+						<span class="telemetry">HOOK // SOCIAL</span>
+						<strong>How is this even being controlled?</strong>
+						<span>One clip. One physics rule explained. One link back to the wishlist.</span>
+					</div>
+					<div class="signal-panel signal-panel-red">
+						<span class="telemetry">LOOP // WEEKLY</span>
+						<strong>Budget-Friendly Rhythm</strong>
+						<span>Capture one recovery → explain one law → point to wishlist → save the seed.</span>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<section id="media" class="band band-dark">
+			<div class="section-inner media-layout">
+				<div class="reveal">
+					<p class="kicker">Clips, press, captures</p>
+					<h2>Media Kit</h2>
+					<p>The best moments look impossible but stay explainable. Every capture should answer: where is the player, what is the gravity rule, what is the danger, and what recovery is about to happen?</p>
+					<div class="press-downloads">
+						<a class="secondary-action" href="assets/og-image.svg" download>Download OG Image</a>
+						<a class="secondary-action" href="assets/favicon.svg" download>Download Icon</a>
+					</div>
+				</div>
+				<div class="checklist-panel reveal">
+					<p class="telemetry">CAPTURE // CHECKLIST</p>
+					<ul class="checklist">
+						<li>Clean early orbit around a gravity source</li>
+						<li>Resonance zone with readable glyph</li>
+						<li>Boss telegraph with player trajectory visible</li>
+						<li>Event horizon escape</li>
+						<li>Rupture visual state</li>
+						<li>Music finale — Resonance Singularity</li>
+					</ul>
+					<p class="checklist-note">Avoid: hidden player, unreadable projectiles, bloom drowning silhouettes, generic arena-shooter framing.</p>
+					<a class="text-link" href="mailto:press@vectoranomaly.game" data-press-email>press@vectoranomaly.game</a>
+				</div>
+			</div>
+		</section>
+
+		<section id="faq" class="band">
+			<div class="section-inner faq-layout reveal">
+				<div class="section-head">
+					<p class="kicker">Simulation briefing</p>
+					<h2>What It Is — And Is Not</h2>
+				</div>
+				<div class="faq-columns">
+					<div class="faq-col faq-yes">
+						<p class="telemetry">IS</p>
+						<ul>
+							<li>Orbit combat &amp; momentum mastery</li>
+							<li>Controlled physics collapse</li>
+							<li>High-skill, readable recoveries</li>
+							<li>Deterministic seeded chaos</li>
+							<li>Law-based upgrades</li>
+						</ul>
+					</div>
+					<div class="faq-col faq-no">
+						<p class="telemetry">IS NOT</p>
+						<ul>
+							<li>Twin-stick bullet heaven</li>
+							<li>Generic neon roguelike</li>
+							<li>Loot-first power fantasy</li>
+							<li>Militaristic space opera</li>
+							<li>Randomness without readability</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<section id="wishlist" class="wishlist-band">
+			<div class="section-inner wishlist-layout">
+				<div class="reveal">
+					<p class="kicker">Transmission channel</p>
+					<h2>Wishlist &amp; Mailing List</h2>
+					<p>Steam page, trailer, and demo links bind here when public launch assets are ready. Until then, leave a signal — we only send orbit-combat updates, not feature spam.</p>
+					<ul class="wishlist-checklist">
+						<li>Steam page live</li>
+						<li>Trailer communicates orbit in 3 seconds</li>
+						<li>Ten GIF-worthy recovery clips</li>
+						<li>Stable demo or playtest path</li>
+					</ul>
+				</div>
+				<form class="mailing-form reveal" action="#" method="post" aria-label="Mailing list signup">
+					<label class="sr-only" for="email">Email address</label>
+					<input id="email" name="email" type="email" autocomplete="email" placeholder="operator@simulation.local" required>
+					<button type="submit" class="primary-action">Request Uplink</button>
+					<a class="secondary-action steam-link" href="#" data-steam-link hidden>Steam Page</a>
+					<p class="form-note">Connect your mailing provider before launch. Set URLs in <code>site.config.js</code>.</p>
+				</form>
+			</div>
+		</section>
+	</main>
+
+	<footer class="site-footer">
+		<div class="section-inner footer-inner">
+			<p class="telemetry footer-telemetry">VECTOR ANOMALY // ORBITRON: VECTORFALL</p>
+			<p class="footer-copy">Surviving a collapsing physics simulation through precision movement, orbital prediction, and mastery of impossible momentum.</p>
+			<nav aria-label="Footer">
+				<a href="#orbit">Orbit</a>
+				<a href="#progression">Run</a>
+				<a href="#collapse">Collapse</a>
+				<a href="#bosses">Bosses</a>
+				<a href="#gallery">Gallery</a>
+				<a href="#trailer">Trailer</a>
+				<a href="#seeds">Seeds</a>
+				<a href="#media">Media</a>
+				<a href="#wishlist">Wishlist</a>
+			</nav>
+			<p class="footer-legal telemetry">© <span data-year></span> VECTOR ANOMALY · All physics laws reserved.</p>
+		</div>
+	</footer>
+
+	<script src="site.config.js"></script>
+	<script src="app.js"></script>
+</body>
+</html>
