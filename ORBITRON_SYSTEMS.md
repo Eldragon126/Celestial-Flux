@@ -11,6 +11,13 @@
 - `PerformanceBudgetDirector` adjusts particle and VFX budgets for quality tiers.
 - `RunVariationDirector` applies seed-named run laws, pacing states, and deterministic rare events.
 - `SecretBossDirector` listens for hidden mastery conditions and registers optional bosses with the wave UI.
+- `MultiplayerSyncFoundation` emits passive deterministic sync snapshots and co-op readability budgets.
+- `CoopComboDirector` turns sync-safe vector events into deterministic shared resonance/time payoffs.
+- `ModContentRegistry` discovers data-driven mod manifests without executing arbitrary code.
+- `RunScoreTracker` emits score snapshots and shareable challenge codes.
+- `ArenaRuleDirector` applies seeded arena law profiles for alternate arena physics.
+- `LateGameInstabilityDirector` injects capped impossible-physics events in late game.
+- `AdaptiveMusicStateDirector` emits music intensity layers and beat hints from gameplay pressure.
 
 ## Particle Rules
 
@@ -97,6 +104,79 @@ When a hidden boss appears, the director calls `WaveDirector.register_secret_bos
 - `Volatile Lattice`: higher arena instability and easier resonance formation.
 
 The same director cycles wave pacing through `calm`, `tension`, `overload`, and `recovery` by tuning wave spawn delay and rest windows. Rare events are deterministic from seed/wave/modifier, so shareable moments can be reproduced by seed code.
+
+## Arena Rule Profiles
+
+`ArenaRuleDirector` is the first alternate-arena foundation. It does not swap the whole level yet; instead it applies a seeded physics profile to existing directors:
+
+- `Clean Vector Lattice`: readable baseline with slower instability.
+- `Mirror Well`: inversion and rebound emphasis.
+- `Tidal Skein`: more frequent tide pockets.
+- `Chronal Shoal`: stronger short time-pocket play.
+- `Harmonic Boneyard`: stronger projectile bending and manual resonance capacity.
+
+This keeps the separation blueprint intact: the difference between arenas is physical law and movement decision space, not just background art.
+
+## Late-Game Impossible Physics
+
+`LateGameInstabilityDirector` begins after the run reaches late pressure. It creates capped, deterministic law events:
+
+- `resonance_overfold`: layered harmonic/inversion/temporal resonance.
+- `temporal_splinter`: local slow on nearby threats.
+- `gravity_braid`: paired slipstream and inversion tide pockets.
+- `collapse_lane`: compression zones laid across the player's movement line.
+
+The director uses existing resonance, arena, and time APIs, so events remain readable, inspectable, and bounded.
+
+## Multiplayer Sync Foundation
+
+Full drop-in/drop-out online co-op is still future work. The current foundation keeps that future from fighting the physics architecture:
+
+- sync snapshots are quantized and deterministic rather than live simulation saves
+- gravity sources, wave enemies, bosses, and hostile projectiles are hashed within explicit budgets
+- desync risk signals fire when active gravity or projectile counts exceed those budgets
+- peer readability budgets expose limits for arrows and warnings as player count grows
+- co-op combo hooks accept player vector events and emit a combo-window signal without changing solo mechanics
+
+The foundation is passive and does not network anything yet.
+
+`CoopComboDirector` builds on that foundation. It registers local mastery slingshots and exposes `register_remote_vector_event()` for future network peers. When two distinct player vector events land inside the combo window, it creates a shared resonance payoff, locally slows nearby threats, emits `coop_combo_triggered`, and gives the score tracker a combo event.
+
+## Adaptive Music State
+
+`AdaptiveMusicStateDirector` is a music-control hook, not a music manager. It samples:
+
+- arena chaos
+- resonance pressure
+- time-tear pressure
+- boss presence
+
+It emits intensity layers (`silence`, `drift`, `tension`, `overload`, `collapse`) and beat hints (`pulse`, `burst`, `collapse`) so final audio implementation can bind stems, transitions, and reactive composition later.
+
+## Mod Content Registry
+
+`ModContentRegistry` scans `res://Mods` and `user://mods` for `vectorfall_mod.json`. A manifest may declare:
+
+- `arenas`
+- `waves`
+- `upgrades`
+- `rules`
+
+The registry stores manifest metadata and content dictionaries for future menus/loaders. It does not instantiate scenes, run scripts, or grant permissions; this keeps the first modding layer deterministic and safe enough to expand.
+
+## Scores And Community Challenges
+
+`RunScoreTracker` listens to existing gameplay signals instead of polling:
+
+- `WaveDirector.wave_cleared`
+- `WaveDirector.boss_defeated_anchor`
+- `SecretBossDirector.secret_boss_defeated`
+- `RunVariationDirector.rare_event_started`
+- `EventHorizonDirector.horizon_escape_scored`
+- `CoopComboDirector.coop_combo_triggered`
+- player `slingshot_mastery_scored`
+
+It emits a score snapshot and challenge code. The code combines `RunProgress.get_run_seed_code()`, score, and a checksum so players can share repeatable seed challenges before a full leaderboard exists.
 
 ## Apex Vector Core
 

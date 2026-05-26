@@ -72,6 +72,38 @@ Waves build toward fixed boss milestones at 5, 10, 15, 20, 25, 30, and 35. After
 
 Boss Rush is a challenge mode that runs the boss sequence back to back with shorter rest windows and no authored rupture/finale transition.
 
+## Arena Laws
+
+Each standard run can apply a seeded arena law profile. These are alternate arena rules before they are separate maps:
+
+- `Clean Vector Lattice`: clearer vectors and slower collapse.
+- `Mirror Well`: more inversion/rebound play.
+- `Tidal Skein`: tide pockets appear more often.
+- `Chronal Shoal`: short time-pocket decisions matter more.
+- `Harmonic Boneyard`: projectile bending and resonance capacity matter more.
+
+Late game can also trigger impossible-physics events such as resonance overfolds, temporal splinters, gravity braids, and collapse lanes. They are dangerous, but capped and rule-driven.
+
+## Co-op Foundation
+
+Full online co-op is not live yet. The first co-op mechanic foundation exists: shared vector events can combine into a co-op resonance payoff that bends local space and slows nearby threats. Future networking will feed those same deterministic event hooks.
+
+## Adaptive Music Hooks
+
+The music foundation now tracks gameplay pressure as layers: `silence`, `drift`, `tension`, `overload`, and `collapse`. Final music mixing is still a sound-design pass, but the game already emits clean hooks from chaos, resonance, time tears, and boss pressure.
+
+## Seeds, Scores, And Challenges
+
+The pause menu shows the current seed code for sharing a run. `RunScoreTracker` also tracks wave clears, bosses, secret bosses, mastery slingshots, rare events, and event-horizon escapes for future community challenges.
+
+Challenge codes are seed-based score summaries. They are meant for friendly competitions and reproducible challenge runs, not as a final online leaderboard yet.
+
+## Mods
+
+The first modding foundation is data-driven. `ModContentRegistry` can discover `vectorfall_mod.json` manifests from `res://Mods` and `user://mods` with entries for arenas, waves, upgrades, and gameplay rules. The registry does not automatically run mod code.
+
+See `MODDING_GUIDE.md` for the current manifest shape.
+
 ## Accessibility
 
 The pause menu exposes readability controls:
@@ -89,3 +121,5 @@ The pause menu exposes readability controls:
 - Save data reconstructs progression only; never serialize live physics state.
 - Use inspector-authored child nodes for important polygons, trails, telegraphs, particles, and hit shapes.
 - Debug hotkeys live on `OrbitalJuiceManager` when `enable_dev_hotkeys` is enabled.
+- Full online co-op is future work. `MultiplayerSyncFoundation` currently provides deterministic snapshot/readability hooks only.
+- `ArenaRuleDirector`, `LateGameInstabilityDirector`, `CoopComboDirector`, and `AdaptiveMusicStateDirector` are modular child systems installed by `OrbitalJuiceManager`.

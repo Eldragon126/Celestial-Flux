@@ -64,6 +64,32 @@ Arena instability is handled by `ArenaDestabilizationManager`. It raises chaos f
 
 `RunVariationDirector` applies one named seeded run law per run, then cycles combat pacing through calm, tension, overload, and recovery. It can also fire deterministic rare events from the active seed, wave, and run modifier so shareable moments can be reproduced from the pause-menu seed code.
 
+`ArenaRuleDirector` applies one seeded arena law profile per run. These are alternate arenas as physics rules rather than separate art maps for now:
+
+- `Clean Vector Lattice`: slower law collapse and highly readable resonance.
+- `Mirror Well`: more inversion/rebound opportunities.
+- `Tidal Skein`: more frequent tide pockets and routing pressure.
+- `Chronal Shoal`: stronger short time-pocket play.
+- `Harmonic Boneyard`: stronger projectile bending and manual resonance play.
+
+`LateGameInstabilityDirector` starts after late-game pressure begins. It injects capped impossible-physics events without random spam:
+
+- `Resonance Overfold`: overlapping harmonic, inversion, and temporal zones.
+- `Temporal Splinter`: local slow applied to nearby threats.
+- `Gravity Braid`: paired slipstream/inversion tide events.
+- `Collapse Lane`: compression zones arranged across the player's movement line.
+
+## Replay, Scores, And Challenge Codes
+
+`RunScoreTracker` is a signal-driven scoring foundation for future community challenges. It scores wave clears, authored boss kills, secret boss kills, perfect/apex slingshots, event-horizon escapes, and rare events without polling every frame.
+
+The tracker emits:
+
+- `score_changed(score, snapshot)`
+- `challenge_code_changed(code)`
+
+Challenge codes combine the current seed code, score, and a checksum. They are intended for seed-based community challenges and score competitions; they are not anti-cheat infrastructure. Co-op combo events also feed the tracker when `CoopComboDirector` emits a completed shared vector payoff.
+
 ## Time Dilation
 
 `TimeDilationManager` keeps player momentum responsive while slowing enemies and projectiles. It supports global player-triggered dilation, local time pockets, near-miss charge, time tear intensity, and alias signals for future audio/VFX bindings.
@@ -143,6 +169,37 @@ Accessibility settings currently include:
 - colorblind readability modes: standard, deuteranopia, protanopia, tritanopia
 
 These settings live on the existing `Settings` autoload and are exposed in the pause menu.
+
+## Multiplayer Foundation
+
+Full online co-op is not implemented yet. `MultiplayerSyncFoundation` is a passive preparation layer that preserves solo gameplay while defining how future co-op should stay deterministic and readable.
+
+It emits quantized sync snapshots for:
+
+- run seed, phase, and wave
+- active gravity sources
+- wave enemies
+- bosses
+- hostile projectiles
+
+It also emits peer-based readability budgets so future co-op UI can reduce clutter as players join.
+
+`CoopComboDirector` is the first deterministic co-op reward layer. Local or future networked players can register vector events. When two players hit the combo window, the director creates a shared resonance zone, applies a capped local slow to nearby threats, emits `coop_combo_triggered`, and gives `RunScoreTracker` a score event. It does not require online networking to exist yet.
+
+## Adaptive Music Foundation
+
+`AdaptiveMusicStateDirector` listens to chaos, resonance intensity, time-tear pressure, and boss pressure. It emits:
+
+- `music_intensity_changed(intensity, layer, reason)`
+- `music_beat_hint(event_id, intensity)`
+
+The current layers are `silence`, `drift`, `tension`, `overload`, and `collapse`. This is a hook layer only; final music stems, mixing, and composition binding remain sound-design work.
+
+## Modding Foundation
+
+`ModContentRegistry` discovers data manifests from `res://Mods` and `user://mods`. It registers arenas, waves, upgrades, and rule definitions from JSON without executing arbitrary code or spawning content automatically.
+
+This is an initial data-driven foundation. The game still needs runtime selection UI, validation polish, and editor tooling before it should be described as fully moddable.
 
 ## Menus And State Flow
 

@@ -27,6 +27,13 @@ const PHYSICS_AWARE_ENEMY_DIRECTOR_SCENE = preload("res://Nodes/physics_aware_en
 const STRESS_TEST_DIRECTOR_SCENE = preload("res://Nodes/stress_test_director.tscn")
 const SECRET_BOSS_DIRECTOR_SCENE = preload("res://Nodes/secret_boss_director.tscn")
 const RUN_VARIATION_DIRECTOR_SCENE = preload("res://Nodes/run_variation_director.tscn")
+const MULTIPLAYER_SYNC_FOUNDATION_SCENE = preload("res://Nodes/multiplayer_sync_foundation.tscn")
+const MOD_CONTENT_REGISTRY_SCENE = preload("res://Nodes/mod_content_registry.tscn")
+const RUN_SCORE_TRACKER_SCENE = preload("res://Nodes/run_score_tracker.tscn")
+const ARENA_RULE_DIRECTOR_SCENE = preload("res://Nodes/arena_rule_director.tscn")
+const LATE_GAME_INSTABILITY_DIRECTOR_SCENE = preload("res://Nodes/late_game_instability_director.tscn")
+const COOP_COMBO_DIRECTOR_SCENE = preload("res://Nodes/coop_combo_director.tscn")
+const ADAPTIVE_MUSIC_STATE_DIRECTOR_SCENE = preload("res://Nodes/adaptive_music_state_director.tscn")
 
 const PLANET_ATMOSPHERE_SCENE = preload("res://Nodes/planet_atmosphere_dust.tscn")
 const WAVE_DIRECTOR_SCENE = preload("res://Nodes/wave_director.tscn")
@@ -67,6 +74,13 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var enable_physics_aware_enemy_ai = true
 @export var enable_secret_bosses = true
 @export var enable_run_variation = true
+@export var enable_multiplayer_sync_foundation = true
+@export var enable_mod_content_registry = true
+@export var enable_run_score_tracker = true
+@export var enable_arena_rule_profiles = true
+@export var enable_late_game_instability = true
+@export var enable_coop_combos = true
+@export var enable_adaptive_music_state = true
 @export_group("Developer Showcase")
 @export var enable_stress_test_tools = false
 @export var run_stress_test_on_ready = false
@@ -123,6 +137,12 @@ func _install_modular_additions() -> void:
 		_add_child_scene_once(level_root, GAMEPLAY_TEACHING_SCENE, "GameplayTeachingDirector")
 	if attach_performance_budget:
 		_add_child_scene_once(level_root, PERFORMANCE_BUDGET_SCENE, "PerformanceBudgetDirector")
+	if enable_mod_content_registry:
+		_add_child_scene_once(level_root, MOD_CONTENT_REGISTRY_SCENE, "ModContentRegistry")
+	if enable_multiplayer_sync_foundation:
+		_add_child_scene_once(level_root, MULTIPLAYER_SYNC_FOUNDATION_SCENE, "MultiplayerSyncFoundation")
+	if enable_adaptive_music_state:
+		_add_child_scene_once(level_root, ADAPTIVE_MUSIC_STATE_DIRECTOR_SCENE, "AdaptiveMusicStateDirector")
 	if enable_debug_balance_overlay:
 		# The balance overlay is its own CanvasLayer, so telemetry can be
 		# toggled or removed without changing player, enemy, or wave logic.
@@ -161,6 +181,9 @@ func _install_modular_additions() -> void:
 		if attach_player_juice and camera != null:
 			_add_child_scene_once(camera, CAMERA_SHAKE_SCENE, "DamageCameraShake")
 
+	if enable_coop_combos:
+		_add_child_scene_once(level_root, COOP_COMBO_DIRECTOR_SCENE, "CoopComboDirector")
+
 	if attach_planet_atmospheres:
 		for planet in get_tree().get_nodes_in_group("planets"):
 			if planet is Node and planet != null:
@@ -187,10 +210,16 @@ func _install_modular_additions() -> void:
 			_add_child_scene_once(level_root, PHYSICS_AWARE_ENEMY_DIRECTOR_SCENE, "PhysicsAwareEnemyDirector")
 		if enable_arena_destabilization:
 			_add_child_scene_once(level_root, ARENA_DESTABILIZATION_SCENE, "ArenaDestabilizationManager")
+		if enable_arena_rule_profiles:
+			_add_child_scene_once(level_root, ARENA_RULE_DIRECTOR_SCENE, "ArenaRuleDirector")
+		if enable_late_game_instability:
+			_add_child_scene_once(level_root, LATE_GAME_INSTABILITY_DIRECTOR_SCENE, "LateGameInstabilityDirector")
 		if enable_run_variation:
 			_add_child_scene_once(level_root, RUN_VARIATION_DIRECTOR_SCENE, "RunVariationDirector")
 		if enable_secret_bosses:
 			_add_child_scene_once(level_root, SECRET_BOSS_DIRECTOR_SCENE, "SecretBossDirector")
+		if enable_run_score_tracker:
+			_add_child_scene_once(level_root, RUN_SCORE_TRACKER_SCENE, "RunScoreTracker")
 
 	if spawn_showcase_content and player != null:
 		_spawn_showcase_content(level_root, player.global_position)

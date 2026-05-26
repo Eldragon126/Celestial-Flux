@@ -203,6 +203,8 @@ func _spawn_event(event_id: StringName) -> void:
 			_spawn_wormhole_shear()
 		&"resonance_storm":
 			_spawn_resonance_storm()
+		&"finale_storm":
+			_spawn_finale_storm()
 		_:
 			_spawn_tide_pocket(GravityTidePocket.TideMode.COMPRESSION)
 
@@ -301,6 +303,17 @@ func _spawn_resonance_storm() -> void:
 			GravityTidePocket.TideMode.SLIPSTREAM,
 			GravityTidePocket.TideMode.TEMPORAL,
 		][i % 3]
+		_spawn_tide_pocket(mode)
+
+func _spawn_finale_storm() -> void:
+	var count := 2 if low_performance_mode else 4
+	for i in range(count):
+		var mode = [
+			GravityTidePocket.TideMode.INVERSION,
+			GravityTidePocket.TideMode.TEMPORAL,
+			GravityTidePocket.TideMode.SLIPSTREAM,
+			GravityTidePocket.TideMode.COMPRESSION,
+		][i % 4]
 		_spawn_tide_pocket(mode)
 
 func _spawn_hazard_node(hazard: Node, position: Vector2, event_id: StringName) -> Node:

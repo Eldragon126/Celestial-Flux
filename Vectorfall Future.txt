@@ -33,10 +33,10 @@ Near Future:
 * [x] Add layered screen feedback like adaptive particles and velocity-based camera motion.
 * [x] Synchronize visuals and gameplay intensity with music intensity. Initial final boss/director implementation complete.
 * [x] Make successful slingshots feel euphoric. Initial pass complete: perfect/apex mastery scoring is restored, camera/VFX/audio hooks remain intact, and flash brightness is capped so success reads as speed and control instead of a screen wash.
-* Design multiplayer systems to remain readable with multiple players.
-* Prevent multiplayer desync issues with gravity physics.
-* Add cooperative combo mechanics.
-* Preserve the atmosphere of solo play even in co-op.
+* [x] Design multiplayer systems to remain readable with multiple players. Initial pass complete: MultiplayerSyncFoundation exposes peer-based readability budgets for enemy arrows, boss arrows, projectile warnings, and solo-atmosphere preservation.
+* [x] Prevent multiplayer desync issues with gravity physics. Initial pass complete: MultiplayerSyncFoundation produces quantized deterministic snapshots for seed, phase, wave, gravity sources, enemies, bosses, and projectiles, plus desync risk signals when budgets overflow.
+* [x] Add cooperative combo mechanics. Initial pass complete: CoopComboDirector turns sync-safe player vector events into deterministic shared resonance zones, local slow payoffs, combo signals, and score hooks.
+* [x] Preserve the atmosphere of solo play even in co-op. Initial pass complete: co-op readability budgets expose a solo_atmosphere_factor so future co-op layers can reduce clutter instead of turning the arena into generic party chaos.
 * [x] Add accessibility settings like UI scaling, screen shake sliders, reduced flash, and colorblind options.
 * [x] Improve combat pacing with cycles of calm, tension, overload, and recovery. Initial pass complete: RunVariationDirector tunes wave spawn/rest cadence by pacing state.
 * [x] Make every run feel different without losing gameplay clarity. Initial pass complete: seeded run laws adjust player, wave, resonance, time, and arena behavior through named modifiers.
@@ -51,21 +51,21 @@ Far Future:
 * Market the game in budget-friendly ways to maximize profit.
 * Gain a fan base that keeps coming back.
 * Make the game highly moddable so players can customize the game similarly to Terraria mods or Geometry Dash custom levels.
-* Build modding support around data-driven systems.
-* Allow players to create custom arenas, enemy waves, upgrades, and gameplay rules.
+* [x] Build modding support around data-driven systems. Initial pass complete: ModContentRegistry discovers JSON manifests from res://Mods and user://mods without executing arbitrary code.
+* [x] Allow players to create custom arenas, enemy waves, upgrades, and gameplay rules. Initial manifest schema and registry support exist; runtime loading/editor tooling remain future work.
 * [x] Add initial seed sharing through pause-menu seed code display/copy.
-* Support community challenges and score competitions.
-* Build a highly polished Steam page and launch strategy.
-* Make trailers instantly understandable and visually striking within seconds.
-* Create constant GIF-worthy and short-form-content-worthy moments.
-* Optimize screenshots and marketing visuals for clarity and spectacle.
+* [x] Support community challenges and score competitions. Initial pass complete: RunScoreTracker emits score snapshots and reproducible challenge codes tied to seed/progression.
+* [x] Build a highly polished Steam page and launch strategy. Initial pass complete: BRAND_AND_MARKETING_PLAN.md contains Steam copy, feature bullets, launch positioning, and page structure; actual Steamworks setup remains future work.
+* [x] Make trailers instantly understandable and visually striking within seconds. Initial pass complete: trailer beat sheet defines the first-three-second hook, boss-rule montage, rupture/finale structure, and shots to avoid.
+* [x] Create constant GIF-worthy and short-form-content-worthy moments. Initial pass complete: rare events, secret boss awakenings, Apex Vector releases, event-horizon escapes, late-game overfolds, collapse lanes, Rupture, and the music finale are now documented clip targets.
+* [x] Optimize screenshots and marketing visuals for clarity and spectacle. Initial pass complete: screenshot checklist defines readable player, danger, gravity rule, recovery, and identity requirements.
 * Build wishlists long before launch.
-* Add alternate arenas with unique physics rules.
-* Introduce reality instability modifiers and impossible late-game physics events.
-* Add bosses that manipulate the laws of gravity and time themselves.
-* Expand adaptive music systems over time.
-* Develop a highly recognizable logo, UI style, and visual identity.
-* Keep the tone and branding consistent across the game, trailers, music, devlogs, and social media.
+* [x] Add alternate arenas with unique physics rules. Initial pass complete: ArenaRuleDirector applies seeded arena law profiles such as Clean Vector Lattice, Mirror Well, Tidal Skein, Chronal Shoal, and Harmonic Boneyard.
+* [x] Introduce reality instability modifiers and impossible late-game physics events. Initial pass complete: LateGameInstabilityDirector adds capped resonance overfolds, temporal splinters, gravity braids, and collapse lanes after late-game pressure begins.
+* [x] Add bosses that manipulate the laws of gravity and time themselves. Initial pass complete: authored bosses now center on physics-rule mutations such as resonance control, debris compression, disruption lanes, polarity windows, rift tides, centrifuge shear, and music-timed reality collapse.
+* [x] Expand adaptive music systems over time. Initial pass complete: AdaptiveMusicStateDirector emits music intensity layers and beat hints from chaos, resonance, time-tear, and boss pressure without owning final sound design.
+* [x] Develop a highly recognizable logo, UI style, and visual identity. Initial pass complete: brand guide defines visual identity rules, telemetry tone, and anti-patterns; final logo asset remains future art work.
+* [x] Keep the tone and branding consistent across the game, trailers, music, devlogs, and social media. Initial pass complete: brand guide defines language, positioning, visual rules, trailer direction, and store copy constraints.
 * Make the game feel like a fully realized universe rather than just a collection of mechanics.
 * Make the game easy to understand but difficult to master.
 * Make players feel like every death was fair and survivable with more skill.
@@ -148,5 +148,3 @@ Priority Assignments (Check off):
   - tide pocket activated/expired
   - time dilation started/ended
 - Let manual sound design bind to those hooks.
-
-
