@@ -72,6 +72,8 @@ Far Future:
 * [x] Make players feel like every death was fair and survivable with more skill. Initial pass complete: DeathFairnessDirector appends wave, speed, field rule, chaos, projectile density, and boss-law context to game-over death lessons.
 * [x] Create a game players replay because the mechanics themselves feel satisfying, not just because of progression systems. Initial pass complete: replay hooks now center on slingshot mastery, seeded physics laws, challenge codes, co-op vector combos, and deterministic rare instability events.
 
+* ADD CONTROLLER SUPPORT
+* ADD SUPPORT FOR MULTIPLE INPUTS COMPARED TO JUST KEYBOARD
 
 
 Vision:
