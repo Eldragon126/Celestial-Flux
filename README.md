@@ -21,9 +21,12 @@ Developer references:
 
 Made to be pure fun!
 
-# Current Playable Website Build
+# Current Play Test Website Build
 - https://eldragon126.github.io/VECTOR-ANOMALY-Website/
 - This functions, but it lags a lot.
+# Current Windows Play Test Build
+- https://github.com/Eldragon126/VECTOR-ANOMALY-WINDOWS-BUILD
+- This is the go to if you want a smooth experience.
 
 # To the Players
   For any feedback on the game, please email me (eldensimmons1@gmail.com) or text me (208) 821-0245 your feedback. Any and all feedback is appreciated.
