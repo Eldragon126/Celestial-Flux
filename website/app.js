@@ -8,11 +8,13 @@ function initSiteConfig() {
 		yearNode.textContent = String(new Date().getFullYear());
 	}
 
-	const pressEmail = document.querySelector("[data-press-email]");
-	if (pressEmail && config.pressEmail) {
-		pressEmail.href = `mailto:${config.pressEmail}`;
-		pressEmail.textContent = config.pressEmail;
-	}
+	const pressEmails = document.querySelectorAll("[data-press-email]");
+	pressEmails.forEach((pressEmail) => {
+		if (config.pressEmail) {
+			pressEmail.href = `mailto:${config.pressEmail}`;
+			pressEmail.textContent = config.pressEmail;
+		}
+	});
 
 	const wishlistCta = document.querySelector("[data-wishlist-cta]");
 	const steamLink = document.querySelector("[data-steam-link]");
@@ -52,7 +54,17 @@ function initSiteConfig() {
 			}
 		}
 		if (trailerFrame && isEmbeddable(config.trailerUrl)) {
-			trailerFrame.innerHTML = `<iframe src="${embedUrl(config.trailerUrl)}" title="Vector Anomaly trailer" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
+			const idleOverlay = trailerFrame.querySelector("[data-trailer-idle]");
+			if (idleOverlay) idleOverlay.classList.add("is-playing");
+			const placeholder = trailerFrame.querySelector(".trailer-placeholder");
+			if (placeholder) placeholder.remove();
+			const iframe = document.createElement("iframe");
+			iframe.src = embedUrl(config.trailerUrl);
+			iframe.title = "Vector Anomaly trailer";
+			iframe.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture");
+			iframe.allowFullscreen = true;
+			iframe.loading = "lazy";
+			trailerFrame.appendChild(iframe);
 		}
 	}
 }
@@ -157,14 +169,6 @@ function initMailingForm() {
 	});
 }
 
-initSiteConfig();
-initHeroCanvas();
-initHeroRotator();
-initHeader();
-initMobileNav();
-initMailingForm();
-initScrollProgress();
-
 function initScrollProgress() {
 	const bar = document.querySelector("[data-scroll-progress]");
 	if (!bar) {
@@ -179,6 +183,50 @@ function initScrollProgress() {
 	onScroll();
 	window.addEventListener("scroll", onScroll, { passive: true });
 }
+
+function initScrollReveal() {
+	const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	const heroEls = document.querySelectorAll(".hero [data-reveal]");
+	const sectionEls = document.querySelectorAll("[data-reveal-section]");
+
+	if (reduceMotion) {
+		[...heroEls, ...sectionEls].forEach(el => el.classList.add("is-revealed"));
+		return;
+	}
+
+	heroEls.forEach(el => {
+		const delay = el.dataset.revealDelay ? parseInt(el.dataset.revealDelay, 10) * 160 : 0;
+		setTimeout(() => el.classList.add("is-revealed"), delay + 250);
+	});
+
+	const observer = new IntersectionObserver((entries) => {
+		entries.forEach(entry => {
+			if (!entry.isIntersecting) return;
+			entry.target.classList.add("is-revealed");
+			observer.unobserve(entry.target);
+		});
+	}, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+
+	sectionEls.forEach(el => observer.observe(el));
+}
+
+function initFooterTelemetry() {
+	const el = document.querySelector("[data-signal-integrity] .ft-value");
+	if (!el) return;
+	const update = () => { el.textContent = String(82 + Math.floor(Math.random() * 13)); };
+	update();
+	window.setInterval(update, 3500);
+}
+
+initSiteConfig();
+initScrollReveal();
+initHeroCanvas();
+initHeroRotator();
+initHeader();
+initMobileNav();
+initMailingForm();
+initScrollProgress();
+initFooterTelemetry();
 
 // ==================== HERO ORBIT CANVAS ====================
 
@@ -201,10 +249,25 @@ function initHeroCanvas() {
 		speed: 0.12 + (index % 6) * 0.016,
 	}));
 	const player = { angle: 0.85, distance: 210, speed: 0.22 };
+
 	let width = 0;
 	let height = 0;
+	let baseCenter = { x: 0, y: 0 };
 	let center = { x: 0, y: 0 };
+	let mouse = { x: 0, y: 0 };
+	let mouseSmooth = { x: 0, y: 0 };
 	let lastTime = performance.now();
+	let instabilityStrength = 0;
+
+	canvas.addEventListener("mousemove", (e) => {
+		const rect = canvas.getBoundingClientRect();
+		mouse.x = e.clientX - rect.left;
+		mouse.y = e.clientY - rect.top;
+	}, { passive: true });
+
+	window.setInterval(() => {
+		instabilityStrength = 1.0;
+	}, 11000);
 
 	function resize() {
 		const ratio = window.devicePixelRatio || 1;
@@ -213,8 +276,11 @@ function initHeroCanvas() {
 		canvas.width = Math.floor(width * ratio);
 		canvas.height = Math.floor(height * ratio);
 		ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-		center = { x: width * 0.62, y: height * 0.48 };
-		draw();
+		baseCenter = { x: width * 0.62, y: height * 0.48 };
+		mouse = { x: width * 0.5, y: height * 0.5 };
+		mouseSmooth = { x: width * 0.5, y: height * 0.5 };
+		center = { x: baseCenter.x, y: baseCenter.y };
+		draw(performance.now());
 	}
 
 	function orbitPosition(angle, distance) {
@@ -263,16 +329,19 @@ function initHeroCanvas() {
 
 	function drawWell(well, time) {
 		const pulse = Math.sin(time * 0.0012 + well.phase) * 0.1 + 1;
+		const instabilityOffset = Math.sin(time * 0.08 + well.phase) * instabilityStrength * 8;
+		const effectiveRadius = well.radius * pulse + instabilityOffset;
+
 		ctx.beginPath();
-		ctx.arc(center.x, center.y, well.radius * pulse, 0, Math.PI * 2);
+		ctx.arc(center.x, center.y, effectiveRadius, 0, Math.PI * 2);
 		ctx.strokeStyle = well.color;
 		ctx.lineWidth = 1.4;
 		ctx.stroke();
 
 		for (let i = 0; i < 8; i += 1) {
 			const angle = (Math.PI * 2 * i) / 8 + well.phase * 0.15 + time * 0.00012;
-			const inner = well.radius * pulse - 10;
-			const outer = well.radius * pulse + 8;
+			const inner = effectiveRadius - 10;
+			const outer = effectiveRadius + 8;
 			ctx.beginPath();
 			ctx.moveTo(
 				center.x + Math.cos(angle) * inner,
@@ -307,6 +376,17 @@ function initHeroCanvas() {
 	function drawParticle(particle) {
 		const wobble = Math.sin(particle.angle * 1.6) * 18;
 		const position = orbitPosition(particle.angle, particle.distance + wobble);
+
+		const playerPos = orbitPosition(player.angle, player.distance);
+		const dx = position.x - playerPos.x;
+		const dy = position.y - playerPos.y;
+		const dist = Math.sqrt(dx * dx + dy * dy);
+		if (dist < 70 && dist > 0) {
+			const influence = (70 - dist) / 70;
+			position.x += (dx / dist) * influence * 5;
+			position.y += (dy / dist) * influence * 5;
+		}
+
 		const trail = [];
 		for (let step = 14; step >= 0; step -= 1) {
 			trail.push(orbitPosition(particle.angle - step * 0.018, particle.distance + wobble));
@@ -383,6 +463,19 @@ function initHeroCanvas() {
 			player.angle += delta * 0.00009 * player.speed;
 			for (const particle of particles) {
 				particle.angle += delta * 0.00007 * particle.speed;
+			}
+
+			instabilityStrength = Math.max(0, instabilityStrength - delta * 0.0008);
+
+			if (width >= 600) {
+				mouseSmooth.x += (mouse.x - mouseSmooth.x) * 0.04;
+				mouseSmooth.y += (mouse.y - mouseSmooth.y) * 0.04;
+				center = {
+					x: baseCenter.x + (mouseSmooth.x / width - 0.5) * -24,
+					y: baseCenter.y + (mouseSmooth.y / height - 0.5) * -14,
+				};
+			} else {
+				center = { x: baseCenter.x, y: baseCenter.y };
 			}
 		}
 
