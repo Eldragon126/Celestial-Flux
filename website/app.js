@@ -324,21 +324,30 @@ function initHeroCanvas() {
 			x: -Math.sin(player.angle),
 			y: Math.cos(player.angle * 1.06) * 0.64,
 		};
+		const tangentLen = Math.sqrt(tangent.x * tangent.x + tangent.y * tangent.y);
+		const normTangent = tangentLen > 0
+			? { x: tangent.x / tangentLen, y: tangent.y / tangentLen }
+			: { x: tangent.x, y: tangent.y };
+		const dotRadius = 4.5;
 		const velocityEnd = {
 			x: position.x + tangent.x * 46,
 			y: position.y + tangent.y * 46,
 		};
+		const arrowStart = {
+			x: position.x + normTangent.x * dotRadius,
+			y: position.y + normTangent.y * dotRadius,
+		};
 		const trail = [];
-		for (let step = 28; step >= 0; step -= 1) {
+		for (let step = 28; step >= 3; step -= 1) {
 			trail.push(orbitPosition(player.angle - step * 0.022, player.distance));
 		}
 		drawTrail(trail, "rgba(255,200,87,0.5)", 2.2);
 
 		ctx.beginPath();
-		ctx.moveTo(position.x, position.y);
+		ctx.moveTo(arrowStart.x, arrowStart.y);
 		ctx.quadraticCurveTo(
-			(position.x + velocityEnd.x) * 0.5,
-			(position.y + velocityEnd.y) * 0.5,
+			(arrowStart.x + velocityEnd.x) * 0.5,
+			(arrowStart.y + velocityEnd.y) * 0.5,
 			velocityEnd.x,
 			velocityEnd.y
 		);
@@ -347,7 +356,7 @@ function initHeroCanvas() {
 		ctx.stroke();
 
 		ctx.beginPath();
-		ctx.arc(position.x, position.y, 4.5, 0, Math.PI * 2);
+		ctx.arc(position.x, position.y, dotRadius, 0, Math.PI * 2);
 		ctx.fillStyle = "#f4fbff";
 		ctx.fill();
 		ctx.strokeStyle = "rgba(98,255,224,0.9)";

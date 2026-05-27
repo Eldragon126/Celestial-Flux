@@ -9,3 +9,5 @@
 [x] The boss rush currently doesn't work. Fixed: challenge/boss-rush runs now keep waves enabled, boss rush stops after the authored boss list, and the wave banner reports completion.
 
 [x] The projectile trajectory visualizer, which is a child of the player, is decent sometimes and wildly off other times. Initial fix complete: the predictor now matches capped projectile gravity sources, includes momentum launch inheritance, and stops at planet impact instead of showing impossible bounces.
+
+[ ] What is the weird line that wiggles in the harmonic fracture orbit and similar circles? I actually have no clue and it looks slightly goofy. It needs to be fixed.
