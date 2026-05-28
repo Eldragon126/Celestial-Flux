@@ -1,0 +1,70 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/run_story_arc_director.gd" id="1_arc"]
+
+[node name="RunStoryArcDirector" type="CanvasLayer"]
+layer = 93
+script = ExtResource("1_arc")
+
+[node name="Root" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Wash" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.48, 0.78, 0.84, 0)
+
+[node name="VectorLine" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -360.0
+offset_top = 112.0
+offset_right = 360.0
+offset_bottom = 116.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.48, 0.78, 0.84, 0)
+
+[node name="ArcLabel" type="Label" parent="Root"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -420.0
+offset_top = 76.0
+offset_right = 420.0
+offset_bottom = 110.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 24
+text = "RUN ARC: CALIBRATION"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ArcSubLabel" type="Label" parent="Root"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -420.0
+offset_top = 120.0
+offset_right = 420.0
+offset_bottom = 146.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 15
+text = "VECTOR FIELD ONLINE"
+horizontal_alignment = 1
+vertical_alignment = 1

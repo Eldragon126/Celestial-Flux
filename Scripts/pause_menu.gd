@@ -20,16 +20,23 @@ signal pause_state_changed(blocked: bool)
 @export var pulse_speed: float = 1.35
 
 @onready var music_player: AudioStreamPlayer = $PauseMusic
-@onready var menu_panel: PanelContainer = get_node_or_null("MenuPanel") as PanelContainer
-@onready var resume_button: Button = get_node_or_null("MenuPanel/MenuRows/ResumeButton") as Button
-@onready var restart_button: Button = get_node_or_null("MenuPanel/MenuRows/RestartButton") as Button
-@onready var title_button: Button = get_node_or_null("MenuPanel/MenuRows/TitleButton") as Button
-@onready var ui_scale_slider: HSlider = get_node_or_null("MenuPanel/MenuRows/UIScaleRow/UIScaleSlider") as HSlider
-@onready var shake_slider: HSlider = get_node_or_null("MenuPanel/MenuRows/ShakeRow/ShakeSlider") as HSlider
-@onready var reduce_flash_check: CheckBox = get_node_or_null("MenuPanel/MenuRows/FlashRow/ReduceFlashCheck") as CheckBox
-@onready var color_mode_option: OptionButton = get_node_or_null("MenuPanel/MenuRows/ColorRow/ColorModeOption") as OptionButton
-@onready var seed_label: Label = get_node_or_null("MenuPanel/MenuRows/SeedRow/SeedLabel") as Label
-@onready var copy_seed_button: Button = get_node_or_null("MenuPanel/MenuRows/SeedRow/CopySeedButton") as Button
+@onready var menu_panel: PanelContainer = find_child("MenuPanel", true, false) as PanelContainer
+@onready var resume_button: Button = find_child("ResumeButton", true, false) as Button
+@onready var restart_button: Button = find_child("RestartButton", true, false) as Button
+@onready var title_button: Button = find_child("TitleButton", true, false) as Button
+@onready var ui_scale_slider: HSlider = find_child("UIScaleSlider", true, false) as HSlider
+@onready var shake_slider: HSlider = find_child("ShakeSlider", true, false) as HSlider
+@onready var reduce_flash_check: CheckBox = find_child("ReduceFlashCheck", true, false) as CheckBox
+@onready var color_mode_option: OptionButton = find_child("ColorModeOption", true, false) as OptionButton
+@onready var seed_label: Label = find_child("SeedLabel", true, false) as Label
+@onready var copy_seed_button: Button = find_child("CopySeedButton", true, false) as Button
+@onready var mod_summary_label: Label = find_child("ModSummaryLabel", true, false) as Label
+@onready var mod_entries_label: Label = find_child("ModEntriesLabel", true, false) as Label
+@onready var reload_mods_button: Button = find_child("ReloadModsButton", true, false) as Button
+@onready var multiplayer_status_label: Label = find_child("MultiplayerStatusLabel", true, false) as Label
+@onready var weapon_status_label: Label = find_child("WeaponStatusLabel", true, false) as Label
+@onready var weapon_previous_button: Button = find_child("WeaponPreviousButton", true, false) as Button
+@onready var weapon_next_button: Button = find_child("WeaponNextButton", true, false) as Button
 
 var active := false
 var is_transitioning := false
@@ -40,6 +47,7 @@ var transition_tween: Tween
 var music_tween: Tween
 var pre_pause_time_scale: float = 1.0
 var _seed_copy_feedback_time: float = 0.0
+var _mod_reload_feedback_time: float = 0.0
 var _menu_base_scale := Vector2.ONE
 
 
@@ -53,6 +61,9 @@ func _ready() -> void:
 	_connect_buttons()
 	_setup_accessibility_controls()
 	_apply_menu_scale()
+	_update_modding_menu()
+	_update_multiplayer_menu()
+	_update_weapon_menu()
 
 
 func _process(_delta: float) -> void:
@@ -67,6 +78,8 @@ func _process(_delta: float) -> void:
 		_set_menu_panel_scale(_menu_base_scale * (1.0 + sin(pulse_time) * pulse_strength))
 	if active:
 		_update_seed_label(real_delta)
+		_update_modding_feedback(real_delta)
+		_update_weapon_menu()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -94,6 +107,9 @@ func _enter_pause() -> void:
 	active = true
 	is_transitioning = true
 	visible = true
+	_update_modding_menu()
+	_update_multiplayer_menu()
+	_update_weapon_menu()
 	_emit_pause_state()
 
 	pre_pause_time_scale = Engine.time_scale
@@ -199,6 +215,12 @@ func _connect_buttons() -> void:
 		title_button.pressed.connect(_on_title_pressed)
 	if copy_seed_button != null and not copy_seed_button.pressed.is_connected(_on_copy_seed_pressed):
 		copy_seed_button.pressed.connect(_on_copy_seed_pressed)
+	if reload_mods_button != null and not reload_mods_button.pressed.is_connected(_on_reload_mods_pressed):
+		reload_mods_button.pressed.connect(_on_reload_mods_pressed)
+	if weapon_previous_button != null and not weapon_previous_button.pressed.is_connected(_on_weapon_previous_pressed):
+		weapon_previous_button.pressed.connect(_on_weapon_previous_pressed)
+	if weapon_next_button != null and not weapon_next_button.pressed.is_connected(_on_weapon_next_pressed):
+		weapon_next_button.pressed.connect(_on_weapon_next_pressed)
 
 
 func _setup_accessibility_controls() -> void:
@@ -258,6 +280,30 @@ func _on_copy_seed_pressed() -> void:
 		_seed_copy_feedback_time = 1.0
 
 
+func _on_reload_mods_pressed() -> void:
+	var registry := _get_mod_registry()
+	if registry != null and registry.has_method("reload_registry"):
+		registry.call("reload_registry")
+	_mod_reload_feedback_time = 1.0
+	if reload_mods_button != null:
+		reload_mods_button.text = "RELOADED"
+	_update_modding_menu()
+
+
+func _on_weapon_previous_pressed() -> void:
+	var weapon_system := _get_weapon_system()
+	if weapon_system != null and weapon_system.has_method("select_previous_weapon"):
+		weapon_system.call("select_previous_weapon")
+	_update_weapon_menu()
+
+
+func _on_weapon_next_pressed() -> void:
+	var weapon_system := _get_weapon_system()
+	if weapon_system != null and weapon_system.has_method("select_next_weapon"):
+		weapon_system.call("select_next_weapon")
+	_update_weapon_menu()
+
+
 func _update_seed_label(delta: float) -> void:
 	if seed_label == null or RunProgress == null:
 		return
@@ -265,6 +311,136 @@ func _update_seed_label(delta: float) -> void:
 	_seed_copy_feedback_time = maxf(_seed_copy_feedback_time - delta, 0.0)
 	if copy_seed_button != null and copy_seed_button.text == "COPIED" and _seed_copy_feedback_time <= 0.0:
 		copy_seed_button.text = "COPY SEED"
+
+
+func _update_modding_feedback(delta: float) -> void:
+	_mod_reload_feedback_time = maxf(_mod_reload_feedback_time - delta, 0.0)
+	if reload_mods_button != null and reload_mods_button.text == "RELOADED" and _mod_reload_feedback_time <= 0.0:
+		reload_mods_button.text = "RESCAN MODS"
+
+
+func _update_modding_menu() -> void:
+	if mod_summary_label == null or mod_entries_label == null:
+		return
+	var registry := _get_mod_registry()
+	if registry == null:
+		mod_summary_label.text = "MOD REGISTRY OFFLINE"
+		mod_entries_label.text = "Install ModContentRegistry through OrbitalJuiceManager."
+		return
+	if registry.has_method("get_registry_summary"):
+		var summary_value: Variant = registry.call("get_registry_summary")
+		var summary: Dictionary = summary_value if summary_value is Dictionary else {}
+		mod_summary_label.text = "MANIFESTS %d | ARENAS %d | WAVES %d | UPGRADES %d | RULES %d | FAILED %d" % [
+			int(summary.get("manifest_count", 0)),
+			int(summary.get("arenas", 0)),
+			int(summary.get("waves", 0)),
+			int(summary.get("upgrades", 0)),
+			int(summary.get("rules", 0)),
+			int(summary.get("failed", 0)),
+		]
+	mod_entries_label.text = _format_mod_entries(registry)
+
+
+func _format_mod_entries(registry: Node) -> String:
+	if not registry.has_method("get_registry_snapshot"):
+		return "No registry snapshot available."
+	var snapshot_value: Variant = registry.call("get_registry_snapshot")
+	var snapshot: Dictionary = snapshot_value if snapshot_value is Dictionary else {}
+	var manifests_value: Variant = snapshot.get("manifests", {})
+	var manifests: Dictionary = manifests_value if manifests_value is Dictionary else {}
+	var failed_value: Variant = snapshot.get("failed_manifests", {})
+	var failed: Dictionary = failed_value if failed_value is Dictionary else {}
+	if manifests.is_empty() and failed.is_empty():
+		return "No manifests found. Drop vectorfall_mod.json into res://Mods or user://mods."
+	var lines: Array[String] = []
+	for manifest_id in manifests.keys():
+		var manifest_value: Variant = manifests[manifest_id]
+		var manifest: Dictionary = manifest_value if manifest_value is Dictionary else {}
+		lines.append("- %s v%d" % [
+			str(manifest.get("display_name", manifest_id)),
+			int(manifest.get("version", 1)),
+		])
+	for path in failed.keys():
+		lines.append("! %s: %s" % [str(path), str(failed[path])])
+	return _join_lines(lines)
+
+
+func _join_lines(lines: Array[String]) -> String:
+	var packed_lines := PackedStringArray()
+	for line in lines:
+		packed_lines.append(line)
+	return "\n".join(packed_lines)
+
+
+func _update_multiplayer_menu() -> void:
+	if multiplayer_status_label == null:
+		return
+	var sync := _get_multiplayer_foundation()
+	if sync == null or not sync.has_method("get_readability_budget"):
+		multiplayer_status_label.text = "SYNC FOUNDATION OFFLINE"
+		return
+	var budget_value: Variant = sync.call("get_readability_budget")
+	var budget: Dictionary = budget_value if budget_value is Dictionary else {}
+	multiplayer_status_label.text = (
+		"SYNC READY | PEERS %d | ENEMY ARROWS %d | PROJECTILE WARNINGS %d"
+		% [
+			int(budget.get("peer_count", 1)),
+			int(budget.get("enemy_arrow_limit", 0)),
+			int(budget.get("projectile_warning_limit", 0)),
+		]
+	)
+
+
+func _update_weapon_menu() -> void:
+	if weapon_status_label == null:
+		return
+	var weapon_system := _get_weapon_system()
+	if weapon_system == null or not weapon_system.has_method("get_weapon_debug_state"):
+		weapon_status_label.text = "WEAPON SYSTEM OFFLINE"
+		return
+	var state_value: Variant = weapon_system.call("get_weapon_debug_state")
+	var state: Dictionary = state_value if state_value is Dictionary else {}
+	var display_name := String(state.get("display_name", "Vector Bolt")).to_upper()
+	var index := int(state.get("index", 0)) + 1
+	var count := int(state.get("count", 1))
+	var energy := int(round(float(state.get("energy", 0.0))))
+	var max_energy := int(round(float(state.get("max_energy", 1.0))))
+	var cost := int(round(float(state.get("cost_per_second", 0.0))))
+	weapon_status_label.text = "ACTIVE %d/%d | %s | ENERGY %d/%d | DRAW %d/s" % [
+		index,
+		count,
+		display_name,
+		energy,
+		max_energy,
+		cost,
+	]
+
+
+func _get_mod_registry() -> Node:
+	var registry := get_tree().get_first_node_in_group("mod_content_registry")
+	if registry != null:
+		return registry
+	var scene := get_tree().current_scene
+	return scene.find_child("ModContentRegistry", true, false) if scene != null else null
+
+
+func _get_multiplayer_foundation() -> Node:
+	var sync := get_tree().get_first_node_in_group("multiplayer_sync_foundation")
+	if sync != null:
+		return sync
+	var scene := get_tree().current_scene
+	return scene.find_child("MultiplayerSyncFoundation", true, false) if scene != null else null
+
+
+func _get_weapon_system() -> Node:
+	var weapon_system := get_tree().get_first_node_in_group("weapon_system")
+	if weapon_system != null:
+		return weapon_system
+	var player := get_tree().get_first_node_in_group("Player")
+	if player != null:
+		return player.get_node_or_null("WeaponSystem")
+	var scene := get_tree().current_scene
+	return scene.find_child("WeaponSystem", true, false) if scene != null else null
 
 
 func _on_ui_scale_changed(value: float) -> void:
@@ -307,7 +483,7 @@ func _apply_menu_scale() -> void:
 	var viewport_size := get_viewport_rect().size
 	var base_size := menu_panel.size
 	if base_size.x <= 1.0 or base_size.y <= 1.0:
-		base_size = Vector2(570.0, 530.0)
+		base_size = Vector2(760.0, 940.0)
 	var fit_scale := minf(
 		viewport_size.x / maxf(base_size.x + 56.0, 1.0),
 		viewport_size.y / maxf(base_size.y + 56.0, 1.0)
@@ -321,5 +497,5 @@ func _set_menu_panel_scale(next_scale: Vector2) -> void:
 	if menu_panel == null:
 		return
 	var panel_size := menu_panel.size
-	menu_panel.pivot_offset = panel_size * 0.5 if panel_size.x > 1.0 and panel_size.y > 1.0 else Vector2(285.0, 265.0)
+	menu_panel.pivot_offset = panel_size * 0.5 if panel_size.x > 1.0 and panel_size.y > 1.0 else Vector2(380.0, 420.0)
 	menu_panel.scale = next_scale

@@ -37,6 +37,8 @@ const ADAPTIVE_MUSIC_STATE_DIRECTOR_SCENE = preload("res://Nodes/adaptive_music_
 const RUN_TRANSITION_DIRECTOR_SCENE = preload("res://Nodes/run_transition_director.tscn")
 const DEATH_FAIRNESS_DIRECTOR_SCENE = preload("res://Nodes/death_fairness_director.tscn")
 const FAIR_PACING_DIRECTOR_SCENE = preload("res://Nodes/fair_pacing_director.tscn")
+const RUN_STORY_ARC_DIRECTOR_SCENE = preload("res://Nodes/run_story_arc_director.tscn")
+const WEAPON_SYSTEM_SCENE = preload("res://Nodes/weapon_system.tscn")
 
 const PLANET_ATMOSPHERE_SCENE = preload("res://Nodes/planet_atmosphere_dust.tscn")
 const WAVE_DIRECTOR_SCENE = preload("res://Nodes/wave_director.tscn")
@@ -87,6 +89,8 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var enable_run_transitions = true
 @export var enable_death_fairness = true
 @export var enable_fair_pacing = true
+@export var enable_run_story_arc = true
+@export var enable_weapon_system = true
 @export_group("Developer Showcase")
 @export var enable_stress_test_tools = false
 @export var run_stress_test_on_ready = false
@@ -151,6 +155,8 @@ func _install_modular_additions() -> void:
 		_add_child_scene_once(level_root, ADAPTIVE_MUSIC_STATE_DIRECTOR_SCENE, "AdaptiveMusicStateDirector")
 	if enable_run_transitions:
 		_add_child_scene_once(level_root, RUN_TRANSITION_DIRECTOR_SCENE, "RunTransitionDirector")
+	if enable_run_story_arc:
+		_add_child_scene_once(level_root, RUN_STORY_ARC_DIRECTOR_SCENE, "RunStoryArcDirector")
 	if enable_debug_balance_overlay:
 		# The balance overlay is its own CanvasLayer, so telemetry can be
 		# toggled or removed without changing player, enemy, or wave logic.
@@ -184,6 +190,9 @@ func _install_modular_additions() -> void:
 			# near-misses, and kinetic impacts without rewriting player.gd.
 			_add_child_scene_once(player, MOMENTUM_COMBAT_SCENE, "MomentumCombatComponent")
 			_connect_momentum_to_time_dilation(level_root, player)
+
+		if enable_weapon_system:
+			_add_child_scene_once(player, WEAPON_SYSTEM_SCENE, "WeaponSystem")
 
 		var camera = player.get_node_or_null("Camera2D")
 		if attach_player_juice and camera != null:

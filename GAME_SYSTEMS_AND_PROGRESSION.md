@@ -79,6 +79,8 @@ Arena instability is handled by `ArenaDestabilizationManager`. It raises chaos f
 - `Gravity Braid`: paired slipstream/inversion tide events.
 - `Collapse Lane`: compression zones arranged across the player's movement line.
 
+Readable chaos tiers label the current instability state from `T0 Calibration` through `T5 Rupture`. `ArenaDestabilizationManager` emits tier changes, the HUD displays the active tier, and high tiers bias arena events toward stronger temporal, inversion, resonance storm, and wormhole shear pressure while modestly increasing tide-pocket visual density.
+
 `FairPacingDirector` adjusts only recovery windows, not enemy stats or physics rules. Low health and broken shields can slightly extend the next rest window, while recent mastery can tighten the cadence. This keeps runs difficult but beatable without silently simplifying mechanics.
 
 ## Replay, Scores, And Challenge Codes
@@ -161,6 +163,7 @@ Bosses mutate physics rules instead of acting as raw bullet spawners:
 - event horizon state
 - slingshot score and grade
 - vector combo/flow state
+- readable chaos tier
 - offscreen gravity, enemy, and boss arrows
 
 Accessibility settings currently include:
@@ -205,12 +208,14 @@ The current layers are `silence`, `drift`, `tension`, `overload`, and `collapse`
 
 `ModContentRegistry` discovers data manifests from `res://Mods` and `user://mods`. It registers arenas, waves, upgrades, and rule definitions from JSON without executing arbitrary code or spawning content automatically.
 
-This is an initial data-driven foundation. The game still needs runtime selection UI, validation polish, and editor tooling before it should be described as fully moddable.
+The registry validates manifests before registration, stores failed manifest reasons, and exposes a snapshot for UI/debugging. `Mods/example_vector_laws/vectorfall_mod.json` is the current reference manifest.
+
+This is an initial data-driven foundation. The game still needs runtime selection UI, editor tooling, dependency rules, and activation paths before it should be described as fully moddable.
 
 ## Menus And State Flow
 
 - Title Screen: starts standard run, continues an anchor, starts challenge mode, starts boss rush, and displays version.
-- Pause Menu: freezes gameplay simulation, keeps UI responsive, and offers resume, restart, title abort, accessibility settings, and a copyable run seed code. Its scale is centered and viewport-clamped.
+- Pause Menu: freezes gameplay simulation, keeps UI responsive, and offers resume, restart, title abort, accessibility settings, a copyable run seed code, mod registry status/rescan, and multiplayer-prep readability budget. Its scale is centered and viewport-clamped.
 - Game Over: displays `RunProgress.last_death_message`, clears the progress anchor, and offers retry/title.
 - Credits: separate non-hostile end state after the final boss.
 

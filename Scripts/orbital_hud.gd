@@ -13,8 +13,10 @@ var _resonance_manager: Node
 var _scar_manager: Node
 var _time_dilation_manager: Node
 var _event_horizon_manager: Node
+var _arena_destabilization_manager: Node
 var _powerup_inventory: Node
 var _momentum_component: Node
+var _weapon_system: Node
 var _hud_root: Control
 var _speed_label: Label
 var _speed_bar: ProgressBar
@@ -23,9 +25,12 @@ var _g_bar: ProgressBar
 var _field_label: Label
 var _time_label: Label
 var _horizon_label: Label
+var _chaos_label: Label
 var _slingshot_label: Label
 var _slingshot_bar: ProgressBar
 var _combo_label: Label
+var _weapon_label: Label
+var _weapon_bar: ProgressBar
 var _powerup_notice_label: Label
 var _critical_vignette: ColorRect
 var _vignette_material: ShaderMaterial
@@ -65,7 +70,9 @@ func _process(delta: float) -> void:
 	_update_field_lens()
 	_update_time_lens()
 	_update_horizon_lens()
+	_update_chaos_lens()
 	_update_slingshot_lens()
+	_update_weapon_lens()
 	_update_powerup_notice(delta)
 	_update_health_vignette(delta)
 	_update_nav_arrows(gravity_strength)
@@ -120,7 +127,7 @@ func _build_readout_panel() -> void:
 	var panel = PanelContainer.new()
 	panel.offset_left = 18.0
 	panel.offset_top = 96.0
-	panel.custom_minimum_size = Vector2(314.0, 236.0)
+	panel.custom_minimum_size = Vector2(314.0, 302.0)
 	_hud_root.add_child(panel)
 	
 	var style = StyleBoxFlat.new()
@@ -171,6 +178,12 @@ func _build_readout_panel() -> void:
 	_horizon_label.add_theme_font_size_override("font_size", 12)
 	rows.add_child(_horizon_label)
 
+	_chaos_label = Label.new()
+	_chaos_label.text = "CHAOS T0 CALIBRATION"
+	_chaos_label.clip_text = true
+	_chaos_label.add_theme_font_size_override("font_size", 12)
+	rows.add_child(_chaos_label)
+
 	_slingshot_label = Label.new()
 	_slingshot_label.text = "SLING SEARCH"
 	_slingshot_label.clip_text = true
@@ -188,6 +201,18 @@ func _build_readout_panel() -> void:
 	_combo_label.clip_text = true
 	_combo_label.add_theme_font_size_override("font_size", 12)
 	rows.add_child(_combo_label)
+
+	_weapon_label = Label.new()
+	_weapon_label.text = "WEAPON VECTOR BOLT"
+	_weapon_label.clip_text = true
+	_weapon_label.add_theme_font_size_override("font_size", 12)
+	rows.add_child(_weapon_label)
+
+	_weapon_bar = ProgressBar.new()
+	_weapon_bar.show_percentage = false
+	_weapon_bar.max_value = 1.0
+	_weapon_bar.custom_minimum_size = Vector2(228, 12)
+	rows.add_child(_weapon_bar)
 
 func _build_powerup_notice() -> void:
 	_powerup_notice_label = Label.new()
@@ -333,6 +358,9 @@ func _resolve_rule_systems() -> void:
 				if not _event_horizon_manager.is_connected("horizon_escape_scored", escape_callable):
 					_event_horizon_manager.connect("horizon_escape_scored", escape_callable)
 
+	if _arena_destabilization_manager == null or not is_instance_valid(_arena_destabilization_manager):
+		_arena_destabilization_manager = root.find_child("ArenaDestabilizationManager", true, false)
+
 	if _player != null and is_instance_valid(_player):
 		var inventory := _player.get_node_or_null("PowerupInventory")
 		if inventory != null and inventory != _powerup_inventory:
@@ -349,6 +377,10 @@ func _resolve_rule_systems() -> void:
 				var mastery_callable := Callable(self, "_on_slingshot_mastery_triggered")
 				if not momentum.is_connected("slingshot_mastery_triggered", mastery_callable):
 					momentum.connect("slingshot_mastery_triggered", mastery_callable)
+
+		var weapon_system := _player.get_node_or_null("WeaponSystem")
+		if weapon_system != null and weapon_system != _weapon_system:
+			_weapon_system = weapon_system
 
 func _update_field_lens() -> void:
 	if _field_label == null:
@@ -453,6 +485,31 @@ func _update_horizon_lens() -> void:
 		_horizon_label.text = "HORIZON QUIET"
 		_horizon_label.modulate = _readability_color(Color(0.48, 0.78, 0.84, 1.0))
 
+func _update_chaos_lens() -> void:
+	if _chaos_label == null:
+		return
+
+	if _arena_destabilization_manager == null or not is_instance_valid(_arena_destabilization_manager):
+		_chaos_label.text = "CHAOS T0 CALIBRATION"
+		_chaos_label.modulate = _readability_color(Color(0.48, 0.78, 0.84, 1.0))
+		return
+
+	var state := {}
+	if _arena_destabilization_manager.has_method("get_readable_chaos_state"):
+		var state_value: Variant = _arena_destabilization_manager.call("get_readable_chaos_state")
+		if typeof(state_value) == TYPE_DICTIONARY:
+			state = state_value
+	elif _arena_destabilization_manager.has_method("get_instability_debug_state"):
+		var fallback_value: Variant = _arena_destabilization_manager.call("get_instability_debug_state")
+		if typeof(fallback_value) == TYPE_DICTIONARY:
+			state = fallback_value
+
+	var tier := int(state.get("tier", state.get("chaos_tier", 0)))
+	var tier_name := String(state.get("tier_name", state.get("chaos_tier_name", "calibration"))).to_upper()
+	var instability := clampf(float(state.get("instability", 0.0)), 0.0, 1.0)
+	_chaos_label.text = "CHAOS T%d %s  %03d%%" % [tier, tier_name, int(round(instability * 100.0))]
+	_chaos_label.modulate = _readability_color(_chaos_tier_color(tier))
+
 func _update_slingshot_lens() -> void:
 	if _slingshot_label == null or _slingshot_bar == null:
 		return
@@ -508,6 +565,47 @@ func _update_slingshot_lens() -> void:
 	else:
 		_combo_label.text = "VECTOR CHAIN --"
 		_combo_label.modulate = _readability_color(Color(0.48, 0.78, 0.84, 1.0))
+
+func _update_weapon_lens() -> void:
+	if _weapon_label == null or _weapon_bar == null:
+		return
+
+	if _weapon_system == null or not is_instance_valid(_weapon_system) or not _weapon_system.has_method("get_weapon_debug_state"):
+		_weapon_label.text = "WEAPON VECTOR BOLT"
+		_weapon_label.modulate = _readability_color(Color(0.48, 0.78, 0.84, 1.0))
+		_weapon_bar.value = 0.0
+		return
+
+	var state_value: Variant = _weapon_system.call("get_weapon_debug_state")
+	if typeof(state_value) != TYPE_DICTIONARY:
+		return
+
+	var state: Dictionary = state_value
+	var display_name := String(state.get("display_name", "Vector Bolt")).to_upper()
+	var active := bool(state.get("beam_active", false))
+	var energy_percent := clampf(float(state.get("energy_percent", 0.0)), 0.0, 1.0)
+	var cost := float(state.get("cost_per_second", 0.0))
+	var color: Color = state.get("color", Color(0.34, 1.0, 0.86, 1.0))
+	var state_label := "FIRING" if active else ("READY" if energy_percent > 0.12 else "LOW ENERGY")
+
+	_weapon_label.text = "WEAPON %s  %s %.0f/s" % [display_name, state_label, cost]
+	_weapon_label.modulate = _readability_color(color)
+	_weapon_bar.value = energy_percent
+
+func _chaos_tier_color(tier: int) -> Color:
+	match clampi(tier, 0, 5):
+		0:
+			return Color(0.48, 0.78, 0.84, 1.0)
+		1:
+			return Color(0.42, 0.9, 1.0, 1.0)
+		2:
+			return Color(0.68, 1.0, 0.62, 1.0)
+		3:
+			return Color(1.0, 0.86, 0.32, 1.0)
+		4:
+			return Color(1.0, 0.38, 0.18, 1.0)
+		_:
+			return Color(0.9, 0.36, 1.0, 1.0)
 
 func _slingshot_color(state: String, score: float) -> Color:
 	match state:

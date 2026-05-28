@@ -5,6 +5,7 @@ class_name ModContentRegistry
 signal registry_loaded(summary: Dictionary)
 signal manifest_loaded(manifest_id: StringName, source_path: String)
 signal manifest_failed(source_path: String, reason: String)
+signal manifest_validated(manifest_id: StringName, source_path: String)
 
 @export var enabled: bool = true
 @export var load_res_mods: bool = true
@@ -14,6 +15,7 @@ signal manifest_failed(source_path: String, reason: String)
 @export var manifest_file_name: String = "vectorfall_mod.json"
 
 var _manifests: Dictionary = {}
+var _failed_manifests: Dictionary = {}
 var _content: Dictionary = {
 	"arenas": {},
 	"waves": {},
@@ -30,6 +32,7 @@ func _ready() -> void:
 
 func reload_registry() -> void:
 	_manifests.clear()
+	_failed_manifests.clear()
 	for key in _content.keys():
 		_content[key].clear()
 
@@ -49,12 +52,14 @@ func get_registry_summary() -> Dictionary:
 		"waves": _content["waves"].size(),
 		"upgrades": _content["upgrades"].size(),
 		"rules": _content["rules"].size(),
+		"failed": _failed_manifests.size(),
 	}
 
 
 func get_registry_snapshot() -> Dictionary:
 	return {
 		"manifests": _manifests.duplicate(true),
+		"failed_manifests": _failed_manifests.duplicate(true),
 		"content": _content.duplicate(true),
 	}
 
@@ -102,20 +107,23 @@ func _load_manifest_path(path: String) -> void:
 		return
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		manifest_failed.emit(path, "cannot_open")
+		_record_failed_manifest(path, "cannot_open")
 		return
 
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
 	file.close()
 	if typeof(parsed) != TYPE_DICTIONARY:
-		manifest_failed.emit(path, "invalid_json")
+		_record_failed_manifest(path, "invalid_json")
 		return
 
 	var manifest := parsed as Dictionary
-	var manifest_id := StringName(str(manifest.get("id", "")))
-	if String(manifest_id).is_empty():
-		manifest_failed.emit(path, "missing_id")
+	var validation_errors := _validate_manifest(manifest)
+	if not validation_errors.is_empty():
+		var reason := _join_errors(validation_errors)
+		_record_failed_manifest(path, reason)
 		return
+
+	var manifest_id := StringName(str(manifest.get("id", "")))
 
 	_manifests[String(manifest_id)] = {
 		"id": manifest_id,
@@ -127,7 +135,47 @@ func _load_manifest_path(path: String) -> void:
 	_register_content_array(manifest, manifest_id, "waves")
 	_register_content_array(manifest, manifest_id, "upgrades")
 	_register_content_array(manifest, manifest_id, "rules")
+	manifest_validated.emit(manifest_id, path)
 	manifest_loaded.emit(manifest_id, path)
+
+
+func _validate_manifest(manifest: Dictionary) -> Array[String]:
+	var errors: Array[String] = []
+	if str(manifest.get("id", "")).is_empty():
+		errors.append("missing id")
+	if int(manifest.get("version", 0)) <= 0:
+		errors.append("version must be positive")
+	for bucket in ["arenas", "waves", "upgrades", "rules"]:
+		var key := str(bucket)
+		var entries: Variant = manifest.get(key, [])
+		if not (entries is Array):
+			errors.append("%s must be an array" % key)
+			continue
+		_validate_entry_array(entries, key, errors)
+	return errors
+
+
+func _validate_entry_array(entries: Array, key: String, errors: Array[String]) -> void:
+	for index in range(entries.size()):
+		var entry_value: Variant = entries[index]
+		if not (entry_value is Dictionary):
+			errors.append("%s[%d] must be an object" % [key, index])
+			continue
+		var entry := entry_value as Dictionary
+		if str(entry.get("id", "")).is_empty():
+			errors.append("%s[%d] missing id" % [key, index])
+
+
+func _join_errors(errors: Array[String]) -> String:
+	var parts := PackedStringArray()
+	for error in errors:
+		parts.append(error)
+	return "; ".join(parts)
+
+
+func _record_failed_manifest(path: String, reason: String) -> void:
+	_failed_manifests[path] = reason
+	manifest_failed.emit(path, reason)
 
 
 func _register_content_array(manifest: Dictionary, manifest_id: StringName, key: String) -> void:

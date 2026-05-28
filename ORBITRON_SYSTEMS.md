@@ -108,6 +108,8 @@ When a hidden boss appears, the director calls `WaveDirector.register_secret_bos
 
 The same director cycles wave pacing through `calm`, `tension`, `overload`, and `recovery` by tuning wave spawn delay and rest windows. Rare events are deterministic from seed/wave/modifier, so shareable moments can be reproduced by seed code.
 
+`ArenaDestabilizationManager` now exposes readable chaos tiers 0-5: calibration, distortion, contamination, collapse, event horizon, and rupture. The tiers are derived from instability, shown on the HUD, emitted through `chaos_tier_changed`, and used to tune event cadence/content plus tide-pocket visual density. This gives late-run chaos a named ladder instead of an unreadable meter.
+
 ## Arena Rule Profiles
 
 `ArenaRuleDirector` is the first alternate-arena foundation. It does not swap the whole level yet; instead it applies a seeded physics profile to existing directors:
@@ -187,6 +189,8 @@ It emits intensity layers (`silence`, `drift`, `tension`, `overload`, `collapse`
 
 The registry stores manifest metadata and content dictionaries for future menus/loaders. It does not instantiate scenes, run scripts, or grant permissions; this keeps the first modding layer deterministic and safe enough to expand.
 
+Manifest validation now rejects malformed roots, missing ids, invalid versions, non-array content buckets, non-object entries, and entries without ids. Failed manifests are stored in the registry snapshot and surfaced by the pause-menu Modding section.
+
 ## Scores And Community Challenges
 
 `RunScoreTracker` listens to existing gameplay signals instead of polling:
@@ -213,7 +217,7 @@ It emits a score snapshot and challenge code. The code combines `RunProgress.get
 
 ## Pause And Game Over
 
-`PauseMenu` runs in `PROCESS_MODE_ALWAYS`, fades the simulation into a true paused state, and exposes three scene-authored buttons: resume, restart, and abort to title.
+`PauseMenu` runs in `PROCESS_MODE_ALWAYS`, fades the simulation into a true paused state, and exposes scene-authored sections for settings/readability, seed sharing, modding status, multiplayer prep, and run controls. Resume, restart, and abort-to-title remain real buttons rather than generated UI.
 
 Player death stores `RunProgress.last_death_message`, then changes to `res://Nodes/game_over_scene.tscn`. The game-over scene clears the progress anchor and displays the exact death vector lesson before allowing a retry or title return.
 

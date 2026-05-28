@@ -517,6 +517,11 @@ func _on_dash_timeout():
 # ========================
 
 func shoot():
+	var weapon_system := get_node_or_null("WeaponSystem")
+	if weapon_system != null and weapon_system.has_method("try_primary_fire"):
+		if bool(weapon_system.call("try_primary_fire")):
+			return
+
 	if not is_inside_tree() or get_tree().current_scene == null:
 		return
 

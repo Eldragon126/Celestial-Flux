@@ -84,6 +84,19 @@ Each standard run can apply a seeded arena law profile. These are alternate aren
 
 Late game can also trigger impossible-physics events such as resonance overfolds, temporal splinters, gravity braids, and collapse lanes. They are dangerous, but capped and rule-driven.
 
+## Readable Chaos Tiers
+
+Arena instability is shown as a named chaos tier in the HUD:
+
+- `T0 Calibration`: baseline rules, clean vector reading.
+- `T1 Distortion`: early law stress and light event pressure.
+- `T2 Contamination`: more overlapping field rules.
+- `T3 Collapse`: faster hazard cadence and stronger visual pressure.
+- `T4 Event Horizon`: inversion, temporal pockets, storms, and wormhole shear become more likely.
+- `T5 Rupture`: maximum controlled instability.
+
+The tiers do not replace physics. They label the current instability state so escalating chaos remains learnable.
+
 ## Difficulty And Death Readouts
 
 The game should stay hard without hiding why you failed. Recovery windows can flex slightly after waves based on player condition and mastery, but enemies, bosses, gravity, and resonance rules are not silently weakened.
@@ -108,7 +121,9 @@ Challenge codes are seed-based score summaries. They are meant for friendly comp
 
 The first modding foundation is data-driven. `ModContentRegistry` can discover `vectorfall_mod.json` manifests from `res://Mods` and `user://mods` with entries for arenas, waves, upgrades, and gameplay rules. The registry does not automatically run mod code.
 
-See `MODDING_GUIDE.md` for the current manifest shape.
+The pause menu has a Modding section that shows loaded manifest counts, failed manifest reasons, and a `RESCAN MODS` button. An example manifest lives at `res://Mods/example_vector_laws/vectorfall_mod.json`.
+
+See `MODDING_GUIDE.md` for the current manifest shape and validation rules.
 
 ## Accessibility
 
@@ -118,6 +133,8 @@ The pause menu exposes readability controls:
 - screen shake intensity
 - reduced flash
 - colorblind modes for common readability palettes
+
+It also exposes the current run seed, mod registry status, and multiplayer-prep readability budget so debugging and sharing stay inside the game UI instead of requiring console inspection.
 
 ## Developer Notes
 

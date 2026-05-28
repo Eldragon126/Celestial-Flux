@@ -26,7 +26,7 @@ res://Nodes/collision_sparks.tscn::21e6a9f25230e0024142a25e4017e48d::1779467505:
 res://Nodes/credits_sequence.tscn::ac5f5095e290b095ffdb2ea7f81fc4c6::1779223366::res://.godot/exported/133200997/export-6deef9073eb179b21c5d615363a1704f-credits_sequence.scn
 res://Nodes/debug_balance_overlay.tscn::06374240ad5b114ea26b06ea6a945e52::1779223366::res://.godot/exported/133200997/export-5b087e47fee11cfaccf38a9e765cc021-debug_balance_overlay.scn
 res://Nodes/destruct_sound.tscn::ed611716f8733ec3d339f3eb4823c67b::1779223366::res://.godot/exported/133200997/export-5d75cadd83dc29dd84a399e6cf952290-destruct_sound.scn
-res://Nodes/enemy_bullet.tscn::bd915386dfb48a9436ea58ec5b5356c4::1779666231::res://.godot/exported/133200997/export-2677851ef36195fbe7b4703b56e56be0-enemy_bullet.scn
+res://Nodes/enemy_bullet.tscn::9a04da0153bb4cdc8a9280a92ed41b30::1780003571::res://.godot/exported/133200997/export-2677851ef36195fbe7b4703b56e56be0-enemy_bullet.scn
 res://Nodes/enemy_readability_director.tscn::ec5d01d4843ac5f8eae9c3d77a745ba3::1779384162::res://.godot/exported/133200997/export-93a4e3e7566d3fa1955fded9551596a6-enemy_readability_director.scn
 res://Nodes/energy_component.tscn::01d3550aba087f65a113bc4614abc8d8::1779223366::res://.godot/exported/133200997/export-708a3ca282620a421d2eddb235832b31-energy_component.scn
 res://Nodes/gameplay_teaching_director.tscn::7f2a6a7b537568c7712e066fa9ab151f::1779383643::res://.godot/exported/133200997/export-9fe9de7a746842be8537b136c660d78b-gameplay_teaching_director.scn
@@ -47,12 +47,12 @@ res://Nodes/null_vector_seraph_boss.tscn::cf47991b477e2cb6cce15c83cd80951a::1779
 res://Nodes/orbital_hud.tscn::19abaddc847e1ec97c7629fb4b1b3c19::1779567427::res://.godot/exported/133200997/export-acff5958ccc18a61831492dffe403dea-orbital_hud.scn
 res://Nodes/orbital_vfx_director.tscn::f12507e4634bbbb0a0b45d53b2a0d9b0::1779567728::res://.godot/exported/133200997/export-a3f38db5b073405716908ded12b82bd0-orbital_vfx_director.scn
 res://Nodes/orbiter_drone.tscn::16e6ea4a791f84237182447c92b4a220::1779473111::res://.godot/exported/133200997/export-0a0110c011670aee497527a449d42506-orbiter_drone.scn
-res://Nodes/pause_menu.tscn::59dfa760f5e312bc54f63b81590894b0::1779661745::res://.godot/exported/133200997/export-f0b84205054e82b6144dcdc37e521f7b-pause_menu.scn
+res://Nodes/pause_menu.tscn::5b4fa205896593e0008e5eaa6179efa1::1780002386::res://.godot/exported/133200997/export-f0b84205054e82b6144dcdc37e521f7b-pause_menu.scn
 res://Nodes/performance_budget_director.tscn::59009a0ce378506a032a0b79faeba7af::1779384192::res://.godot/exported/133200997/export-dd42437470724eb60bfcf6f315214870-performance_budget_director.scn
 res://Nodes/physics_aware_enemy_director.tscn::bd1e3762d48c74fc93e61b6f55a97f62::1779223366::res://.godot/exported/133200997/export-e356806c6d95b6f33c62ad04bddb4778-physics_aware_enemy_director.scn
 res://Nodes/planet_1.tscn::39d3fcdc52b0b00e8e8194f52a3af93b::1779223366::res://.godot/exported/133200997/export-c49187293c9b290db756f7dd9916f6ad-planet_1.scn
 res://Nodes/planet_atmosphere_dust.tscn::d577cd155bf5364ce813e8ec3af6b816::1779223366::res://.godot/exported/133200997/export-5258f95843322415b7bb51ec3fafd2fa-planet_atmosphere_dust.scn
-res://Nodes/player.tscn::a54649dbcc709faf43b3872bc0bb84ac::1779557836::res://.godot/exported/133200997/export-08a8621fc4cea3a10b8827d08b903ec5-player.scn
+res://Nodes/player.tscn::a54649dbcc709faf43b3872bc0bb84ac::1780003647::res://.godot/exported/133200997/export-08a8621fc4cea3a10b8827d08b903ec5-player.scn
 res://Nodes/player_damage_camera_shake.tscn::68fab92edc0615ac031c18d9ea91b0bb::1779223366::res://.godot/exported/133200997/export-54f3e38957e2949dfc92978f646593fc-player_damage_camera_shake.scn
 res://Nodes/player_death_explosion.tscn::ed4419ec723bfa29a89aac22b4318460::1779223366::res://.godot/exported/133200997/export-804a50e4eb361e581445dd8b5ac24707-player_death_explosion.scn
 res://Nodes/player_engine_hum.tscn::45048266b7c56004bd517e6fbe4b1efe::1779223366::res://.godot/exported/133200997/export-c96f26e11c758459884d0fba7d2587a9-player_engine_hum.scn
@@ -97,7 +97,7 @@ res://Nodes/gravity_scar_manager.tscn::a99140cea391056116012e7f3a92b813::1779485
 res://Nodes/juice_coordinator.tscn::bd0cad3417d001145e4063c9e89be3bc::1779466955::res://.godot/exported/133200997/export-f9e9ccad4b6e042a6fd268d6df28a913-juice_coordinator.scn
 res://Nodes/late_game_instability_director.tscn::44ca95b6442159f9f7195289e1dbd872::1779814689::res://.godot/exported/133200997/export-c6f71ddbf5c39a6c5d2d43064c56881a-late_game_instability_director.scn
 res://Nodes/mod_content_registry.tscn::8944e03dc8abfb344115f98174310472::1779814106::res://.godot/exported/133200997/export-8637c75c190c950b2b41ac96a10d8d30-mod_content_registry.scn
-res://Nodes/multiplayer_sync_foundation.tscn::bd8fc077ec2ddbafbcf25a1701845d5f::1779821895::res://.godot/exported/133200997/export-cccca139132be7105f691d9791824f41-multiplayer_sync_foundation.scn
+res://Nodes/multiplayer_sync_foundation.tscn::bd8fc077ec2ddbafbcf25a1701845d5f::1779830609::res://.godot/exported/133200997/export-cccca139132be7105f691d9791824f41-multiplayer_sync_foundation.scn
 res://Nodes/music_resonance_boss.tscn::4b95620105e31382e4d909436a2f3558::1779566300::res://.godot/exported/133200997/export-3a6d02f33edb7158db0a9602c33b6b19-music_resonance_boss.scn
 res://Nodes/run_score_tracker.tscn::1e7f80d757b8694a908c771861bb9968::1779814109::res://.godot/exported/133200997/export-d794915ccafe09a36b51cbe0a804498e-run_score_tracker.scn
 res://Nodes/run_transition_director.tscn::cb5c6f8f8ff85f683651345c679641c6::1779820347::res://.godot/exported/133200997/export-cde6bd5bca870a5dba8ddbe610a412dc-run_transition_director.scn
@@ -108,3 +108,5 @@ res://Nodes/time_dilation_manager.tscn::812b9d2d3c0cdb412115c9006cf57d79::177946
 res://Nodes/visual_escalation_director.tscn::9b9ed3639115eafc6961f7a62bda1a48::1779467049::res://.godot/exported/133200997/export-fc1ce18defacdc7f81b7bf6d246705a7-visual_escalation_director.scn
 res://Scripts/Powerups/apex_vector_core.tres::360e36cb7bb8af5fcec62a26c79efa5a::1779661745::res://.godot/exported/133200997/export-214ab1ab675e9ff02aa18615699cec8d-apex_vector_core.res
 res://Scripts/Powerups/momentum_shockwave_law.tres::b61072d9029a3c3995c81e8b09b29e71::1779467217::res://.godot/exported/133200997/export-aca480242e3015b4595e63ccdbb0bf44-momentum_shockwave_law.res
+res://Nodes/run_story_arc_director.tscn::0097283ad0546828248da409c33f3bee::1780002294::res://.godot/exported/133200997/export-aa90bf107daa817ade778b2a45d266c5-run_story_arc_director.scn
+res://Nodes/weapon_system.tscn::7627aa03b60a9d36ebe9b475670b878e::1780002278::res://.godot/exported/133200997/export-71f7cb02b3a499e3a9df4c2fbc5a3227-weapon_system.scn

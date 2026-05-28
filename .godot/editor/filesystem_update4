@@ -3,3 +3,6 @@ res://Scripts/playershield.gdshader
 res://Scripts/pause_menu.gdshader
 res://Scripts/planet_1.gdshader
 res://Scripts/player.gdshader
+res://Scripts/weapon_system.gd
+res://Nodes/player.tscn
+res://Scripts/energy_component.gd

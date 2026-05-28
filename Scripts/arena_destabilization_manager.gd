@@ -11,11 +11,21 @@ signal arena_event_started(event_id: StringName, value: float)
 signal arena_hazard_spawned(hazard: Node, event_id: StringName)
 signal arena_hazard_expired(hazard_name: StringName, event_id: StringName)
 signal chaos_level_changed(value: float)
+signal chaos_tier_changed(tier: int, tier_name: StringName, value: float)
 
 const UNSTABLE_MOON_SCENE = preload("res://Nodes/unstable_moon.tscn")
 const NEBULA_SCENE = preload("res://Nodes/nebula_cloud.tscn")
 const WORMHOLE_PAIR_SCENE = preload("res://Nodes/wormhole_pair.tscn")
 const GRAVITY_TIDE_POCKET_SCENE = preload("res://Nodes/gravity_tide_pocket.tscn")
+
+const CHAOS_TIER_NAMES := [
+	&"calibration",
+	&"distortion",
+	&"contamination",
+	&"collapse",
+	&"event_horizon",
+	&"rupture",
+]
 
 @export var enabled: bool = true
 @export var update_interval: float = 0.35
@@ -29,6 +39,13 @@ const GRAVITY_TIDE_POCKET_SCENE = preload("res://Nodes/gravity_tide_pocket.tscn"
 @export_group("Stages")
 @export_range(0.0, 1.0, 0.01) var mid_stage_threshold: float = 0.34
 @export_range(0.0, 1.0, 0.01) var late_stage_threshold: float = 0.68
+
+@export_group("Readable Chaos Tiers")
+@export_range(0.0, 1.0, 0.01) var chaos_tier_1_threshold: float = 0.14
+@export_range(0.0, 1.0, 0.01) var chaos_tier_2_threshold: float = 0.3
+@export_range(0.0, 1.0, 0.01) var chaos_tier_3_threshold: float = 0.48
+@export_range(0.0, 1.0, 0.01) var chaos_tier_4_threshold: float = 0.66
+@export_range(0.0, 1.0, 0.01) var chaos_tier_5_threshold: float = 0.84
 
 @export_group("Events")
 @export var min_event_interval: float = 11.0
@@ -55,6 +72,8 @@ var _wave_director: Node = null
 var _resonance_manager: Node = null
 var _level_root: Node = null
 var _stage: StringName = &"early"
+var _chaos_tier: int = 0
+var _chaos_tier_name: StringName = &"calibration"
 var _elapsed := 0.0
 var _event_timer := 0.0
 var _connected_to_wave_director := false
@@ -67,6 +86,8 @@ func _ready() -> void:
 	_rng.randomize()
 	instability = clampf(starting_instability, 0.0, 1.0)
 	chaos_level = instability
+	_chaos_tier = _chaos_tier_for_value(instability)
+	_chaos_tier_name = CHAOS_TIER_NAMES[clampi(_chaos_tier, 0, CHAOS_TIER_NAMES.size() - 1)]
 	_level_root = get_tree().current_scene
 	_event_timer = _next_event_interval()
 	call_deferred("_resolve_references")
@@ -93,12 +114,23 @@ func get_instability_debug_state() -> Dictionary:
 		"instability": instability,
 		"chaos_level": chaos_level,
 		"stage": _stage,
+		"chaos_tier": _chaos_tier,
+		"chaos_tier_name": _chaos_tier_name,
 		"active_hazards": _count_valid_hazards(),
 		"next_event": maxf(_event_timer, 0.0),
 	}
 
 func force_arena_event(event_id: StringName = &"") -> void:
 	_spawn_event(event_id if not event_id.is_empty() else _choose_event())
+
+func get_readable_chaos_state() -> Dictionary:
+	return {
+		"tier": _chaos_tier,
+		"tier_name": _chaos_tier_name,
+		"instability": instability,
+		"chaos_level": chaos_level,
+		"stage": _stage,
+	}
 
 func _resolve_references() -> void:
 	_level_root = get_tree().current_scene
@@ -157,6 +189,7 @@ func _update_instability(delta: float) -> void:
 		_stage = next_stage
 		stage_changed.emit(_stage, instability)
 
+	_update_readable_chaos_tier()
 	instability_changed.emit(instability, _stage)
 	chaos_level_changed.emit(chaos_level)
 
@@ -215,6 +248,17 @@ func _spawn_event(event_id: StringName) -> void:
 func _choose_event() -> StringName:
 	var roll := _rng.randf()
 
+	if _chaos_tier >= 4:
+		if roll < 0.2:
+			return &"tide_inversion"
+		if roll < 0.4:
+			return &"temporal_pocket"
+		if roll < 0.62:
+			return &"resonance_storm"
+		if roll < 0.8:
+			return &"wormhole_shear"
+		return &"tide_compression"
+
 	if _stage == &"early":
 		return &"tide_slipstream" if roll < 0.55 else &"volatile_moon"
 
@@ -247,6 +291,7 @@ func _spawn_tide_pocket(mode: int) -> Node:
 	var pocket_radius := lerpf(230.0, 430.0, instability)
 	var pocket_lifetime := _rng.randf_range(hazard_lifetime_min, hazard_lifetime_max)
 	var strength := lerpf(520.0, 1120.0, instability)
+	var tier_visual_factor := 1.0 + float(_chaos_tier) * 0.04
 
 	if low_performance_mode:
 		pocket_radius *= 0.86
@@ -256,7 +301,7 @@ func _spawn_tide_pocket(mode: int) -> Node:
 	if pocket.has_method("configure"):
 		pocket.call("configure", mode, pocket_radius, pocket_lifetime, strength)
 
-	pocket.set("particle_cap", int(lerpf(70.0, 170.0, instability) * clampf(particle_scale, 0.0, 2.0)))
+	pocket.set("particle_cap", int(lerpf(70.0, 170.0, instability) * tier_visual_factor * clampf(particle_scale, 0.0, 2.0)))
 	pocket.set("enable_particles", enable_tide_particles and not low_performance_mode)
 	return _spawn_hazard_node(pocket, _spawn_position(), _event_id_for_tide_mode(mode))
 
@@ -409,14 +454,51 @@ func _stage_for_instability(value: float) -> StringName:
 		return &"mid"
 	return &"early"
 
+func _update_readable_chaos_tier() -> void:
+	var next_tier := _chaos_tier_for_value(instability)
+	if next_tier == _chaos_tier:
+		return
+	_chaos_tier = next_tier
+	_chaos_tier_name = CHAOS_TIER_NAMES[clampi(_chaos_tier, 0, CHAOS_TIER_NAMES.size() - 1)]
+	chaos_tier_changed.emit(_chaos_tier, _chaos_tier_name, instability)
+
+func _chaos_tier_for_value(value: float) -> int:
+	if value >= chaos_tier_5_threshold:
+		return 5
+	if value >= chaos_tier_4_threshold:
+		return 4
+	if value >= chaos_tier_3_threshold:
+		return 3
+	if value >= chaos_tier_2_threshold:
+		return 2
+	if value >= chaos_tier_1_threshold:
+		return 1
+	return 0
+
 func _next_event_interval() -> float:
 	var interval := _rng.randf_range(min_event_interval, max_event_interval)
 	interval *= lerpf(1.15, 0.58, instability)
+	interval *= _chaos_tier_interval_multiplier()
 	if _is_boss_active():
 		interval *= boss_event_interval_multiplier
 	if low_performance_mode:
 		interval *= 1.35
 	return maxf(interval, 3.0)
+
+func _chaos_tier_interval_multiplier() -> float:
+	match _chaos_tier:
+		0:
+			return 1.18
+		1:
+			return 1.08
+		2:
+			return 1.0
+		3:
+			return 0.92
+		4:
+			return 0.84
+		_:
+			return 0.76
 
 func _event_id_for_tide_mode(mode_value: int) -> StringName:
 	match mode_value:

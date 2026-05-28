@@ -1,0 +1,41 @@
+{
+  "id": "example_vector_laws",
+  "display_name": "Example Vector Laws",
+  "version": 1,
+  "arenas": [
+    {
+      "id": "mirror_well_demo",
+      "display_name": "Mirror Well Demo",
+      "scene": "res://Mods/example_vector_laws/mirror_well_demo.tscn",
+      "rules": {
+        "gravity_bias": "inversion",
+        "resonance_bias": "harmonic_orbit"
+      }
+    }
+  ],
+  "waves": [
+    {
+      "id": "slipstream_intro",
+      "display_name": "Slipstream Intro",
+      "minimum_wave": 4,
+      "enemy_sets": ["base_enemy", "orbiter_drone"],
+      "arena_events": ["tide_slipstream"]
+    }
+  ],
+  "upgrades": [
+    {
+      "id": "tangent_refund",
+      "display_name": "Tangent Refund",
+      "law": "momentum",
+      "description": "Clean orbit exits refund a small burst of thrust energy."
+    }
+  ],
+  "rules": [
+    {
+      "id": "soft_inversion",
+      "display_name": "Soft Inversion",
+      "zone_type": "inversion",
+      "intensity_multiplier": 0.75
+    }
+  ]
+}

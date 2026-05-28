@@ -85,17 +85,17 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -285.0
-offset_top = -265.0
-offset_right = 285.0
-offset_bottom = 265.0
+offset_left = -380.0
+offset_top = -470.0
+offset_right = 380.0
+offset_bottom = 470.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="MenuRows" type="VBoxContainer" parent="MenuPanel" unique_id=58225962]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 8
 
 [node name="TitleLabel" type="Label" parent="MenuPanel/MenuRows" unique_id=1965148508]
 layout_mode = 2
@@ -103,10 +103,16 @@ theme_override_font_sizes/font_size = 36
 text = "VECTOR HOLD"
 horizontal_alignment = 1
 
+[node name="StatusLabel" type="Label" parent="MenuPanel/MenuRows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "SIMULATION PAUSED | LOCAL PHYSICS FROZEN"
+horizontal_alignment = 1
+
 [node name="AccessibilityLabel" type="Label" parent="MenuPanel/MenuRows" unique_id=1278624543]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "READABILITY"
+text = "SETTINGS / READABILITY"
 horizontal_alignment = 1
 
 [node name="UIScaleRow" type="HBoxContainer" parent="MenuPanel/MenuRows" unique_id=1476470194]
@@ -190,6 +196,85 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 text = "COPY SEED"
+
+[node name="WeaponLabel" type="Label" parent="MenuPanel/MenuRows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "WEAPONS"
+horizontal_alignment = 1
+
+[node name="WeaponStatusLabel" type="Label" parent="MenuPanel/MenuRows"]
+custom_minimum_size = Vector2(440, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "WEAPON SYSTEM OFFLINE"
+horizontal_alignment = 1
+clip_text = true
+
+[node name="WeaponButtonsRow" type="HBoxContainer" parent="MenuPanel/MenuRows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="WeaponPreviousButton" type="Button" parent="MenuPanel/MenuRows/WeaponButtonsRow"]
+custom_minimum_size = Vector2(214, 34)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+text = "PREV WEAPON"
+
+[node name="WeaponNextButton" type="Button" parent="MenuPanel/MenuRows/WeaponButtonsRow"]
+custom_minimum_size = Vector2(214, 34)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+text = "NEXT WEAPON"
+
+[node name="ModdingLabel" type="Label" parent="MenuPanel/MenuRows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "MODDING"
+horizontal_alignment = 1
+
+[node name="ModSummaryLabel" type="Label" parent="MenuPanel/MenuRows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "MANIFESTS 0 | ARENAS 0 | WAVES 0 | UPGRADES 0 | RULES 0"
+horizontal_alignment = 1
+
+[node name="ModEntriesLabel" type="Label" parent="MenuPanel/MenuRows"]
+custom_minimum_size = Vector2(440, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "No manifests found. Drop vectorfall_mod.json into res://Mods or user://mods."
+autowrap_mode = 3
+clip_text = true
+
+[node name="ReloadModsButton" type="Button" parent="MenuPanel/MenuRows"]
+custom_minimum_size = Vector2(440, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+text = "RESCAN MODS"
+
+[node name="MultiplayerLabel" type="Label" parent="MenuPanel/MenuRows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "MULTIPLAYER PREP"
+horizontal_alignment = 1
+
+[node name="MultiplayerStatusLabel" type="Label" parent="MenuPanel/MenuRows"]
+custom_minimum_size = Vector2(440, 32)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "SYNC FOUNDATION OFFLINE"
+horizontal_alignment = 1
+clip_text = true
 
 [node name="ResumeButton" type="Button" parent="MenuPanel/MenuRows" unique_id=1448855320]
 custom_minimum_size = Vector2(440, 54)

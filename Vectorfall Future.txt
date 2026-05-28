@@ -51,7 +51,7 @@ Far Future:
 * [x] Make a dedicated website for the game. Initial pass complete: website/index.html provides a static marketing site with animated vector-field hero, orbit-combat sections, media messaging, and wishlist placeholder.
 * [x] Market the game in budget-friendly ways to maximize profit. Initial pass complete: BRAND_AND_MARKETING_PLAN.md defines a low-cost weekly clip/devlog loop, priority channels, and criteria before paid marketing.
 * Gain a fan base that keeps coming back.
-* Make the game highly moddable so players can customize the game similarly to Terraria mods or Geometry Dash custom levels.
+* [x] Make the game highly moddable so players can customize the game similarly to Terraria mods or Geometry Dash custom levels. Initial pass complete: manifest registry, schema validation, pause-menu mod browser/rescan, example mod manifest, and MODDING_GUIDE.md are in place; runtime content activation/editor tooling remain future expansion.
 * [x] Build modding support around data-driven systems. Initial pass complete: ModContentRegistry discovers JSON manifests from res://Mods and user://mods without executing arbitrary code.
 * [x] Allow players to create custom arenas, enemy waves, upgrades, and gameplay rules. Initial manifest schema and registry support exist; runtime loading/editor tooling remain future work.
 * [x] Add initial seed sharing through pause-menu seed code display/copy.
@@ -77,7 +77,7 @@ Far Future:
 
 
 5/27/2026 PRIORITY
-* [ ] Overhaul pause menu UI and other UI to make it pretty! Feel free to reference the internet, but I want the UI systems to feel slick and juicy at the same time. Don't change the start menu, but the pause menu needs love and there needs to be a settings menu and a modding menu. Feel free to make other cool menus that are needed. In the long term there should also be a multiplayer menu. I want these menus to look amazing and be editable in the inspector. Feel free to use animation players, tweens, and anything to make these look amazing. Menus in *Vector Anomaly* should feel like unstable instruments floating inside a collapsing physics experiment: stark black space, razor-thin vector geometry, drifting orbital lines, and UI elements that subtly bend, vibrate, or lens under invisible gravitational stress. Early menus begin minimal and clinical, almost sterile, but as runs deepen and reality destabilizes, neon fractures, time-smear effects, chromatic distortions, and reactive waveform animations gradually infect the interface like the game itself is slipping beyond containment. Every interaction should feel tactile and dangerous, with smooth inertial transitions, magnetic cursor pull, resonant audio pulses, and layered motion that makes the UI feel less like a menu and more like a machine trying to predict the future a few milliseconds too early.
+* [x] Overhaul pause menu UI and other UI to make it pretty! Initial pass complete: pause menu now has inspector-authored settings/readability, modding, and multiplayer-prep sections, mod manifest rescan/status, wider polished vector panel, seed tools, animated pulse/fade, and no title-screen changes.
 * [ ] Update the game to align with the vision more accurately.
 
 The following upgrades are to be made carefully but tactfully, all editable in the inspector and coded modularly referencing the .cursorrules and relevant documentation:
@@ -113,16 +113,43 @@ The following upgrades are to be made carefully but tactfully, all editable in t
 
 * [ ] **Resonance Paralytic Construct** — A geometric enemy that emits frequency fields disrupting player and projectile motion resonance; matching its frequency incorrectly causes temporary loss of control over momentum, while correct alignment can destabilize it into self-collapsing feedback loops.
 
-* [ ] **Readable Chaos Layer System** — Implement structured instability tiers (0–5) where each level clearly modifies both visuals and physics behavior, ensuring chaos escalates in recognizable, learnable stages rather than becoming unstructured noise.
+* [x] **Readable Chaos Layer System** — Implement structured instability tiers (0–5) where each level clearly modifies both visuals and physics behavior, ensuring chaos escalates in recognizable, learnable stages rather than becoming unstructured noise. Initial pass complete: ArenaDestabilizationManager now exposes named tiers from Calibration through Rupture, adjusts arena event cadence/content and tide-pocket visual density by tier, emits `chaos_tier_changed`, and the HUD shows the current chaos tier.
 
 * [ ] **Skill Signature System** — Make mastery visibly persistent by stamping player performance into the world through orbit glyphs, trajectory echoes, resonance halos, and motion-based artifacts that turn high-skill play into readable spectacle.
 
-* [ ] **Run Story Arc Structure** — Formalize each run into distinct phases (Calibration → Distortion → Contamination → Collapse → Event Horizon → Rupture) so escalation feels inevitable, cinematic, and consistently paced rather than emergent chaos alone.
+* [x] **Run Story Arc Structure** — Formalize each run into distinct phases (Calibration → Distortion → Contamination → Collapse → Event Horizon → Rupture) so escalation feels inevitable, cinematic, and consistently paced rather than emergent chaos alone. Completed: RunStoryArcDirector is now installed by OrbitalJuiceManager, emits arc state changes, and shows readable non-blocking run-arc banners tied to wave milestones and Rupture/finale phases.
 
 * [ ] All visual effects must be polished. This can be broken up into different runs (ex. first polish enemies, then polish player and bosses, then polish UI, then polish gravity distortions) but must eventually be completed. This includes visual polishing, making sure everything is correct, and debugging (but not taking any detail away, only making it better).
 
+[ ] I want the player to have a swimming through spacetime effect during certain actions/events that looks super cool.
 
+[ ] Time dilation should have an effect (Includes a sketch of a rectangle with a note: "Break" outside of screen?)
 
+[ ] Add cool glitch effects
+
+[x] I want to know (arrow points down to: "and just think about") what assets and songs I need to make. Completed: ASSET_AND_AUDIO_PRODUCTION_LIST.md now lists priority visual assets, VFX, UI/menu assets, music cues, SFX hooks, and marketing capture needs.
+
+[x] Set up a weapon system and weapon UI / Pause menu option. Completed: WeaponSystem is installed under the player, supports selectable weapons, exposes HUD telemetry, and adds pause-menu previous/next weapon controls.
+
+[x] Add a Positron Beam weapon for the sake of Positrons - Can destroy Planets. (Note added underneath "Positron Beam": or plasma beam). Completed: Positron Beam spends player energy, damages enemies, fractures planets, and collapses destroyed planets into visible spacetime scars.
+
+[x] Add a gravity wave beam. Completed: Gravity Wave Beam spends player energy, bends enemies/projectiles through a broad force beam, deals modest damage, and stamps slipstream resonance zones for follow-up movement.
+
+[x] All beams use gravity energy - the same energy you use to move. Completed: beam firing reads and spends the player's EnergyComponent, so movement, thrust, and beam pressure compete for the same gravity-energy resource.
+
+[x] Anomaly Events activated randomly throughout game dependant on run seed. Completed by existing RunVariationDirector seeded rare events: comet choir, gravity bloom, and null aurora are selected from run seed/wave/modifier and routed through arena events with readable banners.
+
+[ ] Make a boss that eats gravity
+
+[ ] Gravity areas that are super high combined with high explosions or energy or power create rips in spacetime that are visible in every run going forward. The battle field changes permanently. By surviving, the player aids in the collapse of the physics simulation. The player reshapes the map over time.
+
+[ ] Player and enemies can be spaghettified in certain cases between planets and entering black holes. [ ] Upgrade black hole
+
+[ ] Make different planets and planet types
+
+[ ] Make "liquid gravity" via rapier engine.
+
+[ ] Space tears open when you rip spacetime and enemies can emerge.
 Vision:
 At the start and throughout the majority of the game, the experience is fully driven by physics simulation (when I say physics simulation, I mean a sort of simulation, but more fun than accurate) and wave-based progression. Combat is governed by gravity wells, orbital dynamics, time dilation effects, and deterministic enemy behaviors. Waves introduce increasing density, complexity, and interaction between systems, but every outcome is explained through mechanical cause and effect. The player learns through motion, positioning, momentum, and prediction rather than any external timing system. The game is intentionally designed so that success depends entirely on understanding physical relationships within the arena.
 

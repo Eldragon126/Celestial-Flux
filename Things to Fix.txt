@@ -13,3 +13,9 @@
 [x] What is the weird line that wiggles in the harmonic fracture orbit and similar circles? Fixed: reduced TEMPORAL_SCAR wobble amplitude from 0.025 to 0.008 and slowed wobble speed from 220ms to 420ms to make the visual less distracting while still conveying the temporal nature.
 
 [x] Enemy bullets wander around right now toward the player slowly, and don't seem like they are affected by gravity at all. There are also way too many bullets at a time. Fixed: increased homing_gravity_blend from 0.002 to 0.008, reduced minimum_homing_scale from 0.15 to 0.08 for better gravity influence, added BulletManager singleton with 50 bullet cap, and updated all bullet-spawning enemies to check the cap before spawning.
+
+[ ] The bosses up until the polymorph boss are super super easy.  Too easy.
+
+[ ] Some text overlaps other text in the menus. This shouldn't happen.
+
+[ ] The gravity beam doesn't seem to warp gravity like I thought it would. I'd like it to do damage like it does, but also to warp enemy gravity so that the enemies naturally drift toward the gravitational beam.

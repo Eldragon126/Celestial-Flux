@@ -11,6 +11,10 @@ This is the current data-driven modding foundation. It is intentionally conserva
 
 Each mod can either place `vectorfall_mod.json` directly in the root or inside its own folder.
 
+An example manifest lives at:
+
+- `res://Mods/example_vector_laws/vectorfall_mod.json`
+
 ## Manifest Shape
 
 ```json
@@ -64,12 +68,23 @@ Each mod can either place `vectorfall_mod.json` directly in the root or inside i
 
 Every entry should have a stable `id`. The registry adds `manifest_id` and `content_type` to each entry after loading.
 
+## Validation
+
+`ModContentRegistry` validates manifests before registering content. A manifest is rejected when:
+
+- the root `id` is missing
+- `version` is missing or less than 1
+- `arenas`, `waves`, `upgrades`, or `rules` exists but is not an array
+- any entry inside those arrays is not an object
+- any entry is missing an `id`
+
+The pause menu Modding section shows loaded manifest counts and failed manifest paths/reasons after pressing `RESCAN MODS`.
+
 ## Current Limits
 
-- No runtime mod menu yet.
+- No runtime content activation or selection menu yet.
 - No automatic scene spawning yet.
 - No custom GDScript execution from manifests.
-- No validation UI yet.
 - No dependency or load-order system yet.
 
 This keeps the first layer deterministic and easy to inspect while the game systems are still stabilizing.
