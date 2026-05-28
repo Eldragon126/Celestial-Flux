@@ -1,183 +1,254 @@
-# VECTOR ANOMALY Brand And Marketing Plan
+# VECTOR ANOMALY - Brand, Marketing, and Success Strategy
 
-This document keeps marketing, store copy, trailer direction, and visual identity aligned with the game identity:
+This document aligns every outward-facing element of the game: Steam page, trailer, visuals, community loop, and content strategy.
 
-> Surviving a collapsing physics simulation through precision movement, orbital prediction, and mastery of impossible momentum.
+Core promise:
+Surviving a collapsing physics simulation through precision movement, orbital prediction, and mastery of impossible momentum.
 
-## Brand Position
+Players must understand it in 3 seconds, remember it in 30, and explain it in 10 words to a friend.
 
-Primary category:
+---
 
-- Physics roguelike arena survival
+## 1. MARKET POSITIONING
 
-Short hook:
+### Primary Category
+Physics roguelike arena survival
 
-- Weaponize gravity and momentum inside a universe whose physical laws are collapsing.
+### High-retention hook
+You do not shoot in VECTOR ANOMALY. You orbit your way out of mistakes.
 
-Do not market the game as:
+### Elevator pitch
+Weaponize gravity, momentum, and time distortion inside a collapsing simulation where movement is the only weapon that matters.
 
-- a twin-stick shooter
-- a generic neon roguelike
-- a bullet hell
-- a pure power fantasy
+---
 
-Market it as:
+## DO NOT MARKET AS
+- twin-stick shooter
+- bullet hell
+- neon roguelike
+- chaos sandbox
+- power fantasy
 
-- orbit combat
-- controlled physics collapse
-- high-skill survival
-- impossible recoveries
-- deterministic chaos
+---
 
-## Steam Page Draft
+## MUST BE FRAMED AS
+- orbit combat system
+- physics mastery survival
+- controlled chaos simulation
+- readable deterministic danger
+- skill expression through motion
 
-Short description:
+---
 
-`VECTOR ANOMALY is a physics-driven roguelike arena survival game about slingshotting through gravity wells, bending projectiles through resonance zones, and surviving a collapsing simulation through momentum mastery.`
+## 2. AUDIENCE TARGETING
 
-Long description structure:
+### Primary audience
+- physics mastery game players
+- roguelike build experimenters
+- speedrunners and optimization players
+- physics sandbox enjoyers
+- system-based gameplay fans
 
-1. Lead with movement: orbit, drift, slingshot, recover.
-2. Explain the arena: gravity wells, resonance zones, time scars, instability events.
-3. Explain progression: waves, authored physics bosses, rupture, music finale.
-4. Explain upgrades: law changes, not flat stat bumps.
-5. Close on mastery: every death should feel readable and survivable with better control.
+### Secondary audience
+- streamers and clip viewers
+- TikTok and Shorts audiences
+- challenge run communities
 
-Feature bullets:
+### Emotional triggers
+- I failed but I understand why
+- I almost survived that
+- I want to try again immediately
 
-- Master orbit combat where movement is the main weapon.
-- Bend enemy shots through gravity, resonance, and time dilation.
-- Survive bosses that mutate physics rules instead of spamming bullets.
-- Trigger rare deterministic events that make runs shareable by seed.
-- Push into Rupture, where familiar laws recombine into controlled collapse.
-- Finish with a music-synchronized final encounter.
+---
 
-## Trailer Beat Sheet
+## 3. STEAM PAGE STRATEGY
 
-First 3 seconds:
+### Short description
+VECTOR ANOMALY is a physics-driven roguelike arena survival game where you slingshot through gravity wells, bend projectiles through resonance fields, and survive a collapsing simulation through momentum mastery.
 
-- Show the player slingshotting through a gravity well and narrowly escaping a lethal cluster.
-- Overlay only the title and the phrase `MASTER IMPOSSIBLE MOMENTUM`.
+---
 
-Next 10 seconds:
+### Structure
+1. Movement is the weapon
+2. The world breaks physics rules
+3. Progression is rule mutation
+4. Bosses are physics systems
+5. Mastery loop based on readable failure and retry
 
-- Show clean early-game movement.
-- Show gravity arrows and trajectory readability.
-- Show a perfect/apex slingshot creating a resonance payoff.
+---
 
-Mid trailer:
+### FEATURES
+- Orbit combat where movement replaces shooting
+- Gravity wells that bend enemy fire and player motion
+- Bosses that mutate physics rules instead of acting as HP sponges
+- Seeded runs with deterministic chaos events
+- Rupture mode where systems collapse and recombine
+- Music-synced final encounters
 
-- Show each boss as a physics rule, not a damage sponge.
-- Cut from readable telegraph to player survival/recovery.
-- Show a rare event or event horizon moment.
+---
 
-Final 10 seconds:
+## 4. TRAILER STRUCTURE
 
-- Show late-game visual collapse.
-- Show Rupture.
-- Show a music-finale pulse.
-- End on credits calm or a hard title card.
+### First 3 seconds
+- instant slingshot escape from gravity collapse
+- title: VECTOR ANOMALY
+- phrase: MASTER IMPOSSIBLE MOMENTUM
 
-Avoid trailer shots where:
+### First 13 seconds
+- readable orbit movement
+- visible gravity influence
+- trajectory prediction clarity
+- one perfect recovery moment
 
-- the player is hidden
-- projectiles are unreadable
-- bloom overwhelms silhouettes
-- the clip looks like a standard arena shooter
+### Mid trailer
+- bosses shown as rule changes
+- resonance zones altering projectile behavior
+- rare deterministic events
+- survival recovery focus
 
-## Screenshot Checklist
+### Final 10 seconds
+- Rupture collapse visuals
+- music escalation
+- system instability peak
+- hard title card
 
-Every screenshot should answer at least one question:
+---
 
+### DO NOT SHOW
+- unreadable particle spam
+- hidden player
+- excessive bloom
+- generic shooter montage clips
+
+---
+
+## 5. SCREENSHOT RULES
+
+Each screenshot must answer at least one:
 - Where is the player?
-- What is the dominant gravity rule?
-- What is the immediate danger?
-- What impossible recovery is about to happen?
-- Why is this not a generic shooter?
+- What force is acting?
+- What danger is present?
+- What recovery is happening?
+- Why is this not a normal shooter?
 
-Priority captures:
-
-- clean early orbit around a gravity source
-- resonance zone with readable label/glyph
-- boss telegraph with player trajectory visible
+### Must-have screenshots
+- early orbit around gravity well
+- resonance zone interaction
+- boss rule telegraph
 - event horizon escape
-- Rupture visual state
-- music finale with Resonance Singularity
+- Rupture state
+- final chaos state
 
-## Website Outline
+---
 
-First viewport:
+## 6. WEBSITE STRUCTURE
 
-- VECTOR ANOMALY
-- animated or video background of orbit combat
+### First screen
+- VECTOR ANOMALY title
+- orbit combat loop video
 - one-line hook
-- wishlist button when ready
+- wishlist button or mailing list
 
-Sections:
-
+### Sections
 - Orbit Combat
 - Collapsing Physics
-- Bosses As Rule Mutations
-- Seeded Runs And Challenges
+- Boss Rule Mutations
+- Seeded Runs
 - Media Kit
-- Mailing List / Wishlist
+- Wishlist
 
-## Budget-Friendly Marketing Loop
+---
 
-Weekly low-cost rhythm:
+## 7. CONTENT MARKETING LOOP
 
-1. Capture one readable impossible-recovery clip.
-2. Post the clip with the hook: `How is this even being controlled?`
-3. Add one short explanation of the physics rule involved.
-4. Point viewers to the wishlist or mailing-list link.
-5. Save the seed/challenge code so players can try the same run later.
+### Weekly cycle
+1. capture impossible recovery clip
+2. post with hook: "this should not be recoverable"
+3. explain one physics rule
+4. include seed or challenge code
+5. link wishlist or demo
 
-Priority channels:
+### Best content types
+- near-death orbit escapes
+- gravity assisted kills
+- recovery moments
+- boss rule reveals
+- Rupture escalation clips
 
-- TikTok / YouTube Shorts for impossible recoveries.
-- Steam community posts for development updates.
-- Reddit/Discord only when sharing concrete mechanics or playtest builds.
-- Devlogs focused on physics rules, not generic feature lists.
+---
 
-Do not spend paid marketing budget until:
+## 8. PLATFORM PRIORITY
 
-- the Steam page exists
-- the first trailer communicates orbit combat in three seconds
-- there are at least ten clean GIF-worthy clips
-- the demo or playtest path is stable
+- TikTok: discovery
+- YouTube Shorts: replay loops
+- Steam posts: conversion trust
+- Reddit: mechanics explanation
+- Discord: seed challenges
 
-## Visual Identity Rules
+---
 
-Use:
+## 9. LAUNCH READINESS REQUIREMENTS
 
-- cold vector geometry early
-- cyan/amber/red threat language
-- controlled neon escalation
-- typography that feels like simulation telemetry
-- UI copy that sounds like a failing physics system
+Do not scale marketing until:
+- Steam page is fully optimized
+- trailer communicates orbit gameplay in 3 seconds
+- at least 10 strong clips exist
+- gameplay is readable under stress
+- at least one signature moment exists
 
-Avoid:
+---
 
-- generic space fantasy language
-- purple-only palettes
-- excessive bloom
-- unreadable particle floods
-- weapon-first screenshots
+## 10. VISUAL IDENTITY
 
-## Tone Rules
+### Early
+- cold vector geometry
+- black, white, clarity
 
-The game should sound:
+### Mid
+- cyan, amber, red escalation
 
+### Late
+- neon instability, layered systems
+
+### Rupture
+- overlapping physics states, broken color logic
+
+### Typography
+- simulation telemetry style
+- system readout language
+
+---
+
+## AVOID
+- generic space fantasy visuals
+- unreadable bloom fog
+- meaningless particles
+- weapon-centric framing
+
+---
+
+## 11. TONE
+
+### Should feel
 - precise
 - dangerous
 - intelligent
 - unstable
-- survivable through mastery
+- fair through mastery
 
-The game should not sound:
-
+### Should not feel
 - goofy
-- militaristic
-- loot-first
-- power-fantasy first
-- random for randomness' sake
+- chaotic randomness
+- loot driven
+- power fantasy focused
+
+---
+
+## 12. SUCCESS SIGNALS
+
+If working correctly:
+- clips are understandable without explanation
+- players share seeds naturally
+- deaths feel fair and readable
+- streamers react to recoveries
+- viewers instantly understand orbit mechanics

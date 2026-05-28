@@ -5,7 +5,8 @@ signal planet_collapsed(fracture_data: Dictionary)
 
 enum PlanetKind { AUTO, BLUE_DENSE, RED_VOLATILE, CYAN_LENS, VIOLET_TEMPORAL }
 
-@export_enum("Auto", "Blue Dense", "Red Volatile", "Cyan Lens", "Violet Temporal") var planet_type: int = PlanetKind.AUTO
+# Godot 4 allows direct enum exports, which is cleaner than @export_enum
+@export var planet_type: PlanetKind = PlanetKind.AUTO
 @export var base_mass: float = 300000.0
 @export var base_radius: float = 150.0
 @export var spacetime_stability_per_radius: float = 2.8
@@ -32,16 +33,57 @@ var _fracture_flash: float = 0.0
 var _last_fracture_scar_time: float = -999.0
 var _collapsed := false
 
+# Centralized configuration for all planet types
+const PLANET_CONFIGS: Dictionary = {
+	PlanetKind.BLUE_DENSE: {
+		"id": &"blue_dense",
+		"display_name": "Blue Dense",
+		"radius_multiplier": 0.8,
+		"mass_multiplier": 1.5,
+		"stability_multiplier": 1.2,
+		"base_color": Color(0.1, 0.4, 0.9, 1.0),
+		"particle_color": Color(0.0, 0.92, 0.86, 1.0)
+	},
+	PlanetKind.RED_VOLATILE: {
+		"id": &"red_volatile",
+		"display_name": "Red Volatile",
+		"radius_multiplier": 1.2,
+		"mass_multiplier": 0.8,
+		"stability_multiplier": 0.6,
+		"base_color": Color(0.9, 0.2, 0.1, 1.0),
+		"particle_color": Color(1.0, 0.4, 0.1, 1.0)
+	},
+	PlanetKind.CYAN_LENS: {
+		"id": &"cyan_lens",
+		"display_name": "Cyan Lens",
+		"radius_multiplier": 1.0,
+		"mass_multiplier": 1.0,
+		"stability_multiplier": 1.0,
+		"base_color": Color(0.2, 0.9, 0.9, 1.0),
+		"particle_color": Color(0.5, 1.0, 1.0, 1.0)
+	},
+	PlanetKind.VIOLET_TEMPORAL: {
+		"id": &"violet_temporal",
+		"display_name": "Violet Temporal",
+		"radius_multiplier": 0.9,
+		"mass_multiplier": 1.2,
+		"stability_multiplier": 1.5,
+		"base_color": Color(0.6, 0.1, 0.8, 1.0),
+		"particle_color": Color(0.8, 0.3, 1.0, 1.0)
+	}
+}
 
 func _ready() -> void:
 	add_to_group("planets")
 	add_to_group("Objects_With_Gravity")
 
 	# =========================
-	# RANDOMIZE SIZE
+	# RANDOMIZE SIZE & TYPE
 	# =========================
 	var rand_scale := randf_range(0.5, 1.5)
-	var type_data := _planet_type_data(_resolve_planet_type())
+	var resolved_type := _resolve_planet_type()
+	var type_data := _planet_type_data(resolved_type)
+	
 	planet_type_id = type_data.get("id", &"blue_dense")
 	planet_display_name = String(type_data.get("display_name", "Blue Dense"))
 
@@ -54,9 +96,9 @@ func _ready() -> void:
 
 	# =========================
 	# MAKE COLLISION SHAPE UNIQUE
-	# VERY IMPORTANT
 	# =========================
-	collision.shape = collision.shape.duplicate()
+	if collision and collision.shape:
+		collision.shape = collision.shape.duplicate()
 
 	# =========================
 	# UPDATE VISUALS
@@ -67,13 +109,13 @@ func _ready() -> void:
 	# =========================
 	# UPDATE COLLISION
 	# =========================
-	if collision.shape is CircleShape2D:
+	if collision and collision.shape is CircleShape2D:
 		collision.shape.radius = radius
 
 	# =========================
 	# UPDATE PARTICLES
 	# =========================
-	if particles.process_material is ParticleProcessMaterial:
+	if particles and particles.process_material is ParticleProcessMaterial:
 		var mat := particles.process_material as ParticleProcessMaterial
 		mat = mat.duplicate()
 		particles.process_material = mat
@@ -84,17 +126,47 @@ func _ready() -> void:
 	# ENSURE NO NODE SCALING
 	# =========================
 	scale = Vector2.ONE
-	polygon.scale = Vector2.ONE
+	if polygon:
+		polygon.scale = Vector2.ONE
+		
 	set_process(true)
 
 
 func _process(delta: float) -> void:
-	if _fracture_flash <= 0.0:
+	if _fracture_flash <= 0.0 or not polygon:
 		return
 	_fracture_flash = maxf(_fracture_flash - delta * 2.8, 0.0)
 	var flash := Color(1.0, 0.72, 0.28, 1.0)
+	# Assumes polygon's base modulate is WHITE; if it's supposed to return to a specific color, 
+	# modulate should lerp back to Color.WHITE.
 	polygon.modulate = Color.WHITE.lerp(flash, _fracture_flash)
 
+
+# ==========================================
+# MISSING HELPER FUNCTIONS IMPLEMENTED HERE
+# ==========================================
+
+func _resolve_planet_type() -> PlanetKind:
+	if planet_type == PlanetKind.AUTO:
+		var available_types := PLANET_CONFIGS.keys()
+		return available_types[randi() % available_types.size()] as PlanetKind
+	return planet_type
+
+func _planet_type_data(type: PlanetKind) -> Dictionary:
+	return PLANET_CONFIGS.get(type, PLANET_CONFIGS[PlanetKind.BLUE_DENSE])
+
+func _apply_planet_type_visuals(type_data: Dictionary) -> void:
+	if not polygon: return
+	
+	var base_col: Color = type_data.get("base_color", Color.WHITE)
+	polygon.color = base_col
+	
+	if point_light:
+		point_light.color = base_col
+
+# ==========================================
+# CORE LOGIC
+# ==========================================
 
 func apply_spacetime_damage(amount: float, hit_position: Vector2 = Vector2.ZERO, source_label: StringName = &"spacetime") -> bool:
 	if _collapsed or amount <= 0.0:
@@ -104,6 +176,7 @@ func apply_spacetime_damage(amount: float, hit_position: Vector2 = Vector2.ZERO,
 	var stability_ratio := current_spacetime_stability / maxf(max_spacetime_stability, 1.0)
 	var damage_ratio := 1.0 - stability_ratio
 	var minimum_radius := _starting_radius * clampf(minimum_fractured_radius_ratio, 0.12, 1.0)
+	
 	radius = maxf(lerpf(_starting_radius, minimum_radius, damage_ratio), 24.0)
 	mass = maxf(_starting_mass * (1.0 - damage_ratio * positron_mass_loss_scale), _starting_mass * 0.18)
 	_fracture_flash = 1.0
@@ -120,6 +193,8 @@ func apply_spacetime_damage(amount: float, hit_position: Vector2 = Vector2.ZERO,
 
 
 func draw_circle_polygon(points_nb: int, circle_radius: float) -> void:
+	if not polygon: return
+	
 	var points := PackedVector2Array()
 	var uvs := PackedVector2Array()
 
@@ -175,11 +250,17 @@ func _stamp_fracture_scar(fracture_data: Dictionary) -> void:
 		return
 
 	var stability := clampf(float(fracture_data.get("stability", 1.0)), 0.0, 1.0)
+	
+	# Fallback values safely handled if ScarType enum doesn't exist yet on the scar manager side
+	var scar_type = 0 # Default fallback
+	if "ScarType" in scars:
+		scar_type = scars.ScarType.CURVATURE if stability > 0.34 else scars.ScarType.TEMPORAL_RIP
+
 	scars.call(
 		"create_gravity_scar",
 		global_position,
 		maxf(radius * 1.35, 180.0),
-		GravityScarManager.ScarType.CURVATURE if stability > 0.34 else GravityScarManager.ScarType.TEMPORAL_RIP,
+		scar_type,
 		clampf(0.24 + (1.0 - stability) * 0.52, 0.18, 0.86),
 		28.0 + (1.0 - stability) * 22.0,
 		StringName(fracture_data.get("source", &"planet_fracture"))
@@ -210,11 +291,16 @@ func _stamp_collapse_scar(collapse_data: Dictionary) -> void:
 	var scars := _get_gravity_scar_manager()
 	if scars == null or not scars.has_method("create_gravity_scar"):
 		return
+		
+	var scar_type = 0 # Default fallback
+	if "ScarType" in scars:
+		scar_type = scars.ScarType.HARMONIC_FRACTURE
+
 	scars.call(
 		"create_gravity_scar",
 		global_position,
 		maxf(_starting_radius * collapse_scar_radius_multiplier, 340.0),
-		GravityScarManager.ScarType.HARMONIC_FRACTURE,
+		scar_type,
 		0.92,
 		72.0,
 		StringName(collapse_data.get("source", &"planet_collapse"))
@@ -227,7 +313,8 @@ func _fade_and_free() -> void:
 	if particles != null:
 		particles.emitting = false
 	var tween := create_tween()
-	tween.tween_property(polygon, "modulate:a", 0.0, 0.34)
+	if polygon:
+		tween.tween_property(polygon, "modulate:a", 0.0, 0.34)
 	tween.tween_callback(queue_free)
 
 

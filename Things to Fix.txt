@@ -23,3 +23,13 @@
 [ ] Slingshotting is easy to do but hard to witness because it blows up your computer with harmonic circles, other things, and sound effects. It needs to be the best part of the game still, but in better ways. It needs to be more satisfying.
 
 [ ] The player, after dying, has a couple of seconds to shoot and continue. I like the idea of watching yourself die, but it frustrates players when they die, don't realize they die, and then it takes them to the death screen right after they get into a better situation. This needs to be fixed.
+
+[ ] The curvy lines on the player don't look good. Either take them out or adjust them so that they look good around the player instead of just attached on. I believe they come from SpacetimeSwimDirector. I'd rather have an effect like the main player on WINDOWKILL.
+
+[ ] TOO MUCH (Sort of)
+- `compression`
+- `slipstream`
+- `inversion`
+- `temporal_scar`
+- `harmonic_orbit`
+Or at least, I can't tell what it's doing and it seems like the harmonic orbits specifically don't go away ever.
