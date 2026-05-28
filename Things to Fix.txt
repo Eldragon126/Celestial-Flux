@@ -19,3 +19,5 @@
 [ ] Some text overlaps other text in the menus. This shouldn't happen.
 
 [ ] The gravity beam doesn't seem to warp gravity like I thought it would. I'd like it to do damage like it does, but also to warp enemy gravity so that the enemies naturally drift toward the gravitational beam.
+
+[ ] Slingshotting is easy to do but hard to witness because it blows up your computer with harmonic circles, other things, and sound effects. It needs to be the best part of the game still, but in better ways. It needs to be more satisfying.
