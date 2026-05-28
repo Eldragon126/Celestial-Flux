@@ -51,6 +51,9 @@ signal death_lesson_generated(lesson: String)
 @export var minimum_thrust_energy_cost_per_second: float = 5.0
 @export var gravity_charge_per_work: float = 0.0001
 
+@export_group("Shooting")
+@export var projectile_hold_fire_interval: float = 0.18
+
 # ========================
 # == STATE VARIABLES ==
 # ========================
@@ -88,6 +91,7 @@ var _last_slingshot_window_state: StringName = &"offline"
 var _camera_base_rotation: float = 0.0
 var _camera_feedback_offset: Vector2 = Vector2.ZERO
 var _camera_feedback_roll: float = 0.0
+var _next_held_projectile_time: float = 0.0
 
 var menu_is_hidden := true
 var time_tween: Tween
@@ -561,8 +565,17 @@ func shoot():
 # ========================
 
 func handle_input():
-	if Input.is_action_just_pressed("shoot"):
-		shoot()
+	if Input.is_action_just_released("Menu"):
+		var pause_menu = get_pause_menu()
+		if pause_menu:
+			pause_menu.toggle_pause()
+			_sync_pause_menu_state(pause_menu)
+		return
+
+	if _is_pause_blocking():
+		return
+
+	_handle_shoot_input()
 
 	if Input.is_action_just_released("Toggle"):
 		drag_enabled_by_player = !drag_enabled_by_player
@@ -576,11 +589,20 @@ func handle_input():
 
 		last_thrust_release = now
 
-	if Input.is_action_just_released("Menu"):
-		var pause_menu = get_pause_menu()
-		if pause_menu:
-			pause_menu.toggle_pause()
-			_sync_pause_menu_state(pause_menu)
+
+func _handle_shoot_input() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if Input.is_action_just_pressed("shoot"):
+		shoot()
+		_next_held_projectile_time = now + maxf(projectile_hold_fire_interval, 0.03)
+		return
+
+	if Input.is_action_pressed("shoot") and now >= _next_held_projectile_time:
+		shoot()
+		_next_held_projectile_time = now + maxf(projectile_hold_fire_interval, 0.03)
+
+	if Input.is_action_just_released("shoot"):
+		_next_held_projectile_time = 0.0
 
 
 func _sync_pause_menu_state(pause_menu: Node) -> void:

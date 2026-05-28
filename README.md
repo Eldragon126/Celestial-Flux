@@ -9,6 +9,7 @@ Current focus areas:
 - Bosses that mutate physics rules instead of relying on raw spam.
 - Seeded run laws, rare events, and hidden bosses that make runs worth replaying.
 - Run-defining powerups that turn mastery movement into combat moments.
+- Skill signatures, spacetime swim/tear effects, and gravity-eating boss rules that make mastery visible.
 - Accessibility and performance settings that keep the game readable on weaker hardware.
 - Documentation that keeps contributors aligned with the current ORBITRON direction.
 
@@ -17,7 +18,7 @@ Developer references:
 - `ORBITRON_SYSTEMS.md`
 - `Vectorfall Future.txt`
 - `Things to Fix.txt`
-- 
+- `Separation_Blueprint.md`
 
 Made to be pure fun!
 

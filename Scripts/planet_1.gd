@@ -3,6 +3,9 @@ extends StaticBody2D
 signal planet_fractured(fracture_data: Dictionary)
 signal planet_collapsed(fracture_data: Dictionary)
 
+enum PlanetKind { AUTO, BLUE_DENSE, RED_VOLATILE, CYAN_LENS, VIOLET_TEMPORAL }
+
+@export_enum("Auto", "Blue Dense", "Red Volatile", "Cyan Lens", "Violet Temporal") var planet_type: int = PlanetKind.AUTO
 @export var base_mass: float = 300000.0
 @export var base_radius: float = 150.0
 @export var spacetime_stability_per_radius: float = 2.8
@@ -15,10 +18,13 @@ var mass: float
 var radius: float
 var max_spacetime_stability: float = 1.0
 var current_spacetime_stability: float = 1.0
+var planet_type_id: StringName = &"blue_dense"
+var planet_display_name: String = "Blue Dense"
 
 @onready var polygon: Polygon2D = $Polygon2D
 @onready var collision: CollisionShape2D = $CollisionShape2D
 @onready var particles: GPUParticles2D = $GPUParticles2D
+@onready var point_light: PointLight2D = $PointLight2D
 
 var _starting_mass: float = 0.0
 var _starting_radius: float = 0.0
@@ -35,12 +41,15 @@ func _ready() -> void:
 	# RANDOMIZE SIZE
 	# =========================
 	var rand_scale := randf_range(0.5, 1.5)
+	var type_data := _planet_type_data(_resolve_planet_type())
+	planet_type_id = type_data.get("id", &"blue_dense")
+	planet_display_name = String(type_data.get("display_name", "Blue Dense"))
 
-	radius = base_radius * rand_scale
-	mass = base_mass * rand_scale
+	radius = base_radius * rand_scale * float(type_data.get("radius_multiplier", 1.0))
+	mass = base_mass * rand_scale * float(type_data.get("mass_multiplier", 1.0))
 	_starting_radius = radius
 	_starting_mass = mass
-	max_spacetime_stability = maxf(_starting_radius * spacetime_stability_per_radius, 1.0)
+	max_spacetime_stability = maxf(_starting_radius * spacetime_stability_per_radius * float(type_data.get("stability_multiplier", 1.0)), 1.0)
 	current_spacetime_stability = max_spacetime_stability
 
 	# =========================
@@ -53,6 +62,7 @@ func _ready() -> void:
 	# UPDATE VISUALS
 	# =========================
 	draw_circle_polygon(64, radius)
+	_apply_planet_type_visuals(type_data)
 
 	# =========================
 	# UPDATE COLLISION
@@ -68,6 +78,7 @@ func _ready() -> void:
 		mat = mat.duplicate()
 		particles.process_material = mat
 		mat.emission_sphere_radius = radius
+		mat.color = type_data.get("particle_color", Color(0.0, 0.92, 0.86, 1.0))
 
 	# =========================
 	# ENSURE NO NODE SCALING

@@ -39,6 +39,9 @@ const DEATH_FAIRNESS_DIRECTOR_SCENE = preload("res://Nodes/death_fairness_direct
 const FAIR_PACING_DIRECTOR_SCENE = preload("res://Nodes/fair_pacing_director.tscn")
 const RUN_STORY_ARC_DIRECTOR_SCENE = preload("res://Nodes/run_story_arc_director.tscn")
 const WEAPON_SYSTEM_SCENE = preload("res://Nodes/weapon_system.tscn")
+const SKILL_SIGNATURE_DIRECTOR_SCENE = preload("res://Nodes/skill_signature_director.tscn")
+const SPACETIME_SWIM_DIRECTOR_SCENE = preload("res://Nodes/spacetime_swim_director.tscn")
+const SPACETIME_TEAR_DIRECTOR_SCENE = preload("res://Nodes/spacetime_tear_director.tscn")
 
 const PLANET_ATMOSPHERE_SCENE = preload("res://Nodes/planet_atmosphere_dust.tscn")
 const WAVE_DIRECTOR_SCENE = preload("res://Nodes/wave_director.tscn")
@@ -91,6 +94,9 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var enable_fair_pacing = true
 @export var enable_run_story_arc = true
 @export var enable_weapon_system = true
+@export var enable_skill_signatures = true
+@export var enable_spacetime_swim_effects = true
+@export var enable_spacetime_tear_spawns = true
 @export_group("Developer Showcase")
 @export var enable_stress_test_tools = false
 @export var run_stress_test_on_ready = false
@@ -178,6 +184,12 @@ func _install_modular_additions() -> void:
 	if enable_event_horizon_moments:
 		_add_child_scene_once(level_root, EVENT_HORIZON_DIRECTOR_SCENE, "EventHorizonDirector")
 	_add_child_scene_once(level_root, VISUAL_ESCALATION_SCENE, "VisualEscalationDirector")
+	if enable_skill_signatures:
+		_add_child_scene_once(level_root, SKILL_SIGNATURE_DIRECTOR_SCENE, "SkillSignatureDirector")
+	if enable_spacetime_swim_effects:
+		_add_child_scene_once(level_root, SPACETIME_SWIM_DIRECTOR_SCENE, "SpacetimeSwimDirector")
+	if enable_spacetime_tear_spawns:
+		_add_child_scene_once(level_root, SPACETIME_TEAR_DIRECTOR_SCENE, "SpacetimeTearDirector")
 
 	if player != null:
 		if attach_player_juice:
@@ -440,6 +452,31 @@ func _apply_quality_settings(level_root: Node) -> void:
 			horizon.set("screen_warp_enabled", false)
 		if horizon.get("max_targets_per_tick") != null and low_performance_mode:
 			horizon.set("max_targets_per_tick", 36)
+
+	var signatures := level_root.find_child("SkillSignatureDirector", true, false)
+	if signatures != null and low_performance_mode:
+		if signatures.get("max_active_signatures") != null:
+			signatures.set("max_active_signatures", 5)
+		if signatures.get("ring_segments") != null:
+			signatures.set("ring_segments", 28)
+
+	var swim := level_root.find_child("SpacetimeSwimDirector", true, false)
+	if swim != null and low_performance_mode:
+		if swim.get("max_swim_ribbons") != null:
+			swim.set("max_swim_ribbons", 6)
+		if swim.get("max_glitch_slices") != null:
+			swim.set("max_glitch_slices", 6)
+		if swim.get("overlay_alpha_cap") != null:
+			swim.set("overlay_alpha_cap", 0.08)
+
+	var tears := level_root.find_child("SpacetimeTearDirector", true, false)
+	if tears != null and low_performance_mode:
+		if tears.get("max_active_tears") != null:
+			tears.set("max_active_tears", 2)
+		if tears.get("max_alive_tear_enemies") != null:
+			tears.set("max_alive_tear_enemies", 5)
+		if tears.get("ring_segments") != null:
+			tears.set("ring_segments", 28)
 
 	var budget := level_root.find_child("PerformanceBudgetDirector", true, false)
 	if budget != null:

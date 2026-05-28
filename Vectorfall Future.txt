@@ -85,7 +85,7 @@ As gameplay intensifies, the UI should evolve alongside the growing instability 
 
 Menus and upgrade screens should maintain this same identity by resembling scientific anomaly maps, orbital schematics, or constellation-like networks rather than conventional menu grids. Upgrade paths can branch outward like gravitational systems, reinforcing the idea that the player is rewriting the rules of motion and physics instead of simply selecting perks. Even death screens should preserve the game’s tone by presenting the player’s defeat as a diagnostic event or failed trajectory analysis, displaying fractured telemetry and “DEATH VECTOR” reports rather than generic game over text. Altogether, the UI should communicate that *Vector Anomaly* is not just set in space, but inside a universe where mathematics, gravity, and reality itself are beginning to break apart.
 
-* [ ] The player projectiles should happen every time you click, but they should also happen at regular intervals if you hold down the shoot key.
+* [x] The player projectiles should happen every time you click, but they should also happen at regular intervals if you hold down the shoot key. Completed: player shooting now fires immediately on each press and repeats at `projectile_hold_fire_interval` while held, without interrupting beam weapons.
 * [ ] Update the game to align with the vision more accurately.
 
 The following upgrades are to be made carefully but tactfully, all editable in the inspector and coded modularly referencing the .cursorrules and relevant documentation:
@@ -123,17 +123,17 @@ The following upgrades are to be made carefully but tactfully, all editable in t
 
 * [x] **Readable Chaos Layer System** — Implement structured instability tiers (0–5) where each level clearly modifies both visuals and physics behavior, ensuring chaos escalates in recognizable, learnable stages rather than becoming unstructured noise. Initial pass complete: ArenaDestabilizationManager now exposes named tiers from Calibration through Rupture, adjusts arena event cadence/content and tide-pocket visual density by tier, emits `chaos_tier_changed`, and the HUD shows the current chaos tier.
 
-* [ ] **Skill Signature System** — Make mastery visibly persistent by stamping player performance into the world through orbit glyphs, trajectory echoes, resonance halos, and motion-based artifacts that turn high-skill play into readable spectacle.
+* [x] **Skill Signature System** — Make mastery visibly persistent by stamping player performance into the world through orbit glyphs, trajectory echoes, resonance halos, and motion-based artifacts that turn high-skill play into readable spectacle. Completed: SkillSignatureDirector stamps capped orbit glyphs/vector echoes from perfect/apex slingshots, kinetic shocks, Apex Vector releases, and event-horizon escapes.
 
 * [x] **Run Story Arc Structure** — Formalize each run into distinct phases (Calibration → Distortion → Contamination → Collapse → Event Horizon → Rupture) so escalation feels inevitable, cinematic, and consistently paced rather than emergent chaos alone. Completed: RunStoryArcDirector is now installed by OrbitalJuiceManager, emits arc state changes, and shows readable non-blocking run-arc banners tied to wave milestones and Rupture/finale phases.
 
 * [ ] All visual effects must be polished. This can be broken up into different runs (ex. first polish enemies, then polish player and bosses, then polish UI, then polish gravity distortions) but must eventually be completed. This includes visual polishing, making sure everything is correct, and debugging (but not taking any detail away, only making it better).
 
-[ ] I want the player to have a swimming through spacetime effect during certain actions/events that looks super cool.
+[x] I want the player to have a swimming through spacetime effect during certain actions/events that looks super cool. Completed: SpacetimeSwimDirector adds capped spacetime ribbons and screen wash during time dilation, mastery slingshots, beam pressure, and event-horizon moments.
 
-[ ] Time dilation should have an effect (Includes a sketch of a rectangle with a note: "Break" outside of screen?)
+[x] Time dilation should have an effect (Includes a sketch of a rectangle with a note: "Break" outside of screen?) Completed: time dilation now drives swim intensity, temporal overlay alpha, and glitch slices through SpacetimeSwimDirector.
 
-[ ] Add cool glitch effects
+[x] Add cool glitch effects. Completed: SpacetimeSwimDirector emits capped horizontal glitch slices for dilation endings, high time-tear intensity, apex slingshots, positron beams, and horizon escapes.
 
 [x] I want to know (arrow points down to: "and just think about") what assets and songs I need to make. Completed: ASSET_AND_AUDIO_PRODUCTION_LIST.md now lists priority visual assets, VFX, UI/menu assets, music cues, SFX hooks, and marketing capture needs.
 
@@ -147,7 +147,7 @@ The following upgrades are to be made carefully but tactfully, all editable in t
 
 [x] Anomaly Events activated randomly throughout game dependant on run seed. Completed by existing RunVariationDirector seeded rare events: comet choir, gravity bloom, and null aurora are selected from run seed/wave/modifier and routed through arena events with readable banners.
 
-[ ] Make a boss that eats gravity
+[x] Make a boss that eats gravity. Completed: Gravity Maw is a hidden secret boss that consumes gravity sources, damages/fractures planets, drains gravity debris, grows its mass, stamps scars, and registers through the secret-boss director.
 
 [ ] Gravity areas that are super high combined with high explosions or energy or power create rips in spacetime that are visible in every run going forward. The battle field changes permanently. By surviving, the player aids in the collapse of the physics simulation. The player reshapes the map over time.
 
@@ -157,7 +157,7 @@ The following upgrades are to be made carefully but tactfully, all editable in t
 
 [ ] Make "liquid gravity" via rapier engine.
 
-[ ] Space tears open when you rip spacetime and enemies can emerge.
+[x] Space tears open when you rip spacetime and enemies can emerge. Completed: SpacetimeTearDirector opens capped rifts from strong temporal/harmonic scar activity, spawns tracked enemies through the wave system, and keeps low-performance budgets for active tears/enemies.
 
 [ ] Update the color palette of the game so that it follows a clear pattern. The current palette is great except for specific enemies. I like my white and blue player and red enemies, but some enemies like the yellow enemies, aren't nice to look at.
 

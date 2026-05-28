@@ -45,6 +45,7 @@ Optional hidden progression:
 - Gravity pulls from capped nearby gravity sources for performance and deterministic readability.
 - Slingshot assists reward tangential movement around gravity sources.
 - Slingshot mastery grades are `good`, `great`, `perfect`, and `apex`.
+- Vector Bolt projectiles fire immediately on every press and repeat at a fixed cadence while the shoot input is held.
 - Momentum combat rewards high-speed impacts, near misses, flow state, overload, and law fusions.
 - Bosses resist kinetic impact cheese and punish direct contact with damage plus rebound.
 
@@ -80,6 +81,8 @@ Arena instability is handled by `ArenaDestabilizationManager`. It raises chaos f
 - `Collapse Lane`: compression zones arranged across the player's movement line.
 
 Readable chaos tiers label the current instability state from `T0 Calibration` through `T5 Rupture`. `ArenaDestabilizationManager` emits tier changes, the HUD displays the active tier, and high tiers bias arena events toward stronger temporal, inversion, resonance storm, and wormhole shear pressure while modestly increasing tide-pocket visual density.
+
+`SpacetimeTearDirector` turns strong scar/time-tear activity into short-lived rifts. After the early run, temporal rips, harmonic fractures, and intense scar events can open capped tears that spawn tracked enemies into the active wave, making ripped spacetime a direct battlefield threat instead of only a visual state.
 
 `FairPacingDirector` adjusts only recovery windows, not enemy stats or physics rules. Low health and broken shields can slightly extend the next rest window, while recent mastery can tighten the cadence. This keeps runs difficult but beatable without silently simplifying mechanics.
 
@@ -136,6 +139,7 @@ Current wave enemies and roles:
 - Sniper Turret: readable long-range charge shots.
 - Shielder Support: protects or supports other enemies.
 - Parametric enemies 1-5: movement-language enemies driven by readable mathematical paths.
+- Spacetime tear enemies: existing enemy types that emerge from scar-created rifts and are registered with wave tracking.
 
 ## Bosses
 
@@ -151,6 +155,7 @@ Bosses mutate physics rules instead of acting as raw bullet spawners:
 - The Resonance Singularity: final music-driven boss with beat-synced pulses, projectile sweeps, and local gravity collapse.
 - Vector Shade: hidden vector-shear boss triggered by chained apex slingshots.
 - Chronal Mirror: hidden temporal-gate boss triggered by temporal-scar mastery.
+- Gravity Maw: hidden gravity-eating boss triggered by repeated scar formation; it consumes gravity sources, fractures planets, drains debris, and grows heavier during the fight.
 
 ## HUD, Readability, And Accessibility
 
@@ -178,6 +183,8 @@ These settings live on the existing `Settings` autoload and are exposed in the p
 `RunTransitionDirector` adds scene-authored transition polish for major state changes: regular waves, boss waves, wave clears, arena laws, impossible events, co-op combos, Rupture, and the music finale. It is visual punctuation only; it never pauses or drives gameplay.
 
 `DeathFairnessDirector` samples recent run context and appends a readable death readout to the game-over lesson. The readout includes wave, speed, field rule, chaos, projectile density, and whether a boss law was active.
+
+`SkillSignatureDirector` stamps high-skill play into the world with fading orbit glyphs and vector echoes. `SpacetimeSwimDirector` adds the first dedicated spacetime swim/time-glitch layer: ribbons around high-energy movement, a subtle temporal overlay, and capped glitch slices during dilation, time tears, beams, and event-horizon escapes. `SpacetimeTearDirector` makes severe spacetime damage spawn readable rifts and tracked enemy emergence.
 
 ## Multiplayer Foundation
 

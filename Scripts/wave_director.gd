@@ -145,6 +145,14 @@ func register_secret_boss(boss: Node, display_name: String) -> void:
 	if boss.has_signal("boss_defeated") and not boss.is_connected("boss_defeated", defeat_callable):
 		boss.connect("boss_defeated", defeat_callable)
 
+func register_external_enemy(enemy: Node) -> void:
+	if enemy == null or not is_instance_valid(enemy) or enemy.is_queued_for_deletion():
+		return
+	if not enemy.is_in_group("wave_enemy"):
+		enemy.add_to_group("wave_enemy")
+	if not _active_enemies.has(enemy):
+		_active_enemies.append(enemy)
+
 func _begin_next_wave() -> void:
 	if _waves_halted or not _waves_enabled():
 		_banner_label.text = "BOSS RUSH CLEARED" if RunProgress and RunProgress.boss_rush_mode and RunProgress.run_finished else "WAVE DIRECTOR STANDBY"

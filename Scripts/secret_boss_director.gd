@@ -6,6 +6,7 @@ signal secret_boss_awakened(secret_id: StringName, boss: Node)
 signal secret_boss_defeated(secret_id: StringName)
 
 const SECRET_BOSS_SCENE := preload("res://Nodes/secret_law_boss.tscn")
+const GRAVITY_MAW_SCENE := preload("res://Nodes/gravity_maw_boss.tscn")
 
 @export var enabled: bool = true
 @export var min_vector_wave: int = 7
@@ -13,16 +14,20 @@ const SECRET_BOSS_SCENE := preload("res://Nodes/secret_law_boss.tscn")
 @export var vector_chain_window: float = 10.0
 @export var min_chronal_wave: int = 12
 @export var temporal_entry_required: int = 2
+@export var min_maw_wave: int = 16
+@export var gravity_scar_required: int = 5
 @export var spawn_distance: float = 920.0
 
 var _player: Node = null
 var _wave_director: Node = null
 var _resonance_manager: Node = null
+var _scar_manager: Node = null
 var _active_boss: Node = null
 var _current_wave := 0
 var _vector_chain := 0
 var _vector_chain_expires := 0.0
 var _temporal_entries := 0
+var _gravity_scar_entries := 0
 var _spawned: Dictionary = {}
 var _banner_canvas: CanvasLayer = null
 var _banner_label: Label = null
@@ -52,6 +57,7 @@ func _resolve_sources() -> void:
 	if root != null:
 		_wave_director = root.find_child("WaveDirector", true, false)
 		_resonance_manager = root.find_child("GravityResonanceManager", true, false)
+		_scar_manager = root.find_child("GravityScarManager", true, false)
 	if _wave_director != null and _wave_director.has_method("get_current_wave"):
 		_current_wave = int(_wave_director.call("get_current_wave"))
 
@@ -77,6 +83,10 @@ func _connect_sources() -> void:
 		var zone_cb := Callable(self, "_on_resonance_zone_entered")
 		if not _resonance_manager.is_connected("resonance_zone_entered", zone_cb):
 			_resonance_manager.connect("resonance_zone_entered", zone_cb)
+	if _scar_manager != null and _scar_manager.has_signal("gravity_scar_created"):
+		var scar_cb := Callable(self, "_on_gravity_scar_created")
+		if not _scar_manager.is_connected("gravity_scar_created", scar_cb):
+			_scar_manager.connect("gravity_scar_created", scar_cb)
 
 
 func _on_wave_cleared(wave: int) -> void:
@@ -117,6 +127,20 @@ func _on_resonance_zone_entered(zone_data: Dictionary) -> void:
 		_spawn_secret_boss(&"chronal_mirror", 1)
 
 
+func _on_gravity_scar_created(scar_data: Dictionary) -> void:
+	if not _secrets_allowed():
+		return
+	if _active_boss != null and is_instance_valid(_active_boss):
+		return
+	var intensity := clampf(float(scar_data.get("intensity", 0.0)), 0.0, 1.0)
+	if intensity < 0.34:
+		return
+	_gravity_scar_entries += 1
+	secret_progress_changed.emit(&"gravity_maw", _gravity_scar_entries, gravity_scar_required)
+	if _current_wave >= min_maw_wave and _gravity_scar_entries >= gravity_scar_required:
+		_spawn_secret_boss(&"gravity_maw", 0)
+
+
 func _spawn_secret_boss(secret_id: StringName, variant: int) -> void:
 	if not _secrets_allowed():
 		return
@@ -129,10 +153,14 @@ func _spawn_secret_boss(secret_id: StringName, variant: int) -> void:
 	if root == null or player_2d == null:
 		return
 
-	var boss := SECRET_BOSS_SCENE.instantiate()
+	var boss_scene := GRAVITY_MAW_SCENE if secret_id == &"gravity_maw" else SECRET_BOSS_SCENE
+	var boss := boss_scene.instantiate()
 	boss.name = "Secret%s" % String(secret_id).capitalize().replace(" ", "").replace("_", "")
-	boss.set("secret_variant", variant)
-	boss.set("display_name", "CHRONAL MIRROR" if variant == 1 else "VECTOR SHADE")
+	var display := _display_name_for_secret(secret_id, variant)
+	if boss.get("secret_variant") != null:
+		boss.set("secret_variant", variant)
+	if boss.get("display_name") != null:
+		boss.set("display_name", display)
 	root.add_child(boss)
 
 	var angle := TAU * _seeded_fraction(secret_id)
@@ -141,13 +169,13 @@ func _spawn_secret_boss(secret_id: StringName, variant: int) -> void:
 		boss_2d.global_position = player_2d.global_position + Vector2.from_angle(angle) * spawn_distance
 
 	if _wave_director != null and _wave_director.has_method("register_secret_boss"):
-		_wave_director.call("register_secret_boss", boss, String(boss.get("display_name")))
+		_wave_director.call("register_secret_boss", boss, display)
 	if boss.has_signal("boss_defeated"):
 		boss.connect("boss_defeated", Callable(self, "_on_secret_boss_defeated").bind(secret_id))
 
 	_spawned[secret_id] = true
 	_active_boss = boss
-	_show_banner("SECRET VECTOR: %s" % String(boss.get("display_name")))
+	_show_banner("SECRET VECTOR: %s" % display)
 	secret_boss_awakened.emit(secret_id, boss)
 
 
@@ -172,6 +200,12 @@ func _secrets_allowed() -> bool:
 	if RunProgress.run_finished or RunProgress.boss_rush_mode:
 		return false
 	return true
+
+
+func _display_name_for_secret(secret_id: StringName, variant: int) -> String:
+	if secret_id == &"gravity_maw":
+		return "GRAVITY MAW"
+	return "CHRONAL MIRROR" if variant == 1 else "VECTOR SHADE"
 
 
 func _build_banner() -> void:

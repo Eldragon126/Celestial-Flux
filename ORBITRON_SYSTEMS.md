@@ -21,6 +21,9 @@
 - `RunTransitionDirector` provides scene-authored visual punctuation for major state changes.
 - `FairPacingDirector` adjusts recovery windows from player condition/mastery without changing physics depth.
 - `DeathFairnessDirector` appends concrete death context to game-over lessons.
+- `SkillSignatureDirector` stamps capped orbit glyphs and vector echoes from high-skill play.
+- `SpacetimeSwimDirector` adds capped swim ribbons, temporal overlay, and glitch slices for spacetime events.
+- `SpacetimeTearDirector` opens capped enemy-spawning rifts from strong scar/time-tear activity.
 
 ## Particle Rules
 
@@ -91,10 +94,13 @@ Projectile attacks should use `enemy_bullet.configure_launch(direction, speed, s
 
 - `Vector Shade` awakens after chained apex-quality slingshots once the run is deep enough.
 - `Chronal Mirror` awakens from repeated temporal-scar interaction later in the run.
+- `Gravity Maw` awakens after repeated gravity-scar formation and consumes gravity sources as its core rule.
 
 When a hidden boss appears, the director calls `WaveDirector.register_secret_boss()`. The wave director shows the boss panel, pauses regular wave completion around the secret boss, and does not emit a campaign boss anchor when the secret boss dies.
 
 `SecretLawBoss` extends `PhaseBoss` and keeps its visuals scene-authored: hull/core polygons, rule rings, particles, and collision children remain editable in the inspector. Its variants mutate motion rules through vector shear or temporal gates, then drop guaranteed powerup rewards.
+
+`GravityMawBoss` also extends `PhaseBoss`. It pulls bodies inward, damages/fractures planets through `apply_spacetime_damage()`, drains gravity debris, grows its mass from consumed gravity, stamps gravity scars, and periodically creates compression resonance zones. It is a boss encounter about losing the arena's gravitational structure, not a normal projectile duel.
 
 ## Run Variation And Pacing
 
@@ -142,6 +148,25 @@ The director uses existing resonance, arena, and time APIs, so events remain rea
 - `TransitionLabel`
 
 It listens to wave, boss, arena-law, impossible-event, co-op combo, Rupture, and finale signals. The effect is deliberately brief and non-blocking so it adds juice without hiding the player or pausing the simulation.
+
+## Skill Signatures And Spacetime Swim
+
+`SkillSignatureDirector` turns mastery into persistent but capped world marks:
+
+- perfect/apex slingshots stamp orbit glyphs and vector echoes
+- kinetic shockwaves stamp impact signatures
+- Apex Vector releases stamp larger harmonic vector marks
+- event-horizon escapes stamp survival signatures
+
+These signatures fade and self-clean, so they communicate player mastery without becoming permanent clutter.
+
+`SpacetimeSwimDirector` owns the first explicit swimming-through-spacetime effect. It listens to time dilation, time-tear intensity, local time pockets, slingshot mastery, beam weapons, and event-horizon signals. It adds world ribbons behind the player plus a subtle screen wash and capped glitch slices. Low-performance mode reduces ribbon/slice counts and overlay alpha through `OrbitalJuiceManager`.
+
+## Spacetime Tears
+
+`SpacetimeTearDirector` listens to `GravityScarManager` and `TimeDilationManager`. Strong temporal rips, harmonic fractures, intense inversion wakes, or very high scar intensity can open a short-lived rift after the run is far enough along. Each rift has capped visuals, capped spawn count, a global cooldown, and a minimum distance from the player so tears feel dangerous without becoming unfair point-blank ambushes.
+
+Enemies that emerge from tears are registered through `WaveDirector.register_external_enemy()`, so wave completion still accounts for them. Low-performance mode reduces active tear count, alive tear enemies, and ring segment density.
 
 ## Fair Pacing And Death Readouts
 
