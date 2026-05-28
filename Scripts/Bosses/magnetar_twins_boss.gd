@@ -142,6 +142,10 @@ func _fire_paired_shots() -> void:
 		_spawn_bullet(aim.rotated(-0.12), projectile_speed * 0.88)
 
 func _spawn_bullet(direction: Vector2, speed: float) -> void:
+	# Check global bullet cap before spawning
+	if not BulletManager.can_spawn_bullet():
+		return
+
 	var bullet = ENEMY_BULLET_SCENE.instantiate()
 	bullet.global_position = global_position + direction * 118.0
 	bullet.global_rotation = direction.angle()

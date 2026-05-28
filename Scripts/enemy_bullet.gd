@@ -14,8 +14,8 @@ extends RigidBody2D
 @export var spawn_safe_time: float = 0.38
 
 # Extra tuning
-@export var homing_gravity_blend: float = 0.002
-@export var minimum_homing_scale: float = 0.15
+@export var homing_gravity_blend: float = 0.008
+@export var minimum_homing_scale: float = 0.08
 @export var homing_speed_floor_ratio: float = 0.45
 
 var planets: Array[Node2D] = []

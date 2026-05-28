@@ -168,6 +168,10 @@ func _spawn_projectile_pattern() -> void:
 	var aim := (player.global_position - global_position).angle()
 	var count = projectile_count + current_phase * 2
 	for i in range(count):
+		# Check global bullet cap before spawning each projectile
+		if not BulletManager.can_spawn_bullet():
+			break
+
 		var spread := (float(i) - float(count - 1) * 0.5) * 0.18
 		var dir := Vector2.from_angle(aim + spread)
 		if secret_variant == 0 and i % 2 == 1:

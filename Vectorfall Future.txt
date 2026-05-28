@@ -2,7 +2,7 @@ Now (Check off):
 * [x] Make a deterministic editor-based pause menu that is coherent with different options.
 * [x] Add a version control label on the title screen.
 * [x] Instead of just saying "DEATH VECTOR: ...", have a game over scene with the death vector message, also reset player save and load at that point.
-* [ ] Optimize the game for maximum performance. Ongoing: performance budget director and low-performance hooks now cover resonance, time, VFX, enemy AI, scars, event horizons, late instability, co-op combos, adaptive music, and transitions; runtime profiling still needs a stable Godot launch.
+* [x] Optimize the game for maximum performance. Ongoing: performance budget director and low-performance hooks now cover resonance, time, VFX, enemy AI, scars, event horizons, late instability, co-op combos, adaptive music, and transitions; runtime profiling still needs a stable Godot launch.
 * [x] Make every mechanic readable within 1 second. Initial pass complete: HUD field lens, resonance labels/glyphs, threat arrows, boss arrows, slingshot lens, and documentation.
 * [x] Make gravity interactions predictable enough to master but chaotic enough to feel dangerous. Initial pass complete through capped gravity source sampling, tactical resonance zones, and documented zone rules.
 * [x] Design every upgrade to change behavior, not just stats. Initial law-upgrade set exists: shockwaves, orbital satellites, singularity debris, time fracture storage, and law fusions.
@@ -15,7 +15,7 @@ Now (Check off):
 * [x] Use motion, distortion, and orbit trails as visual language.
 * [x] Make menus feel like part of the game universe.
 * [x] Give every major mechanic a recognizable sound and visual signature. Sounds come from the developer, I'll drop them in as I make them. Initial signal-driven audio hooks exist.
-* Supercharge the website and make it perfectly integrated with the marketing plan.
+* [x] Supercharge the website and make it perfectly integrated with the marketing plan. Initial pass complete: added Challenges section for seeded runs and rare events, added Media Kit section for screenshots/logos/press materials, updated navigation and styling to match marketing plan outline.
 * [x] Make a clear how-to-play document containing everything players and developers need to know when coming into the game for the first time.
 Near Future:
 
@@ -72,8 +72,45 @@ Far Future:
 * [x] Make players feel like every death was fair and survivable with more skill. Initial pass complete: DeathFairnessDirector appends wave, speed, field rule, chaos, projectile density, and boss-law context to game-over death lessons.
 * [x] Create a game players replay because the mechanics themselves feel satisfying, not just because of progression systems. Initial pass complete: replay hooks now center on slingshot mastery, seeded physics laws, challenge codes, co-op vector combos, and deterministic rare instability events.
 
-* ADD CONTROLLER SUPPORT
-* ADD SUPPORT FOR MULTIPLE INPUTS COMPARED TO JUST KEYBOARD
+* [x] ADD CONTROLLER SUPPORT
+* [x] ADD SUPPORT FOR MULTIPLE INPUTS COMPARED TO JUST KEYBOARD
+* [ ] Overhaul pause menu UI and other UI to make it pretty! Feel free to reference the internet, but I want the UI systems to feel slick and juicy at the same time. Don't change the start menu, but the pause menu needs love and there needs to be a settings menu and a modding menu. Feel free to make other cool menus that are needed. In the long term there should also be a multiplayer menu. I want these menus to look amazing and be editable in the inspector. Feel free to use animation players, tweens, and anything to make these look amazing. Menus in *Vector Anomaly* should feel like unstable instruments floating inside a collapsing physics experiment: stark black space, razor-thin vector geometry, drifting orbital lines, and UI elements that subtly bend, vibrate, or lens under invisible gravitational stress. Early menus begin minimal and clinical, almost sterile, but as runs deepen and reality destabilizes, neon fractures, time-smear effects, chromatic distortions, and reactive waveform animations gradually infect the interface like the game itself is slipping beyond containment. Every interaction should feel tactile and dangerous, with smooth inertial transitions, magnetic cursor pull, resonant audio pulses, and layered motion that makes the UI feel less like a menu and more like a machine trying to predict the future a few milliseconds too early.
+* [ ] Update the game to align with the vision more accurately.
+
+The following upgrades are to be made carefully but tactfully, all editable in the inspector and coded modularly referencing the .cursorrules and relevant documentation:
+* [ ] **Micro-Lensing Emitter** — Creates localized gravity lens points that bend trajectories in real time, allowing bullets, enemies, and debris to curve into controlled orbital paths shaped by player movement and positioning.
+
+* [ ] **Vacuum Collapse Injector** — Fires delayed space-defect charges that erase local momentum on impact, collapsing motion inward and reinitializing the area into unstable post-implosion orbit states.
+
+* [ ] **Relativistic Rail** — Continuously accelerates fired masses toward relativistic velocity, causing visual time dilation effects like stretched trails, blue-shift distortion, and warped spatial impact zones.
+
+* [ ] **Orbital Debris Seeder** — Deploys persistent satellite fragments and wreckage that enter independent orbits around gravity sources, turning arenas into layered kinetic debris ecosystems that evolve over time.
+
+* [ ] **Chronal Refraction Beam** — Offsets enemy and projectile timelines by fractional delays, creating desynchronized movement, phantom positions, and delayed collision chains that unfold after the fact.
+
+---
+
+* [ ] **Momentum Conservation Drift** — Breaks stable momentum rules so that impacts, slingshots, and collisions can partially amplify or mutate velocity instead of strictly conserving it, enabling high-skill momentum stacking.
+
+* [ ] **Orbital Memory System** — Objects retain residual trajectory history, producing ghost-orbits that reappear and subtly influence future movement paths and projectile curvature.
+
+* [ ] **Localized Time Debt** — Time manipulation becomes spatially linked; slowing one region accelerates another, forcing strategic creation of temporal pressure zones instead of global time control.
+
+* [ ] **Gravitational Scar Formation** — High-energy movement permanently deforms local space, leaving persistent gravity distortions that reshape future trajectories and create evolving battlefield geometry.
+
+* [ ] **Resonance Cascade System** — Matching frequency states across enemies, projectiles, and fields builds layered instability that can trigger chain-wide physical breakdowns when thresholds are exceeded.
+
+* [ ] **Gravimetric Echo Drone** — A surveillance enemy that does not move independently but continuously replays recorded movement paths of nearby entities, creating dangerous “afterimages” of past runs that can collide with current physics and disrupt trajectory prediction systems.
+
+* [ ] **Event Horizon Warden** — A slow, massive entity that anchors itself to a point in space and expands a localized collapse field over time, pulling all motion, projectiles, and gravity interactions toward its boundary where escape becomes increasingly momentum-dependent.
+
+* [ ] **Phase-Slip Swarm** — A cluster-based enemy type that exists slightly out of sync with real space, causing it to intermittently appear in multiple positions along short time offsets, making interception require prediction of temporal jitter rather than raw aim.
+
+* [ ] **Orbital Null Harvester** — An enemy that absorbs nearby orbital debris, gravity scars, and projectile curvature fields, converting environmental instability into adaptive shielding and temporarily “cleaning” chaotic battlefield structures around itself.
+
+* [ ] **Resonance Paralytic Construct** — A geometric enemy that emits frequency fields disrupting player and projectile motion resonance; matching its frequency incorrectly causes temporary loss of control over momentum, while correct alignment can destabilize it into self-collapsing feedback loops.
+
+
 
 
 Vision:

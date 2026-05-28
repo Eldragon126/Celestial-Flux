@@ -73,6 +73,10 @@ func _process(delta: float) -> void:
 
 func _on_shoot_animation_animation_started(anim_name: StringName) -> void:
 	if anim_name == "Blast":
+		# Check global bullet cap before spawning
+		if not BulletManager.can_spawn_bullet():
+			return
+
 		var projectile_scene = load("res://Nodes/enemy_bullet.tscn")
 		var projectile = projectile_scene.instantiate()
 

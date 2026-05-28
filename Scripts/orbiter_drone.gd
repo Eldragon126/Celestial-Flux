@@ -145,6 +145,10 @@ func _fire_radial_burst() -> void:
 
 	var offset = randf() * TAU
 	for i in range(burst_projectiles):
+		# Check global bullet cap before spawning each projectile
+		if not BulletManager.can_spawn_bullet():
+			break
+
 		var direction = Vector2.RIGHT.rotated(offset + TAU * float(i) / float(burst_projectiles))
 		var bullet = ENEMY_BULLET_SCENE.instantiate()
 		bullet.global_position = global_position + direction * 44.0

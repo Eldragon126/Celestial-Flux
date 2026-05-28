@@ -1,4 +1,4 @@
-res://Nodes/multiplayer_sync_foundation.tscn
+res://Nodes/enemy_bullet.tscn
 res://Scripts/playershield.gdshader
 res://Scripts/pause_menu.gdshader
 res://Scripts/planet_1.gdshader

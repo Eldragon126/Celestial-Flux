@@ -123,6 +123,10 @@ func _pull_player(delta: float) -> void:
 
 func _spawn_radial_bullets(count: int, speed: float) -> void:
 	for i in range(count):
+		# Check global bullet cap before spawning each projectile
+		if not BulletManager.can_spawn_bullet():
+			break
+
 		var direction = Vector2.RIGHT.rotated(TAU * float(i) / float(count) + _orbit_angle * 0.35)
 		var bullet = ENEMY_BULLET_SCENE.instantiate()
 		bullet.global_position = global_position + direction * 132.0

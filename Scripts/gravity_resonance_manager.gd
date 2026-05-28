@@ -911,7 +911,7 @@ func _update_zone_glyphs(glyphs: Array, zone_type: int, radius: float, intensity
 				points.append(center - tangent * radius * 0.18)
 				points.append(center + tangent * radius * 0.18)
 			ZoneType.TEMPORAL_SCAR:
-				var wobble := sin(Time.get_ticks_msec() / 220.0 + float(i)) * radius * 0.025
+				var wobble := sin(Time.get_ticks_msec() / 420.0 + float(i) * 0.5) * radius * 0.008
 				points.append(radial * (radius * 0.42 + wobble))
 				points.append(radial * (radius * 0.42 + wobble) + tangent * radius * 0.2)
 			ZoneType.HARMONIC_ORBIT:

@@ -147,6 +147,10 @@ func _spawn_projectile_sweep(speed: float) -> void:
 	if player != null and is_instance_valid(player):
 		lead_angle = (player.global_position - global_position).angle()
 	for i in range(count):
+		# Check global bullet cap before spawning each projectile
+		if not BulletManager.can_spawn_bullet():
+			break
+
 		var spread := TAU * float(i) / float(count)
 		var dir := Vector2.from_angle(lead_angle + spread + _orbit_angle * 0.18)
 		var bullet := ENEMY_BULLET_SCENE.instantiate()

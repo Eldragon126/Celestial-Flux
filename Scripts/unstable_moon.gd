@@ -67,6 +67,10 @@ func _explode() -> void:
         return
 
     for i in range(bullet_count):
+        # Check global bullet cap before spawning each projectile
+        if not BulletManager.can_spawn_bullet():
+            break
+
         var angle = TAU * float(i) / float(bullet_count)
         var direction = Vector2(cos(angle), sin(angle))
         var bullet = ENEMY_BULLET_SCENE.instantiate()

@@ -113,6 +113,10 @@ func _try_fire() -> void:
 	if distance < min_range or distance > max_range:
 		return
 
+	# Check global bullet cap before spawning
+	if not BulletManager.can_spawn_bullet():
+		return
+
 	var direction = (_player.global_position - global_position).normalized()
 	var bullet = ENEMY_BULLET_SCENE.instantiate()
 	bullet.global_position = global_position + direction * 108.0

@@ -624,6 +624,10 @@ func spawn_bullet(
 	if get_parent() == null:
 		return
 
+	# Check global bullet cap before spawning
+	if not BulletManager.can_spawn_bullet():
+		return
+
 	direction = direction.normalized()
 	if direction == Vector2.ZERO:
 		direction = Vector2.RIGHT.rotated(rotation)

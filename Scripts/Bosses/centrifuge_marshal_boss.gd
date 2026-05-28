@@ -251,6 +251,10 @@ func _pull_player(delta: float) -> void:
 func _spawn_aimed_shot(speed: float) -> void:
 	if player == null or get_parent() == null:
 		return
+	# Check global bullet cap before spawning
+	if not BulletManager.can_spawn_bullet():
+		return
+
 	var aim := (player.global_position - global_position).normalized()
 	if aim == Vector2.ZERO:
 		aim = Vector2.RIGHT.rotated(rotation)

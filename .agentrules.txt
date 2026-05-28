@@ -1,0 +1,183 @@
+You are assisting with a Godot 4 roguelike called Vector Anomaly.
+
+ENGINE + LANGUAGE
+- This project uses Godot 4.4 and GDScript 2.0.
+- Always use Godot 4 syntax.
+- Never use Godot 3 syntax.
+- Never use Unity APIs or C# patterns unless explicitly requested.
+- Use tabs for indentation in GDScript.
+- Prefer typed variables where practical.
+- Prefer Godot-native workflows over generic engine patterns.
+
+PROJECT OVERVIEW
+Vector Anomaly is a physics-heavy endless arena roguelike focused on:
+- Gravity manipulation
+- Orbit-based combat
+- Momentum and velocity mastery
+- Localized time distortion
+- Emerent physics interactions
+- High readability despite chaos
+- Technical skill expression
+- Spectacular but fair deaths
+
+GAME FEEL PRIORITIES
+- Combat should feel dangerous and technical.
+- Momentum matters.
+- Skilled movement should always be rewarded.
+- Gravity should feel readable but chaotic.
+- Time dilation is a precision mechanic, not a gimmick.
+- Avoid floaty movement.
+- Preserve player control responsiveness.
+- Combat should create moments of panic, recovery, and mastery.
+- Movement should encourage slingshots, orbital paths, and velocity control.
+- Arena chaos should escalate naturally over time.
+
+VISUAL DESIGN PHILOSOPHY
+- Visuals begin stark and geometric.
+- As chaos increases, visuals evolve into glowing neon vector instability.
+- Effects should communicate gameplay information clearly.
+- Avoid excessive screen clutter.
+- Prioritize gameplay readability over spectacle.
+- Space should feel hostile, unstable, and alive.
+
+PHYSICS RULES
+- Player uses RigidBody2D.
+- Most enemies use CharacterBody2D with manual velocity.
+- Projectiles and certain physics objects may use RigidBody2D.
+- Gravity is localized and radius-based.
+- Never use global gravity.
+- Gravity sources are placed in the group:
+	"Objects_With_Gravity"
+- Prefer nearest gravity sources only.
+- Cap gravity influences to 3-4 sources maximum per object.
+- Use inverse-square or softened gravity calculations when appropriate.
+- Time dilation should usually use velocity scaling rather than Engine.time_scale.
+- Preserve deterministic-feeling interactions.
+- Momentum conservation matters.
+- Avoid physics jitter and unstable oscillation loops.
+
+PERFORMANCE PRIORITIES
+- Avoid allocations every frame.
+- Avoid get_tree().get_nodes_in_group() inside _process() or _physics_process().
+- Cache references whenever possible.
+- Avoid recursive scene scans.
+- Avoid unnecessary node creation/destruction during combat.
+- Optimize for high enemy counts.
+- Prefer object pooling where practical.
+- Minimize physics overhead.
+- Avoid expensive shader logic unless justified.
+- Maintain stable framerate during high-chaos gameplay.
+
+ARCHITECTURE RULES
+- Prefer modular systems over giant scripts.
+- Prefer composition over inheritance-heavy structures.
+- Use signal-based communication when practical.
+- Keep functions focused and readable.
+- Avoid deeply nested conditionals.
+- Avoid hidden dependencies.
+- Avoid singleton abuse.
+- Only create autoloads when explicitly necessary.
+- Preserve separation between gameplay logic, visuals, and UI.
+
+CODE STYLE
+- Use @export variables for editable gameplay tuning.
+- Use clear variable names.
+- Keep code readable and maintainable.
+- Add concise comments only when logic is non-obvious.
+- Do not over-comment obvious code.
+- Prefer early returns over deep nesting.
+- Use helper functions to simplify complex logic.
+- Keep gameplay constants configurable.
+
+DEBUGGING RULES
+- Explain probable root causes before rewriting systems.
+- Preserve existing mechanics while fixing bugs.
+- Suggest minimal changes first.
+- If uncertain, add temporary debug visualization or logging.
+- Do not remove mechanics simply because they are difficult to debug.
+- Explain performance implications of fixes.
+- Explain possible side effects of changes.
+- Preserve gameplay feel during fixes.
+
+WHEN GENERATING CODE
+- Explain WHY changes are being made.
+- Mention side effects when relevant.
+- Mention performance implications when relevant.
+- Preserve architecture unless explicitly told otherwise.
+- Generate production-ready code whenever possible.
+- Avoid placeholder implementations unless requested.
+- Avoid pseudocode unless explicitly requested.
+- Prefer complete drop-in scripts when editing gameplay systems.
+
+NEVER
+- Rewrite entire systems unless requested.
+- Remove mechanics for simplicity.
+- Replace custom physics with NavigationAgent2D unless requested.
+- Invent nonexistent Godot APIs.
+- Invent nonexistent nodes or signals.
+- Create fake helper systems without explaining them.
+- Ignore existing architecture.
+- Add unnecessary complexity.
+- Hardcode gameplay tuning values without reason.
+- Use Unity terminology or workflows.
+
+GAMEPLAY SYSTEM PRIORITIES
+Core mechanics include:
+- Micro singularities
+- Repulsion pulses
+- Orbital tether mechanics
+- Gravity shielding
+- Velocity-based combat
+- Time fracture systems
+- Orbit manipulation
+- Arena instability escalation
+
+Upgrade philosophy:
+- Few deep upgrades rather than many shallow upgrades.
+- Upgrades should alter combat behavior and decision-making.
+- Upgrades should interact with physics systems.
+- Avoid generic percentage stat boosts unless necessary.
+
+ENEMY DESIGN PHILOSOPHY
+- Enemies should create positional pressure.
+- Enemy interactions should combine into emergent threats.
+- Enemy behavior should support orbital combat and movement mastery.
+- Avoid bullet sponge design.
+- Enemies should encourage movement adaptation.
+
+BOSS DESIGN PHILOSOPHY
+- Bosses should feel like physics events, not health bars.
+- Boss attacks should reshape arena flow.
+- Bosses should pressure player positioning and momentum.
+- Encounters should escalate tension through spatial control.
+
+AUDIO DESIGN PHILOSOPHY
+- Music reacts to gameplay intensity.
+- Audio should reinforce gravitational instability.
+- Sound effects should communicate velocity, force, and spatial danger.
+- Silence and tension are valuable tools.
+
+UI/UX PRIORITIES
+- Maintain gameplay readability during chaos.
+- Important information must remain visible under stress.
+- UI should feel integrated into the vector/neon aesthetic.
+- Avoid excessive menus and clutter.
+- Feedback should be immediate and readable.
+
+WHEN HELPING WITH DESIGN
+- Preserve the game's identity.
+- Favor originality over generic roguelike conventions.
+- Lean into physics-driven gameplay.
+- Encourage emergent interactions.
+- Maintain emotional intensity and player tension.
+
+WHEN HELPING WITH BALANCE
+- Preserve skill expression.
+- Avoid flattening advanced mechanics.
+- Preserve high skill ceilings.
+- Balance around mastery, not only beginner play.
+- Deaths should feel fair, understandable, and earned.
+
+IMPORTANT
+Preserve the core identity of Vector Anomaly:
+A hostile, unstable, gravity-driven combat system where movement, momentum, orbit manipulation, and spatial mastery create emergent moments of chaos and precision.

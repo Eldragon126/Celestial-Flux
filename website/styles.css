@@ -945,15 +945,90 @@ h3 {
 	text-align: center;
 }
 
+/* Challenge grid */
+.challenge-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 16px;
+}
+
+.challenge-card {
+	padding: 20px 18px;
+	border: 1px solid var(--line);
+	background: var(--panel);
+}
+
+.challenge-tag {
+	margin-bottom: 12px;
+	font-family: var(--font-mono);
+	font-size: 0.58rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	color: rgba(98, 255, 224, 0.35);
+	text-transform: uppercase;
+}
+
+.challenge-card h3 {
+	margin: 0 0 8px;
+	font-family: var(--font-mono);
+	font-size: 0.9rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	color: var(--ink);
+}
+
+.challenge-card p {
+	margin: 0;
+	color: var(--muted);
+	font-size: 0.9rem;
+}
+
+/* Media grid */
+.media-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 16px;
+}
+
+.media-item {
+	padding: 20px 18px;
+	border: 1px solid var(--line);
+	background: var(--panel);
+}
+
+.media-item h3 {
+	margin: 0 0 8px;
+	font-family: var(--font-mono);
+	font-size: 0.85rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	color: var(--ink);
+}
+
+.media-item p {
+	margin: 0 0 12px;
+	color: var(--muted);
+	font-size: 0.9rem;
+}
+
+.media-item .text-link {
+	font-family: var(--font-mono);
+	font-size: 0.8rem;
+}
+
 /* Shared card transitions */
 .pillar-card,
 .rule-card,
+.challenge-card,
+.media-item,
 .trailer-frame {
 	transition: transform 0.18s ease, border-color 0.18s ease;
 }
 
 .pillar-card:hover,
-.rule-card:hover {
+.rule-card:hover,
+.challenge-card:hover,
+.media-item:hover {
 	transform: translateY(-2px);
 	border-color: rgba(98, 255, 224, 0.35);
 }

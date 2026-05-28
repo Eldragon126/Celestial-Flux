@@ -1,6 +1,6 @@
 [x] The orbital effects themselves are great, but the effects when you hit a "perfect" or "great" orbit are flash-bangs to players' eyes. Initial safety pass complete: slingshot rings, law-fusion rings, powerup bursts, and VFX bursts now use lower alpha caps and reduced flash settings without disabling the mastery reward.
 
-[ ] Make sure ALL bosses and enemies are editable in the inspector (e.g., the polygons are children of the parent, and GPU effects are children of the parent). Progress: the new SecretLawBoss scene follows this pattern with editable hull/core polygons, rule rings, particles, and collision children.
+[x] Make sure ALL bosses and enemies are editable in the inspector (e.g., the polygons are children of the parent, and GPU effects are children of the parent). Progress: the new SecretLawBoss scene follows this pattern with editable hull/core polygons, rule rings, particles, and collision children. All bosses and enemies verified to follow this pattern.
 
 [x] I don't understand what any of the rings do. Inversion Repel, Harmonic Fracture Orbit, Slipstream flow, ext. Initial readability pass complete: resonance labels now use direct action text like PULL IN, PUSH OUT, FLOW ARC, SLOW SHOTS, and ORBIT BEND; manual slingshot zones merge and cap so ring spam is contained.
 
@@ -10,4 +10,6 @@
 
 [x] The projectile trajectory visualizer, which is a child of the player, is decent sometimes and wildly off other times. Initial fix complete: the predictor now matches capped projectile gravity sources, includes momentum launch inheritance, and stops at planet impact instead of showing impossible bounces.
 
-[ ] What is the weird line that wiggles in the harmonic fracture orbit and similar circles? I actually have no clue and it looks slightly goofy. It needs to be fixed.
+[x] What is the weird line that wiggles in the harmonic fracture orbit and similar circles? Fixed: reduced TEMPORAL_SCAR wobble amplitude from 0.025 to 0.008 and slowed wobble speed from 220ms to 420ms to make the visual less distracting while still conveying the temporal nature.
+
+[x] Enemy bullets wander around right now toward the player slowly, and don't seem like they are affected by gravity at all. There are also way too many bullets at a time. Fixed: increased homing_gravity_blend from 0.002 to 0.008, reduced minimum_homing_scale from 0.15 to 0.08 for better gravity influence, added BulletManager singleton with 50 bullet cap, and updated all bullet-spawning enemies to check the cap before spawning.

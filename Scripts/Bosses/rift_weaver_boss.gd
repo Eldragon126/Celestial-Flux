@@ -162,6 +162,10 @@ func _fire_spiral(count: int) -> void:
 	if get_parent() == null:
 		return
 	for i in range(count):
+		# Check global bullet cap before spawning each projectile
+		if not BulletManager.can_spawn_bullet():
+			break
+
 		var direction = Vector2.RIGHT.rotated(_lane_angle + TAU * float(i) / float(count))
 		var bullet = ENEMY_BULLET_SCENE.instantiate()
 		bullet.global_position = global_position + direction * 112.0
