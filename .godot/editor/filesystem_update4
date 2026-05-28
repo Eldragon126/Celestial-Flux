@@ -6,3 +6,4 @@ res://Scripts/player.gdshader
 res://Scripts/weapon_system.gd
 res://Nodes/player.tscn
 res://Scripts/energy_component.gd
+res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn

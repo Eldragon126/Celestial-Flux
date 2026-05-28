@@ -78,6 +78,14 @@ Far Future:
 
 5/27/2026 PRIORITY
 * [x] Overhaul pause menu UI and other UI to make it pretty! Initial pass complete: pause menu now has inspector-authored settings/readability, modding, and multiplayer-prep sections, mod manifest rescan/status, wider polished vector panel, seed tools, animated pulse/fade, and no title-screen changes.
+
+* [ ] The UI's are functional right now, but don't look good. They need to look amazing. The UI in *Vector Anomaly* should feel like an extension of the game’s physics rather than a traditional overlay sitting on top of the action. Instead of static bars and rigid menus, the interface should orbit, drift, and subtly react to gravity, motion, and time dilation. Early in the game, the HUD can appear minimal and clinical: thin white vector lines, radial indicators, circular shield rings, and sparse typography against deep black space. Information should feel mathematically constructed, almost like a scientific instrument panel designed to monitor unstable spacetime rather than a standard arcade HUD. Health, energy, and cooldowns can be represented through rotating arcs, orbital rings, and waveform-like pulses that naturally reinforce the game’s core mechanics.
+
+As gameplay intensifies, the UI should evolve alongside the growing instability of the arena. Small glitches, temporal echoes, distorted cooldown rings, and fractured geometric overlays can emerge as chaos increases, making the player feel as though reality itself is becoming less stable. The gradual transition from monochrome visuals into neon cyan, magenta, and high-energy vector colors helps visually communicate the escalation of danger and dimensional collapse. Time dilation effects should also influence the interface directly, causing animations to smear, stretch, or desynchronize slightly whenever spacetime manipulation occurs. This creates the sensation that the HUD is bound to the same physical laws as the player and enemies.
+
+Menus and upgrade screens should maintain this same identity by resembling scientific anomaly maps, orbital schematics, or constellation-like networks rather than conventional menu grids. Upgrade paths can branch outward like gravitational systems, reinforcing the idea that the player is rewriting the rules of motion and physics instead of simply selecting perks. Even death screens should preserve the game’s tone by presenting the player’s defeat as a diagnostic event or failed trajectory analysis, displaying fractured telemetry and “DEATH VECTOR” reports rather than generic game over text. Altogether, the UI should communicate that *Vector Anomaly* is not just set in space, but inside a universe where mathematics, gravity, and reality itself are beginning to break apart.
+
+* [ ] The player projectiles should happen every time you click, but they should also happen at regular intervals if you hold down the shoot key.
 * [ ] Update the game to align with the vision more accurately.
 
 The following upgrades are to be made carefully but tactfully, all editable in the inspector and coded modularly referencing the .cursorrules and relevant documentation:
@@ -150,6 +158,103 @@ The following upgrades are to be made carefully but tactfully, all editable in t
 [ ] Make "liquid gravity" via rapier engine.
 
 [ ] Space tears open when you rip spacetime and enemies can emerge.
+
+[ ] Update the color palette of the game so that it follows a clear pattern. The current palette is great except for specific enemies. I like my white and blue player and red enemies, but some enemies like the yellow enemies, aren't nice to look at.
+
+--- Procedural Galaxy Expansion System (Wave-Based Integration) --- FAR FAR FUTURE. Wait to do this chunk. {{{
+
+CORE GAME STRUCTURE
+- [ ] Keep the primary gameplay loop focused on wave-based arena survival
+>> The core experience should remain fast, replayable, and combat-focused.
+
+- [ ] Allow galaxy travel between wave runs or after survival milestones
+>> Galaxy exploration should expand the game rather than replace the arena structure.
+
+- [ ] Preserve short-to-medium run pacing
+>> Most runs should still last around 15–25 minutes unless the player intentionally commits to deep-space travel.
+
+GALAXY MAP SYSTEM
+- [ ] Generate a procedural starmap containing distant galaxies
+>> Galaxies should vary in danger, physics behavior, visual identity, and gameplay mutations.
+
+- [ ] Create scalable travel distances
+>> Nearby galaxies are easier to reach while distant galaxies require major commitment and survival preparation.
+
+- [ ] Add travel routes with environmental hazards
+>> Traveling between galaxies may involve instability zones, gravitational storms, collapsing pathways, or hostile encounters.
+
+GAMEPLAY MUTATION SYSTEM
+- [ ] Implement galaxy-wide gameplay modifiers
+>> Different galaxies should alter the rules of combat, movement, time dilation, gravity, or projectile behavior.
+
+- [ ] Create escalating instability based on distance from origin space
+>> The farther the player travels, the stranger and less predictable the universe becomes.
+
+- [ ] Add galaxies that change arena combat structure
+>> Examples: orbit-based combat arenas, rotating gravity zones, fragmented geometry, delayed-time combat, or zero-friction movement.
+
+- [ ] Ensure every galaxy changes gameplay in meaningful ways
+>> The goal is discovering new forms of play rather than simple stat increases.
+
+ENEMY AND WAVE SYSTEMS
+- [ ] Create galaxy-specific enemy variants
+>> Enemy movement, attack patterns, and AI behavior should adapt to local physics laws.
+
+- [ ] Modify wave generation based on galaxy state
+>> Certain galaxies may produce denser swarms, orbiting enemies, teleporting entities, or unstable boss encounters.
+
+- [ ] Add region-exclusive bosses
+>> Some bosses should only exist in distant galaxies and fully utilize local reality distortions.
+
+VISUAL AND AUDIO EVOLUTION
+- [ ] Gradually evolve visuals based on distance traveled
+>> Early galaxies appear clean and geometric while deep-space regions become abstract, neon, fractured, and unstable.
+
+- [ ] Add procedural visual corruption systems
+>> Arena geometry, stars, UI elements, and effects should distort as instability increases.
+
+- [ ] Implement galaxy-reactive soundtrack layers
+>> Music intensity, distortion, rhythm, and ambience should evolve with reality instability and combat chaos.
+
+UPGRADES AND BUILD EVOLUTION
+- [ ] Allow upgrades to mutate based on galaxy conditions
+>> The same upgrade may behave differently depending on local physics rules.
+
+- [ ] Add reality-altering upgrade interactions
+>> Certain builds should become dramatically more powerful or dangerous in unstable galaxies.
+
+- [ ] Encourage experimentation with galaxy/build combinations
+>> Players should discover unusual synergies through exploration.
+
+LATE-GAME CONTENT
+- [ ] Create “deep universe” galaxies with heavily distorted mechanics
+>> Extremely distant regions should feel dangerous, surreal, and difficult to fully understand.
+
+- [ ] Add fourth-dimensional or impossible-space arena concepts
+>> Deep-space arenas may fold, rotate, split, or overlap in physically impossible ways.
+
+- [ ] Ensure late-game instability remains readable and skill-based
+>> Even the strangest mechanics should feel fair and learnable.
+
+TECHNICAL / PERFORMANCE
+- [ ] Stream galaxy data efficiently
+>> Avoid loading all galaxy systems simultaneously.
+
+- [ ] Limit active physics complexity
+>> Cap gravity calculations and instability effects to maintain performance during large wave encounters.
+
+- [ ] Cache procedural generation results where possible
+>> Prevent expensive regeneration during repeated travel or revisits.
+
+- [ ] Maintain stable performance during high-chaos scenarios
+>> Deep-space instability should feel intense without causing frame collapse.
+
+
+
+}}}
+
+
+
 Vision:
 At the start and throughout the majority of the game, the experience is fully driven by physics simulation (when I say physics simulation, I mean a sort of simulation, but more fun than accurate) and wave-based progression. Combat is governed by gravity wells, orbital dynamics, time dilation effects, and deterministic enemy behaviors. Waves introduce increasing density, complexity, and interaction between systems, but every outcome is explained through mechanical cause and effect. The player learns through motion, positioning, momentum, and prediction rather than any external timing system. The game is intentionally designed so that success depends entirely on understanding physical relationships within the arena.
 

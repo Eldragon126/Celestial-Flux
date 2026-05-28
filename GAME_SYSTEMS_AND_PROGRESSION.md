@@ -1,4 +1,4 @@
-# ORBITRON: VECTORFALL Game Systems And Progression
+# VECTOR ANOMALY Game Systems And Progression
 
 This document is the current developer-facing map of what the game does, how a run progresses, and where the major systems live.
 

@@ -14,10 +14,12 @@
 
 [x] Enemy bullets wander around right now toward the player slowly, and don't seem like they are affected by gravity at all. There are also way too many bullets at a time. Fixed: increased homing_gravity_blend from 0.002 to 0.008, reduced minimum_homing_scale from 0.15 to 0.08 for better gravity influence, added BulletManager singleton with 50 bullet cap, and updated all bullet-spawning enemies to check the cap before spawning.
 
-[ ] The bosses up until the polymorph boss are super super easy.  Too easy.
+[ ] The bosses up until the polymorph boss are super super easy.  Too easy. Polymorph is pretty easy, too.
 
-[ ] Some text overlaps other text in the menus. This shouldn't happen.
+[ ] Some text overlaps with other text in the menus. This shouldn't happen.
 
-[ ] The gravity beam doesn't seem to warp gravity like I thought it would. I'd like it to do damage like it does, but also to warp enemy gravity so that the enemies naturally drift toward the gravitational beam.
+[ ] The gravity beam doesn't seem to warp gravity like I thought it would. I'd like it to do damage as it does, but also to warp enemy gravity so that the enemies naturally drift toward the gravitational beam.
 
 [ ] Slingshotting is easy to do but hard to witness because it blows up your computer with harmonic circles, other things, and sound effects. It needs to be the best part of the game still, but in better ways. It needs to be more satisfying.
+
+[ ] The player, after dying, has a couple of seconds to shoot and continue. I like the idea of watching yourself die, but it frustrates players when they die, don't realize they die, and then it takes them to the death screen right after they get into a better situation. This needs to be fixed.
