@@ -8,6 +8,11 @@ const SHIELD_OVERCHARGE = preload("res://Scripts/Powerups/shield_overcharge.tres
 const ORBITAL_TETHER_UPGRADE = preload("res://Scripts/Powerups/orbital_tether_upgrade.tres")
 const MOMENTUM_SHOCKWAVE_LAW = preload("res://Scripts/Powerups/momentum_shockwave_law.tres")
 const APEX_VECTOR_CORE = preload("res://Scripts/Powerups/apex_vector_core.tres")
+const MICRO_LENSING_EMITTER = preload("res://Scripts/Powerups/micro_lensing_emitter.tres")
+const VACUUM_COLLAPSE_INJECTOR = preload("res://Scripts/Powerups/vacuum_collapse_injector.tres")
+const RELATIVISTIC_RAIL = preload("res://Scripts/Powerups/relativistic_rail.tres")
+const ORBITAL_DEBRIS_SEEDER = preload("res://Scripts/Powerups/orbital_debris_seeder.tres")
+const CHRONAL_REFRACTION_BEAM = preload("res://Scripts/Powerups/chronal_refraction_beam.tres")
 
 static func get_all_definitions() -> Array[PowerupDefinition]:
 	return [
@@ -17,6 +22,11 @@ static func get_all_definitions() -> Array[PowerupDefinition]:
 		ORBITAL_TETHER_UPGRADE,
 		MOMENTUM_SHOCKWAVE_LAW,
 		APEX_VECTOR_CORE,
+		MICRO_LENSING_EMITTER,
+		VACUUM_COLLAPSE_INJECTOR,
+		RELATIVISTIC_RAIL,
+		ORBITAL_DEBRIS_SEEDER,
+		CHRONAL_REFRACTION_BEAM,
 	]
 
 static func get_definition(powerup_id: StringName) -> PowerupDefinition:

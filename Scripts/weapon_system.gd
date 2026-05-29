@@ -5,11 +5,12 @@ signal weapon_changed(weapon_id: StringName, display_name: String, weapon_data: 
 signal weapon_fired(weapon_id: StringName, weapon_data: Dictionary)
 signal weapon_energy_failed(weapon_id: StringName, required_energy: float, available_energy: float)
 
-const WEAPON_IDS: Array[StringName] = [&"vector_bolt", &"positron_beam", &"gravity_wave_beam"]
+const WEAPON_IDS: Array[StringName] = [&"vector_bolt", &"positron_beam", &"gravity_wave_beam", &"chronal_refraction_beam"]
 const WEAPON_NAMES := {
 	&"vector_bolt": "Vector Bolt",
 	&"positron_beam": "Positron Beam",
 	&"gravity_wave_beam": "Gravity Wave Beam",
+	&"chronal_refraction_beam": "Chronal Refraction Beam",
 }
 
 @export_node_path("Node2D") var player_path: NodePath = ^".."
@@ -21,11 +22,13 @@ const WEAPON_NAMES := {
 @export var beam_range: float = 1180.0
 @export var positron_beam_width: float = 74.0
 @export var gravity_wave_width: float = 118.0
+@export var chronal_beam_width: float = 96.0
 @export var max_beam_hits_per_tick: int = 36
 
 @export_group("Energy")
 @export var positron_energy_per_second: float = 34.0
 @export var gravity_wave_energy_per_second: float = 22.0
+@export var chronal_energy_per_second: float = 30.0
 @export var minimum_beam_tick_cost: float = 2.2
 
 @export_group("Positron Beam")
@@ -40,10 +43,19 @@ const WEAPON_NAMES := {
 @export var gravity_wave_resonance_interval: float = 0.48
 @export var gravity_wave_projectile_force_multiplier: float = 1.45
 
+@export_group("Chronal Refraction Beam")
+@export var chronal_slow_multiplier: float = 0.46
+@export var chronal_slow_duration: float = 0.52
+@export var chronal_refraction_damage_per_second: float = 30.0
+@export var chronal_delayed_impulse: float = 280.0
+@export var chronal_delay_seconds: float = 0.36
+@export var chronal_zone_interval: float = 0.42
+
 @export_group("Visuals")
 @export var vector_bolt_color: Color = Color(0.34, 1.0, 0.86, 1.0)
 @export var positron_color: Color = Color(1.0, 0.72, 0.28, 1.0)
 @export var gravity_wave_color: Color = Color(0.3, 0.72, 1.0, 1.0)
+@export var chronal_color: Color = Color(0.74, 0.36, 1.0, 1.0)
 @export var beam_alpha_cap: float = 0.72
 @export var beam_pulse_speed: float = 10.0
 
@@ -54,6 +66,7 @@ const WEAPON_NAMES := {
 
 var _player: Node2D = null
 var _energy_component: Node = null
+var _powerup_inventory: Node = null
 var _query_shape := RectangleShape2D.new()
 var _query_params := PhysicsShapeQueryParameters2D.new()
 var _active_weapon_id: StringName = &"vector_bolt"
@@ -62,6 +75,7 @@ var _beam_heat := 0.0
 var _last_switch_time := -999.0
 var _last_positron_scar_time := -999.0
 var _last_wave_resonance_time := -999.0
+var _last_chronal_zone_time := -999.0
 
 
 func _ready() -> void:
@@ -170,8 +184,10 @@ func _fire_selected_beam(delta: float) -> void:
 
 	if _active_weapon_id == &"positron_beam":
 		_apply_positron_beam(origin, direction, hits, delta)
-	else:
+	elif _active_weapon_id == &"gravity_wave_beam":
 		_apply_gravity_wave_beam(origin, direction, hits, delta)
+	else:
+		_apply_chronal_refraction_beam(origin, direction, hits, delta)
 
 	_update_beam_visual(origin, direction, width, hits)
 	weapon_fired.emit(_active_weapon_id, {
@@ -235,6 +251,33 @@ func _apply_gravity_wave_beam(origin: Vector2, direction: Vector2, hits: Array[N
 	_stamp_gravity_wave_resonance(origin, direction)
 
 
+func _apply_chronal_refraction_beam(origin: Vector2, direction: Vector2, hits: Array[Node], delta: float) -> void:
+	var stacks := maxi(_powerup_stack_count(&"chronal_refraction_beam"), 1)
+	var slow := clampf(chronal_slow_multiplier - 0.035 * float(stacks - 1), 0.25, 0.86)
+	var duration := chronal_slow_duration * (1.0 + 0.12 * float(stacks - 1))
+	var damage := chronal_refraction_damage_per_second * delta * (1.0 + 0.18 * float(stacks - 1))
+	var impulse := direction * chronal_delayed_impulse * (1.0 + 0.14 * float(stacks - 1))
+
+	for target in hits:
+		var target_2d := target as Node2D
+		if target_2d == null or not is_instance_valid(target_2d):
+			continue
+		if target_2d.is_in_group("Player"):
+			continue
+
+		CombatStatus.apply_local_time_scale(target_2d, slow, duration)
+		target_2d.set_meta(&"chronal_refraction_delay", chronal_delay_seconds)
+		target_2d.set_meta(&"chronal_phantom_position", target_2d.global_position - _body_velocity(target_2d) * chronal_delay_seconds)
+
+		if target_2d.has_method("take_damage") and _is_hostile_target(target_2d):
+			target_2d.call("take_damage", damage)
+
+		_spawn_chronal_phantom(target_2d)
+		_apply_delayed_chronal_chain(target_2d, impulse, damage * 0.8, chronal_delay_seconds)
+
+	_stamp_chronal_refraction_zone(origin, direction, stacks)
+
+
 func _stamp_positron_scar(position: Vector2) -> void:
 	var now := _now_seconds()
 	if now - _last_positron_scar_time < positron_scar_interval:
@@ -272,6 +315,62 @@ func _stamp_gravity_wave_resonance(origin: Vector2, direction: Vector2) -> void:
 		0.52,
 		1.5
 	)
+
+
+func _stamp_chronal_refraction_zone(origin: Vector2, direction: Vector2, stacks: int) -> void:
+	var now := _now_seconds()
+	if now - _last_chronal_zone_time < chronal_zone_interval:
+		return
+	_last_chronal_zone_time = now
+
+	var resonance := _get_resonance_manager()
+	if resonance != null and resonance.has_method("create_manual_resonance_zone"):
+		resonance.call(
+			"create_manual_resonance_zone",
+			origin + direction * beam_range * 0.38,
+			230.0 + 28.0 * float(stacks - 1),
+			GravityResonanceManager.ZoneType.TEMPORAL_SCAR,
+			0.54 + 0.06 * float(stacks - 1),
+			1.35
+		)
+
+	var anomaly := _get_anomaly_director()
+	if anomaly != null and anomaly.has_method("record_chronal_refraction"):
+		anomaly.call(
+			"record_chronal_refraction",
+			origin + direction * beam_range * 0.38,
+			direction,
+			0.54 + 0.08 * float(stacks - 1),
+			260.0 + 32.0 * float(stacks - 1)
+		)
+
+
+func _apply_delayed_chronal_chain(target: Node2D, impulse: Vector2, damage: float, delay: float) -> void:
+	await get_tree().create_timer(maxf(delay, 0.02)).timeout
+	if target == null or not is_instance_valid(target) or target.is_queued_for_deletion():
+		return
+	CombatStatus.add_velocity(target, impulse)
+	if target.has_method("take_damage") and _is_hostile_target(target):
+		target.call("take_damage", damage)
+
+
+func _spawn_chronal_phantom(target: Node2D) -> void:
+	var root := get_tree().current_scene
+	if root == null or target == null:
+		return
+	var phantom_position: Vector2 = target.get_meta(&"chronal_phantom_position", target.global_position)
+	var line := Line2D.new()
+	line.name = "ChronalPhantomTrace"
+	line.antialiased = true
+	line.width = 2.0
+	line.default_color = Color(chronal_color.r, chronal_color.g, chronal_color.b, 0.42)
+	line.points = PackedVector2Array([phantom_position, target.global_position])
+	line.top_level = true
+	line.z_index = 34
+	root.add_child(line)
+	var tween := line.create_tween()
+	tween.tween_property(line, "modulate:a", 0.0, 0.32)
+	tween.tween_callback(line.queue_free)
 
 
 func _collect_beam_hits(origin: Vector2, direction: Vector2, width: float) -> Array[Node]:
@@ -364,6 +463,7 @@ func _resolve_player() -> void:
 	if _player == null:
 		_player = get_tree().get_first_node_in_group("Player") as Node2D
 	_energy_component = _player.get_node_or_null("EnergyComponent") if _player != null else null
+	_powerup_inventory = _player.get_node_or_null("PowerupInventory") if _player != null else null
 
 
 func _configure_query() -> void:
@@ -411,7 +511,7 @@ func _input_pressed(event: InputEvent, action_name: StringName, fallback_key: Ke
 
 
 func _is_beam_weapon(weapon_id: StringName) -> bool:
-	return weapon_id == &"positron_beam" or weapon_id == &"gravity_wave_beam"
+	return weapon_id == &"positron_beam" or weapon_id == &"gravity_wave_beam" or weapon_id == &"chronal_refraction_beam"
 
 
 func _is_hostile_target(target: Node) -> bool:
@@ -475,11 +575,17 @@ func _energy_cost_for_weapon(weapon_id: StringName) -> float:
 			return positron_energy_per_second
 		&"gravity_wave_beam":
 			return gravity_wave_energy_per_second
+		&"chronal_refraction_beam":
+			return chronal_energy_per_second
 	return 0.0
 
 
 func _beam_width_for_weapon(weapon_id: StringName) -> float:
-	return positron_beam_width if weapon_id == &"positron_beam" else gravity_wave_width
+	if weapon_id == &"positron_beam":
+		return positron_beam_width
+	if weapon_id == &"chronal_refraction_beam":
+		return chronal_beam_width
+	return gravity_wave_width
 
 
 func _weapon_color(weapon_id: StringName) -> Color:
@@ -488,6 +594,8 @@ func _weapon_color(weapon_id: StringName) -> Color:
 			return positron_color
 		&"gravity_wave_beam":
 			return gravity_wave_color
+		&"chronal_refraction_beam":
+			return chronal_color
 	return vector_bolt_color
 
 
@@ -503,6 +611,30 @@ func _get_resonance_manager() -> Node:
 func _get_gravity_scar_manager() -> Node:
 	var root := get_tree().current_scene
 	return root.find_child("GravityScarManager", true, false) if root != null else null
+
+
+func _get_anomaly_director() -> Node:
+	var root := get_tree().current_scene
+	return root.find_child("VectorfallAnomalyDirector", true, false) if root != null else null
+
+
+func _powerup_stack_count(powerup_id: StringName) -> int:
+	_resolve_player()
+	if _powerup_inventory != null and is_instance_valid(_powerup_inventory) and _powerup_inventory.has_method("get_stack_count"):
+		return int(_powerup_inventory.call("get_stack_count", powerup_id))
+	return 0
+
+
+func _body_velocity(body: Node) -> Vector2:
+	if body == null or not is_instance_valid(body):
+		return Vector2.ZERO
+	var velocity_value: Variant = body.get("velocity")
+	if velocity_value is Vector2:
+		return velocity_value
+	var linear_velocity_value: Variant = body.get("linear_velocity")
+	if linear_velocity_value is Vector2:
+		return linear_velocity_value
+	return Vector2.ZERO
 
 
 func _is_gameplay_blocked() -> bool:

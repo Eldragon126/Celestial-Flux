@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/vectorfall_anomaly_director.gd" id="1_anomaly"]
+
+[node name="VectorfallAnomalyDirector" type="Node2D"]
+script = ExtResource("1_anomaly")

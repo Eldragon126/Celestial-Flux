@@ -13,11 +13,19 @@ extends RigidBody2D
 @export var initial_speed: float = 850.0
 @export var debug_logging: bool = false
 
+@export_group("Vectorfall Upgrade Responses")
+@export var relativistic_rail_acceleration: float = 640.0
+@export var relativistic_rail_speed_cap: float = 2850.0
+@export var relativistic_rail_warp_threshold: float = 1550.0
+@export var relativistic_trail_max_length: float = 360.0
+
 # ========================
 # == STATE VARIABLES ==
 # ========================
 var planets: Array[Node2D] = []
 var _has_launched: bool = false
+var _rail_trail: Line2D = null
+var _rail_heat: float = 0.0
 
 # ========================
 # == LIFECYCLE ==
@@ -40,8 +48,9 @@ func _ready() -> void:
 	if debug_logging:
 		print("Projectile instantiated at ", global_position)
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	var total_grav_accel = Vector2.ZERO
+	_apply_relativistic_rail(delta)
 	
 	# Iterate backwards to safely handle potential deletions
 	for i in range(planets.size() - 1, -1, -1):
@@ -120,6 +129,8 @@ func _on_body_entered(body: Node) -> void:
 	# 1. Ignore the player so we don't shoot ourselves
 	if body.is_in_group("Player"):
 		return
+
+	_trigger_upgrade_impacts(body)
 	
 	# 2. Check for damageable targets (Enemies)
 	if body.has_method("take_damage"):
@@ -147,6 +158,85 @@ func _roll_damage() -> float:
 		print("Dealt Damage: ", final_damage, " (Mult: ", multiplier, ")")
 		
 	return final_damage
+
+func _apply_relativistic_rail(delta: float) -> void:
+	if not has_meta(&"relativistic_rail_stacks"):
+		_update_rail_trail(false, delta)
+		return
+
+	var stacks := maxi(int(get_meta(&"relativistic_rail_stacks", 1)), 1)
+	var speed := linear_velocity.length()
+	if speed <= 1.0:
+		_update_rail_trail(false, delta)
+		return
+
+	var direction := linear_velocity / speed
+	var acceleration := relativistic_rail_acceleration * (1.0 + 0.22 * float(stacks - 1))
+	var speed_cap := relativistic_rail_speed_cap * (1.0 + 0.08 * float(stacks - 1))
+	linear_velocity = (linear_velocity + direction * acceleration * delta).limit_length(speed_cap)
+	global_rotation = linear_velocity.angle()
+
+	var ratio := clampf(linear_velocity.length() / maxf(relativistic_rail_warp_threshold, 1.0), 0.0, 1.0)
+	set_meta(&"relativistic_speed_ratio", ratio)
+	_update_rail_trail(ratio > 0.08, delta, ratio)
+
+
+func _update_rail_trail(active: bool, delta: float, ratio: float = 0.0) -> void:
+	_rail_heat = lerpf(_rail_heat, ratio if active else 0.0, clampf(delta * 8.0, 0.0, 1.0))
+	if _rail_heat <= 0.02 and _rail_trail == null:
+		return
+	if _rail_trail == null:
+		_rail_trail = Line2D.new()
+		_rail_trail.name = "RelativisticRailTrail"
+		_rail_trail.antialiased = true
+		_rail_trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		_rail_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
+		_rail_trail.z_index = -1
+		add_child(_rail_trail)
+
+	var length := lerpf(42.0, relativistic_trail_max_length, _rail_heat)
+	_rail_trail.points = PackedVector2Array([Vector2(-length, 0.0), Vector2.ZERO])
+	_rail_trail.width = lerpf(2.0, 9.0, _rail_heat)
+	_rail_trail.default_color = Color(
+		lerpf(0.42, 0.72, _rail_heat),
+		lerpf(0.86, 1.0, _rail_heat),
+		1.0,
+		lerpf(0.0, 0.68, _rail_heat)
+	)
+	_rail_trail.visible = _rail_heat > 0.03
+
+
+func _trigger_upgrade_impacts(body: Node) -> void:
+	var director := _find_anomaly_director()
+	if director == null:
+		return
+
+	if has_meta(&"vacuum_collapse_stacks") and director.has_method("trigger_vacuum_collapse"):
+		director.call(
+			"trigger_vacuum_collapse",
+			global_position,
+			maxi(int(get_meta(&"vacuum_collapse_stacks", 1)), 1),
+			self,
+			body
+		)
+
+	if has_meta(&"relativistic_rail_stacks") and director.has_method("trigger_relativistic_impact"):
+		director.call(
+			"trigger_relativistic_impact",
+			global_position,
+			linear_velocity,
+			maxi(int(get_meta(&"relativistic_rail_stacks", 1)), 1),
+			self,
+			body
+		)
+
+
+func _find_anomaly_director() -> Node:
+	var directors := get_tree().get_nodes_in_group("vectorfall_anomaly_director")
+	for director in directors:
+		if director != null and is_instance_valid(director) and not director.is_queued_for_deletion():
+			return director
+	return null
 
 # ========================
 # == UTILITY ==

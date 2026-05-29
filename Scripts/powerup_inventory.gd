@@ -245,6 +245,9 @@ func _apply_effect(definition: PowerupDefinition, stacks: int) -> void:
 		&"apex_vector_core":
 			_apply_apex_vector_core(definition, stacks)
 
+		&"micro_lensing_emitter", &"vacuum_collapse_injector", &"relativistic_rail", &"orbital_debris_seeder", &"chronal_refraction_beam":
+			_activate_vectorfall_upgrade(definition, stacks)
+
 
 func _get_stack_for_effect(effect_type: StringName) -> int:
 	var best := 0
@@ -630,6 +633,15 @@ func _apply_apex_vector_core(definition: PowerupDefinition, stacks: int) -> void
 			float(_player.get("slingshot_mastery_cap_bonus")) + definition.secondary_amount * 1000.0
 		)
 	_connect_player_slingshot_mastery()
+
+
+func _activate_vectorfall_upgrade(definition: PowerupDefinition, stacks: int) -> void:
+	var root := get_tree().current_scene
+	if root == null or definition == null or not _is_node_valid(_player):
+		return
+	var director := root.find_child("VectorfallAnomalyDirector", true, false)
+	if director != null and director.has_method("activate_upgrade_pulse"):
+		director.call("activate_upgrade_pulse", definition.powerup_id, _player.global_position, stacks)
 
 
 func _connect_momentum_component() -> void:

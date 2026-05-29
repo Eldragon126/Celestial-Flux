@@ -34,6 +34,11 @@ const PARAMETRIC_2_SCENE = preload("res://Nodes/ParametricEquationEnemies/parame
 const PARAMETRIC_3_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn")
 const PARAMETRIC_4_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_4.tscn")
 const PARAMETRIC_5_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn")
+const GRAVIMETRIC_ECHO_DRONE_SCENE = preload("res://Nodes/gravimetric_echo_drone.tscn")
+const EVENT_HORIZON_WARDEN_ENEMY_SCENE = preload("res://Nodes/event_horizon_warden.tscn")
+const PHASE_SLIP_SWARM_SCENE = preload("res://Nodes/phase_slip_swarm.tscn")
+const ORBITAL_NULL_HARVESTER_SCENE = preload("res://Nodes/orbital_null_harvester.tscn")
+const RESONANCE_PARALYTIC_CONSTRUCT_SCENE = preload("res://Nodes/resonance_paralytic_construct.tscn")
 
 @export var first_wave_delay = 2.0
 @export var rest_between_waves = 4.0
@@ -245,11 +250,11 @@ func _build_wave_roster() -> Array:
 		elif _wave == 2:
 			roster.append([BASE_ENEMY_SCENE, GRAVITY_LEECH_SCENE, ORBITER_DRONE_SCENE][i % 3])
 		elif _wave == 3:
-			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, SEEKER_FRAGMENT_SCENE, CHAOS_WISP_SCENE, PARAMETRIC_1_SCENE][i % 5])
+			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, SEEKER_FRAGMENT_SCENE, CHAOS_WISP_SCENE, PARAMETRIC_1_SCENE, PHASE_SLIP_SWARM_SCENE][i % 6])
 		elif _wave == 4:
-			roster.append([BASE_SHOOTER_SCENE, HARASSER_SCENE, GRAVITY_LEECH_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, PARAMETRIC_2_SCENE][i % 6])
+			roster.append([BASE_SHOOTER_SCENE, HARASSER_SCENE, GRAVITY_LEECH_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, PARAMETRIC_2_SCENE, PHASE_SLIP_SWARM_SCENE][i % 7])
 		else:
-			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, ORBITER_DRONE_SCENE, GRAVITY_LEECH_SCENE, SEEKER_FRAGMENT_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, HARASSER_SCENE, SNIPER_SCENE, PARAMETRIC_1_SCENE, PARAMETRIC_2_SCENE, PARAMETRIC_4_SCENE, PARAMETRIC_5_SCENE][i % 13])
+			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, ORBITER_DRONE_SCENE, GRAVITY_LEECH_SCENE, SEEKER_FRAGMENT_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, HARASSER_SCENE, SNIPER_SCENE, PARAMETRIC_1_SCENE, PARAMETRIC_2_SCENE, PARAMETRIC_4_SCENE, PARAMETRIC_5_SCENE, PHASE_SLIP_SWARM_SCENE, GRAVIMETRIC_ECHO_DRONE_SCENE][i % 15])
 
 	if _wave >= 3:
 		roster.insert(int(min(2, roster.size())), SHIELDER_SCENE)
@@ -257,6 +262,12 @@ func _build_wave_roster() -> Array:
 		roster.insert(int(min(4, roster.size())), SHIELD_BREAKER_SCENE)
 	if _wave >= 6:
 		roster.insert(int(min(5, roster.size())), PARAMETRIC_3_SCENE)
+	if _wave >= 7:
+		roster.insert(int(min(6, roster.size())), ORBITAL_NULL_HARVESTER_SCENE)
+	if _wave >= 8:
+		roster.insert(int(min(7, roster.size())), EVENT_HORIZON_WARDEN_ENEMY_SCENE)
+	if _wave >= 9:
+		roster.insert(int(min(8, roster.size())), RESONANCE_PARALYTIC_CONSTRUCT_SCENE)
 
 	return roster
 
@@ -265,6 +276,8 @@ func _build_late_game_roster() -> Array:
 	var elite: Array = [
 		CHAOS_WISP_SCENE, SHIELD_BREAKER_SCENE, SNIPER_SCENE, HARASSER_SCENE,
 		PARAMETRIC_4_SCENE, PARAMETRIC_5_SCENE, SEEKER_FRAGMENT_SCENE, GRAVITY_LEECH_SCENE,
+		PHASE_SLIP_SWARM_SCENE, GRAVIMETRIC_ECHO_DRONE_SCENE, ORBITAL_NULL_HARVESTER_SCENE,
+		EVENT_HORIZON_WARDEN_ENEMY_SCENE, RESONANCE_PARALYTIC_CONSTRUCT_SCENE,
 	]
 	var roster: Array = []
 	var count: int = mini(8 + int((_wave - RunProgress.LATE_GAME_START_WAVE) * 0.5), max_regular_enemies + 4)

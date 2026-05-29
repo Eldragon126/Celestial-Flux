@@ -103,7 +103,7 @@ theme_override_font_sizes/font_size = 36
 text = "VECTOR HOLD"
 horizontal_alignment = 1
 
-[node name="StatusLabel" type="Label" parent="MenuPanel/MenuRows"]
+[node name="StatusLabel" type="Label" parent="MenuPanel/MenuRows" unique_id=584960179]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "SIMULATION PAUSED | LOCAL PHYSICS FROZEN"
@@ -197,13 +197,13 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 text = "COPY SEED"
 
-[node name="WeaponLabel" type="Label" parent="MenuPanel/MenuRows"]
+[node name="WeaponLabel" type="Label" parent="MenuPanel/MenuRows" unique_id=815779706]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "WEAPONS"
 horizontal_alignment = 1
 
-[node name="WeaponStatusLabel" type="Label" parent="MenuPanel/MenuRows"]
+[node name="WeaponStatusLabel" type="Label" parent="MenuPanel/MenuRows" unique_id=2049520452]
 custom_minimum_size = Vector2(440, 30)
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
@@ -211,11 +211,11 @@ text = "WEAPON SYSTEM OFFLINE"
 horizontal_alignment = 1
 clip_text = true
 
-[node name="WeaponButtonsRow" type="HBoxContainer" parent="MenuPanel/MenuRows"]
+[node name="WeaponButtonsRow" type="HBoxContainer" parent="MenuPanel/MenuRows" unique_id=1443115382]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="WeaponPreviousButton" type="Button" parent="MenuPanel/MenuRows/WeaponButtonsRow"]
+[node name="WeaponPreviousButton" type="Button" parent="MenuPanel/MenuRows/WeaponButtonsRow" unique_id=1747730857]
 custom_minimum_size = Vector2(214, 34)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
@@ -224,7 +224,7 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 text = "PREV WEAPON"
 
-[node name="WeaponNextButton" type="Button" parent="MenuPanel/MenuRows/WeaponButtonsRow"]
+[node name="WeaponNextButton" type="Button" parent="MenuPanel/MenuRows/WeaponButtonsRow" unique_id=1290715065]
 custom_minimum_size = Vector2(214, 34)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
@@ -233,19 +233,19 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 text = "NEXT WEAPON"
 
-[node name="ModdingLabel" type="Label" parent="MenuPanel/MenuRows"]
+[node name="ModdingLabel" type="Label" parent="MenuPanel/MenuRows" unique_id=2074042765]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "MODDING"
 horizontal_alignment = 1
 
-[node name="ModSummaryLabel" type="Label" parent="MenuPanel/MenuRows"]
+[node name="ModSummaryLabel" type="Label" parent="MenuPanel/MenuRows" unique_id=1443962347]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "MANIFESTS 0 | ARENAS 0 | WAVES 0 | UPGRADES 0 | RULES 0"
 horizontal_alignment = 1
 
-[node name="ModEntriesLabel" type="Label" parent="MenuPanel/MenuRows"]
+[node name="ModEntriesLabel" type="Label" parent="MenuPanel/MenuRows" unique_id=1164655525]
 custom_minimum_size = Vector2(440, 64)
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
@@ -253,7 +253,7 @@ text = "No manifests found. Drop vectorfall_mod.json into res://Mods or user://m
 autowrap_mode = 3
 clip_text = true
 
-[node name="ReloadModsButton" type="Button" parent="MenuPanel/MenuRows"]
+[node name="ReloadModsButton" type="Button" parent="MenuPanel/MenuRows" unique_id=1089081319]
 custom_minimum_size = Vector2(440, 38)
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
@@ -262,13 +262,13 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 text = "RESCAN MODS"
 
-[node name="MultiplayerLabel" type="Label" parent="MenuPanel/MenuRows"]
+[node name="MultiplayerLabel" type="Label" parent="MenuPanel/MenuRows" unique_id=221371880]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "MULTIPLAYER PREP"
 horizontal_alignment = 1
 
-[node name="MultiplayerStatusLabel" type="Label" parent="MenuPanel/MenuRows"]
+[node name="MultiplayerStatusLabel" type="Label" parent="MenuPanel/MenuRows" unique_id=1349785123]
 custom_minimum_size = Vector2(440, 32)
 layout_mode = 2
 theme_override_font_sizes/font_size = 13

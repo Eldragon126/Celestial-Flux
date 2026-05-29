@@ -59,6 +59,9 @@ const ANY_SAMPLE_POSITION := Vector2(999999999.0, 999999999.0)
 @export var merge_distance: float = 180.0
 @export var fracture_stamp_cooldown: float = 2.4
 @export var slingshot_stamp_min_score: float = 0.74
+@export var persistent_scar_intensity_threshold: float = 0.82
+@export var persistent_scar_min_radius: float = 260.0
+@export var restore_persistent_scars_on_ready: bool = true
 
 @export_group("Field Mutation")
 @export var field_tick_interval: float = 0.045
@@ -100,6 +103,8 @@ func _ready() -> void:
 	add_to_group("gravity_scar_manager")
 	_ensure_visual_root()
 	call_deferred("_resolve_sources")
+	if restore_persistent_scars_on_ready:
+		call_deferred("_restore_persistent_collapse_scars")
 	set_process(true)
 	set_physics_process(true)
 
@@ -282,6 +287,7 @@ func create_gravity_scar(
 	}
 	_scars.append(scar)
 	gravity_scar_created.emit(scar.duplicate(true))
+	_record_persistent_scar_if_needed(scar)
 	return _scar_counter
 
 
@@ -440,10 +446,88 @@ func get_active_gravity_scars() -> Array[Dictionary]:
 	return _scars.duplicate(true)
 
 
+func dampen_scars_in_radius(position: Vector2, radius: float, amount: float) -> int:
+	if radius <= 0.0 or amount <= 0.0:
+		return 0
+
+	var radius_squared := radius * radius
+	var affected := 0
+	for idx in range(_scars.size() - 1, -1, -1):
+		var scar := _scars[idx]
+		var center: Vector2 = scar.get("position", Vector2.ZERO)
+		var distance_squared := center.distance_squared_to(position)
+		if distance_squared > radius_squared:
+			continue
+		var falloff := 1.0 - clampf(sqrt(distance_squared) / radius, 0.0, 1.0)
+		var next_intensity := maxf(float(scar.get("intensity", 0.0)) - amount * falloff, 0.0)
+		if next_intensity <= 0.02:
+			var scar_id := int(scar.get("id", 0))
+			gravity_scar_decayed.emit(scar_id)
+			_remove_visual(scar_id)
+			_scars.remove_at(idx)
+		else:
+			scar["intensity"] = next_intensity
+			scar["base_intensity"] = minf(float(scar.get("base_intensity", next_intensity)), next_intensity)
+			scar["instability"] = clampf(next_intensity * _scar_instability_bias(int(scar.get("type", ScarType.CURVATURE))), 0.0, 1.0)
+			scar["decay_state"] = &"harvested"
+			_scars[idx] = scar
+		affected += 1
+	return affected
+
+
+func get_scar_count_in_radius(position: Vector2, radius: float) -> int:
+	var count := 0
+	var radius_squared := radius * radius
+	for scar in _scars:
+		var center: Vector2 = scar.get("position", Vector2.ZERO)
+		if center.distance_squared_to(position) <= radius_squared:
+			count += 1
+	return count
+
+
 func clear_all_scars() -> void:
 	for scar in _scars:
 		_remove_visual(int(scar.get("id", 0)))
 	_scars.clear()
+
+
+func _restore_persistent_collapse_scars() -> void:
+	if RunProgress == null or not RunProgress.has_method("get_persistent_collapse_scars"):
+		return
+	var scars := RunProgress.get_persistent_collapse_scars()
+	for scar_data in scars:
+		if typeof(scar_data) != TYPE_DICTIONARY:
+			continue
+		create_gravity_scar(
+			scar_data.get("position", Vector2.ZERO),
+			float(scar_data.get("radius", base_radius)),
+			int(scar_data.get("type", ScarType.HARMONIC_FRACTURE)),
+			clampf(float(scar_data.get("intensity", 0.64)), 0.05, 1.0),
+			base_duration + duration_instability_bonus,
+			&"persistent_collapse"
+		)
+
+
+func _record_persistent_scar_if_needed(scar: Dictionary) -> void:
+	if RunProgress == null or not RunProgress.has_method("record_persistent_collapse_scar"):
+		return
+	var source := StringName(scar.get("source", &"manual"))
+	if source == &"persistent_collapse" or source == &"mastered_vector" or source == &"slingshot_resonance":
+		return
+	var intensity := float(scar.get("intensity", 0.0))
+	var radius := float(scar.get("radius", 0.0))
+	var persistent_source := (
+		source == &"planet_collapse"
+		or source == &"positron_beam"
+		or source == &"resonance_cascade"
+		or source == &"vacuum_collapse"
+		or source == &"relativistic_rail"
+		or source == &"event_horizon"
+		or source == &"gravity_maw"
+	)
+	if not persistent_source and (intensity < persistent_scar_intensity_threshold or radius < persistent_scar_min_radius):
+		return
+	RunProgress.record_persistent_collapse_scar(scar.duplicate(true))
 
 
 func _scar_acceleration(scar: Dictionary, position: Vector2, velocity_value: Vector2, target: Node) -> Vector2:

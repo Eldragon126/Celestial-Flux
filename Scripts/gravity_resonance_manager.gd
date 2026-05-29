@@ -1117,6 +1117,34 @@ func clear_all_zones() -> void:
 	_implosion_queue.clear()
 	_clear_zone_visuals()
 
+
+func dampen_zones_in_radius(position: Vector2, radius: float, amount: float) -> int:
+	if radius <= 0.0 or amount <= 0.0:
+		return 0
+
+	var radius_squared := radius * radius
+	var affected := 0
+	for idx in range(_active_resonance_zones.size() - 1, -1, -1):
+		var zone := _active_resonance_zones[idx]
+		var midpoint: Vector2 = zone.get("midpoint", Vector2.ZERO)
+		var distance_squared := midpoint.distance_squared_to(position)
+		if distance_squared > radius_squared:
+			continue
+		var falloff := 1.0 - clampf(sqrt(distance_squared) / radius, 0.0, 1.0)
+		zone["intensity"] = maxf(float(zone.get("intensity", 0.0)) - amount * falloff, 0.0)
+		if float(zone["intensity"]) <= 0.03:
+			var zone_id := int(zone.get("id", 0))
+			resonance_zone_decayed.emit(zone_id)
+			resonance_zone_decayed_detailed.emit(zone)
+			_remove_zone_visual(zone_id)
+			_active_resonance_zones.remove_at(idx)
+		else:
+			zone = _with_runtime_zone_state(zone, amount * falloff)
+			_active_resonance_zones[idx] = zone
+			resonance_zone_updated.emit(zone)
+		affected += 1
+	return affected
+
 func amplify_slingshot_mastery(data: Dictionary) -> int:
 	if not enabled:
 		return 0

@@ -185,6 +185,7 @@ func apply_spacetime_damage(amount: float, hit_position: Vector2 = Vector2.ZERO,
 	_update_collision_radius()
 	_update_particle_radius()
 	_emit_fracture(hit_position, source_label, stability_ratio)
+	_apply_planet_type_fracture_effect(hit_position, source_label, stability_ratio)
 
 	if current_spacetime_stability <= 0.0:
 		_collapse_into_spacetime_rip(hit_position, source_label)
@@ -252,9 +253,7 @@ func _stamp_fracture_scar(fracture_data: Dictionary) -> void:
 	var stability := clampf(float(fracture_data.get("stability", 1.0)), 0.0, 1.0)
 	
 	# Fallback values safely handled if ScarType enum doesn't exist yet on the scar manager side
-	var scar_type = 0 # Default fallback
-	if "ScarType" in scars:
-		scar_type = scars.ScarType.CURVATURE if stability > 0.34 else scars.ScarType.TEMPORAL_RIP
+	var scar_type := GravityScarManager.ScarType.CURVATURE if stability > 0.34 else GravityScarManager.ScarType.TEMPORAL_RIP
 
 	scars.call(
 		"create_gravity_scar",
@@ -292,9 +291,7 @@ func _stamp_collapse_scar(collapse_data: Dictionary) -> void:
 	if scars == null or not scars.has_method("create_gravity_scar"):
 		return
 		
-	var scar_type = 0 # Default fallback
-	if "ScarType" in scars:
-		scar_type = scars.ScarType.HARMONIC_FRACTURE
+	var scar_type := GravityScarManager.ScarType.HARMONIC_FRACTURE
 
 	scars.call(
 		"create_gravity_scar",
@@ -321,3 +318,74 @@ func _fade_and_free() -> void:
 func _get_gravity_scar_manager() -> Node:
 	var root := get_tree().current_scene
 	return root.find_child("GravityScarManager", true, false) if root != null else null
+
+
+func _apply_planet_type_fracture_effect(hit_position: Vector2, source_label: StringName, stability_ratio: float) -> void:
+	var instability := 1.0 - clampf(stability_ratio, 0.0, 1.0)
+	if instability < 0.18:
+		return
+
+	match planet_type_id:
+		&"red_volatile":
+			_emit_volatile_pressure(hit_position, instability, source_label)
+		&"cyan_lens":
+			_emit_lensing_resonance(instability)
+		&"violet_temporal":
+			_emit_temporal_drag(instability)
+
+
+func _emit_volatile_pressure(hit_position: Vector2, instability: float, source_label: StringName) -> void:
+	var center := hit_position if hit_position != Vector2.ZERO else global_position
+	var radius_value := radius * lerpf(1.4, 2.2, instability)
+	var radius_squared := radius_value * radius_value
+	for group_name in [&"Player", &"enemies", &"wave_enemy", &"Projectiles", &"enemy_projectiles"]:
+		for node in get_tree().get_nodes_in_group(group_name):
+			var body := node as Node2D
+			if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
+				continue
+			var offset := body.global_position - center
+			var distance_squared := offset.length_squared()
+			if distance_squared <= 0.001 or distance_squared > radius_squared:
+				continue
+			var falloff := 1.0 - sqrt(distance_squared) / radius_value
+			CombatStatus.add_velocity(body, offset.normalized() * 340.0 * instability * falloff)
+
+	var scars := _get_gravity_scar_manager()
+	if scars != null and scars.has_method("create_gravity_scar"):
+		scars.call("create_gravity_scar", center, radius_value, GravityScarManager.ScarType.INVERSION_WAKE, 0.36 + instability * 0.42, 34.0, source_label)
+
+
+func _emit_lensing_resonance(instability: float) -> void:
+	var root := get_tree().current_scene
+	if root == null:
+		return
+	var resonance := root.find_child("GravityResonanceManager", true, false)
+	if resonance != null and resonance.has_method("create_manual_resonance_zone"):
+		resonance.call(
+			"create_manual_resonance_zone",
+			global_position,
+			radius * lerpf(1.5, 2.3, instability),
+			GravityResonanceManager.ZoneType.HARMONIC_ORBIT,
+			0.34 + instability * 0.44,
+			1.6 + instability
+		)
+
+
+func _emit_temporal_drag(instability: float) -> void:
+	var root := get_tree().current_scene
+	if root == null:
+		return
+	var time_manager := root.find_child("TimeDilationManager", true, false)
+	var radius_value := radius * lerpf(1.3, 2.0, instability)
+	var radius_squared := radius_value * radius_value
+	for group_name in [&"enemies", &"wave_enemy", &"bosses", &"enemy_projectiles"]:
+		for node in get_tree().get_nodes_in_group(group_name):
+			var body := node as Node2D
+			if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
+				continue
+			if body.global_position.distance_squared_to(global_position) > radius_squared:
+				continue
+			if time_manager != null and time_manager.has_method("apply_local_slow_to_target"):
+				time_manager.call("apply_local_slow_to_target", body, clampf(0.72 - instability * 0.28, 0.34, 0.86), 0.45 + instability * 0.28)
+			else:
+				CombatStatus.apply_local_slow(body, clampf(0.72 - instability * 0.28, 0.34, 0.86), 0.45 + instability * 0.28)

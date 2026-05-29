@@ -157,6 +157,16 @@ func _classify_enemy(enemy: Node) -> StringName:
 		return &"gravity_parasite"
 	if key.contains("shield_breaker") or key.contains("harasser") or key.contains("accretion"):
 		return &"tidal_bomber"
+	if key.contains("phase_slip") or key.contains("phase"):
+		return &"orbit_hunter"
+	if key.contains("echo_drone") or key.contains("echo"):
+		return &"anchor_unit"
+	if key.contains("null_harvester") or key.contains("harvester"):
+		return &"gravity_parasite"
+	if key.contains("paralytic") or key.contains("construct"):
+		return &"anchor_unit"
+	if key.contains("event_horizon_warden"):
+		return &"anchor_unit"
 	if key.contains("sniper") or key.contains("seraph"):
 		return &"relativistic_sniper"
 	if key.contains("warden") or key.contains("magnetar") or key.contains("shielder"):

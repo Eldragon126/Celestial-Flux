@@ -17,7 +17,10 @@ signal anchor_loaded(success: bool)
 signal run_completed
 
 const SAVE_PATH := "user://run_anchor.save"
+const PERSISTENT_COLLAPSE_PATH := "user://simulation_collapse.save"
 const SAVE_VERSION := 1
+const PERSISTENT_COLLAPSE_VERSION := 1
+const MAX_PERSISTENT_COLLAPSE_SCARS := 28
 
 const BOSS_MILESTONE_WAVES: Array[int] = [5, 10, 15, 20, 25, 30, 35]
 const LATE_GAME_START_WAVE := 31
@@ -43,6 +46,7 @@ var boss_rush_mode: bool = false
 var arena_flags: Dictionary = {}
 var challenge_modifiers: Dictionary = {}
 var powerup_stacks: Dictionary = {}
+var persistent_collapse_scars: Array[Dictionary] = []
 var has_anchor: bool = false
 var run_finished: bool = false
 var last_death_message: String = ""
@@ -52,6 +56,7 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	has_anchor = FileAccess.file_exists(SAVE_PATH)
+	_load_persistent_collapse()
 
 
 func begin_new_run(use_challenge: bool = false) -> void:
@@ -237,6 +242,102 @@ func clear_anchor() -> void:
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(SAVE_PATH)
 	has_anchor = false
+
+
+func record_persistent_collapse_scar(scar_data: Dictionary) -> void:
+	var position: Vector2 = scar_data.get("position", Vector2.ZERO)
+	var radius := maxf(float(scar_data.get("radius", 240.0)), 80.0)
+	var intensity := clampf(float(scar_data.get("intensity", 0.5)), 0.05, 1.0)
+	var scar_type := int(scar_data.get("type", 0))
+	var source := StringName(scar_data.get("source", &"collapse"))
+
+	for idx in range(persistent_collapse_scars.size()):
+		var existing := persistent_collapse_scars[idx]
+		var existing_position: Vector2 = existing.get("position", Vector2.ZERO)
+		if existing_position.distance_to(position) > maxf(radius, float(existing.get("radius", radius))) * 0.65:
+			continue
+		if int(existing.get("type", scar_type)) != scar_type:
+			continue
+		existing["position"] = existing_position.lerp(position, 0.35)
+		existing["radius"] = maxf(float(existing.get("radius", radius)), radius)
+		existing["intensity"] = clampf(maxf(float(existing.get("intensity", intensity)), intensity) + 0.04, 0.05, 1.0)
+		existing["source"] = source
+		persistent_collapse_scars[idx] = existing
+		_save_persistent_collapse()
+		return
+
+	persistent_collapse_scars.append({
+		"position": position,
+		"radius": radius,
+		"intensity": intensity,
+		"type": scar_type,
+		"source": source,
+	})
+	while persistent_collapse_scars.size() > MAX_PERSISTENT_COLLAPSE_SCARS:
+		persistent_collapse_scars.remove_at(0)
+	_save_persistent_collapse()
+
+
+func get_persistent_collapse_scars() -> Array[Dictionary]:
+	return persistent_collapse_scars.duplicate(true)
+
+
+func clear_persistent_collapse_scars() -> void:
+	persistent_collapse_scars.clear()
+	if FileAccess.file_exists(PERSISTENT_COLLAPSE_PATH):
+		DirAccess.remove_absolute(PERSISTENT_COLLAPSE_PATH)
+
+
+func _load_persistent_collapse() -> void:
+	persistent_collapse_scars.clear()
+	if not FileAccess.file_exists(PERSISTENT_COLLAPSE_PATH):
+		return
+	var file := FileAccess.open(PERSISTENT_COLLAPSE_PATH, FileAccess.READ)
+	if file == null:
+		return
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return
+	var data: Dictionary = parsed
+	if int(data.get("version", 0)) != PERSISTENT_COLLAPSE_VERSION:
+		return
+	var scars_value: Variant = data.get("scars", [])
+	if typeof(scars_value) != TYPE_ARRAY:
+		return
+	for scar_value in scars_value:
+		if typeof(scar_value) != TYPE_DICTIONARY:
+			continue
+		var scar: Dictionary = scar_value
+		persistent_collapse_scars.append({
+			"position": Vector2(float(scar.get("x", 0.0)), float(scar.get("y", 0.0))),
+			"radius": maxf(float(scar.get("radius", 240.0)), 80.0),
+			"intensity": clampf(float(scar.get("intensity", 0.5)), 0.05, 1.0),
+			"type": int(scar.get("type", 0)),
+			"source": StringName(scar.get("source", "collapse")),
+		})
+
+
+func _save_persistent_collapse() -> void:
+	var serialized_scars: Array[Dictionary] = []
+	for scar in persistent_collapse_scars:
+		var position: Vector2 = scar.get("position", Vector2.ZERO)
+		serialized_scars.append({
+			"x": position.x,
+			"y": position.y,
+			"radius": float(scar.get("radius", 240.0)),
+			"intensity": float(scar.get("intensity", 0.5)),
+			"type": int(scar.get("type", 0)),
+			"source": String(scar.get("source", &"collapse")),
+		})
+	var file := FileAccess.open(PERSISTENT_COLLAPSE_PATH, FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_string(JSON.stringify({
+		"version": PERSISTENT_COLLAPSE_VERSION,
+		"scars": serialized_scars,
+	}))
+	file.close()
 
 
 func set_last_death_message(message: String) -> void:

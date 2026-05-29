@@ -84,13 +84,19 @@ func _profile_for_enemy(enemy: Node) -> StringName:
 	var key := "%s %s" % [String(enemy.name).to_lower(), enemy.scene_file_path.to_lower()]
 	if key.contains("leech") or key.contains("parasite"):
 		return &"drain"
+	if key.contains("null_harvester") or key.contains("harvester"):
+		return &"drain"
 	if key.contains("shield"):
 		return &"shield"
 	if key.contains("sniper") or key.contains("seraph"):
 		return &"line"
+	if key.contains("echo_drone") or key.contains("echo"):
+		return &"echo"
+	if key.contains("phase_slip") or key.contains("phase"):
+		return &"phase"
 	if key.contains("harasser") or key.contains("wisp") or key.contains("seeker"):
 		return &"chaser"
-	if key.contains("warden") or key.contains("magnetar") or key.contains("accretion"):
+	if key.contains("warden") or key.contains("magnetar") or key.contains("accretion") or key.contains("paralytic") or key.contains("construct"):
 		return &"law"
 	if key.contains("orbiter"):
 		return &"orbit"
@@ -107,6 +113,10 @@ func _points_for_profile(profile: StringName) -> PackedVector2Array:
 			return PackedVector2Array([Vector2(-glyph_radius, 0.0), Vector2(glyph_radius, 0.0), Vector2(glyph_radius * 0.55, -glyph_radius * 0.34), Vector2(glyph_radius, 0.0), Vector2(glyph_radius * 0.55, glyph_radius * 0.34)])
 		&"chaser":
 			return PackedVector2Array([Vector2(-glyph_radius * 0.7, -glyph_radius * 0.55), Vector2(glyph_radius, 0.0), Vector2(-glyph_radius * 0.7, glyph_radius * 0.55), Vector2(-glyph_radius * 0.36, 0.0), Vector2(-glyph_radius * 0.7, -glyph_radius * 0.55)])
+		&"echo":
+			return PackedVector2Array([Vector2(-glyph_radius, -glyph_radius * 0.45), Vector2(-glyph_radius * 0.25, -glyph_radius * 0.45), Vector2(-glyph_radius * 0.25, glyph_radius * 0.45), Vector2(glyph_radius * 0.45, glyph_radius * 0.45), Vector2(glyph_radius * 0.45, -glyph_radius * 0.45), Vector2(glyph_radius, -glyph_radius * 0.45)])
+		&"phase":
+			return PackedVector2Array([Vector2(-glyph_radius, 0.0), Vector2(-glyph_radius * 0.25, -glyph_radius * 0.5), Vector2(glyph_radius * 0.25, glyph_radius * 0.5), Vector2(glyph_radius, 0.0)])
 		&"law":
 			return _regular_points(4, glyph_radius * 1.05)
 		&"orbit":
@@ -123,9 +133,13 @@ func _color_for_profile(profile: StringName) -> Color:
 		&"line":
 			return Color(1.0, 0.34, 0.28, 0.86)
 		&"chaser":
-			return Color(1.0, 0.76, 0.24, 0.84)
+			return Color(1.0, 0.34, 0.18, 0.86)
+		&"echo":
+			return Color(0.34, 0.9, 1.0, 0.84)
+		&"phase":
+			return Color(1.0, 0.18, 0.38, 0.86)
 		&"law":
-			return Color(0.42, 1.0, 0.74, 0.86)
+			return Color(0.95, 0.22, 0.18, 0.86)
 		&"orbit":
 			return Color(0.34, 0.68, 1.0, 0.82)
 	return Color(0.64, 0.78, 0.86, 0.7)

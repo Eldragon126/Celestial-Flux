@@ -10,6 +10,14 @@ const SCRIPTS := [
 	"res://Scripts/wave_director.gd",
 	"res://Scripts/pause_menu.gd",
 	"res://Scripts/powerup_inventory.gd",
+	"res://Scripts/vectorfall_anomaly_director.gd",
+	"res://Scripts/gravimetric_echo_drone.gd",
+	"res://Scripts/event_horizon_warden.gd",
+	"res://Scripts/phase_slip_swarm.gd",
+	"res://Scripts/orbital_null_harvester.gd",
+	"res://Scripts/resonance_paralytic_construct.gd",
+	"res://Scripts/black_hole.gd",
+	"res://Scripts/weapon_system.gd",
 ]
 
 func _init() -> void:

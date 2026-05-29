@@ -61,7 +61,7 @@ func _build_body() -> void:
 		glow = Polygon2D.new()
 		glow.name = "ChaosWispGlow"
 		glow.z_index = -1
-		glow.color = Color(0.16, 1.0, 0.44, 0.26)
+		glow.color = Color(1.0, 0.18, 0.38, 0.24)
 		add_child(glow)
 	if glow.polygon.is_empty():
 		glow.polygon = _circle_points(18, 42.0)
@@ -70,7 +70,7 @@ func _build_body() -> void:
 	if core == null:
 		core = Polygon2D.new()
 		core.name = "ChaosWispCore"
-		core.color = Color(0.2, 1.0, 0.46, 1.0)
+		core.color = Color(1.0, 0.22, 0.34, 1.0)
 		add_child(core)
 	if core.polygon.is_empty():
 		core.polygon = _circle_points(7, 22.0)

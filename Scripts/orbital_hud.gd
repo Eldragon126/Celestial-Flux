@@ -38,6 +38,11 @@ var _arrows: Array[Polygon2D] = []
 var _threat_arrows: Array[Polygon2D] = []
 var _boss_arrows: Array[Polygon2D] = []
 var _arrow_layer: Node2D
+var _orbit_layer: Node2D
+var _health_arc: Line2D
+var _energy_arc: Line2D
+var _time_arc: Line2D
+var _sling_arc: Line2D
 var _threat_targets: Array[Node2D] = []
 var _boss_targets: Array[Node2D] = []
 var _powerup_notice_time := 0.0
@@ -47,6 +52,7 @@ var _threat_refresh_elapsed := 999.0
 # Cache the current intensity to avoid repeated get_shader_parameter calls
 var _current_vignette_intensity: float = 0.0
 var _last_ui_scale: float = 1.0
+var _hud_phase: float = 0.0
 
 func _ready() -> void:
 	layer = 40
@@ -75,6 +81,7 @@ func _process(delta: float) -> void:
 	_update_weapon_lens()
 	_update_powerup_notice(delta)
 	_update_health_vignette(delta)
+	_update_orbit_telemetry(delta)
 	_update_nav_arrows(gravity_strength)
 	_update_threat_arrows(delta)
 	_apply_accessibility_settings()
@@ -95,6 +102,7 @@ func _build_hud() -> void:
 	_build_readout_panel()
 	_build_powerup_notice()
 	_build_nav_arrows()
+	_build_orbit_telemetry()
 
 
 func _build_vignette() -> void:
@@ -252,6 +260,31 @@ func _build_nav_arrows() -> void:
 		var arrow := _make_screen_arrow("BossThreatArrow%d" % i, Color(1.0, 0.16, 0.1, 0.95), 1.35, 3)
 		_arrow_layer.add_child(arrow)
 		_boss_arrows.append(arrow)
+
+
+func _build_orbit_telemetry() -> void:
+	_orbit_layer = Node2D.new()
+	_orbit_layer.name = "PlayerOrbitTelemetry"
+	_orbit_layer.z_index = 6
+	_orbit_layer.visible = true
+	add_child(_orbit_layer)
+
+	_health_arc = _make_orbit_arc("HealthOrbitArc", Color(1.0, 0.24, 0.18, 0.82), 3.6)
+	_energy_arc = _make_orbit_arc("EnergyOrbitArc", Color(0.22, 0.84, 1.0, 0.78), 3.0)
+	_time_arc = _make_orbit_arc("TimeOrbitArc", Color(0.72, 0.36, 1.0, 0.68), 2.2)
+	_sling_arc = _make_orbit_arc("SlingshotOrbitArc", Color(0.34, 1.0, 0.82, 0.68), 2.4)
+
+
+func _make_orbit_arc(node_name: String, color: Color, width: float) -> Line2D:
+	var arc := Line2D.new()
+	arc.name = node_name
+	arc.antialiased = true
+	arc.width = width
+	arc.default_color = _readability_color(color)
+	arc.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	arc.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_orbit_layer.add_child(arc)
+	return arc
 
 
 func _make_screen_arrow(node_name: String, color: Color, arrow_scale: float, z: int) -> Polygon2D:
@@ -592,6 +625,76 @@ func _update_weapon_lens() -> void:
 	_weapon_label.modulate = _readability_color(color)
 	_weapon_bar.value = energy_percent
 
+
+func _update_orbit_telemetry(delta: float) -> void:
+	if _orbit_layer == null or _player == null or not is_instance_valid(_player):
+		return
+
+	_hud_phase += delta
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var screen_pos: Vector2 = canvas_transform * _player.global_position
+	var margin := 86.0
+	var visible := screen_pos.x > margin and screen_pos.y > margin and screen_pos.x < viewport_size.x - margin and screen_pos.y < viewport_size.y - margin
+	_orbit_layer.visible = visible
+	if not visible:
+		return
+
+	var chaos := 0.0
+	if _arena_destabilization_manager != null and is_instance_valid(_arena_destabilization_manager):
+		var value: Variant = _arena_destabilization_manager.get("instability")
+		if typeof(value) == TYPE_FLOAT or typeof(value) == TYPE_INT:
+			chaos = clampf(float(value), 0.0, 1.0)
+	var smear := 0.0
+	if _time_dilation_manager != null and is_instance_valid(_time_dilation_manager):
+		var scale_value: Variant = _time_dilation_manager.get("current_time_scale")
+		if typeof(scale_value) == TYPE_FLOAT or typeof(scale_value) == TYPE_INT:
+			smear = clampf(1.0 - float(scale_value), 0.0, 1.0)
+
+	_orbit_layer.position = screen_pos + Vector2(sin(_hud_phase * 2.1), cos(_hud_phase * 1.7)) * (2.0 + chaos * 5.0)
+	_orbit_layer.rotation += delta * (0.22 + chaos * 0.42 - smear * 0.18)
+	var base_radius := 54.0 + chaos * 10.0
+
+	var health_percent := _component_ratio("HealthComponent", "current_health", "max_health")
+	var energy_percent := _component_ratio("EnergyComponent", "current_energy", "max_energy")
+	var time_percent := 0.0
+	if _time_dilation_manager != null and is_instance_valid(_time_dilation_manager):
+		var current := float(_time_dilation_manager.get("current_dilation_capacity") or 0.0)
+		var maximum := maxf(float(_time_dilation_manager.get("initial_dilation_capacity") or 1.0), 1.0)
+		time_percent = clampf(current / maximum, 0.0, 1.0)
+	var sling_state := {}
+	if _player.has_method("get_slingshot_debug_state"):
+		var sling_value: Variant = _player.call("get_slingshot_debug_state")
+		if typeof(sling_value) == TYPE_DICTIONARY:
+			sling_state = sling_value
+	var sling_percent := clampf(float(sling_state.get("score", 0.0)), 0.0, 1.0)
+
+	_set_orbit_arc(_health_arc, base_radius + 0.0, -PI * 0.72, health_percent, Color(1.0, 0.24, 0.18, 0.82), 0.0)
+	_set_orbit_arc(_energy_arc, base_radius + 8.0, PI * 0.18, energy_percent, Color(0.22, 0.84, 1.0, 0.78), PI)
+	_set_orbit_arc(_time_arc, base_radius + 16.0 + smear * 8.0, PI * 0.88, time_percent, Color(0.72, 0.36, 1.0, 0.68 + smear * 0.16), -PI * 0.4)
+	_set_orbit_arc(_sling_arc, base_radius + 24.0, -PI * 0.04, sling_percent, _slingshot_color("READY", sling_percent), PI * 0.5)
+
+
+func _set_orbit_arc(arc: Line2D, radius: float, start_angle: float, percent: float, color: Color, spin_offset: float) -> void:
+	if arc == null:
+		return
+	var clamped := clampf(percent, 0.02, 1.0)
+	var sweep := TAU * 0.82 * clamped
+	arc.points = _arc_points(radius, start_angle + spin_offset, start_angle + spin_offset + sweep, 28)
+	arc.default_color = _readability_color(color)
+	arc.visible = percent > 0.01
+
+
+func _component_ratio(component_name: String, current_property: String, max_property: String) -> float:
+	if _player == null:
+		return 0.0
+	var component := _player.get_node_or_null(component_name)
+	if component == null:
+		return 0.0
+	var current := float(component.get(current_property) or 0.0)
+	var maximum := maxf(float(component.get(max_property) or 1.0), 1.0)
+	return clampf(current / maximum, 0.0, 1.0)
+
 func _chaos_tier_color(tier: int) -> Color:
 	match clampi(tier, 0, 5):
 		0:
@@ -914,6 +1017,15 @@ func _project_to_screen_edge(center: Vector2, direction: Vector2, viewport_size:
 	var scale_x: float = safe_half.x / maxf(absf(direction.x), 0.001)
 	var scale_y: float = safe_half.y / maxf(absf(direction.y), 0.001)
 	return center + direction * minf(scale_x, scale_y)
+
+
+func _arc_points(radius: float, start_angle: float, end_angle: float, steps: int) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for i in range(maxi(steps, 2)):
+		var t := float(i) / float(maxi(steps - 1, 1))
+		var angle := lerpf(start_angle, end_angle, t)
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points
 
 
 func _on_accessibility_changed(_settings: Dictionary) -> void:

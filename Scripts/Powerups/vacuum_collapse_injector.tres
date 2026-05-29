@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PowerupDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/powerup_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+powerup_id = &"vacuum_collapse_injector"
+display_name = "Vacuum Collapse Injector"
+effect_type = &"vacuum_collapse_injector"
+stack_policy = 0
+max_stacks = 3
+duration = 0.0
+amount = 1.0
+secondary_amount = 0.18
+radius = 360.0
+color = Color(0.72, 0.36, 1, 1)
