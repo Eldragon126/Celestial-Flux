@@ -161,6 +161,8 @@ The following upgrades are to be made carefully but tactfully, all editable in t
 
 [ ] Update the color palette of the game so that it follows a clear pattern. The current palette is great except for specific enemies. I like my white and blue player and red enemies, but some enemies like the yellow enemies, aren't nice to look at.
 
+[ ] Implement a score board that makes players come back for more every time. Implement a point system.
+
 --- Procedural Galaxy Expansion System (Wave-Based Integration) --- FAR FAR FUTURE. Wait to do this chunk. {{{
 
 CORE GAME STRUCTURE

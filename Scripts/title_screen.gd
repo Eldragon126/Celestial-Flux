@@ -20,6 +20,14 @@ func _ready() -> void:
 	_update_version_label()
 	print("Title Screen ready | Has anchor: ", RunProgress.has_anchor)
 
+func _physics_process(delta: float) -> void:
+	if get_tree().get_first_node_in_group("wave_enemy") == null:
+		if get_tree().get_first_node_in_group("enemies") == null:
+			if get_tree().get_first_node_in_group("ParametricEnemies") == null:
+				$AudioStreamPlayer.stop()
+				$SecretCompleted.play()
+				$CenterContainer/Label.text = "SECRET COMPLETED"
+				
 
 func _on_audio_stream_player_finished() -> void:
 	if animation_player:
@@ -75,3 +83,15 @@ func _update_version_label() -> void:
 		return
 	var project_version := String(ProjectSettings.get_setting("application/config/version", ""))
 	_version_label.text = project_version if not project_version.is_empty() else version_string
+
+
+func _on_secret_button_pressed() -> void:
+	if get_tree().get_first_node_in_group("Player") == null:
+		var player = preload("res://Nodes/player.tscn")
+		var p = player.instantiate()
+		p.global_position = $CenterContainer/Label.global_position
+		get_tree().current_scene.call_deferred("add_child", p)
+		RunProgress.begin_new_run(false)
+	
+
+	

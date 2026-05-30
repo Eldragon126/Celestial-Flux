@@ -1,0 +1,82 @@
+[gd_scene format=3 uid="uid://dlsujt2aetdca"]
+
+[ext_resource type="Script" uid="uid://q2egb80prvid" path="res://Scripts/pulsating_gravity_spawner.gd" id="1_0cyap"]
+[ext_resource type="AudioStream" uid="uid://c3ctwd6hf63yb" path="res://Assets/Sound Effects/GravityWavePulsating.wav" id="2_eq435"]
+
+[sub_resource type="Animation" id="Animation_0cyap"]
+resource_name = "ColorChange"
+length = 0.5
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Polygon2D:color")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0, 1, 1, 1), Color(0, 1, 1, 0.36862746)]
+}
+
+[sub_resource type="Animation" id="Animation_eq435"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Polygon2D:color")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0, 1, 1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_15iuv"]
+_data = {
+&"ColorChange": SubResource("Animation_0cyap"),
+&"RESET": SubResource("Animation_eq435")
+}
+
+[sub_resource type="Gradient" id="Gradient_0cyap"]
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_eq435"]
+gradient = SubResource("Gradient_0cyap")
+width = 1000
+height = 1000
+fill = 1
+fill_from = Vector2(0.51282054, 0.52136755)
+fill_to = Vector2(0.74358976, 0.84045583)
+
+[node name="PulsatingGravitySpawner" type="StaticBody2D" unique_id=1794389716]
+script = ExtResource("1_0cyap")
+
+[node name="Timer" type="Timer" parent="." unique_id=1543967710]
+wait_time = 7.0
+autostart = true
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=614059578]
+
+[node name="Polygon2D" type="Polygon2D" parent="." unique_id=939609820]
+color = Color(0, 1, 1, 1)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=840939834]
+libraries/ = SubResource("AnimationLibrary_15iuv")
+autoplay = &"ColorChange"
+
+[node name="PointLight2D" type="PointLight2D" parent="." unique_id=1047878657]
+energy = 0.5
+texture = SubResource("GradientTexture2D_eq435")
+
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="." unique_id=1024250182]
+stream = ExtResource("2_eq435")
+volume_db = -0.5
+pitch_scale = 1.04
+autoplay = true
+attenuation = 0.43527523
+
+[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]

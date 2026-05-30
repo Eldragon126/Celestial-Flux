@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://b7qb73vr105x5"]
+
+[ext_resource type="Script" uid="uid://b8mo12r40n2xd" path="res://Scripts/pulsating_gravity_field.gd" id="1_kp2tp"]
+
+[node name="PulsatingGravityField" type="StaticBody2D" unique_id=1095971971 groups=["Objects_With_Gravity", "planets"]]
+script = ExtResource("1_kp2tp")
+
+[node name="BigSphere" type="Polygon2D" parent="." unique_id=1973917906]
+color = Color(0.003921569, 0.15686275, 0.15686275, 0.5529412)
+
+[node name="SmallSphere" type="Polygon2D" parent="." unique_id=394163169]
+color = Color(0, 0, 0, 0.13725491)
+invert_border = 606.9
+
+[node name="Wave" type="CollisionPolygon2D" parent="." unique_id=1519928320]

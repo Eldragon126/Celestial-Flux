@@ -1,11 +1,22 @@
 [gd_scene format=3 uid="uid://d4etsys8ab7th"]
 
-[ext_resource type="FontFile" uid="uid://dctcwv6tmjeyv" path="res://Assets/Fonts/LOT.otf" id="1_idcrm"]
 [ext_resource type="Script" uid="uid://dhdhg4km4qnd8" path="res://Scripts/title_screen.gd" id="1_kf5hn"]
 [ext_resource type="FontFile" uid="uid://o7ffc2o1u38m" path="res://Assets/Fonts/searider-falcon-font/SeariderFalconLaser-w1ze6.ttf" id="2_v554h"]
 [ext_resource type="AudioStream" uid="uid://cou7kmndp04qt" path="res://Assets/Songs/Orbital Drift.mp3" id="3_kf5hn"]
 [ext_resource type="FontFile" uid="uid://bni12e87in5aq" path="res://Assets/Fonts/edge-of-the-galaxy-font/EdgeOfTheGalaxyRegular-OVEa6.otf" id="3_kux1l"]
+[ext_resource type="FontFile" uid="uid://l80cn0kfl5wl" path="res://Assets/Fonts/sf-distant-galaxy-font/SfDistantGalaxyAlternate-OE4d.ttf" id="4_0v026"]
 [ext_resource type="Shader" uid="uid://cwu0khh13q40b" path="res://Scripts/pause_menu.gdshader" id="4_shader"]
+[ext_resource type="PackedScene" uid="uid://cqdqshk4xbg5q" path="res://Nodes/planet_1.tscn" id="7_ixqve"]
+[ext_resource type="Script" uid="uid://dk5kb2f3tf0y7" path="res://Scripts/time_dilation_manager.gd" id="10_e57lr"]
+[ext_resource type="PackedScene" uid="uid://daytuijrlty5v" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn" id="10_xlfwb"]
+[ext_resource type="PackedScene" uid="uid://ch82c26sdlrmq" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn" id="11_tfcd2"]
+[ext_resource type="PackedScene" uid="uid://bmw0r3gq3jjlo" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn" id="12_5e2l6"]
+[ext_resource type="PackedScene" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_4.tscn" id="13_wcqt8"]
+[ext_resource type="PackedScene" uid="uid://c10f52t6u7nk2" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn" id="14_8o224"]
+[ext_resource type="PackedScene" uid="uid://b2v55yaahtgwt" path="res://Nodes/base_enemy.tscn" id="15_tfcd2"]
+[ext_resource type="PackedScene" uid="uid://c7b0subtq6kgr" path="res://Nodes/base_shooter_enemy.tscn" id="16_8o224"]
+[ext_resource type="PackedScene" uid="uid://deeaihs58vwn" path="res://Nodes/gravity_leech.tscn" id="17_tptlw"]
+[ext_resource type="PackedScene" uid="uid://c1rfva2x24bjk" path="res://Nodes/leech_parasite.tscn" id="18_7ytcx"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_title"]
 shader = ExtResource("4_shader")
@@ -95,6 +106,14 @@ _data = {
 &"RESET": SubResource("Animation_kux1l")
 }
 
+[sub_resource type="Environment" id="Environment_0v026"]
+background_mode = 3
+ambient_light_source = 3
+ambient_light_color = Color(0.3137255, 0.7372549, 1, 1)
+ambient_light_energy = 0.5
+glow_enabled = true
+glow_intensity = 8.0
+
 [node name="TitleScreen" type="Control" unique_id=928825315]
 process_mode = 3
 layout_mode = 3
@@ -114,6 +133,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+color = Color(1, 1, 1, 0.2)
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=925882595]
 libraries/ = SubResource("AnimationLibrary_joli2")
@@ -139,10 +159,13 @@ grow_vertical = 2
 [node name="Label" type="Label" parent="CenterContainer" unique_id=2006295575]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0, 1, 1)
-theme_override_fonts/font = ExtResource("1_idcrm")
+theme_override_fonts/font = ExtResource("4_0v026")
 theme_override_font_sizes/font_size = 150
 text = "VECTOR ANOMALY"
 vertical_alignment = 1
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="CenterContainer" unique_id=165754558]
+environment = SubResource("Environment_0v026")
 
 [node name="Menu" type="VBoxContainer" parent="." unique_id=1362757039]
 layout_mode = 1
@@ -209,8 +232,98 @@ theme_override_font_sizes/font_size = 18
 text = "v1.0.4.6"
 horizontal_alignment = 2
 
+[node name="SecretButton" type="Button" parent="." unique_id=1142916924]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 0
+offset_right = 162.0
+offset_bottom = 109.0
+
+[node name="Planet1" parent="." unique_id=1811765486 instance=ExtResource("7_ixqve")]
+position = Vector2(-403, 343)
+
+[node name="TimeDilationManager" type="Node" parent="." unique_id=1501130007]
+process_mode = 3
+script = ExtResource("10_e57lr")
+use_global_time_scale = true
+metadata/_custom_type_script = "uid://dk5kb2f3tf0y7"
+
+[node name="ParametricEnemy1" parent="." unique_id=2014406817 instance=ExtResource("10_xlfwb")]
+position = Vector2(734, 2832)
+
+[node name="parametric_enemy_2" parent="." unique_id=1266540202 instance=ExtResource("11_tfcd2")]
+position = Vector2(4903, 498)
+
+[node name="parametric_enemy_3" parent="." unique_id=1584277574 instance=ExtResource("12_5e2l6")]
+position = Vector2(-105, -1276)
+
+[node name="ParametricFractureDuelist" parent="." unique_id=350809210 instance=ExtResource("13_wcqt8")]
+position = Vector2(-1381, -472)
+
+[node name="ParametricSwarmArchitect" parent="." unique_id=646356104 instance=ExtResource("14_8o224")]
+position = Vector2(-1110, 1599)
+
+[node name="BaseEnemy" parent="." unique_id=581354831 instance=ExtResource("15_tfcd2")]
+position = Vector2(2255, 2823)
+
+[node name="BaseEnemy2" parent="." unique_id=1014824867 instance=ExtResource("15_tfcd2")]
+position = Vector2(2763, 4468)
+
+[node name="BaseEnemy3" parent="." unique_id=552978154 instance=ExtResource("15_tfcd2")]
+position = Vector2(-2036, 3612)
+
+[node name="BaseEnemy4" parent="." unique_id=1905166568 instance=ExtResource("15_tfcd2")]
+position = Vector2(-3373, 1837)
+
+[node name="BaseShooterEnemy" parent="." unique_id=662240552 instance=ExtResource("16_8o224")]
+position = Vector2(5874, 2336)
+
+[node name="BaseShooterEnemy2" parent="." unique_id=1022380372 instance=ExtResource("16_8o224")]
+position = Vector2(5385, -837)
+
+[node name="BaseShooterEnemy3" parent="." unique_id=420422397 instance=ExtResource("16_8o224")]
+position = Vector2(2011, -1431)
+
+[node name="BaseShooterEnemy4" parent="." unique_id=1493828148 instance=ExtResource("16_8o224")]
+position = Vector2(-1740, -2665)
+
+[node name="BaseShooterEnemy5" parent="." unique_id=1053502847 instance=ExtResource("16_8o224")]
+position = Vector2(-3250, -1117)
+
+[node name="GravityLeech" parent="." unique_id=332173923 instance=ExtResource("17_tptlw")]
+position = Vector2(-2149, 3937)
+
+[node name="GravityLeech2" parent="." unique_id=1242699506 instance=ExtResource("17_tptlw")]
+position = Vector2(-5451, -1322)
+
+[node name="GravityLeech3" parent="." unique_id=540077682 instance=ExtResource("17_tptlw")]
+position = Vector2(1280, -3574)
+
+[node name="GravityLeech4" parent="." unique_id=457077 instance=ExtResource("17_tptlw")]
+position = Vector2(6885, -2371)
+
+[node name="LeechParasite" parent="." unique_id=1188525514 instance=ExtResource("18_7ytcx")]
+position = Vector2(7141, 5076)
+
+[node name="LeechParasite2" parent="." unique_id=1948044811 instance=ExtResource("18_7ytcx")]
+position = Vector2(-2124, 6036)
+
+[node name="LeechParasite3" parent="." unique_id=95814076 instance=ExtResource("18_7ytcx")]
+position = Vector2(-5349, 2120)
+
+[node name="LeechParasite4" parent="." unique_id=1672248349 instance=ExtResource("18_7ytcx")]
+position = Vector2(-3877, -2896)
+
+[node name="LeechParasite5" parent="." unique_id=342462374 instance=ExtResource("18_7ytcx")]
+position = Vector2(-179, -4483)
+
+[node name="LeechParasite6" parent="." unique_id=600497446 instance=ExtResource("18_7ytcx")]
+position = Vector2(4927, -3907)
+
+[node name="SecretCompleted" type="AudioStreamPlayer" parent="." unique_id=640156367]
+
 [connection signal="finished" from="AudioStreamPlayer" to="." method="_on_audio_stream_player_finished"]
 [connection signal="pressed" from="Menu/NewRunButton" to="." method="_on_new_run_button_pressed"]
 [connection signal="pressed" from="Menu/ContinueButton" to="." method="_on_continue_button_pressed"]
 [connection signal="pressed" from="Menu/ChallengeButton" to="." method="_on_challenge_button_pressed"]
 [connection signal="pressed" from="Menu/BossRushButton" to="." method="_on_boss_rush_button_pressed"]
+[connection signal="pressed" from="SecretButton" to="." method="_on_secret_button_pressed"]

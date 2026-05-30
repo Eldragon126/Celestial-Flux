@@ -153,7 +153,7 @@ hue_variation_min = -2.2351742e-08
 hue_variation_max = -2.2351742e-08
 turbulence_enabled = true
 
-[node name="BaseShooterEnemy" type="CharacterBody2D" unique_id=662240552]
+[node name="BaseShooterEnemy" type="CharacterBody2D" unique_id=662240552 groups=["enemies", "wave_enemy"]]
 script = ExtResource("1_xy1e6")
 
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=1135803133]

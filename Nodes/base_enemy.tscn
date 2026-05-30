@@ -55,7 +55,7 @@ turbulence_noise_strength = 0.5
 turbulence_noise_scale = 2.044
 turbulence_noise_speed_random = 0.1
 
-[node name="BaseEnemy" type="CharacterBody2D" unique_id=581354831]
+[node name="BaseEnemy" type="CharacterBody2D" unique_id=581354831 groups=["enemies", "wave_enemy"]]
 motion_mode = 1
 script = ExtResource("1_osi8g")
 
@@ -103,9 +103,6 @@ metadata/_custom_type_script = "uid://cgo7omjjvv108"
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="AttackArea" unique_id=131326220]
 polygon = PackedVector2Array(-36, 1, -36, -1, 0, -14, 22, 0, 0, 14)
-
-[node name="Camera2D" type="Camera2D" parent="." unique_id=1198559868]
-zoom = Vector2(4, 4)
 
 [connection signal="finished" from="GPUParticles2D2" to="GPUParticles2D2" method="_on_finished"]
 [connection signal="died" from="HealthComponent" to="." method="_on_health_component_died"]
