@@ -217,10 +217,19 @@ func _spawn_boss_wave() -> void:
 	_last_boss_scene_path = boss_scene.resource_path
 	var boss = boss_scene.instantiate()
 	boss.name = "%sWave%d" % [_boss_node_prefix(boss_scene), _wave]
-	var boss_health := 780.0 + 135.0 * float(_wave / boss_every_waves)
+	var boss_health := 2100.0 + 520.0 * float(_wave / boss_every_waves)
 	if RunProgress and RunProgress.boss_rush_mode:
 		boss_health *= float(RunProgress.challenge_modifiers.get("boss_health_multiplier", 1.12))
 	boss.set("max_health", boss_health)
+
+	var scale_factor := 1.0 + 0.06 * float(_wave / boss_every_waves)
+	if boss.get("projectile_speed") != null:
+		boss.set("projectile_speed", float(boss.get("projectile_speed")) * scale_factor)
+	if boss.get("contact_damage") != null:
+		boss.set("contact_damage", float(boss.get("contact_damage")) * (1.0 + 0.08 * float(_wave / boss_every_waves)))
+	if boss.get("move_speed") != null:
+		boss.set("move_speed", float(boss.get("move_speed")) * (1.0 + 0.03 * float(_wave / boss_every_waves)))
+
 	_level_root.add_child(boss)
 	boss.global_position = _spawn_position_for_index(_wave)
 	_refresh_player_planet_cache()

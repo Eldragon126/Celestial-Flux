@@ -8,3 +8,8 @@ res://Nodes/ParametricEquationEnemies/parametric_testing_center.tscn
 res://Nodes/pulsating_gravity_field.tscn
 res://Nodes/base_enemy.tscn
 res://Nodes/base_shooter_enemy.tscn
+res://Scripts/player.gd
+res://Scripts/wave_director.gd
+res://Scripts/pulsating_gravity_field.gd
+res://Nodes/pulsating_gravity_spawner.tscn
+res://Scripts/pulsating_gravity_spawner.gd

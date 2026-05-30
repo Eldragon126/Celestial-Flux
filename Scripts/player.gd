@@ -801,6 +801,39 @@ func _on_health_component_died():
 		return
 
 	_death_in_progress = true
+
+	# Disable collision and hide ship visuals immediately
+	var col_shape = get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if col_shape:
+		col_shape.set_deferred("disabled", true)
+	
+	var poly = get_node_or_null("Polygon2D") as Polygon2D
+	if poly:
+		poly.visible = false
+
+	var shield = get_node_or_null("Shield") as Node2D
+	if shield:
+		shield.visible = false
+
+	var predictor = get_node_or_null("OrbitalTrajectoryPredictor") as Node2D
+	if predictor:
+		predictor.visible = false
+
+	var aim_pred = get_node_or_null("ProjectileAimPredictor") as Node2D
+	if aim_pred:
+		aim_pred.visible = false
+
+	var particles = get_node_or_null("GPUParticles2D") as GPUParticles2D
+	if particles:
+		particles.emitting = false
+
+	# Spawn explosion
+	var explosion_scene = load("res://Nodes/player_death_explosion.tscn")
+	if explosion_scene:
+		var explosion = explosion_scene.instantiate()
+		explosion.global_position = global_position
+		get_parent().add_child(explosion)
+
 	var lesson := _build_death_lesson()
 	RunProgress.set_last_death_message(lesson)
 	death_lesson_generated.emit(lesson)
