@@ -67,10 +67,6 @@ Movement must behave like:
 
 Every movement system must generate clips.
 
-## Must-Have Feature
-
-- instant replay showing “true survival path”
-
 ---
 
 # 2. PHYSICS = SPECTACLE FIRST

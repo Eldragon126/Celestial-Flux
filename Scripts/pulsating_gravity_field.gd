@@ -29,8 +29,8 @@ func _ready() -> void:
 	mass = base_mass * rand_factor
 	
 	# Generate base circles with a radius of 1.0 ONCE.
-	_generate_unit_circle(big_sphere, 100)
-	_generate_unit_circle(small_sphere, 100)
+	_generate_unit_circle(big_sphere, 32)
+	_generate_unit_circle(small_sphere, 32)
 
 # A single, reusable function that builds a normalized (radius 1.0) circle
 func _generate_unit_circle(polygon_node: Polygon2D, points_nb: int) -> void:

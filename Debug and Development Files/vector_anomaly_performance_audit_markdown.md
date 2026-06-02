@@ -307,4 +307,4 @@ While making the simulation:
 8. Tune scaling systems
 9. Optimize release build
 10. Final polish and chaos balancing
-
+11. Build a loading screen for when Managers and or Waves load. Build a loading screen for the beginning of the game.
