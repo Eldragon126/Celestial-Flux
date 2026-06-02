@@ -22,6 +22,7 @@ var _last_snapshot: Dictionary = {}
 var _last_desync_risk: float = -1.0
 var _last_peer_count: int = -1
 var _last_combo_event: Dictionary = {}
+var _hash_nodes: Array[Node2D] = []
 
 
 func _ready() -> void:
@@ -107,20 +108,31 @@ func _build_snapshot() -> Dictionary:
 
 
 func _hash_group(group_name: StringName, limit: int) -> int:
-	var nodes: Array = get_tree().get_nodes_in_group(group_name)
-	nodes.sort_custom(
-		func(a: Node, b: Node) -> bool:
+	_fill_hash_nodes(group_name, limit)
+	_hash_nodes.sort_custom(
+		func(a: Node2D, b: Node2D) -> bool:
 			return a.get_instance_id() < b.get_instance_id()
 	)
 
 	var acc := 17
-	var count := mini(nodes.size(), maxi(limit, 0))
+	var count := mini(_hash_nodes.size(), maxi(limit, 0))
 	for i in range(count):
-		var node = nodes[i]
+		var node := _hash_nodes[i]
 		if not is_instance_valid(node):
 			continue
 		acc = _mix_hash(acc, _node_sync_token(node))
 	return acc
+
+
+func _fill_hash_nodes(group_name: StringName, limit: int) -> void:
+	_hash_nodes.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(group_name, _hash_nodes)
+		return
+	for value in get_tree().get_nodes_in_group(group_name):
+		var node_2d := value as Node2D
+		if node_2d != null and is_instance_valid(node_2d) and not node_2d.is_queued_for_deletion():
+			_hash_nodes.append(node_2d)
 
 
 func _node_sync_token(node: Node) -> String:
@@ -155,8 +167,8 @@ func _mix_hash(acc: int, token: String) -> int:
 
 
 func _estimate_desync_risk() -> Dictionary:
-	var projectile_count := get_tree().get_nodes_in_group("enemy_projectiles").size()
-	var gravity_count := get_tree().get_nodes_in_group("Objects_With_Gravity").size()
+	var projectile_count := _group_count(&"enemy_projectiles")
+	var gravity_count := _group_count(&"Objects_With_Gravity")
 	var risk := 0.0
 	var reason := &"stable"
 	if projectile_count > max_tracked_projectiles:
@@ -166,6 +178,12 @@ func _estimate_desync_risk() -> Dictionary:
 		risk += 0.3
 		reason = &"gravity_budget"
 	return {"risk": clampf(risk, 0.0, 1.0), "reason": reason}
+
+
+func _group_count(group_name: StringName) -> int:
+	if RuntimeRegistry != null:
+		return RuntimeRegistry.get_count(group_name)
+	return get_tree().get_nodes_in_group(group_name).size()
 
 
 func _emit_desync_risk(data: Dictionary) -> void:

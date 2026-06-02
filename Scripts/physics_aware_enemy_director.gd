@@ -8,6 +8,8 @@ signal enemy_physics_nudge(enemy: Node, profile: StringName, impulse: Vector2)
 signal anchor_field_applied(enemy: Node, position: Vector2, intensity: float)
 signal tidal_surge_triggered(enemy: Node, position: Vector2, radius: float)
 
+const FIELD_TARGET_GROUPS: Array[StringName] = [&"Player", &"enemies", &"Projectiles", &"enemy_projectiles", &"player_projectiles"]
+
 @export var enabled: bool = true
 @export var scan_interval: float = 0.45
 @export var think_interval: float = 0.12
@@ -56,6 +58,9 @@ var _scan_elapsed := 0.0
 var _think_elapsed := 0.0
 var _gravity_refresh_elapsed := 999.0
 var _gravity_sources: Array[Node2D] = []
+var _enemy_scan_buffer: Array[Node2D] = []
+var _nearby_body_buffer: Array[Node2D] = []
+var _next_tracked: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
@@ -91,32 +96,36 @@ func _refresh_targets() -> void:
 	if not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("Player") as Node2D
 	
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	var valid_enemies: Array[Node2D] = []
+	_enemy_scan_buffer.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(&"enemies", _enemy_scan_buffer)
+	else:
+		for node in get_tree().get_nodes_in_group("enemies"):
+			var enemy := node as Node2D
+			if enemy == null:
+				continue
+			_enemy_scan_buffer.append(enemy)
+
+	for index in range(_enemy_scan_buffer.size() - 1, -1, -1):
+		var enemy := _enemy_scan_buffer[index]
+		if enemy == null or not is_instance_valid(enemy) or enemy.is_queued_for_deletion() or enemy.is_in_group("Player"):
+			_enemy_scan_buffer.remove_at(index)
 	
-	for node in enemies:
-		if not is_instance_valid(node):
-			continue
-		var enemy = node as Node2D
-		if enemy == null or enemy.is_queued_for_deletion() or enemy.is_in_group("Player"):
-			continue
-		valid_enemies.append(enemy)
-	
-	if is_instance_valid(_player) and not valid_enemies.is_empty():
-		valid_enemies.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+	if is_instance_valid(_player) and not _enemy_scan_buffer.is_empty():
+		_enemy_scan_buffer.sort_custom(func(a: Node2D, b: Node2D) -> bool:
 			if not is_instance_valid(a) or not is_instance_valid(b):
 				return false
 			return a.global_position.distance_squared_to(_player.global_position) < \
 				   b.global_position.distance_squared_to(_player.global_position)
 		)
 	
-	var kept := {}
+	_next_tracked.clear()
 	var tracked_count := 0
 	var track_cap := max_tracked_enemies
 	if _wave_nudge_scale() < 0.95:
 		track_cap = mini(track_cap, late_game_max_tracked)
 
-	for enemy in valid_enemies:
+	for enemy in _enemy_scan_buffer:
 		if not is_instance_valid(enemy):
 			continue
 		if tracked_count >= track_cap:
@@ -133,10 +142,12 @@ func _refresh_targets() -> void:
 			enemy_profile_assigned.emit(enemy, data["profile"])
 		
 		data["enemy"] = enemy
-		kept[id] = data
+		_next_tracked[id] = data
 		tracked_count += 1
 	
-	_tracked = kept
+	var previous := _tracked
+	_tracked = _next_tracked
+	_next_tracked = previous
 
 func _make_tracking_data(enemy: Node2D) -> Dictionary:
 	var profile := _classify_enemy(enemy)
@@ -322,13 +333,23 @@ func _apply_tidal_surge(enemy: Node2D, polarity: float) -> void:
 		CombatStatus.add_velocity(body, direction * strength * falloff * polarity)
 		tidal_surge_triggered.emit(enemy, enemy.global_position, tide_radius)
 
-func _nearby_bodies(center: Vector2, radius: float) -> Array[Node]:
-	var bodies: Array[Node] = []
+func _nearby_bodies(center: Vector2, radius: float) -> Array[Node2D]:
+	_nearby_body_buffer.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius(
+			FIELD_TARGET_GROUPS,
+			center,
+			radius,
+			max_bodies_per_field,
+			true,
+			_nearby_body_buffer
+		)
+		return _nearby_body_buffer
+
 	var radius_squared := radius * radius
-	var groups := [&"Player", &"enemies", &"Projectiles", &"enemy_projectiles", &"player_projectiles"]
 	var seen := {}
 	
-	for group_name in groups:
+	for group_name in FIELD_TARGET_GROUPS:
 		for node in get_tree().get_nodes_in_group(group_name):
 			if not is_instance_valid(node): continue
 			var body_2d := _motion_body(node)
@@ -337,10 +358,10 @@ func _nearby_bodies(center: Vector2, radius: float) -> Array[Node]:
 			if seen.has(id): continue
 			seen[id] = true
 			if body_2d.global_position.distance_squared_to(center) <= radius_squared:
-				bodies.append(body_2d)
-				if bodies.size() >= max_bodies_per_field:
-					return bodies
-	return bodies
+				_nearby_body_buffer.append(body_2d)
+				if _nearby_body_buffer.size() >= max_bodies_per_field:
+					return _nearby_body_buffer
+	return _nearby_body_buffer
 
 func _motion_body(node: Node) -> Node2D:
 	if not is_instance_valid(node): return null
@@ -389,6 +410,16 @@ func _nearest_gravity_source(enemy: Node2D) -> Node2D:
 
 func _refresh_gravity_sources() -> void:
 	_gravity_sources.clear()
+	if RuntimeRegistry != null and is_instance_valid(_player):
+		RuntimeRegistry.fill_nearest_gravity_sources(
+			_player.global_position,
+			_gravity_sources,
+			max_gravity_sources_sampled,
+			0.0,
+			_player
+		)
+		return
+
 	var seen := {}
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for node in get_tree().get_nodes_in_group(group_name):

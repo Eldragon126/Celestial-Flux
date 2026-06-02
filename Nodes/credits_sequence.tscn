@@ -25,5 +25,5 @@ grow_vertical = 2
 
 [node name="CreditsLabel" type="Label" parent="CenterContainer"]
 layout_mode = 2
-text = "VECTORFALL RESOLVED"
+text = "VECTOR ANOMALY RESOLVED"
 horizontal_alignment = 1

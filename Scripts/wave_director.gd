@@ -51,6 +51,7 @@ const RESONANCE_PARALYTIC_CONSTRUCT_SCENE = preload("res://Nodes/resonance_paral
 @export var recovery_spawn_multiplier: float = 0.55
 @export var recovery_rest_bonus: float = 2.5
 @export var early_wave_fire_rate_bonus: float = 1.38
+@export var status_update_interval: float = 0.12
 
 var _player: Node2D = null
 var _level_root: Node = null
@@ -70,6 +71,9 @@ var _boss_label: Label
 var _boss_bar: ProgressBar
 var _waves_halted: bool = false
 var _last_boss_scene_path: String = ""
+var _status_elapsed: float = 999.0
+var _last_status_wave: int = -1
+var _last_status_threats: int = -1
 
 func _ready() -> void:
 	_rng.randomize()
@@ -80,9 +84,9 @@ func _ready() -> void:
 	$BossWaveMusic.stream_paused = true
 	$"WaveMusic/Volume Intro".play("Volume Intro")
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	_cleanup_tracking()
-	_update_status()
+	_update_status(delta)
 
 	if not _wave_running or _spawning:
 		return
@@ -388,17 +392,15 @@ func _complete_wave() -> void:
 	_begin_next_wave()
 
 func _cleanup_tracking() -> void:
-	var kept_enemies: Array[Node] = []
-	for enemy in _active_enemies:
-		if enemy != null and is_instance_valid(enemy) and not enemy.is_queued_for_deletion():
-			kept_enemies.append(enemy)
-	_active_enemies = kept_enemies
+	for index in range(_active_enemies.size() - 1, -1, -1):
+		var enemy := _active_enemies[index]
+		if enemy == null or not is_instance_valid(enemy) or enemy.is_queued_for_deletion():
+			_active_enemies.remove_at(index)
 
-	var kept_hazards: Array[Node] = []
-	for hazard in _active_hazards:
-		if hazard != null and is_instance_valid(hazard) and not hazard.is_queued_for_deletion():
-			kept_hazards.append(hazard)
-	_active_hazards = kept_hazards
+	for hazard_index in range(_active_hazards.size() - 1, -1, -1):
+		var hazard := _active_hazards[hazard_index]
+		if hazard == null or not is_instance_valid(hazard) or hazard.is_queued_for_deletion():
+			_active_hazards.remove_at(hazard_index)
 
 func _is_boss_wave() -> bool:
 	if RunProgress and RunProgress.boss_rush_mode:
@@ -597,8 +599,21 @@ func _make_panel_style(bg: Color, border: Color) -> StyleBoxFlat:
 	style.corner_radius_bottom_right = 6
 	return style
 
-func _update_status() -> void:
-	_status_label.text = "Wave %d | Threats %d" % [_wave, _active_enemies.size()]
+func _update_status(delta: float) -> void:
+	if _status_label == null:
+		return
+	_status_elapsed += delta
+	var threat_count := _active_enemies.size()
+	if (
+		_status_elapsed < maxf(status_update_interval, 0.05)
+		and _last_status_wave == _wave
+		and _last_status_threats == threat_count
+	):
+		return
+	_status_elapsed = 0.0
+	_last_status_wave = _wave
+	_last_status_threats = threat_count
+	_status_label.text = "Wave %d | Threats %d" % [_wave, threat_count]
 
 func _clear_remaining_wave_enemies() -> void:
 	for enemy in get_tree().get_nodes_in_group("wave_enemy"):

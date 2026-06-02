@@ -64,6 +64,8 @@ var _focus_position: Vector2 = Vector2.ZERO
 var _near_miss_pressure: float = 0.0
 var _last_intensity_bucket: int = -1
 var _activation_data: Dictionary = {}
+var _horizon_target_buffer: Array[Node2D] = []
+var _nearest_gravity_buffer: Array[Node2D] = []
 
 var _overlay_layer: CanvasLayer = null
 var _overlay_rect: ColorRect = null
@@ -254,40 +256,49 @@ func _update_active_intensity(delta: float) -> void:
 
 func _apply_horizon_field(delta: float) -> void:
 	var affected := 0
-	var seen := {}
 	var radius_squared := horizon_radius * horizon_radius
+	_horizon_target_buffer.clear()
 
-	for group_name in affected_groups:
-		for node in get_tree().get_nodes_in_group(group_name):
-			if affected >= max_targets_per_tick:
-				return
-			if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
-				continue
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius(affected_groups, _focus_position, horizon_radius, max_targets_per_tick, true, _horizon_target_buffer)
+	else:
+		var seen := {}
+		for group_name in affected_groups:
+			for node in get_tree().get_nodes_in_group(group_name):
+				if _horizon_target_buffer.size() >= max_targets_per_tick:
+					break
+				if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+					continue
+				var node_2d := node as Node2D
+				if node_2d == null:
+					continue
+				var id := node_2d.get_instance_id()
+				if seen.has(id):
+					continue
+				seen[id] = true
+				_horizon_target_buffer.append(node_2d)
 
-			var body := node as Node2D
-			if body == null:
-				continue
+	for body in _horizon_target_buffer:
+		if affected >= max_targets_per_tick:
+			return
+		if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
+			continue
 
-			var id := body.get_instance_id()
-			if seen.has(id):
-				continue
-			seen[id] = true
+		var offset := body.global_position - _focus_position
+		var distance_squared := offset.length_squared()
+		if distance_squared <= 0.001 or distance_squared > radius_squared:
+			continue
 
-			var offset := body.global_position - _focus_position
-			var distance_squared := offset.length_squared()
-			if distance_squared <= 0.001 or distance_squared > radius_squared:
-				continue
+		var distance := sqrt(distance_squared)
+		var radial := offset / distance
+		var falloff := 1.0 - clampf(distance / horizon_radius, 0.0, 1.0)
+		var impulse := _horizon_impulse_for_body(body, radial, falloff, delta)
+		if impulse.length_squared() <= 0.001:
+			continue
 
-			var distance := sqrt(distance_squared)
-			var radial := offset / distance
-			var falloff := 1.0 - clampf(distance / horizon_radius, 0.0, 1.0)
-			var impulse := _horizon_impulse_for_body(body, radial, falloff, delta)
-			if impulse.length_squared() <= 0.001:
-				continue
-
-			CombatStatusApi.add_velocity(body, impulse)
-			_apply_horizon_time_effect(body, falloff)
-			affected += 1
+		CombatStatusApi.add_velocity(body, impulse)
+		_apply_horizon_time_effect(body, falloff)
+		affected += 1
 
 
 func _horizon_impulse_for_body(body: Node2D, radial: Vector2, falloff: float, delta: float) -> Vector2:
@@ -442,6 +453,13 @@ func _horizon_focus_position() -> Vector2:
 
 func _nearest_gravity_source() -> Node2D:
 	if _player == null or not is_instance_valid(_player):
+		return null
+
+	if RuntimeRegistry != null:
+		_nearest_gravity_buffer.clear()
+		RuntimeRegistry.fill_nearest_gravity_sources(_player.global_position, _nearest_gravity_buffer, 1, 0.0, _player)
+		if not _nearest_gravity_buffer.is_empty():
+			return _nearest_gravity_buffer[0]
 		return null
 
 	var best: Node2D = null

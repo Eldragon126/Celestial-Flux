@@ -12,6 +12,8 @@ class_name EnemyReadabilityDirector
 
 var _elapsed := 999.0
 var _marked: Dictionary = {}
+var _enemy_buffer: Array[Node2D] = []
+var _live_ids: Dictionary = {}
 
 
 func _ready() -> void:
@@ -30,31 +32,43 @@ func _process(delta: float) -> void:
 
 
 func _refresh_enemy_glyphs() -> void:
-	var enemies := get_tree().get_nodes_in_group("enemies")
 	var marked_this_pass := 0
-	var live_ids := {}
+	_live_ids.clear()
+	_fill_enemy_buffer()
 
-	for enemy in enemies:
+	for enemy_2d in _enemy_buffer:
 		if marked_this_pass >= max_marked_enemies:
 			break
-		var enemy_2d := enemy as Node2D
 		if enemy_2d == null or not is_instance_valid(enemy_2d) or enemy_2d.is_queued_for_deletion():
 			continue
 		if enemy_2d.is_in_group("Player"):
 			continue
 
 		var id := enemy_2d.get_instance_id()
-		live_ids[id] = true
+		_live_ids[id] = true
 		_ensure_glyph(enemy_2d)
 		marked_this_pass += 1
 
 	for id in _marked.keys():
-		if live_ids.has(id):
+		if _live_ids.has(id):
 			continue
 		var marker = _marked[id]
 		if is_instance_valid(marker):
 			marker.queue_free()
 		_marked.erase(id)
+
+
+func _fill_enemy_buffer() -> void:
+	_enemy_buffer.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(&"enemies", _enemy_buffer, max_marked_enemies)
+		return
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if _enemy_buffer.size() >= max_marked_enemies:
+			return
+		var enemy_2d := enemy as Node2D
+		if enemy_2d != null and is_instance_valid(enemy_2d) and not enemy_2d.is_queued_for_deletion():
+			_enemy_buffer.append(enemy_2d)
 
 
 func _ensure_glyph(enemy: Node2D) -> void:

@@ -3,6 +3,8 @@ class_name EventHorizonWarden
 
 signal collapse_field_expanded(radius: float, intensity: float)
 
+const FIELD_TARGET_GROUPS: Array[StringName] = [&"Player", &"enemies", &"wave_enemy", &"bosses", &"Projectiles", &"enemy_projectiles", &"player_projectiles"]
+
 @export var mass: float = 420000.0
 @export var max_health: float = 150.0
 @export var move_speed: float = 190.0
@@ -23,18 +25,31 @@ var _anchor_timer := 0.0
 var _field_radius := 180.0
 var _ring: Line2D = null
 var _core: Polygon2D = null
+var _field_targets: Array[Node2D] = []
+var _query_seen_ids: Dictionary = {}
 
 
 func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("Objects_With_Gravity")
 	add_to_group("planets")
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"enemies")
+		RuntimeRegistry.register_node(self, &"Objects_With_Gravity")
+		RuntimeRegistry.register_node(self, &"planets")
 	_player = get_tree().get_first_node_in_group("Player") as Node2D
 	_field_radius = field_start_radius
 	_build_body()
 	_build_health()
 	set_physics_process(true)
 	set_process(true)
+
+
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"enemies")
+		RuntimeRegistry.unregister_node(self, &"Objects_With_Gravity")
+		RuntimeRegistry.unregister_node(self, &"planets")
 
 
 func _process(delta: float) -> void:
@@ -86,30 +101,64 @@ func _expand_and_pull(delta: float) -> void:
 
 
 func _apply_collapse_field(delta: float) -> void:
-	var radius_squared := _field_radius * _field_radius
 	var affected := 0
-	for group_name in [&"Player", &"enemies", &"wave_enemy", &"bosses", &"Projectiles", &"enemy_projectiles", &"player_projectiles"]:
+	_fill_targets_in_radius(FIELD_TARGET_GROUPS, global_position, _field_radius, max_targets_per_tick, true, _field_targets)
+	for body in _field_targets:
+		if affected >= max_targets_per_tick:
+			return
+		if body == self or not is_instance_valid(body) or body.is_queued_for_deletion():
+			continue
+		var offset := global_position - body.global_position
+		var distance_squared := offset.length_squared()
+		if distance_squared <= 0.001:
+			continue
+		var distance := sqrt(distance_squared)
+		var radial := offset / distance
+		var falloff := 1.0 - clampf(distance / _field_radius, 0.0, 1.0)
+		var boundary := 1.0 - absf(distance - _field_radius * 0.82) / maxf(_field_radius * 0.18, 1.0)
+		var impulse := radial * pull_force * falloff
+		if boundary > 0.0:
+			impulse += radial.orthogonal() * boundary_shear * clampf(boundary, 0.0, 1.0)
+		CombatStatus.add_velocity(body, impulse * delta)
+		if distance < 58.0 and body.has_method("take_damage"):
+			body.call("take_damage", contact_damage * delta)
+		affected += 1
+
+
+func _fill_targets_in_radius(
+	groups: Array[StringName],
+	center: Vector2,
+	radius: float,
+	limit: int,
+	include_player: bool,
+	out_targets: Array[Node2D]
+) -> void:
+	out_targets.clear()
+	if limit == 0:
+		return
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius(groups, center, radius, limit, include_player, out_targets)
+		return
+
+	var radius_squared := radius * radius
+	var max_count := maxi(limit, 0)
+	_query_seen_ids.clear()
+	for group_name in groups:
 		for node in get_tree().get_nodes_in_group(group_name):
-			if affected >= max_targets_per_tick:
+			if max_count > 0 and out_targets.size() >= max_count:
 				return
 			var body := node as Node2D
-			if body == null or body == self or not is_instance_valid(body) or body.is_queued_for_deletion():
+			if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
 				continue
-			var offset := global_position - body.global_position
-			var distance_squared := offset.length_squared()
-			if distance_squared <= 0.001 or distance_squared > radius_squared:
+			if not include_player and body.is_in_group("Player"):
 				continue
-			var distance := sqrt(distance_squared)
-			var radial := offset / distance
-			var falloff := 1.0 - clampf(distance / _field_radius, 0.0, 1.0)
-			var boundary := 1.0 - absf(distance - _field_radius * 0.82) / maxf(_field_radius * 0.18, 1.0)
-			var impulse := radial * pull_force * falloff
-			if boundary > 0.0:
-				impulse += radial.orthogonal() * boundary_shear * clampf(boundary, 0.0, 1.0)
-			CombatStatus.add_velocity(body, impulse * delta)
-			if distance < 58.0 and body.has_method("take_damage"):
-				body.call("take_damage", contact_damage * delta)
-			affected += 1
+			var id := body.get_instance_id()
+			if _query_seen_ids.has(id):
+				continue
+			_query_seen_ids[id] = true
+			if body.global_position.distance_squared_to(center) > radius_squared:
+				continue
+			out_targets.append(body)
 
 
 func _field_intensity() -> float:

@@ -133,6 +133,10 @@ func should_spawn_impact_mastery_ring(chaos_intensity: float, shockwave_spawned:
 func get_chaos_intensity(tree: SceneTree) -> float:
 	if tree == null:
 		return 0.0
+	if RuntimeRegistry != null:
+		var cached_count := RuntimeRegistry.get_count(&"Projectiles")
+		cached_count += RuntimeRegistry.get_count(&"enemy_projectiles")
+		return clampf(float(cached_count) / 180.0, 0.0, 1.0)
 	var count := tree.get_nodes_in_group("Projectiles").size()
 	count += tree.get_nodes_in_group("enemy_projectiles").size()
 	return clampf(float(count) / 180.0, 0.0, 1.0)

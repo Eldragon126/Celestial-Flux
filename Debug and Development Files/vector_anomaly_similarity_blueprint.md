@@ -156,3 +156,5 @@ The current architecture preserves genre readability while scaling the unusual p
 - VFX communicates state through pooled rings, pooled burst particles, HUD arrows, local time-pocket signals, and resonance colors.
 - Failure readouts remain immediate and diagnostic instead of lore-heavy.
 - The headless production simulation runner validates stress budgets so the familiar wave/run structure does not collapse into unreadable performance failure.
+- Resonance, momentum, boss pressure fields, enemy readability, death diagnostics, adaptive music, stress reporting, and sync scaffolding use capped cached queries so readability does not degrade as physics density rises.
+- Opening and credit labels use Vector Anomaly terms, keeping the player's first and final textual beats aligned with the commercial identity.

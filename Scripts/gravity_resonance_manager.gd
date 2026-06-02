@@ -4,8 +4,8 @@ class_name GravityResonanceManager
 # Gravity resonance turns overlapping wells into readable tactical pressure.
 # It samples nearby gravity sources on a capped cadence, creates a small number
 # of resonance zones, and exposes signals for VFX/audio without owning either.
-# Known limitation: zones are pair-based rather than a full vector-field solve;
-# this keeps the system predictable and affordable during late-run chaos.
+# Zones are pair-based tactical fields, keeping their rules deterministic,
+# readable, and affordable during late-run chaos.
 
 signal resonance_zone_created(zone_data: Dictionary)
 signal resonance_zone_intensified(zone_data: Dictionary)
@@ -131,6 +131,11 @@ var _zone_visuals: Dictionary = {}
 var _player_inside_zone_ids: Dictionary = {}
 var _time_dilation_manager: Node = null
 var _manual_zone_counter := 900000
+var _nearest_gravity_query_buffer: Array[Node2D] = []
+var _runtime_target_query_buffer: Array[Node2D] = []
+var _projectile_query_buffer: Array[Node2D] = []
+var _body_query_buffer: Array[Node2D] = []
+var _fallback_seen_ids: Dictionary = {}
 
 func _ready() -> void:
 	add_to_group("gravity_resonance_manager")
@@ -161,8 +166,15 @@ func _process(delta: float) -> void:
 
 func _refresh_gravity_sources() -> void:
 	_gravity_sources.clear()
-	var seen := {}
+	var player := _player_node()
+	if RuntimeRegistry != null:
+		var sample_position := player.global_position if player != null else Vector2.ZERO
+		RuntimeRegistry.fill_nearest_gravity_sources(sample_position, _nearest_gravity_query_buffer, max_gravity_sources, 0.0, player)
+		for source in _nearest_gravity_query_buffer:
+			_gravity_sources.append(source)
+		return
 
+	_fallback_seen_ids.clear()
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for source in get_tree().get_nodes_in_group(group_name):
 			# Validate BEFORE casting to prevent freed object crashes
@@ -174,16 +186,11 @@ func _refresh_gravity_sources() -> void:
 				continue
 
 			var id := source_2d.get_instance_id()
-			if seen.has(id):
+			if _fallback_seen_ids.has(id):
 				continue
 
-			seen[id] = true
+			_fallback_seen_ids[id] = true
 			_gravity_sources.append(source_2d)
-
-	var player_node = get_tree().get_first_node_in_group("Player")
-	var player: Node2D = null
-	if is_instance_valid(player_node) and not player_node.is_queued_for_deletion():
-		player = player_node as Node2D
 
 	if player != null:
 		_gravity_sources.sort_custom(func(a: Variant, b: Variant) -> bool:
@@ -442,36 +449,26 @@ func _apply_projectile_acceleration(zone: Dictionary, delta: float) -> void:
 	var intensity := float(zone["intensity"])
 	var acceleration_strength := intensity * projectile_acceleration_multiplier * 65.0 * _zone_projectile_multiplier(_zone_type(zone))
 	var affected := 0
-	var seen := {}
 
-	for group_name in projectile_groups:
-		for projectile in get_tree().get_nodes_in_group(group_name):
-			if affected >= max_projectiles_per_zone:
-				return
+	_fill_motion_bodies(projectile_groups, center, influence_radius, max_projectiles_per_zone, false, true, _projectile_query_buffer)
+	for projectile_2d in _projectile_query_buffer:
+		if affected >= max_projectiles_per_zone:
+			return
 
-			if not is_instance_valid(projectile) or projectile.is_queued_for_deletion():
-				continue
+		if not is_instance_valid(projectile_2d) or projectile_2d.is_queued_for_deletion():
+			continue
 
-			var projectile_2d := _projectile_motion_body(projectile)
-			if projectile_2d == null:
-				continue
+		var offset := projectile_2d.global_position - center
+		var distance_squared := offset.length_squared()
+		if distance_squared > influence_radius_squared or distance_squared <= 0.001:
+			continue
 
-			var id := projectile_2d.get_instance_id()
-			if seen.has(id):
-				continue
-			seen[id] = true
-
-			var offset := projectile_2d.global_position - center
-			var distance_squared := offset.length_squared()
-			if distance_squared > influence_radius_squared or distance_squared <= 0.001:
-				continue
-
-			var direction := _resonance_projectile_direction(zone, projectile_2d, offset)
-			if _zone_type(zone) == ZoneType.TEMPORAL_SCAR:
-				var falloff := 1.0 - clampf(sqrt(distance_squared) / influence_radius, 0.0, 1.0)
-				_apply_temporal_slow(projectile_2d, _temporal_scar_multiplier(intensity, falloff), temporal_scar_slow_duration)
-			CombatStatus.add_velocity(projectile_2d, direction * acceleration_strength * delta)
-			affected += 1
+		var direction := _resonance_projectile_direction(zone, projectile_2d, offset)
+		if _zone_type(zone) == ZoneType.TEMPORAL_SCAR:
+			var falloff := 1.0 - clampf(sqrt(distance_squared) / influence_radius, 0.0, 1.0)
+			_apply_temporal_slow(projectile_2d, _temporal_scar_multiplier(intensity, falloff), temporal_scar_slow_duration)
+		CombatStatus.add_velocity(projectile_2d, direction * acceleration_strength * delta)
+		affected += 1
 
 func _apply_zone_body_effects(zone: Dictionary, delta: float) -> void:
 	var center: Vector2 = zone["midpoint"]
@@ -479,47 +476,111 @@ func _apply_zone_body_effects(zone: Dictionary, delta: float) -> void:
 	var influence_radius_squared := influence_radius * influence_radius
 	var intensity := float(zone.get("intensity", 0.0))
 	var affected := 0
-	var seen := {}
 
-	for group_name in zone_body_groups:
+	_fill_motion_bodies(zone_body_groups, center, influence_radius, max_bodies_per_zone, true, false, _body_query_buffer)
+	for body_2d in _body_query_buffer:
+		if affected >= max_bodies_per_zone:
+			return
+		if not is_instance_valid(body_2d) or body_2d.is_queued_for_deletion():
+			continue
+
+		var offset := body_2d.global_position - center
+		var distance_squared := offset.length_squared()
+		if distance_squared > influence_radius_squared or distance_squared <= 0.001:
+			continue
+
+		var distance := sqrt(distance_squared)
+		var falloff := 1.0 - clampf(distance / influence_radius, 0.0, 1.0)
+		var multiplier := _zone_body_multiplier(body_2d)
+		if multiplier <= 0.0:
+			continue
+
+		var zone_type := _zone_type(zone)
+		if zone_type == ZoneType.TEMPORAL_SCAR and not body_2d.is_in_group("Player"):
+			var slow := lerpf(1.0, _temporal_scar_multiplier(intensity, falloff), clampf(intensity * falloff, 0.0, 1.0))
+			_apply_temporal_slow(body_2d, slow, temporal_scar_slow_duration)
+
+		var direction := _zone_effect_direction(zone, body_2d, offset)
+		if direction == Vector2.ZERO:
+			continue
+
+		var impulse := direction * zone_body_acceleration * intensity * falloff * multiplier * delta
+		CombatStatus.add_velocity(body_2d, impulse)
+		affected += 1
+
+func _fill_motion_bodies(
+	groups: Array[StringName],
+	center: Vector2,
+	radius: float,
+	limit: int,
+	include_player: bool,
+	projectile_only: bool,
+	out_bodies: Array[Node2D]
+) -> void:
+	out_bodies.clear()
+	if limit == 0:
+		return
+
+	var radius_squared := radius * radius
+	var max_count := maxi(limit, 0)
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius(groups, center, radius, limit, include_player, _runtime_target_query_buffer)
+		_append_motion_candidates(_runtime_target_query_buffer, center, radius_squared, max_count, include_player, projectile_only, out_bodies)
+		return
+
+	_fallback_seen_ids.clear()
+	for group_name in groups:
 		for candidate in get_tree().get_nodes_in_group(group_name):
-			if affected >= max_bodies_per_zone:
+			if max_count > 0 and out_bodies.size() >= max_count:
 				return
 			if not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
 				continue
-
-			var body_2d := _motion_body(candidate)
+			var body_2d := _projectile_motion_body(candidate) if projectile_only else _motion_body(candidate)
 			if body_2d == null or not is_instance_valid(body_2d) or body_2d.is_queued_for_deletion():
 				continue
-
+			if not include_player and body_2d.is_in_group("Player"):
+				continue
 			var id := body_2d.get_instance_id()
-			if seen.has(id):
+			if _fallback_seen_ids.has(id):
 				continue
-			seen[id] = true
-
-			var offset := body_2d.global_position - center
-			var distance_squared := offset.length_squared()
-			if distance_squared > influence_radius_squared or distance_squared <= 0.001:
+			_fallback_seen_ids[id] = true
+			if body_2d.global_position.distance_squared_to(center) > radius_squared:
 				continue
+			out_bodies.append(body_2d)
 
-			var distance := sqrt(distance_squared)
-			var falloff := 1.0 - clampf(distance / influence_radius, 0.0, 1.0)
-			var multiplier := _zone_body_multiplier(body_2d)
-			if multiplier <= 0.0:
-				continue
+func _append_motion_candidates(
+	candidates: Array[Node2D],
+	center: Vector2,
+	radius_squared: float,
+	max_count: int,
+	include_player: bool,
+	projectile_only: bool,
+	out_bodies: Array[Node2D]
+) -> void:
+	_fallback_seen_ids.clear()
+	for candidate in candidates:
+		if max_count > 0 and out_bodies.size() >= max_count:
+			return
+		if not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
+			continue
+		var body_2d := _projectile_motion_body(candidate) if projectile_only else _motion_body(candidate)
+		if body_2d == null or not is_instance_valid(body_2d) or body_2d.is_queued_for_deletion():
+			continue
+		if not include_player and body_2d.is_in_group("Player"):
+			continue
+		var id := body_2d.get_instance_id()
+		if _fallback_seen_ids.has(id):
+			continue
+		_fallback_seen_ids[id] = true
+		if body_2d.global_position.distance_squared_to(center) > radius_squared:
+			continue
+		out_bodies.append(body_2d)
 
-			var zone_type := _zone_type(zone)
-			if zone_type == ZoneType.TEMPORAL_SCAR and not body_2d.is_in_group("Player"):
-				var slow := lerpf(1.0, _temporal_scar_multiplier(intensity, falloff), clampf(intensity * falloff, 0.0, 1.0))
-				_apply_temporal_slow(body_2d, slow, temporal_scar_slow_duration)
-
-			var direction := _zone_effect_direction(zone, body_2d, offset)
-			if direction == Vector2.ZERO:
-				continue
-
-			var impulse := direction * zone_body_acceleration * intensity * falloff * multiplier * delta
-			CombatStatus.add_velocity(body_2d, impulse)
-			affected += 1
+func _player_node() -> Node2D:
+	var player_node := get_tree().get_first_node_in_group("Player")
+	if is_instance_valid(player_node) and not player_node.is_queued_for_deletion():
+		return player_node as Node2D
+	return null
 
 func _projectile_motion_body(node: Node) -> Node2D:
 	var current := node

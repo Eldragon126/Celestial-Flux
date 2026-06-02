@@ -132,6 +132,9 @@ func _layer_for_intensity(intensity: float) -> StringName:
 
 func _refresh_boss_pressure() -> void:
 	_boss_pressure = 0.0
+	if RuntimeRegistry != null:
+		_boss_pressure = 1.0 if RuntimeRegistry.get_count(&"bosses") > 0 else 0.0
+		return
 	for boss in get_tree().get_nodes_in_group("bosses"):
 		if is_instance_valid(boss) and not boss.is_queued_for_deletion():
 			_boss_pressure = 1.0

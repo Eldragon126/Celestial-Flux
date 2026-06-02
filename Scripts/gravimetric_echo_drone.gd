@@ -3,6 +3,8 @@ class_name GravimetricEchoDrone
 
 signal echo_replay_spawned(echo_data: Dictionary)
 
+const RECORDABLE_GROUPS: Array[StringName] = [&"Player", &"enemies", &"wave_enemy", &"Projectiles", &"enemy_projectiles", &"player_projectiles"]
+
 @export var max_health: float = 62.0
 @export var contact_damage: float = 12.0
 @export var record_radius: float = 760.0
@@ -21,15 +23,24 @@ var _echoes: Array[Dictionary] = []
 var _sample_elapsed := 999.0
 var _replay_elapsed := 0.0
 var _field_ring: Line2D = null
+var _recordable_targets: Array[Node2D] = []
+var _query_seen_ids: Dictionary = {}
 
 
 func _ready() -> void:
 	add_to_group("enemies")
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"enemies")
 	_player = get_tree().get_first_node_in_group("Player") as Node2D
 	_build_body()
 	_build_health()
 	set_process(true)
 	set_physics_process(true)
+
+
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"enemies")
 
 
 func _process(delta: float) -> void:
@@ -67,16 +78,51 @@ func _record_nearby_motion() -> void:
 func _nearest_recordable_body() -> Node2D:
 	var best: Node2D = null
 	var best_distance := record_radius * record_radius
-	for group_name in [&"Player", &"enemies", &"wave_enemy", &"Projectiles", &"enemy_projectiles", &"player_projectiles"]:
-		for node in get_tree().get_nodes_in_group(group_name):
-			var body := node as Node2D
-			if body == null or body == self or not is_instance_valid(body) or body.is_queued_for_deletion():
-				continue
-			var distance := body.global_position.distance_squared_to(global_position)
-			if distance < best_distance:
-				best_distance = distance
-				best = body
+	_fill_targets_in_radius(RECORDABLE_GROUPS, global_position, record_radius, max_path_samples, true, _recordable_targets)
+	for body in _recordable_targets:
+		if body == self or not is_instance_valid(body) or body.is_queued_for_deletion():
+			continue
+		var distance := body.global_position.distance_squared_to(global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = body
 	return best
+
+
+func _fill_targets_in_radius(
+	groups: Array[StringName],
+	center: Vector2,
+	radius: float,
+	limit: int,
+	include_player: bool,
+	out_targets: Array[Node2D]
+) -> void:
+	out_targets.clear()
+	if limit == 0:
+		return
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius(groups, center, radius, limit, include_player, out_targets)
+		return
+
+	var radius_squared := radius * radius
+	var max_count := maxi(limit, 0)
+	_query_seen_ids.clear()
+	for group_name in groups:
+		for node in get_tree().get_nodes_in_group(group_name):
+			if max_count > 0 and out_targets.size() >= max_count:
+				return
+			var body := node as Node2D
+			if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
+				continue
+			if not include_player and body.is_in_group("Player"):
+				continue
+			var id := body.get_instance_id()
+			if _query_seen_ids.has(id):
+				continue
+			_query_seen_ids[id] = true
+			if body.global_position.distance_squared_to(center) > radius_squared:
+				continue
+			out_targets.append(body)
 
 
 func _spawn_echo_replay() -> void:

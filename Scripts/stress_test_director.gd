@@ -79,8 +79,8 @@ func validate_performance_budgets() -> Dictionary:
 	var scene := get_tree().current_scene
 	var report := {
 		"fps": Engine.get_frames_per_second(),
-		"projectiles": get_tree().get_nodes_in_group("Projectiles").size(),
-		"enemy_projectiles": get_tree().get_nodes_in_group("enemy_projectiles").size(),
+		"projectiles": _group_count(&"Projectiles"),
+		"enemy_projectiles": _group_count(&"enemy_projectiles"),
 		"within_budget": true,
 	}
 	if scene == null:
@@ -105,6 +105,12 @@ func validate_performance_budgets() -> Dictionary:
 		report["resonance_particle_cap"] = resonance.get("max_visual_particles_per_zone")
 
 	return report
+
+
+func _group_count(group_name: StringName) -> int:
+	if RuntimeRegistry != null:
+		return RuntimeRegistry.get_count(group_name)
+	return get_tree().get_nodes_in_group(group_name).size()
 
 
 func _clear_spawned() -> void:

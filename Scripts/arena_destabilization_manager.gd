@@ -405,11 +405,10 @@ func _refresh_player_gravity_cache() -> void:
 		_player.set("planets", get_tree().get_nodes_in_group("planets"))
 
 func _cleanup_hazard_tracking() -> void:
-	var kept: Array[Node] = []
-	for hazard in _active_hazards:
-		if is_instance_valid(hazard) and not hazard.is_queued_for_deletion():
-			kept.append(hazard)
-	_active_hazards = kept
+	for index in range(_active_hazards.size() - 1, -1, -1):
+		var hazard := _active_hazards[index]
+		if hazard == null or not is_instance_valid(hazard) or hazard.is_queued_for_deletion():
+			_active_hazards.remove_at(index)
 
 func _count_valid_hazards() -> int:
 	_cleanup_hazard_tracking()
@@ -421,6 +420,8 @@ func _current_wave() -> int:
 	return int(_safe_float(_wave_director.get("_wave"), float(_last_wave_seen)))
 
 func _enemy_count() -> int:
+	if RuntimeRegistry != null:
+		return RuntimeRegistry.get_count(&"enemies")
 	return get_tree().get_nodes_in_group("enemies").size()
 
 func _active_resonance_count() -> int:
@@ -440,6 +441,9 @@ func _is_boss_active() -> bool:
 		var boss := _wave_director.get("_boss") as Node
 		if boss != null and is_instance_valid(boss):
 			return true
+
+	if RuntimeRegistry != null:
+		return RuntimeRegistry.get_count(&"bosses") > 0
 
 	for boss in get_tree().get_nodes_in_group("bosses"):
 		if is_instance_valid(boss):

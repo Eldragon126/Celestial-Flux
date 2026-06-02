@@ -296,5 +296,9 @@ Production behavior:
 - Vacuum collapse, relativistic impact, time-debt zones, orbital debris, orbital memory, and resonance cascades all resolve on fixed intervals.
 - Dynamic gravity debris and compression/inversion tide pockets register directly with the runtime cache when they enter gravity groups and unregister on exit.
 - `PowerupInventory` uses reusable query buffers for orbital projectile capture, singularity death hooks, debris bending, Apex Vector targeting, and slingshot time-lens pulses.
+- `GravityResonanceManager` uses registry-backed nearest-source and radius queries for resonance detection, projectile acceleration, and body field effects.
+- `MomentumCombatComponent` uses capped target buffers for near-miss mastery and kinetic shockwaves.
+- Event Horizon Warden, Gravity Maw, Gravimetric Echo Drone, and Resonance Paralytic Construct use bounded registry queries for collapse, absorption, replay, and paralysis fields.
+- Readability, death diagnostics, adaptive music, stress reporting, and multiplayer sync risk read cached projectile/boss/gravity counts before falling back to direct scans.
 
 This keeps high-chaos combat deterministic-feeling, readable, and bounded under late-wave projectile/enemy load.

@@ -4,6 +4,9 @@ class_name GravityMawBoss
 ## Hidden boss that consumes nearby gravity sources instead of only firing shots.
 ## The scene keeps the hull/rings/particles editable; this script drives rules.
 
+const PULL_TARGET_GROUPS: Array[StringName] = [&"Player", &"enemies", &"wave_enemy", &"Projectiles", &"enemy_projectiles"]
+const PULL_TARGET_LIMIT := 36
+
 @export var display_name: String = "GRAVITY MAW"
 @export var orbit_distance: float = 620.0
 @export var move_speed: float = 380.0
@@ -29,6 +32,9 @@ var _rings: Array[Line2D] = []
 var _particles: GPUParticles2D = null
 var _resonance_manager: Node = null
 var _scar_manager: Node = null
+var _pull_targets: Array[Node2D] = []
+var _gravity_sources: Array[Node2D] = []
+var _query_seen_ids: Dictionary = {}
 
 
 func _ready() -> void:
@@ -84,49 +90,41 @@ func _update_absorption(delta: float) -> void:
 
 
 func _pull_nearby_bodies(delta: float) -> void:
-	var radius_squared := pull_radius * pull_radius
 	var affected := 0
-	for group_name in [&"Player", &"enemies", &"wave_enemy", &"Projectiles", &"enemy_projectiles"]:
-		for target in get_tree().get_nodes_in_group(group_name):
-			if affected >= 36:
-				return
-			if target == self:
-				continue
-			if not is_instance_valid(target) or target.is_queued_for_deletion():
-				continue
-			var target_2d := target as Node2D
-			if target_2d == null:
-				continue
-			var offset := global_position - target_2d.global_position
-			var distance_squared := offset.length_squared()
-			if distance_squared <= 1.0 or distance_squared > radius_squared:
-				continue
-			var falloff := 1.0 - sqrt(distance_squared) / pull_radius
-			var multiplier := 0.35 if target == player else 1.0
-			CombatStatus.add_velocity(target_2d, offset.normalized() * pull_force * falloff * multiplier * delta)
-			affected += 1
+	_fill_targets_in_radius(PULL_TARGET_GROUPS, global_position, pull_radius, PULL_TARGET_LIMIT, true, _pull_targets)
+	for target_2d in _pull_targets:
+		if affected >= PULL_TARGET_LIMIT:
+			return
+		if target_2d == self or not is_instance_valid(target_2d) or target_2d.is_queued_for_deletion():
+			continue
+		var offset := global_position - target_2d.global_position
+		var distance_squared := offset.length_squared()
+		if distance_squared <= 1.0:
+			continue
+		var falloff := 1.0 - sqrt(distance_squared) / pull_radius
+		var multiplier := 0.35 if target_2d == player else 1.0
+		CombatStatus.add_velocity(target_2d, offset.normalized() * pull_force * falloff * multiplier * delta)
+		affected += 1
 
 
 func _absorb_gravity_sources(delta: float) -> void:
 	var consumed_this_tick := 0.0
 	var affected := 0
-	for source in get_tree().get_nodes_in_group("Objects_With_Gravity"):
+	_fill_absorbable_sources()
+	for source_2d in _gravity_sources:
 		if affected >= max_sources_per_tick:
 			break
-		if not _can_absorb_source(source):
-			continue
-		var source_2d := source as Node2D
-		if source_2d == null:
+		if not _can_absorb_source(source_2d):
 			continue
 		var distance := source_2d.global_position.distance_to(global_position)
 		if distance > absorb_radius:
 			continue
 
-		var source_mass := _source_mass(source)
+		var source_mass := _source_mass(source_2d)
 		var falloff := clampf(1.0 - distance / maxf(absorb_radius, 1.0), 0.12, 1.0)
 		var charge_bonus := 1.0 + _consume_charge * 1.65
 		var consumed := source_mass * mass_gain_scale * falloff * charge_bonus * delta
-		_apply_source_consumption(source, source_2d, falloff, charge_bonus, delta)
+		_apply_source_consumption(source_2d, source_2d, falloff, charge_bonus, delta)
 		_spawn_absorb_line(source_2d.global_position, falloff)
 		consumed_this_tick += consumed
 		affected += 1
@@ -202,15 +200,90 @@ func _can_absorb_source(source: Node) -> bool:
 func _nearest_gravity_source_position() -> Vector2:
 	var best := Vector2.ZERO
 	var best_distance := INF
+	_fill_nearest_gravity_sources(global_position, max_sources_per_tick, 0.0, _gravity_sources)
+	for source in _gravity_sources:
+		if not _can_absorb_source(source):
+			continue
+		var distance := source.global_position.distance_squared_to(global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = source.global_position
+	return best
+
+
+func _fill_absorbable_sources() -> void:
+	_fill_nearest_gravity_sources(global_position, max_sources_per_tick, absorb_radius, _gravity_sources)
+
+
+func _fill_nearest_gravity_sources(position: Vector2, limit: int, radius: float, out_sources: Array[Node2D]) -> void:
+	out_sources.clear()
+	if limit == 0:
+		return
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_nearest_gravity_sources(position, out_sources, limit, radius, self)
+		return
+
+	var radius_squared := radius * radius
+	var max_count := maxi(limit, 0)
+	_query_seen_ids.clear()
 	for source in get_tree().get_nodes_in_group("Objects_With_Gravity"):
 		if not _can_absorb_source(source):
 			continue
 		var source_2d := source as Node2D
-		var distance := source_2d.global_position.distance_squared_to(global_position)
-		if distance < best_distance:
-			best_distance = distance
-			best = source_2d.global_position
-	return best
+		if source_2d == null:
+			continue
+		var id := source_2d.get_instance_id()
+		if _query_seen_ids.has(id):
+			continue
+		_query_seen_ids[id] = true
+		if radius > 0.0 and source_2d.global_position.distance_squared_to(position) > radius_squared:
+			continue
+		out_sources.append(source_2d)
+	out_sources.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		if not is_instance_valid(a) or not is_instance_valid(b):
+			return false
+		return a.global_position.distance_squared_to(position) < b.global_position.distance_squared_to(position)
+	)
+	if max_count > 0 and out_sources.size() > max_count:
+		out_sources.resize(max_count)
+
+
+func _fill_targets_in_radius(
+	groups: Array[StringName],
+	center: Vector2,
+	radius: float,
+	limit: int,
+	include_player: bool,
+	out_targets: Array[Node2D]
+) -> void:
+	out_targets.clear()
+	if limit == 0:
+		return
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius(groups, center, radius, limit, include_player, out_targets)
+		return
+
+	var radius_squared := radius * radius
+	var max_count := maxi(limit, 0)
+	_query_seen_ids.clear()
+	for group_name in groups:
+		for target in get_tree().get_nodes_in_group(group_name):
+			if max_count > 0 and out_targets.size() >= max_count:
+				return
+			if not is_instance_valid(target) or target.is_queued_for_deletion():
+				continue
+			var target_2d := target as Node2D
+			if target_2d == null:
+				continue
+			if not include_player and target_2d.is_in_group("Player"):
+				continue
+			var id := target_2d.get_instance_id()
+			if _query_seen_ids.has(id):
+				continue
+			_query_seen_ids[id] = true
+			if target_2d.global_position.distance_squared_to(center) > radius_squared:
+				continue
+			out_targets.append(target_2d)
 
 
 func _source_mass(source: Node) -> float:

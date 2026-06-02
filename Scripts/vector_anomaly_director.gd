@@ -103,6 +103,10 @@ var _lens_visual_pool: Array[Line2D] = []
 var _transient_ring_pool: Array[Line2D] = []
 var _query_targets: Array[Node2D] = []
 var _memory_line: Line2D = null
+var _memory_line_points := PackedVector2Array()
+var _memory_points_dirty: bool = true
+var _nearest_memory_distance: float = INF
+var _nearest_memory_tangent: Vector2 = Vector2.RIGHT
 var _rng := RandomNumberGenerator.new()
 
 
@@ -460,14 +464,17 @@ func _update_orbital_memory(delta: float) -> void:
 
 	if _orbital_memory_points.is_empty():
 		_orbital_memory_points.append(_player.global_position)
+		_memory_points_dirty = true
 		return
 
 	if _orbital_memory_points[_orbital_memory_points.size() - 1].distance_to(_player.global_position) < memory_min_distance:
 		return
 
 	_orbital_memory_points.append(_player.global_position)
+	_memory_points_dirty = true
 	while _orbital_memory_points.size() > memory_max_points:
 		_orbital_memory_points.remove_at(0)
+		_memory_points_dirty = true
 
 	orbital_memory_recorded.emit({
 		"position": _player.global_position,
@@ -488,22 +495,19 @@ func _apply_orbital_memory_fields(delta: float) -> void:
 		var body := target as Node2D
 		if body == null or body.is_in_group("Player"):
 			continue
-		var memory := _nearest_memory_segment(body.global_position)
-		if memory.is_empty():
+		if not _find_nearest_memory_segment(body.global_position):
 			continue
-		var distance := float(memory.get("distance", INF))
-		if distance > memory_influence_radius:
+		if _nearest_memory_distance > memory_influence_radius:
 			continue
-		var tangent: Vector2 = memory.get("tangent", Vector2.RIGHT)
-		var falloff := 1.0 - clampf(distance / memory_influence_radius, 0.0, 1.0)
-		_add_velocity(body, tangent * memory_curve_strength * falloff * delta)
+		var falloff := 1.0 - clampf(_nearest_memory_distance / memory_influence_radius, 0.0, 1.0)
+		_add_velocity(body, _nearest_memory_tangent * memory_curve_strength * falloff * delta)
 		body.set_meta(&"orbital_memory_pressure", falloff)
 		affected += 1
 
 
-func _nearest_memory_segment(position: Vector2) -> Dictionary:
-	var best := {}
-	var best_distance := INF
+func _find_nearest_memory_segment(position: Vector2) -> bool:
+	_nearest_memory_distance = INF
+	_nearest_memory_tangent = Vector2.RIGHT
 	for idx in range(1, _orbital_memory_points.size()):
 		var a := _orbital_memory_points[idx - 1]
 		var b := _orbital_memory_points[idx]
@@ -513,16 +517,11 @@ func _nearest_memory_segment(position: Vector2) -> Dictionary:
 		var t := clampf((position - a).dot(segment) / segment.length_squared(), 0.0, 1.0)
 		var closest := a + segment * t
 		var distance := position.distance_to(closest)
-		if distance >= best_distance:
+		if distance >= _nearest_memory_distance:
 			continue
-		best_distance = distance
-		best = {
-			"position": closest,
-			"distance": distance,
-			"tangent": segment.normalized(),
-			"index": idx,
-		}
-	return best
+		_nearest_memory_distance = distance
+		_nearest_memory_tangent = segment.normalized()
+	return _nearest_memory_distance < INF
 
 
 func _create_time_debt_zone(slow_position: Vector2, repay_position: Vector2, radius: float, duration: float, intensity: float, source_label: StringName) -> void:
@@ -633,7 +632,9 @@ func _update_debris_orbits(delta: float) -> void:
 	var erase_ids: Array[int] = []
 	for id in _debris_orbits.keys():
 		var orbit: Dictionary = _debris_orbits[id]
-		var debris := orbit.get("debris") as Node2D
+		var debris : Node2D
+		if is_instance_valid(orbit.get("debris")):
+			debris = orbit.get("debris") 
 		if debris == null or not is_instance_valid(debris) or debris.is_queued_for_deletion():
 			erase_ids.append(id)
 			continue
@@ -996,10 +997,12 @@ func _sync_memory_visual() -> void:
 		_memory_line.z_index = -2
 		_memory_line.top_level = true
 		add_child(_memory_line)
-	var points := PackedVector2Array()
-	for point in _orbital_memory_points:
-		points.append(point)
-	_memory_line.points = points
+	if _memory_points_dirty:
+		_memory_line_points.clear()
+		for point in _orbital_memory_points:
+			_memory_line_points.append(point)
+		_memory_line.points = _memory_line_points
+		_memory_points_dirty = false
 	_memory_line.default_color = Color(0.32, 0.78, 1.0, memory_visual_alpha)
 	_memory_line.visible = true
 

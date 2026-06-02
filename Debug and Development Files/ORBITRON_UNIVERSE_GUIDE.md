@@ -78,6 +78,8 @@ Avoid language that sounds like:
 - `PHYSICS MUTATION DETECTED`
 - `DEATH VECTOR: low momentum left you pinned`
 - `MUSIC DEFINES REALITY`
+- `VECTOR ANOMALY ONLINE`
+- `VECTOR ANOMALY RESOLVED`
 
 The text should make the player feel that the arena is understandable, even when it is terrifying.
 

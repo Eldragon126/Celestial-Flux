@@ -1,0 +1,41 @@
+# Things To Fix Production Plan
+
+## Summary
+Turn the remaining open items in `Things to Fix.txt` into one focused polish pass: make bosses meaningfully dangerous, remove visual confusion around slingshots/rings/player effects, fix death clarity, improve gravity beam behavior, and make menus editable/readable.
+
+## Key Changes
+- Boss difficulty: add centralized boss balance profiles in `WaveDirector` keyed by scheduled boss scene path. Apply after boss instantiation: Warden `health 1.20`, Accretion `1.25`, Null Seraph `1.25`, Magnetar Twins `1.25`, Rift Weaver `1.30`, Polymorph `1.35`; reduce attack/fire/polarity windows by `15-30%`, increase projectile/field forces by `10-18%`, and increase Polymorph `contact_damage`, `engine_force`, and `max_speed` by `15%`.
+- Menu readability: audit title, pause, game-over, HUD/menu labels for overlap at UI scale `0.75`, `1.0`, `1.35`; add wrapping, clipping, minimum sizes, and responsive containers. Fix pause-menu editor visibility by making the scene default visible/full alpha in-editor, then hiding/fading only from `_ready()` at runtime.
+- Gravity wave beam: keep current damage, but add enemy gravity warping in `WeaponSystem`: pull hostile bodies toward the beam spine with lateral attraction, add mild forward drift along the beam, use reduced boss pull, and preserve projectile bending.
+- Slingshot polish: route mastery feedback through `JuiceCoordinator` so only Apex/God Vector moments get large rings; convert combo extensions to small pooled pings, cap active slingshot rings, add audio cooldowns, and make camera/flow aura the primary reward instead of harmonic-circle spam.
+- Resonance clarity: keep the five internal zone types, but reduce player-facing clutter. Show only the nearest active field label, fade harmonic-orbit visuals faster, cap manual slingshot-created harmonic zones to short duration, and enforce cleanup for invalid sources.
+- Death flow: when health reaches zero, immediately lock input/shooting/weapon systems, hide combat predictors, stop player movement authority, play the death beat for `0.65s`, then transition. Keep the death readout, but remove the playable “I can still shoot” window.
+- Player visual rings: keep shield as the only persistent player-centered world ring. Move health/energy/time/slingshot status to HUD arcs only, make powerup rings short-lived bursts, and replace confusing purple/blue/red player rings with clear color roles: blue shield, purple time, red danger, cyan momentum.
+- Spacetime swim: replace attached wiggly ribbons with a crisp player-local vector echo effect inspired by sharp arena-shooter silhouette smears, not a direct clone. Use pooled short-lived hull/triangle echoes, no long curvy lines glued to the player.
+
+## Public Interfaces And Data
+- Add exported tuning fields to `WeaponSystem`: `gravity_wave_enemy_pull_per_second`, `gravity_wave_enemy_forward_drift_per_second`, `gravity_wave_boss_pull_multiplier`, and `gravity_wave_pull_falloff_power`.
+- Add exported death tuning to player: `death_transition_delay = 0.65` and `death_freeze_velocity = true`.
+- Add feedback budget exports to `JuiceCoordinator`: max active slingshot rings, slingshot audio minimum gap, and minimum grade for large ring feedback.
+- Add resonance visual budget exports to `GravityResonanceManager`: visible zone cap, manual harmonic duration cap, harmonic low-emphasis alpha, and nearest-label-only mode.
+- Add SpacetimeSwim visual mode exports: `use_player_echo_mode = true`, `max_player_echoes`, `echo_lifetime`, and `disable_player_ribbons = true`.
+
+## Documentation Updates
+- Update `Things to Fix.txt` item-by-item as fixes land.
+- Update systems docs for new boss balance profiles, gravity beam attraction behavior, death lockout behavior, resonance visual budget rules, and player visual color roles.
+- Update production roadmap with the new acceptance criteria for “satisfying but non-overwhelming” slingshot feedback.
+
+## Test Plan
+- Boss pass: play or simulate each scheduled boss wave and boss rush; verify bosses survive long enough to enter later phases and force movement decisions.
+- UI pass: inspect title, pause, game-over, HUD, and upgrade/menu text at `1280x720`, `1920x1080`, and `2560x1440`, with UI scale `0.75`, `1.0`, and `1.35`.
+- Gravity beam: fire gravity wave beam through enemies, bosses, and enemy projectiles; verify enemies drift toward the beam spine while still taking damage.
+- Slingshot/resonance: perform repeated good/great/perfect/apex slingshots near multiple gravity sources; verify no large ring spam, no audio stacking, and harmonic zones expire or fade as intended.
+- Death flow: die while holding fire and while moving fast; verify no shots spawn after death, no recovery confusion, and game-over appears after the configured delay.
+- Pause editor: open `pause_menu.tscn` directly in Godot editor; verify nodes are visible/selectable without running the game.
+- Static validation: run retired-name and placeholder scans plus `git diff --check`; run Godot checks only if the local Godot binary no longer crashes.
+
+## Assumptions
+- Keep Vector Anomaly’s physics complexity; simplify presentation, not the underlying systems.
+- Use the WINDOWKILL reference only as direction for crisp vector echoes, not as copied visual design.
+- Keep save behavior progress-only; none of these fixes serialize live physics state.
+- If Godot headless still triggers the local Win32 JIT crash, record runtime validation as blocked and rely on static/manual checks for that pass.

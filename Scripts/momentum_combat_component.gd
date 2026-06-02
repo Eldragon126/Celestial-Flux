@@ -1,6 +1,9 @@
 extends Node2D
 class_name MomentumCombatComponent
 
+const NEAR_MISS_GROUPS: Array[StringName] = [&"Objects_With_Gravity"]
+const SHOCKWAVE_TARGET_GROUPS: Array[StringName] = [&"enemies", &"wave_enemy", &"Projectiles", &"enemy_projectiles"]
+
 # ==========================================
 # == SIGNALS ==
 # ==========================================
@@ -53,6 +56,7 @@ signal flow_state_changed(active: bool, intensity: float)
 @export var near_miss_side_dot: float = 0.52
 @export var near_miss_velocity_gain: float = 95.0
 @export var near_miss_cooldown: float = 0.7
+@export var near_miss_max_targets: int = 16
 
 @export_group("Kinetic Impact")
 @export var kinetic_impact_enabled: bool = true
@@ -135,6 +139,9 @@ var _aura_inner: Line2D = null
 var _aura_particles: GPUParticles2D = null
 var _mastery_audio_stream: AudioStream = preload("res://Assets/Sound Effects/PlayerShoot.wav")
 var _rng := RandomNumberGenerator.new()
+var _near_miss_targets: Array[Node2D] = []
+var _shockwave_targets: Array[Node2D] = []
+var _query_seen_ids: Dictionary = {}
 
 # ========================
 # == LIFECYCLE ==
@@ -269,12 +276,9 @@ func _update_near_misses(delta: float) -> void:
 	if speed < near_miss_min_speed:
 		return
 	
-	var targets = get_tree().get_nodes_in_group("Objects_With_Gravity")
-	for target in targets:
-		if target == _player or not is_instance_valid(target):
-			continue
-		var target_2d := target as Node2D
-		if target_2d == null or target_2d.is_queued_for_deletion():
+	_fill_targets_in_radius(NEAR_MISS_GROUPS, _player.global_position, near_miss_radius, near_miss_max_targets, false, _near_miss_targets)
+	for target_2d in _near_miss_targets:
+		if target_2d == _player or not is_instance_valid(target_2d) or target_2d.is_queued_for_deletion():
 			continue
 		var dist = _player.global_position.distance_to(target_2d.global_position)
 		if dist < near_miss_radius and dist > near_miss_inner_deadzone:
@@ -435,36 +439,25 @@ func _create_kinetic_shockwave(primary_target: Node, speed: float) -> void:
 	if center_node == null:
 		center_node = _player
 	var center := center_node.global_position
-	var radius_squared := shockwave_radius * shockwave_radius
 	var affected := 0
-	var seen := {}
 
-	for group_name in [&"enemies", &"wave_enemy", &"Projectiles", &"enemy_projectiles"]:
-		for candidate in get_tree().get_nodes_in_group(group_name):
-			if affected >= shockwave_max_targets:
-				break
-			if candidate == _player or candidate == primary_target:
-				continue
-			if not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
-				continue
+	_fill_targets_in_radius(SHOCKWAVE_TARGET_GROUPS, center, shockwave_radius, shockwave_max_targets, false, _shockwave_targets)
+	for candidate_2d in _shockwave_targets:
+		if affected >= shockwave_max_targets:
+			break
+		if candidate_2d == _player or candidate_2d == primary_target:
+			continue
+		if not is_instance_valid(candidate_2d) or candidate_2d.is_queued_for_deletion():
+			continue
 
-			var candidate_2d := candidate as Node2D
-			if candidate_2d == null:
-				continue
+		var offset := candidate_2d.global_position - center
+		var dist_squared := offset.length_squared()
+		if dist_squared <= 0.001:
+			continue
 
-			var id := candidate_2d.get_instance_id()
-			if seen.has(id):
-				continue
-			seen[id] = true
-
-			var offset := candidate_2d.global_position - center
-			var dist_squared := offset.length_squared()
-			if dist_squared <= 0.001 or dist_squared > radius_squared:
-				continue
-
-			var falloff := 1.0 - sqrt(dist_squared) / shockwave_radius
-			CombatStatus.add_velocity(candidate_2d, offset.normalized() * shockwave_force * falloff)
-			affected += 1
+		var falloff := 1.0 - sqrt(dist_squared) / shockwave_radius
+		CombatStatus.add_velocity(candidate_2d, offset.normalized() * shockwave_force * falloff)
+		affected += 1
 
 	kinetic_shockwave_created.emit({
 		"position": center,
@@ -475,6 +468,44 @@ func _create_kinetic_shockwave(primary_target: Node, speed: float) -> void:
 
 	if shockwave_visual_enabled:
 		_spawn_shockwave_visual(center)
+
+
+func _fill_targets_in_radius(
+	groups: Array[StringName],
+	center: Vector2,
+	radius: float,
+	limit: int,
+	include_player: bool,
+	out_targets: Array[Node2D]
+) -> void:
+	out_targets.clear()
+	if limit == 0:
+		return
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius(groups, center, radius, limit, include_player, out_targets)
+		return
+
+	var radius_squared := radius * radius
+	var max_count := maxi(limit, 0)
+	_query_seen_ids.clear()
+	for group_name in groups:
+		for candidate in get_tree().get_nodes_in_group(group_name):
+			if max_count > 0 and out_targets.size() >= max_count:
+				return
+			if not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
+				continue
+			var candidate_2d := candidate as Node2D
+			if candidate_2d == null:
+				continue
+			if not include_player and candidate_2d.is_in_group("Player"):
+				continue
+			var id := candidate_2d.get_instance_id()
+			if _query_seen_ids.has(id):
+				continue
+			_query_seen_ids[id] = true
+			if candidate_2d.global_position.distance_squared_to(center) > radius_squared:
+				continue
+			out_targets.append(candidate_2d)
 
 
 func _spawn_shockwave_visual(center: Vector2) -> void:

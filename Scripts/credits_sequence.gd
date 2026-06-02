@@ -21,7 +21,7 @@ func _ready() -> void:
 		push_warning("CreditsSequence: missing Neon Starlight.mp3")
 
 	if _label != null:
-		_label.text = "VECTORFALL RESOLVED"
+		_label.text = "VECTOR ANOMALY RESOLVED"
 
 
 func _process(_delta: float) -> void:

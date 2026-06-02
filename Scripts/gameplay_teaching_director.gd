@@ -18,7 +18,7 @@ var _death_lesson_time := 0.0
 var _prompt_index := 0
 var _death_mode := false
 var _opening_prompts := [
-	"VECTORFALL ONLINE",
+	"VECTOR ANOMALY ONLINE",
 	"ORBIT THE WELL",
 	"SLINGSHOT TO SURVIVE",
 	"TIME BENDS UNDER PRESSURE",
@@ -169,6 +169,12 @@ func _upcoming_boss_hint() -> String:
 
 
 func _projectile_count() -> int:
+	if RuntimeRegistry != null:
+		return (
+			RuntimeRegistry.get_count(&"Projectiles")
+			+ RuntimeRegistry.get_count(&"enemy_projectiles")
+			+ RuntimeRegistry.get_count(&"player_projectiles")
+		)
 	var count := get_tree().get_nodes_in_group("Projectiles").size()
 	count += get_tree().get_nodes_in_group("enemy_projectiles").size()
 	count += get_tree().get_nodes_in_group("player_projectiles").size()

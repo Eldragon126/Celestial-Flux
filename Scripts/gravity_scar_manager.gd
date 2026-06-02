@@ -97,6 +97,7 @@ var _player: Node = null
 var _source_cooldowns: Dictionary = {}
 var _last_instability_bucket: int = -1
 var _local_time: float = 0.0
+var _scar_target_buffer: Array[Node2D] = []
 
 
 func _ready() -> void:
@@ -366,43 +367,56 @@ func _apply_scar_fields(delta: float) -> void:
 
 func _apply_group_fields(groups: Array[StringName], target_limit: int, delta: float, projectile_pass: bool) -> void:
 	var affected := 0
-	var seen := {}
+	_scar_target_buffer.clear()
 
-	for group_name in groups:
-		for node in get_tree().get_nodes_in_group(group_name):
-			if affected >= target_limit:
-				return
-			if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
-				continue
+	if RuntimeRegistry != null:
+		var sample_center := global_position
+		var player_2d := _player as Node2D
+		if player_2d != null and is_instance_valid(player_2d):
+			sample_center = player_2d.global_position
+		RuntimeRegistry.fill_targets_in_radius(groups, sample_center, 2600.0, target_limit, true, _scar_target_buffer)
+	else:
+		var seen := {}
+		for group_name in groups:
+			for node in get_tree().get_nodes_in_group(group_name):
+				if _scar_target_buffer.size() >= target_limit:
+					break
+				if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+					continue
+				var node_2d := node as Node2D
+				if node_2d == null:
+					continue
+				var id := node_2d.get_instance_id()
+				if seen.has(id):
+					continue
+				seen[id] = true
+				_scar_target_buffer.append(node_2d)
 
-			var body := node as Node2D
-			if body == null:
-				continue
-			if projectile_pass and not _accepts_velocity(body):
-				continue
+	for body in _scar_target_buffer:
+		if affected >= target_limit:
+			return
+		if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
+			continue
+		if projectile_pass and not _accepts_velocity(body):
+			continue
 
-			var id := body.get_instance_id()
-			if seen.has(id):
-				continue
-			seen[id] = true
+		var velocity := _body_velocity(body)
+		var acceleration := get_scar_acceleration_at_position(body.global_position, velocity, body)
+		if acceleration == Vector2.ZERO:
+			continue
 
-			var velocity := _body_velocity(body)
-			var acceleration := get_scar_acceleration_at_position(body.global_position, velocity, body)
-			if acceleration == Vector2.ZERO:
-				continue
+		var multiplier := _target_multiplier(body)
+		if projectile_pass:
+			multiplier *= projectile_multiplier
+		var impulse := acceleration * multiplier * delta
+		if impulse.length_squared() <= 0.001:
+			continue
 
-			var multiplier := _target_multiplier(body)
-			if projectile_pass:
-				multiplier *= projectile_multiplier
-			var impulse := acceleration * multiplier * delta
-			if impulse.length_squared() <= 0.001:
-				continue
-
-			CombatStatusApi.add_velocity(body, impulse)
-			_apply_temporal_side_effects(body, delta)
-			body.set_meta(&"gravity_scar_pressure", minf(1.0, acceleration.length() / maxf(field_acceleration, 1.0)))
-			gravity_scar_applied.emit(body, impulse, _nearest_scar_data(body.global_position))
-			affected += 1
+		CombatStatusApi.add_velocity(body, impulse)
+		_apply_temporal_side_effects(body, delta)
+		body.set_meta(&"gravity_scar_pressure", minf(1.0, acceleration.length() / maxf(field_acceleration, 1.0)))
+		gravity_scar_applied.emit(body, impulse, _nearest_scar_data(body.global_position))
+		affected += 1
 
 
 func get_scar_acceleration_at_position(position: Vector2, velocity_value: Vector2, target: Node = null) -> Vector2:

@@ -131,6 +131,11 @@ func _chaos_level() -> float:
 
 
 func _projectile_count() -> int:
+	if RuntimeRegistry != null:
+		return (
+			RuntimeRegistry.get_count(&"enemy_projectiles")
+			+ RuntimeRegistry.get_count(&"Projectiles")
+		)
 	return (
 		get_tree().get_nodes_in_group("enemy_projectiles").size()
 		+ get_tree().get_nodes_in_group("Projectiles").size()
@@ -138,6 +143,8 @@ func _projectile_count() -> int:
 
 
 func _boss_active() -> bool:
+	if RuntimeRegistry != null:
+		return RuntimeRegistry.get_count(&"bosses") > 0
 	for boss in get_tree().get_nodes_in_group("bosses"):
 		if is_instance_valid(boss) and not boss.is_queued_for_deletion():
 			return true

@@ -4,6 +4,7 @@ class_name ResonanceParalyticConstruct
 signal resonance_feedback_triggered(feedback_data: Dictionary)
 
 const FREQUENCIES: Array[StringName] = [&"compression", &"slipstream", &"inversion", &"temporal_scar", &"harmonic_orbit"]
+const PARALYTIC_TARGET_GROUPS: Array[StringName] = [&"Player", &"Projectiles", &"player_projectiles", &"enemy_projectiles"]
 
 @export var max_health: float = 112.0
 @export var field_radius: float = 460.0
@@ -21,15 +22,24 @@ var _frequency_index := 0
 var _frequency_elapsed := 0.0
 var _ring: Line2D = null
 var _core: Polygon2D = null
+var _field_targets: Array[Node2D] = []
+var _query_seen_ids: Dictionary = {}
 
 
 func _ready() -> void:
 	add_to_group("enemies")
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"enemies")
 	_player = get_tree().get_first_node_in_group("Player") as Node2D
 	_build_body()
 	_build_health()
 	set_process(true)
 	set_physics_process(true)
+
+
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"enemies")
 
 
 func _process(delta: float) -> void:
@@ -63,22 +73,54 @@ func take_damage(amount: float) -> void:
 func _apply_paralytic_field(delta: float) -> void:
 	var desired := _current_frequency()
 	var affected := 0
-	for group_name in [&"Player", &"Projectiles", &"player_projectiles", &"enemy_projectiles"]:
+	_fill_targets_in_radius(PARALYTIC_TARGET_GROUPS, global_position, field_radius, max_targets_per_tick, true, _field_targets)
+	for body in _field_targets:
+		if affected >= max_targets_per_tick:
+			return
+		if body == self or not is_instance_valid(body) or body.is_queued_for_deletion():
+			continue
+		var match_quality := _frequency_match_quality(body, desired)
+		if match_quality >= 0.72:
+			_trigger_feedback(body, desired, match_quality)
+		else:
+			_apply_paralysis(body, desired, 1.0 - match_quality, delta)
+		affected += 1
+
+
+func _fill_targets_in_radius(
+	groups: Array[StringName],
+	center: Vector2,
+	radius: float,
+	limit: int,
+	include_player: bool,
+	out_targets: Array[Node2D]
+) -> void:
+	out_targets.clear()
+	if limit == 0:
+		return
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius(groups, center, radius, limit, include_player, out_targets)
+		return
+
+	var radius_squared := radius * radius
+	var max_count := maxi(limit, 0)
+	_query_seen_ids.clear()
+	for group_name in groups:
 		for node in get_tree().get_nodes_in_group(group_name):
-			if affected >= max_targets_per_tick:
+			if max_count > 0 and out_targets.size() >= max_count:
 				return
 			var body := node as Node2D
 			if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
 				continue
-			var distance := body.global_position.distance_to(global_position)
-			if distance > field_radius:
+			if not include_player and body.is_in_group("Player"):
 				continue
-			var match_quality := _frequency_match_quality(body, desired)
-			if match_quality >= 0.72:
-				_trigger_feedback(body, desired, match_quality)
-			else:
-				_apply_paralysis(body, desired, 1.0 - match_quality, delta)
-			affected += 1
+			var id := body.get_instance_id()
+			if _query_seen_ids.has(id):
+				continue
+			_query_seen_ids[id] = true
+			if body.global_position.distance_squared_to(center) > radius_squared:
+				continue
+			out_targets.append(body)
 
 
 func _frequency_match_quality(body: Node2D, desired: StringName) -> float:

@@ -99,7 +99,9 @@ func fill_group(group_name: StringName, out_nodes: Array[Node2D], limit: int = -
 	for value in list:
 		if limit >= 0 and out_nodes.size() >= limit:
 			return
-		var node := value as Node2D
+		var node : Node2D
+		if is_instance_valid(value):
+			node = value
 		if _is_valid_node(node):
 			out_nodes.append(node)
 
@@ -124,7 +126,10 @@ func fill_nearest_gravity_sources(
 	for group_name in GRAVITY_GROUPS:
 		var list: Array = _groups.get(group_name, [])
 		for value in list:
-			var source := value as Node2D
+			
+			var source : Node2D
+			if is_instance_valid(value):
+				source = value
 			if not _is_valid_node(source) or source == exclude:
 				continue
 			var id := source.get_instance_id()
@@ -158,7 +163,10 @@ func fill_targets_in_radius(
 		for value in list:
 			if max_count > 0 and out_targets.size() >= max_count:
 				return
-			var body := value as Node2D
+			
+			var body : Node2D
+			if is_instance_valid(value):
+				body = value as Node2D
 			if not _is_valid_node(body):
 				continue
 			if not include_player and body.is_in_group("Player"):

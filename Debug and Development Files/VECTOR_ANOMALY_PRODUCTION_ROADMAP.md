@@ -328,6 +328,12 @@ Additional production changes:
 - Throttled singularity enemy death-hook discovery to a fixed interval.
 - Disabled debug balance overlay and developer hotkeys by default for production runs.
 - Removed startup/placement console prints from production-facing gameplay paths.
+- Routed `GravityResonanceManager` source discovery, projectile acceleration, and zone body effects through registry-backed reusable buffers.
+- Routed momentum near-miss checks and kinetic shockwaves through bounded target-radius buffers.
+- Routed Event Horizon Warden, Gravity Maw, Gravimetric Echo Drone, and Resonance Paralytic Construct field queries through cached target/gravity lookups.
+- Registered dynamic enemy gravity bodies with `RuntimeRegistry` when they enter combat and unregistered them on exit.
+- Replaced HUD/readability/audio/death/stress/sync projectile and boss counts with cached registry counts where available.
+- Removed remaining retired labels from onboarding and credits presentation.
 
 Production invariants after the additional pass:
 
@@ -335,3 +341,5 @@ Production invariants after the additional pass:
 - Dynamic gravity sources enter and leave the cache immediately instead of waiting for periodic discovery.
 - Headless performance validation has a deterministic runner and explicit pass/fail budgets.
 - Developer telemetry remains available through opt-in settings without shipping as a default overlay.
+- Resonance, momentum, boss fields, readability, and diagnostic systems share capped discovery paths instead of performing independent full scene-tree scans.
+- Player-facing labels now use Vector Anomaly terminology from opening prompt through credits.
