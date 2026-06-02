@@ -18,6 +18,8 @@ class_name OrbitalVFXDirector
 @export var max_burst_alpha: float = 0.68
 @export var chaos_clutter_threshold: float = 0.74
 @export var chaos_sample_interval: float = 0.2
+@export var prewarm_bursts_per_template: int = 4
+@export var max_pooled_bursts_per_template: int = 8
 
 @export_group("Templates")
 @export var time_afterimage_template_path: NodePath = ^"Templates/TimeAfterimageBurst"
@@ -33,6 +35,7 @@ var _scar_manager: Node = null
 var _event_horizon: Node = null
 var _momentum: Node = null
 var _active_bursts: Array[GPUParticles2D] = []
+var _burst_pools: Dictionary = {}
 var _chaos_intensity: float = 0.0
 var _chaos_sample_elapsed: float = 999.0
 
@@ -48,6 +51,7 @@ func _ready() -> void:
 	add_to_group("orbital_vfx_director")
 	_resolve_sources()
 	_configure_templates()
+	_prewarm_burst_pools()
 	_connect_sources()
 
 
@@ -233,14 +237,17 @@ func _spawn_burst(template: GPUParticles2D, position: Vector2, intensity: float,
 	if not _can_spawn_burst(template, intensity):
 		return
 
-	var burst := template.duplicate() as GPUParticles2D
+	var burst := _acquire_burst(template)
 	if burst == null:
 		return
 
 	burst.visible = true
 	burst.amount = _particle_amount(template.amount, intensity)
 	burst.modulate = _burst_modulate(color, intensity)
-	_burst_root.add_child(burst)
+	if burst.get_parent() == null:
+		_burst_root.add_child(burst)
+	elif burst.get_parent() != _burst_root:
+		burst.reparent(_burst_root)
 	burst.global_position = position
 	burst.restart()
 	burst.emitting = true
@@ -286,7 +293,7 @@ func _prune_finished_bursts() -> void:
 			_active_bursts.remove_at(idx)
 			continue
 		if not burst.emitting:
-			burst.queue_free()
+			_release_burst(burst)
 			_active_bursts.remove_at(idx)
 
 
@@ -295,8 +302,13 @@ func _update_chaos_intensity(delta: float) -> void:
 	if _chaos_sample_elapsed < maxf(chaos_sample_interval, 0.05):
 		return
 	_chaos_sample_elapsed = 0.0
-	var projectile_count := get_tree().get_nodes_in_group("Projectiles").size()
-	projectile_count += get_tree().get_nodes_in_group("enemy_projectiles").size()
+	var projectile_count := 0
+	if RuntimeRegistry != null:
+		projectile_count = RuntimeRegistry.get_count(&"Projectiles")
+		projectile_count += RuntimeRegistry.get_count(&"enemy_projectiles")
+	else:
+		projectile_count = get_tree().get_nodes_in_group("Projectiles").size()
+		projectile_count += get_tree().get_nodes_in_group("enemy_projectiles").size()
 	var target_chaos := clampf(float(projectile_count) / 180.0, 0.0, 1.0)
 	_chaos_intensity = lerpf(_chaos_intensity, target_chaos, 0.08)
 
@@ -305,7 +317,81 @@ func get_vfx_debug_state() -> Dictionary:
 	return {
 		"active_bursts": _active_bursts.size(),
 		"burst_cap": _active_burst_cap(),
+		"pooled_bursts": _count_pooled_bursts(),
 		"chaos": _chaos_intensity,
 		"quality": visual_quality,
 		"low_performance": low_performance_mode,
 	}
+
+
+func _prewarm_burst_pools() -> void:
+	for template in [_time_template, _shockwave_template, _resonance_template, _slingshot_template, _ambient_template]:
+		if template == null:
+			continue
+		var key := _template_key(template)
+		if not _burst_pools.has(key):
+			_burst_pools[key] = []
+		var pool: Array = _burst_pools[key]
+		while pool.size() < prewarm_bursts_per_template:
+			var burst := _create_burst_instance(template, key)
+			if burst == null:
+				break
+			pool.append(burst)
+		_burst_pools[key] = pool
+
+
+func _acquire_burst(template: GPUParticles2D) -> GPUParticles2D:
+	var key := _template_key(template)
+	if not _burst_pools.has(key):
+		_burst_pools[key] = []
+
+	var pool: Array = _burst_pools[key]
+	for value in pool:
+		var burst := value as GPUParticles2D
+		if burst != null and is_instance_valid(burst) and not burst.visible and not burst.emitting:
+			return burst
+
+	if pool.size() >= max_pooled_bursts_per_template:
+		return null
+
+	var created := _create_burst_instance(template, key)
+	if created == null:
+		return null
+	pool.append(created)
+	_burst_pools[key] = pool
+	return created
+
+
+func _create_burst_instance(template: GPUParticles2D, key: StringName) -> GPUParticles2D:
+	var burst := template.duplicate() as GPUParticles2D
+	if burst == null:
+		return null
+	burst.name = "%sPooled" % String(key)
+	burst.visible = false
+	burst.emitting = false
+	burst.one_shot = true
+	burst.set_meta(&"vfx_pool_key", key)
+	_burst_root.add_child(burst)
+	return burst
+
+
+func _release_burst(burst: GPUParticles2D) -> void:
+	burst.emitting = false
+	burst.visible = false
+	burst.modulate = Color.WHITE
+	if burst.get_parent() == null:
+		_burst_root.add_child(burst)
+	elif burst.get_parent() != _burst_root:
+		burst.reparent(_burst_root)
+
+
+func _template_key(template: GPUParticles2D) -> StringName:
+	return StringName(template.name)
+
+
+func _count_pooled_bursts() -> int:
+	var count := 0
+	for value in _burst_pools.values():
+		var pool := value as Array
+		count += pool.size()
+	return count

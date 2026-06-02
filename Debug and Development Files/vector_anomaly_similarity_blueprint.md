@@ -144,3 +144,15 @@ wrapped around an unfamiliar physics reality engine.
 The structure is the handshake.  
 The physics is the shockwave.
 
+---
+
+## Production Familiarity Guardrails
+
+The current architecture preserves genre readability while scaling the unusual physics layer:
+
+- Wave pacing, boss anchors, death flow, and run anchors stay familiar.
+- Gravity, projectiles, enemies, bosses, and debris are cached through `RuntimeRegistry` so late-wave spectacle does not turn into frame instability.
+- Upgrade effects remain behavioral: micro-lensing, vacuum collapse, orbital debris, chronal refraction, relativistic rail, and Apex Vector create new movement/combat decisions rather than flat stat inflation.
+- VFX communicates state through pooled rings, pooled burst particles, HUD arrows, local time-pocket signals, and resonance colors.
+- Failure readouts remain immediate and diagnostic instead of lore-heavy.
+- The headless production simulation runner validates stress budgets so the familiar wave/run structure does not collapse into unreadable performance failure.

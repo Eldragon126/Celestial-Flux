@@ -1,7 +1,7 @@
 extends Node2D
 class_name ArenaDestabilizationManager
 
-# Run-scale arena escalation for ORBITRON: VECTORFALL.
+# Run-scale arena escalation for Vector Anomaly.
 # This manager listens to wave progression, raises an instability meter,
 # and injects capped modular hazards.
 

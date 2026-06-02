@@ -4,6 +4,7 @@
 
 `OrbitalJuiceManager` installs modular gameplay layers into the active level:
 
+- `RuntimeRegistry` is the autoload cache for gravity sources, projectile groups, enemy groups, boss groups, and player targets. Hot systems use it instead of rescanning scene groups during physics ticks.
 - `OrbitalHUD` owns player-facing readouts, gravity arrows, and offscreen threat arrows.
 - `GravityResonanceManager` samples gravity-source overlap and emits zone dictionaries for gameplay, VFX, HUD, and audio.
 - `TimeDilationManager` applies player-safe dilation plus localized time pockets through metadata and lightweight signals.
@@ -24,12 +25,17 @@
 - `SkillSignatureDirector` stamps capped orbit glyphs and vector echoes from high-skill play.
 - `SpacetimeSwimDirector` adds capped swim ribbons, temporal overlay, and glitch slices for spacetime events.
 - `SpacetimeTearDirector` opens capped enemy-spawning rifts from strong scar/time-tear activity.
+- `StressTestDirector` remains opt-in and is used by `production_simulation_runner.gd` for headless extreme-load validation.
 
 ## Particle Rules
 
 One-shot detached bursts should use reusable scenes, set their final transform before emission, and free themselves after their visible lifetime.
 
 `CollisionSparks` defers emission by one idle step so callers can add it to the tree and set `global_position` safely. Long-lived gameplay particles should remain child nodes of the entity they visualize. Detached trails must call a cleanup path such as `fade_and_free()`.
+
+`OrbitalVFXDirector` prewarms burst pools per template and reuses those `GPUParticles2D` nodes for time dilation, kinetic impact, resonance, slingshot, and ambient feedback. New burst templates must be added to the pool path rather than duplicated at signal time.
+
+Powerup and law-fusion feedback rings are pooled `Line2D` nodes. Upgrade pickup flashes, slingshot law convergence, Apex Vector releases, and fusion feedback must reuse the inventory ring pools and respect `Settings.flash_alpha()`.
 
 ## Enemy And Boss Visuals
 
@@ -205,7 +211,7 @@ It emits intensity layers (`silence`, `drift`, `tension`, `overload`, `collapse`
 
 ## Mod Content Registry
 
-`ModContentRegistry` scans `res://Mods` and `user://mods` for `vectorfall_mod.json`. A manifest may declare:
+`ModContentRegistry` scans `res://Mods` and `user://mods` for `vector_anomaly_mod.json`. A manifest may declare:
 
 - `arenas`
 - `waves`
@@ -229,6 +235,18 @@ Manifest validation now rejects malformed roots, missing ids, invalid versions, 
 - player `slingshot_mastery_scored`
 
 It emits a score snapshot and challenge code. The code combines `RunProgress.get_run_seed_code()`, score, and a checksum so players can share repeatable seed challenges before a full leaderboard exists.
+
+## Production Simulation Runner
+
+`production_simulation_runner.gd` boots `the_abyss.tscn`, disables default developer UI, enables the stress harness, samples warmup and production frames, and validates explicit budgets:
+
+- average frame time
+- max frame time
+- projectile count
+- VFX burst cap
+- stress harness budget report
+
+The runner is a progress/performance validator, not a live-state save or deterministic replay. It proves the production systems remain bounded under late-wave-style projectile and gravity pressure.
 
 ## Apex Vector Core
 
@@ -264,5 +282,19 @@ The player projectile predictor now mirrors the projectile's capped gravity-sour
 
 Flash-heavy success feedback should use `Settings.flash_alpha()` or an explicit low alpha cap. Slingshot mastery, law fusion rings, powerup bursts, and VFX bursts all follow this rule so perfect movement can feel rewarding without becoming a full-screen flash.
 
-##VectorfallAnomalyDirector.gd
-The VectorfallAnomalyDirector script serves as a central combat and physics management system that orchestrates a complex suite of space-time and gravitational anomalies triggered by player upgrades, projectiles, and high-speed impacts. Operating on optimized processing intervals, it dynamically scans the battlefield to apply custom velocity and temporal modifications to nearby entities, governing powerful mechanics like vacuum collapses that suck enemies inward, micro-lenses that curve projectile trajectories, and localized time debt zones that warp local time-scales. Furthermore, it logs the player's movement history to generate kinetic slipstreams via orbital memory, seeds rotating space debris around celestial gravity anchors, and triggers explosive resonance cascades when overlapping cosmic forces oversaturate. Ultimately, this script acts as the architectural backbone for the game's high-speed, reality-bending combat, seamlessly translating abstract physics logic into reactive environmental forces, visual indicators, and status effects.
+## Vector Anomaly Director
+
+`VectorAnomalyDirector` orchestrates space-time and gravitational anomalies triggered by player upgrades, projectiles, and high-speed impacts.
+
+Production behavior:
+
+- Radius queries use `RuntimeRegistry.fill_targets_in_radius()` instead of direct group scans.
+- Gravity anchors use cached nearest-source selection capped by explicit budgets.
+- RuntimeRegistry reuses nearest-source and target-query scratch buffers for hot queries.
+- Micro-lens visuals are pooled.
+- Transient anomaly rings are pooled and reused instead of created and freed per event.
+- Vacuum collapse, relativistic impact, time-debt zones, orbital debris, orbital memory, and resonance cascades all resolve on fixed intervals.
+- Dynamic gravity debris and compression/inversion tide pockets register directly with the runtime cache when they enter gravity groups and unregister on exit.
+- `PowerupInventory` uses reusable query buffers for orbital projectile capture, singularity death hooks, debris bending, Apex Vector targeting, and slingshot time-lens pulses.
+
+This keeps high-chaos combat deterministic-feeling, readable, and bounded under late-wave projectile/enemy load.

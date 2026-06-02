@@ -1,10 +1,10 @@
-# ORBITRON: VECTORFALL Universe Guide
+# VECTOR ANOMALY Universe Guide
 
 This guide gives the mechanics a shared fiction without turning the game into lore-first exposition. The universe exists to make gravity mastery, collapsing laws, and survival under impossible momentum feel coherent.
 
 ## Core Fiction
 
-ORBITRON is a failing vector simulation. The player is not conquering space; they are surviving inside a physical model that is losing stability while still obeying readable rules.
+Vector Anomaly is a failing vector simulation. The player is not conquering space; they are surviving inside a physical model that is losing stability while still obeying readable rules.
 
 Every run is a reconstruction from a seed. The arena is rebuilt from stable anchors, then allowed to collapse again through gravity, resonance, time dilation, and law mutation.
 
@@ -14,13 +14,14 @@ The player is the remaining control vector: a small ship or probe capable of con
 
 ## System Terms
 
-- `Vectorfall`: the point where stable movement becomes impossible unless the player uses gravity correctly.
+- `Rupture Threshold`: the point where stable movement becomes impossible unless the player uses gravity correctly.
 - `Arena Law`: the seeded physical rule profile shaping a run.
 - `Resonance`: overlapping gravity information becoming a tactical field rule.
 - `Temporal Scar`: a local time wound where enemies and projectiles lose time.
 - `Gravity Scar`: a memory left in the arena after extreme motion or collapse.
 - `Rupture`: the endgame state where the wave generator fails and laws recombine.
 - `Resonance Singularity`: the final music-synchronized failure point of the simulation.
+- `Production Simulation`: a headless validation reconstruction used to prove the arena remains bounded under stress without becoming player-facing fiction.
 
 ## Progression As Story
 
@@ -79,3 +80,11 @@ Avoid language that sounds like:
 - `MUSIC DEFINES REALITY`
 
 The text should make the player feel that the arena is understandable, even when it is terrifying.
+
+## Production Naming Rules
+
+- Use `Vector Anomaly` for the game, simulation, and public-facing identity.
+- Use `Rupture`, `collapse`, `resonance`, and `anomaly` for in-world physics dread.
+- Do not introduce retired project codenames as player-facing labels.
+- Keep debug and production validation labels clinical: `stress harness`, `runtime registry`, `production simulation`, and `budget report`.
+- Do not expose developer overlays by default in the launch flow; telemetry belongs in opt-in tools and diagnostic readouts.

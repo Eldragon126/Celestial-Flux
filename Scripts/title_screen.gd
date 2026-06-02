@@ -18,7 +18,6 @@ func _ready() -> void:
 
 	_update_button_visibility()
 	_update_version_label()
-	print("Title Screen ready | Has anchor: ", RunProgress.has_anchor)
 
 func _physics_process(delta: float) -> void:
 	if get_tree().get_first_node_in_group("wave_enemy") == null:

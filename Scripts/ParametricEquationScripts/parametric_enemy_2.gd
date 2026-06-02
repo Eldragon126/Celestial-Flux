@@ -1,6 +1,6 @@
 
 # ============================================================================
-# ORBITRON: VECTOR ENTITY
+# VECTOR ANOMALY: VECTOR ENTITY
 # Advanced Parametric Enemy Intelligence System
 # ============================================================================
 #
@@ -773,8 +773,11 @@ func _on_health_component_health_changed(
 	current_health,
 	max_health
 ) -> void:
-
-	pass
+	var ratio := _health_ratio(current_health, max_health)
+	if _body_polygon != null:
+		_body_polygon.modulate.a = lerpf(0.72, 1.0, ratio)
+	if _particles != null:
+		_particles.amount_ratio = lerpf(1.0, 0.52, 1.0 - ratio)
 
 
 
@@ -866,3 +869,9 @@ func _circle_points(count: int, radius: float) -> PackedVector2Array:
 		var angle := TAU * float(i) / float(count)
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
 	return points
+
+
+func _health_ratio(current_health: Variant, max_health: Variant) -> float:
+	var current := float(current_health) if typeof(current_health) == TYPE_FLOAT or typeof(current_health) == TYPE_INT else 0.0
+	var maximum := float(max_health) if typeof(max_health) == TYPE_FLOAT or typeof(max_health) == TYPE_INT else 1.0
+	return clampf(current / maxf(maximum, 1.0), 0.0, 1.0)

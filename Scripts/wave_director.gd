@@ -1,6 +1,6 @@
 extends Node2D
 
-# Coherent arcade loop for Orbital Drift. The director stages the modular
+# Coherent arcade loop for Vector Anomaly. The director stages the modular
 # enemies, hazards, HUD feedback, and boss fights into readable waves.
 signal boss_wave
 signal regular_wave

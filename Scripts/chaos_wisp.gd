@@ -130,10 +130,20 @@ func _calculate_gravity() -> Vector2:
 func _refresh_gravity_sources() -> void:
 	_gravity_refresh_elapsed = 0.0
 	_gravity_sources.clear()
-	var seen = {}
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_nearest_gravity_sources(
+			global_position,
+			_gravity_sources,
+			4,
+			0.0,
+			self
+		)
+		return
+
+	var seen: Dictionary = {}
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for source in get_tree().get_nodes_in_group(group_name):
-			var source_2d = source as Node2D
+			var source_2d := source as Node2D
 			if source_2d == null or source_2d == self:
 				continue
 			var id = source_2d.get_instance_id()
@@ -141,11 +151,6 @@ func _refresh_gravity_sources() -> void:
 				continue
 			seen[id] = true
 			_gravity_sources.append(source_2d)
-	_gravity_sources.sort_custom(func(a: Node2D, b: Node2D) -> bool:
-		return a.global_position.distance_squared_to(global_position) < b.global_position.distance_squared_to(global_position)
-	)
-	if _gravity_sources.size() > 4:
-		_gravity_sources.resize(4)
 
 func _on_attack_area_body_entered(body: Node) -> void:
 	if body.is_in_group("Player") and body.has_method("take_damage"):

@@ -259,3 +259,28 @@ Players do not just play to win.
 They play to experience impossible moments that become understandable only after survival.
 
 That gap between confusion and mastery is the engine that makes the game shareable, watchable, and commercially viable.
+
+---
+
+# Production Separation Update
+
+Vector Anomaly now separates hot simulation state from scene-tree discovery through `RuntimeRegistry`.
+
+- Combat systems ask the registry for cached projectile/enemy/gravity lists.
+- Gravity systems request capped nearest sources instead of sorting all sources locally.
+- VFX systems read cached projectile pressure and reuse pooled burst/ring nodes.
+- Mod manifests use `vector_anomaly_mod.json`, keeping public naming aligned with the commercial identity.
+
+The separation rule is now explicit: gameplay may create physics dread, but production systems must keep discovery, pooling, save anchoring, UI, and data-driven content isolated from each other.
+
+## Production Boundary Update
+
+Late-wave spectacle now has explicit technical boundaries:
+
+- `RuntimeRegistry` owns hot discovery and reuses scratch buffers for nearest gravity and target-radius queries.
+- Dynamic gravity debris and tide-pocket gravity sources register with the cache at group-entry time and unregister on exit.
+- `OrbitalVFXDirector` owns pooled particle bursts; gameplay systems emit events instead of duplicating particles.
+- `PowerupInventory` owns pooled law/powerup rings and reusable target buffers for upgrade effects.
+- `production_simulation_runner.gd` owns headless stress validation and reports frame/projectile/VFX budgets without becoming part of gameplay state.
+
+The commercial rule remains unchanged: the player should see impossible physics, while the code keeps discovery, pooling, validation, UI, saves, and content manifests separated into inspectable systems.

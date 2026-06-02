@@ -32,7 +32,7 @@
 - `inversion`
 - `temporal_scar`
 - `harmonic_orbit`
-Or at least, I can't tell what it's doing and it seems like the harmonic orbits specifically don't go away ever.
+Or at least, I can't tell what it's doing, and it seems like the harmonic orbits specifically don't ever go away.
 
 [ ] What are the purple blue and red rings around the player? These are confusing and don't seem to have a purpose, and need to be fixed.
 

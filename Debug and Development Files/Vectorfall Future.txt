@@ -48,7 +48,7 @@ Near Future:
 Far Future:
 
 * Sell the game on Steam and other platforms.
-* [x] Make a dedicated website for the game. Initial pass complete: website/index.html provides a static marketing site with animated vector-field hero, orbit-combat sections, media messaging, and wishlist placeholder.
+* [x] Make a dedicated website for the game. Initial pass complete: website/index.html provides a static marketing site with animated vector-field hero, orbit-combat sections, media messaging, and wishlist call to action.
 * [x] Market the game in budget-friendly ways to maximize profit. Initial pass complete: BRAND_AND_MARKETING_PLAN.md defines a low-cost weekly clip/devlog loop, priority channels, and criteria before paid marketing.
 * Gain a fan base that keeps coming back.
 * [x] Make the game highly moddable so players can customize the game similarly to Terraria mods or Geometry Dash custom levels. Initial pass complete: manifest registry, schema validation, pause-menu mod browser/rescan, example mod manifest, and MODDING_GUIDE.md are in place; runtime content activation/editor tooling remain future expansion.
@@ -67,7 +67,7 @@ Far Future:
 * [x] Expand adaptive music systems over time. Initial pass complete: AdaptiveMusicStateDirector emits music intensity layers and beat hints from chaos, resonance, time-tear, and boss pressure without owning final sound design.
 * [x] Develop a highly recognizable logo, UI style, and visual identity. Initial pass complete: brand guide defines visual identity rules, telemetry tone, and anti-patterns; final logo asset remains future art work.
 * [x] Keep the tone and branding consistent across the game, trailers, music, devlogs, and social media. Initial pass complete: brand guide defines language, positioning, visual rules, trailer direction, and store copy constraints.
-* [x] Make the game feel like a fully realized universe rather than just a collection of mechanics. Initial pass complete: ORBITRON_UNIVERSE_GUIDE.md defines the simulation fiction, system terms, progression-as-story, writing rules, and in-game copy direction.
+* [x] Make the game feel like a fully realized universe rather than just a collection of mechanics. Initial pass complete: the universe guide defines the simulation fiction, system terms, progression-as-story, writing rules, and in-game copy direction.
 * [x] Make the game easy to understand but difficult to master. Initial pass complete: teaching prompts, field labels, boss hints, docs, score readouts, and death readouts explain rules while preserving high-skill movement depth.
 * [x] Make players feel like every death was fair and survivable with more skill. Initial pass complete: DeathFairnessDirector appends wave, speed, field rule, chaos, projectile density, and boss-law context to game-over death lessons.
 * [x] Create a game players replay because the mechanics themselves feel satisfying, not just because of progression systems. Initial pass complete: replay hooks now center on slingshot mastery, seeded physics laws, challenge codes, co-op vector combos, and deterministic rare instability events.

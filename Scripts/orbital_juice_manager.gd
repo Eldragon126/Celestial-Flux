@@ -42,7 +42,7 @@ const WEAPON_SYSTEM_SCENE = preload("res://Nodes/weapon_system.tscn")
 const SKILL_SIGNATURE_DIRECTOR_SCENE = preload("res://Nodes/skill_signature_director.tscn")
 const SPACETIME_SWIM_DIRECTOR_SCENE = preload("res://Nodes/spacetime_swim_director.tscn")
 const SPACETIME_TEAR_DIRECTOR_SCENE = preload("res://Nodes/spacetime_tear_director.tscn")
-const VECTORFALL_ANOMALY_DIRECTOR_SCENE = preload("res://Nodes/vectorfall_anomaly_director.tscn")
+const VECTOR_ANOMALY_DIRECTOR_SCENE = preload("res://Nodes/vector_anomaly_director.tscn")
 
 const PLANET_ATMOSPHERE_SCENE = preload("res://Nodes/planet_atmosphere_dust.tscn")
 const WAVE_DIRECTOR_SCENE = preload("res://Nodes/wave_director.tscn")
@@ -74,7 +74,7 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var attach_planet_atmospheres = true
 @export var attach_projectile_sparks = true
 @export var attach_orbital_vfx = true
-@export var enable_debug_balance_overlay = true
+@export var enable_debug_balance_overlay = false
 @export var enable_gravity_resonance = true
 @export var enable_gravity_scars = true
 @export var enable_event_horizon_moments = true
@@ -98,7 +98,7 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var enable_skill_signatures = true
 @export var enable_spacetime_swim_effects = true
 @export var enable_spacetime_tear_spawns = true
-@export var enable_vectorfall_anomaly_rules = true
+@export var enable_vector_anomaly_rules = true
 @export_group("Developer Showcase")
 @export var enable_stress_test_tools = false
 @export var run_stress_test_on_ready = false
@@ -106,7 +106,7 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var spawn_showcase_boss = false
 @export var spawn_parametric_showcase_content = false
 @export var showcase_alongside_wave_game = false
-@export var enable_dev_hotkeys = true
+@export var enable_dev_hotkeys = false
 @export var dev_showcase_key: int = KEY_F6
 @export var dev_stress_key: int = KEY_F8
 @export var dev_clear_stress_key: int = KEY_F9
@@ -192,8 +192,8 @@ func _install_modular_additions() -> void:
 		_add_child_scene_once(level_root, SPACETIME_SWIM_DIRECTOR_SCENE, "SpacetimeSwimDirector")
 	if enable_spacetime_tear_spawns:
 		_add_child_scene_once(level_root, SPACETIME_TEAR_DIRECTOR_SCENE, "SpacetimeTearDirector")
-	if enable_vectorfall_anomaly_rules:
-		_add_child_scene_once(level_root, VECTORFALL_ANOMALY_DIRECTOR_SCENE, "VectorfallAnomalyDirector")
+	if enable_vector_anomaly_rules:
+		_add_child_scene_once(level_root, VECTOR_ANOMALY_DIRECTOR_SCENE, "VectorAnomalyDirector")
 
 	if player != null:
 		if attach_player_juice:
@@ -482,7 +482,7 @@ func _apply_quality_settings(level_root: Node) -> void:
 		if tears.get("ring_segments") != null:
 			tears.set("ring_segments", 28)
 
-	var anomaly := level_root.find_child("VectorfallAnomalyDirector", true, false)
+	var anomaly := level_root.find_child("VectorAnomalyDirector", true, false)
 	if anomaly != null and low_performance_mode:
 		if anomaly.get("max_active_micro_lenses") != null:
 			anomaly.set("max_active_micro_lenses", 3)

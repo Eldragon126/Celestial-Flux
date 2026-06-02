@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const ENEMY_BULLET_SCENE := preload("res://Nodes/enemy_bullet.tscn")
+
 @onready var polygon_2d = $Polygon2D
 @onready var collision_polygon_2d = $CollisionPolygon2D
 
@@ -11,7 +13,7 @@ extends CharacterBody2D
 @export var max_gravity_sources: int = 4
 
 var Player: Node = null
-var planets: Array = []
+var planets: Array[Node2D] = []
 var _gravity_refresh_elapsed = 0.0
 
 func _ready() -> void:
@@ -77,10 +79,9 @@ func _on_shoot_animation_animation_started(anim_name: StringName) -> void:
 		if not BulletManager.can_spawn_bullet():
 			return
 
-		var projectile_scene = load("res://Nodes/enemy_bullet.tscn")
-		var projectile = projectile_scene.instantiate()
+		var projectile := ENEMY_BULLET_SCENE.instantiate()
 
-		var force_of_impulse = 900
+		var force_of_impulse := 900.0
 
 		if Player != null and is_instance_valid(Player):
 			var dir: Vector2 = (Player.global_position - global_position).normalized()
@@ -128,11 +129,21 @@ func _on_attack_area_body_entered(body: Node2D) -> void:
 func _refresh_planets() -> void:
 	_gravity_refresh_elapsed = 0.0
 	planets.clear()
-	var seen = {}
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_nearest_gravity_sources(
+			global_position,
+			planets,
+			max_gravity_sources,
+			0.0,
+			self
+		)
+		return
+
+	var seen: Dictionary = {}
 
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for source in get_tree().get_nodes_in_group(group_name):
-			var source_2d = source as Node2D
+			var source_2d := source as Node2D
 			if source_2d == null or source_2d == self:
 				continue
 			var id = source_2d.get_instance_id()
@@ -140,10 +151,3 @@ func _refresh_planets() -> void:
 				continue
 			seen[id] = true
 			planets.append(source_2d)
-
-	planets.sort_custom(func(a: Node2D, b: Node2D) -> bool:
-		return a.global_position.distance_squared_to(global_position) < b.global_position.distance_squared_to(global_position)
-	)
-
-	if max_gravity_sources > 0 and planets.size() > max_gravity_sources:
-		planets.resize(max_gravity_sources)

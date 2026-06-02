@@ -21,7 +21,7 @@ var closest_source: Node2D = null
 var closest_distance: float = INF
 
 var _target: CharacterBody2D = null
-var _gravity_sources: Array[Node] = []
+var _gravity_sources: Array[Node2D] = []
 var _source_refresh_elapsed = 0.0
 var _missing_target_warned = false
 
@@ -51,23 +51,29 @@ func refresh_sources() -> void:
 	if not is_inside_tree():
 		return
 
-	var seen = {}
 	_gravity_sources.clear()
-
-	for group_name in [gravity_group, fallback_gravity_group]:
-		if String(group_name).is_empty():
-			continue
-
-		for source in get_tree().get_nodes_in_group(group_name):
-			if source == null:
+	if RuntimeRegistry != null and _target != null:
+		RuntimeRegistry.fill_nearest_gravity_sources(
+			_target.global_position,
+			_gravity_sources,
+			max_sources,
+			max_gravity_distance,
+			_target
+		)
+	else:
+		var seen: Dictionary = {}
+		for group_name in [gravity_group, fallback_gravity_group]:
+			if String(group_name).is_empty():
 				continue
-
-			var id = source.get_instance_id()
-			if seen.has(id):
-				continue
-
-			seen[id] = true
-			_gravity_sources.append(source)
+			for source in get_tree().get_nodes_in_group(group_name):
+				var source_2d := source as Node2D
+				if source_2d == null:
+					continue
+				var id := source_2d.get_instance_id()
+				if seen.has(id):
+					continue
+				seen[id] = true
+				_gravity_sources.append(source_2d)
 
 	_source_refresh_elapsed = 0.0
 
@@ -85,13 +91,13 @@ func calculate_gravity() -> Vector2:
 	closest_source = null
 	closest_distance = INF
 
-	var nearest_sources = _get_nearest_sources()
+	_refresh_nearest_sources_if_needed()
 
-	for source in nearest_sources:
+	for source in _gravity_sources:
 		if not is_instance_valid(source):
 			continue
 
-		var source_2d = source as Node2D
+		var source_2d := source as Node2D
 
 		if source_2d == null:
 			continue
@@ -134,7 +140,7 @@ func get_target_body() -> CharacterBody2D:
 
 	return _target
 
-func set_gravity_sources(sources: Array[Node]) -> void:
+func set_gravity_sources(sources: Array[Node2D]) -> void:
 	_gravity_sources = sources
 	_source_refresh_elapsed = 0.0
 
@@ -158,36 +164,9 @@ func _get_source_mass(source: Node) -> float:
 
 	return fallback_mass
 
-func _get_nearest_sources() -> Array[Node]:
+func _refresh_nearest_sources_if_needed() -> void:
 	if _target == null:
-		return []
-
-	var candidates: Array[Node] = []
-
-	for source in _gravity_sources:
-		if not is_instance_valid(source):
-			continue
-
-		var source_2d = source as Node2D
-		if source_2d == null or source_2d == _target:
-			continue
-
-		if max_gravity_distance > 0.0 and source_2d.global_position.distance_to(_target.global_position) > max_gravity_distance:
-			continue
-
-		candidates.append(source)
-
-	candidates.sort_custom(func(a: Node, b: Node) -> bool:
-		var a_2d = a as Node2D
-		var b_2d = b as Node2D
-		if a_2d == null:
-			return false
-		if b_2d == null:
-			return true
-		return a_2d.global_position.distance_squared_to(_target.global_position) < b_2d.global_position.distance_squared_to(_target.global_position)
-	)
-
-	if max_sources > 0 and candidates.size() > max_sources:
-		candidates.resize(max_sources)
-
-	return candidates
+		_gravity_sources.clear()
+		return
+	if refresh_sources_each_frame or _source_refresh_elapsed >= refresh_interval:
+		refresh_sources()

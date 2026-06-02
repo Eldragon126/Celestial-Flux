@@ -2,7 +2,7 @@
 extends Node
 class_name TimeDilationManager
 
-## ORBITRON: VECTORFALL
+## Vector Anomaly
 ## Stable Time Dilation System
 ##
 ## Key fixes:
@@ -88,6 +88,7 @@ var _afterimage_elapsed := 0.0
 
 var _afterimages: Array[Dictionary] = []
 var _local_slow_effects: Dictionary = {}
+var _group_slow_targets: Array[Node2D] = []
 
 var _player: CharacterBody2D = null
 var _pause_menu: Node = null
@@ -423,6 +424,16 @@ func _apply_group_slow(
 ) -> int:
 
 	var affected := 0
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(group_name, _group_slow_targets, max_targets_per_tick)
+		for target in _group_slow_targets:
+			if affected >= max_targets_per_tick:
+				break
+			if target == _player:
+				continue
+			apply_local_slow_to_target(target, multiplier, duration)
+			affected += 1
+		return affected
 
 	for node in get_tree().get_nodes_in_group(group_name):
 

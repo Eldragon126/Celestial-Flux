@@ -12,7 +12,7 @@ signal manifest_validated(manifest_id: StringName, source_path: String)
 @export var load_user_mods: bool = true
 @export var res_mod_root: String = "res://Mods"
 @export var user_mod_root: String = "user://mods"
-@export var manifest_file_name: String = "vectorfall_mod.json"
+@export var manifest_file_name: String = "vector_anomaly_mod.json"
 
 var _manifests: Dictionary = {}
 var _failed_manifests: Dictionary = {}

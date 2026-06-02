@@ -34,6 +34,7 @@ signal apex_vector_released(data: Dictionary)
 
 @export_group("Law Fusion")
 @export var enable_law_fusions: bool = true
+@export var enemy_hook_scan_interval: float = 0.25
 @export var fusion_debris_bend_force: float = 340.0
 @export var fusion_debris_bend_radius_multiplier: float = 1.45
 @export var fusion_debris_bend_max_targets: int = 7
@@ -73,6 +74,14 @@ var _momentum_component: Node = null
 
 var _last_fusion_id: StringName = &"none"
 var _last_fusion_time := -999.0
+var _enemy_hook_scan_elapsed := 999.0
+var _projectile_query: Array[Node2D] = []
+var _enemy_query: Array[Node2D] = []
+var _debris_query: Array[Node2D] = []
+var _target_query: Array[Node2D] = []
+var _fusion_ring_pool: Array[Line2D] = []
+var _powerup_ring_pool: Array[Line2D] = []
+var _powerup_echo_pool: Array[Line2D] = []
 
 
 func _ready() -> void:
@@ -169,15 +178,15 @@ func trigger_player_action() -> void:
 	var slow_multiplier := maxf(0.34, 0.52 - 0.06 * float(time_stack - 1))
 	var duration := 0.75 + 0.16 * float(time_stack - 1)
 
-	for enemy in tree.get_nodes_in_group("enemies"):
-		var enemy_2d := enemy as Node2D
-
-		if not _is_node_valid(enemy_2d):
-			continue
-
-		if enemy_2d.global_position.distance_squared_to(_player.global_position) > pulse_radius * pulse_radius:
-			continue
-
+	_fill_targets_in_radius(
+		[&"enemies", &"wave_enemy", &"bosses"],
+		_player.global_position,
+		pulse_radius,
+		false,
+		_target_query,
+		42
+	)
+	for enemy_2d in _target_query:
 		CombatStatus.apply_local_slow(enemy_2d, slow_multiplier, duration)
 
 
@@ -246,7 +255,7 @@ func _apply_effect(definition: PowerupDefinition, stacks: int) -> void:
 			_apply_apex_vector_core(definition, stacks)
 
 		&"micro_lensing_emitter", &"vacuum_collapse_injector", &"relativistic_rail", &"orbital_debris_seeder", &"chronal_refraction_beam":
-			_activate_vectorfall_upgrade(definition, stacks)
+			_activate_vector_anomaly_upgrade(definition, stacks)
 
 
 func _get_stack_for_effect(effect_type: StringName) -> int:
@@ -273,7 +282,7 @@ func _update_law_rules(delta: float) -> void:
 	_connect_player_slingshot_mastery()
 	_update_momentum_shockwave_law()
 	_update_orbital_satellites(delta)
-	_update_singularity_death_hooks()
+	_update_singularity_death_hooks(delta)
 	_update_time_fracture_storage(delta)
 
 
@@ -289,11 +298,6 @@ func _update_orbital_satellites(delta: float) -> void:
 
 
 func _capture_nearby_projectiles(stacks: int, override_radius: float = -1.0) -> void:
-	var tree := get_tree()
-
-	if tree == null:
-		return
-
 	var max_satellites = max(1, stacks * max_satellites_per_stack)
 
 	if _count_valid_satellites() >= max_satellites:
@@ -302,12 +306,10 @@ func _capture_nearby_projectiles(stacks: int, override_radius: float = -1.0) -> 
 	var capture_radius := satellite_capture_radius if override_radius <= 0.0 else override_radius
 	var radius_squared := capture_radius * capture_radius
 
-	for projectile in tree.get_nodes_in_group("enemy_projectiles"):
-
+	_fill_group_nodes(&"enemy_projectiles", _projectile_query)
+	for projectile_2d in _projectile_query:
 		if _count_valid_satellites() >= max_satellites:
 			return
-
-		var projectile_2d := projectile as Node2D
 
 		if not _is_node_valid(projectile_2d):
 			continue
@@ -325,6 +327,9 @@ func _capture_nearby_projectiles(stacks: int, override_radius: float = -1.0) -> 
 
 		projectile_2d.remove_from_group("enemy_projectiles")
 		projectile_2d.add_to_group("player_projectiles")
+		if RuntimeRegistry != null:
+			RuntimeRegistry.unregister_node(projectile_2d, &"enemy_projectiles")
+			RuntimeRegistry.register_node(projectile_2d, &"player_projectiles")
 
 		_captured_projectiles[projectile_2d.get_instance_id()] = {
 			"projectile_id": projectile_2d.get_instance_id(),
@@ -459,16 +464,16 @@ func _count_valid_satellites() -> int:
 	return count
 
 
-func _update_singularity_death_hooks() -> void:
+func _update_singularity_death_hooks(delta: float) -> void:
 	var stacks := get_stack_count(&"singularity_amplifier")
 
 	if stacks <= 0:
 		return
 
-	var tree := get_tree()
-
-	if tree == null:
+	_enemy_hook_scan_elapsed += delta
+	if _enemy_hook_scan_elapsed < maxf(enemy_hook_scan_interval, 0.05):
 		return
+	_enemy_hook_scan_elapsed = 0.0
 
 	var stale: Array[int] = []
 
@@ -479,12 +484,10 @@ func _update_singularity_death_hooks() -> void:
 	for id in stale:
 		_enemy_death_hooks.erase(id)
 
-	for enemy in tree.get_nodes_in_group("enemies"):
-
-		if enemy == _player:
+	_fill_group_nodes(&"enemies", _enemy_query)
+	for enemy_node in _enemy_query:
+		if enemy_node == _player:
 			continue
-
-		var enemy_node := enemy as Node
 
 		if not _is_node_valid(enemy_node):
 			continue
@@ -635,11 +638,11 @@ func _apply_apex_vector_core(definition: PowerupDefinition, stacks: int) -> void
 	_connect_player_slingshot_mastery()
 
 
-func _activate_vectorfall_upgrade(definition: PowerupDefinition, stacks: int) -> void:
+func _activate_vector_anomaly_upgrade(definition: PowerupDefinition, stacks: int) -> void:
 	var root := get_tree().current_scene
 	if root == null or definition == null or not _is_node_valid(_player):
 		return
-	var director := root.find_child("VectorfallAnomalyDirector", true, false)
+	var director := root.find_child("VectorAnomalyDirector", true, false)
 	if director != null and director.has_method("activate_upgrade_pulse"):
 		director.call("activate_upgrade_pulse", definition.powerup_id, _player.global_position, stacks)
 
@@ -700,12 +703,10 @@ func _on_kinetic_shockwave_created(shockwave_data: Dictionary) -> void:
 
 	var affected := 0
 
-	for debris in get_tree().get_nodes_in_group("law_gravity_debris"):
-
+	_fill_group_nodes(&"law_gravity_debris", _debris_query)
+	for debris_2d in _debris_query:
 		if affected >= fusion_debris_bend_max_targets:
 			break
-
-		var debris_2d := debris as Node2D
 
 		if not _is_node_valid(debris_2d):
 			continue
@@ -894,41 +895,32 @@ func _affect_apex_vector_targets(
 	force: float,
 	damage: float
 ) -> int:
-	var radius_squared := radius * radius
 	var affected := 0
-	var seen := {}
+	_fill_targets_in_radius(
+		[&"enemies", &"wave_enemy", &"bosses", &"enemy_projectiles"],
+		position,
+		radius,
+		false,
+		_target_query,
+		apex_vector_max_targets
+	)
+	for target_2d in _target_query:
+		if not _is_node_valid(target_2d) or target_2d == _player:
+			continue
 
-	for group_name in [&"enemies", &"wave_enemy", &"bosses", &"enemy_projectiles"]:
-		for target in get_tree().get_nodes_in_group(group_name):
-			if affected >= apex_vector_max_targets:
-				return affected
+		var offset := target_2d.global_position - position
+		var distance := offset.length()
+		var radial := offset.normalized()
+		if radial == Vector2.ZERO:
+			radial = tangent
+		var falloff := clampf(1.0 - distance / maxf(radius, 1.0), 0.18, 1.0)
+		var impulse_dir := (tangent * 0.72 + radial * 0.28).normalized()
+		CombatStatus.add_velocity(target_2d, impulse_dir * force * falloff)
 
-			var target_2d := target as Node2D
-			if not _is_node_valid(target_2d) or target_2d == _player:
-				continue
+		if not target_2d.is_in_group("enemy_projectiles") and target_2d.has_method("take_damage"):
+			target_2d.call("take_damage", damage * falloff)
 
-			var target_id := target_2d.get_instance_id()
-			if seen.has(target_id):
-				continue
-			seen[target_id] = true
-
-			var offset := target_2d.global_position - position
-			var distance_squared := offset.length_squared()
-			if distance_squared > radius_squared:
-				continue
-
-			var distance := sqrt(distance_squared)
-			var radial := offset.normalized()
-			if radial == Vector2.ZERO:
-				radial = tangent
-			var falloff := clampf(1.0 - distance / maxf(radius, 1.0), 0.18, 1.0)
-			var impulse_dir := (tangent * 0.72 + radial * 0.28).normalized()
-			CombatStatus.add_velocity(target_2d, impulse_dir * force * falloff)
-
-			if not target_2d.is_in_group("enemy_projectiles") and target_2d.has_method("take_damage"):
-				target_2d.call("take_damage", damage * falloff)
-
-			affected += 1
+		affected += 1
 
 	return affected
 
@@ -962,11 +954,11 @@ func _bend_debris_from_slingshot(
 	var radius_squared := radius * radius
 	var max_targets := fusion_debris_bend_max_targets + maxi(int(combo / 2), 0)
 
-	for debris in get_tree().get_nodes_in_group("law_gravity_debris"):
+	_fill_group_nodes(&"law_gravity_debris", _debris_query)
+	for debris_2d in _debris_query:
 		if affected >= max_targets:
 			break
 
-		var debris_2d := debris as Node2D
 		if not _is_node_valid(debris_2d):
 			continue
 
@@ -1005,25 +997,26 @@ func _pulse_time_lens_from_slingshot(
 		0.72
 	)
 	var duration := 0.48 + score * 0.42 + 0.05 * float(combo)
-	var radius_squared := radius * radius
 	var affected := 0
 	var max_affected := 34 + combo * 3
 
-	for group_name in [&"enemies", &"wave_enemy", &"bosses", &"enemy_projectiles"]:
-		for target in get_tree().get_nodes_in_group(group_name):
-			if affected >= max_affected:
-				return affected
-			var target_2d := target as Node2D
-			if not _is_node_valid(target_2d):
-				continue
-			if target_2d.global_position.distance_squared_to(position) > radius_squared:
-				continue
+	_fill_targets_in_radius(
+		[&"enemies", &"wave_enemy", &"bosses", &"enemy_projectiles"],
+		position,
+		radius,
+		false,
+		_target_query,
+		max_affected
+	)
+	for target_2d in _target_query:
+		if not _is_node_valid(target_2d):
+			continue
 
-			if _is_node_valid(time_manager) and time_manager.has_method("apply_local_slow_to_target"):
-				time_manager.call("apply_local_slow_to_target", target_2d, multiplier, duration)
-			else:
-				CombatStatus.apply_local_slow(target_2d, multiplier, duration)
-			affected += 1
+		if _is_node_valid(time_manager) and time_manager.has_method("apply_local_slow_to_target"):
+			time_manager.call("apply_local_slow_to_target", target_2d, multiplier, duration)
+		else:
+			CombatStatus.apply_local_slow(target_2d, multiplier, duration)
+		affected += 1
 
 	return affected
 
@@ -1096,6 +1089,103 @@ func _find_resonance_manager() -> Node:
 	return root.find_child("GravityResonanceManager", true, false)
 
 
+func _fill_group_nodes(group_name: StringName, out_nodes: Array[Node2D], limit: int = -1) -> void:
+	out_nodes.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(group_name, out_nodes, limit)
+		return
+
+	var added := 0
+	for node in get_tree().get_nodes_in_group(group_name):
+		if limit >= 0 and added >= limit:
+			return
+		var node_2d := node as Node2D
+		if not _is_node_valid(node_2d):
+			continue
+		out_nodes.append(node_2d)
+		added += 1
+
+
+func _fill_targets_in_radius(
+	groups: Array[StringName],
+	center: Vector2,
+	radius: float,
+	include_player: bool,
+	out_targets: Array[Node2D],
+	limit: int
+) -> void:
+	out_targets.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius(groups, center, radius, limit, include_player, out_targets)
+		return
+
+	var radius_squared := radius * radius
+	var seen := {}
+	for group_name in groups:
+		for node in get_tree().get_nodes_in_group(group_name):
+			if limit > 0 and out_targets.size() >= limit:
+				return
+			var node_2d := node as Node2D
+			if not _is_node_valid(node_2d):
+				continue
+			if not include_player and node_2d.is_in_group("Player"):
+				continue
+			var id := node_2d.get_instance_id()
+			if seen.has(id):
+				continue
+			seen[id] = true
+			if node_2d.global_position.distance_squared_to(center) > radius_squared:
+				continue
+			out_targets.append(node_2d)
+
+
+func _acquire_ring(
+	pool: Array[Line2D],
+	root: Node,
+	ring_name: String,
+	point_count: int,
+	width: float,
+	z_index: int
+) -> Line2D:
+	for ring in pool:
+		if ring != null and is_instance_valid(ring) and not ring.visible:
+			_prepare_ring(ring, root, ring_name, point_count, width, z_index)
+			return ring
+
+	var created := Line2D.new()
+	pool.append(created)
+	_prepare_ring(created, root, ring_name, point_count, width, z_index)
+	return created
+
+
+func _prepare_ring(
+	ring: Line2D,
+	root: Node,
+	ring_name: String,
+	point_count: int,
+	width: float,
+	z_index: int
+) -> void:
+	ring.name = ring_name
+	ring.closed = true
+	ring.antialiased = true
+	ring.width = width
+	ring.z_index = z_index
+	ring.points = _circle_points(point_count, 1.0)
+	if ring.get_parent() == null:
+		root.add_child(ring)
+	elif ring.get_parent() != root:
+		ring.reparent(root)
+
+
+func _release_ring(ring: Line2D) -> void:
+	if ring == null or not is_instance_valid(ring):
+		return
+	ring.visible = false
+	ring.modulate = Color.WHITE
+	ring.scale = Vector2.ONE
+
+
 func _try_anchor_satellite_to_debris(
 	entry: Dictionary,
 	projectile: Node2D,
@@ -1163,10 +1253,8 @@ func _nearest_debris(position: Vector2, search_radius: float) -> Node2D:
 	var best: Node2D = null
 	var best_distance := search_radius * search_radius
 
-	for debris in get_tree().get_nodes_in_group("law_gravity_debris"):
-
-		var debris_2d := debris as Node2D
-
+	_fill_group_nodes(&"law_gravity_debris", _debris_query)
+	for debris_2d in _debris_query:
 		if not _is_node_valid(debris_2d):
 			continue
 
@@ -1281,25 +1369,18 @@ func _spawn_fusion_ring(
 	if root == null:
 		return
 
-	var ring := Line2D.new()
-
-	ring.name = "LawFusionRing"
-	ring.closed = true
-	ring.antialiased = true
-	ring.width = 2.6
+	var ring := _acquire_ring(_fusion_ring_pool, root, "LawFusionRing", 54, 2.6, 26)
 	ring.default_color = _safe_flash_color(ring_color, 0.5)
-	ring.points = _circle_points(54, 1.0)
 	ring.global_position = center
 	ring.scale = Vector2.ONE * 18.0
-	ring.z_index = 26
-
-	root.add_child(ring)
+	ring.modulate = Color.WHITE
+	ring.visible = true
 
 	var tween := ring.create_tween()
 
 	tween.tween_property(ring, "scale", Vector2.ONE * minf(radius, 620.0), 0.24)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.26)
-	tween.tween_callback(ring.queue_free)
+	tween.tween_callback(Callable(self, "_release_ring").bind(ring))
 
 func _spawn_powerup_burst(definition: PowerupDefinition, stacks: int) -> void:
 	if not powerup_visuals_enabled or definition == null or not _is_node_valid(_player):
@@ -1312,39 +1393,29 @@ func _spawn_powerup_burst(definition: PowerupDefinition, stacks: int) -> void:
 	var burst_color := definition.color
 	var radius := powerup_burst_radius + 24.0 * float(maxi(stacks - 1, 0))
 
-	var ring := Line2D.new()
-	ring.name = "PowerupLawBurst"
-	ring.closed = true
-	ring.antialiased = true
-	ring.width = 3.2
+	var ring := _acquire_ring(_powerup_ring_pool, root, "PowerupLawBurst", 60, 3.2, 28)
 	ring.default_color = _safe_flash_color(Color(burst_color.r, burst_color.g, burst_color.b, 0.62), 0.42)
-	ring.points = _circle_points(60, 1.0)
 	ring.global_position = _player.global_position
 	ring.scale = Vector2.ONE * 14.0
-	ring.z_index = 28
-	root.add_child(ring)
+	ring.modulate = Color.WHITE
+	ring.visible = true
 
-	var echo := Line2D.new()
-	echo.name = "PowerupLawEcho"
-	echo.closed = true
-	echo.antialiased = true
-	echo.width = 2.0
+	var echo := _acquire_ring(_powerup_echo_pool, root, "PowerupLawEcho", 36, 2.0, 29)
 	echo.default_color = _safe_flash_color(Color(1.0, 1.0, 1.0, 0.28), 0.22)
-	echo.points = _circle_points(36, 1.0)
 	echo.global_position = _player.global_position
 	echo.scale = Vector2.ONE * 8.0
-	echo.z_index = 29
-	root.add_child(echo)
+	echo.modulate = Color.WHITE
+	echo.visible = true
 
 	var tween := ring.create_tween()
 	tween.tween_property(ring, "scale", Vector2.ONE * radius, 0.34)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.34)
-	tween.tween_callback(ring.queue_free)
+	tween.tween_callback(Callable(self, "_release_ring").bind(ring))
 
 	var echo_tween := echo.create_tween()
 	echo_tween.tween_property(echo, "scale", Vector2.ONE * (radius * 0.58), 0.18)
 	echo_tween.parallel().tween_property(echo, "modulate:a", 0.0, 0.18)
-	echo_tween.tween_callback(echo.queue_free)
+	echo_tween.tween_callback(Callable(self, "_release_ring").bind(echo))
 
 
 func _safe_flash_color(color: Color, alpha_cap: float) -> Color:

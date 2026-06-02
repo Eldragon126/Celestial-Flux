@@ -351,7 +351,7 @@ func _format_mod_entries(registry: Node) -> String:
 	var failed_value: Variant = snapshot.get("failed_manifests", {})
 	var failed: Dictionary = failed_value if failed_value is Dictionary else {}
 	if manifests.is_empty() and failed.is_empty():
-		return "No manifests found. Drop vectorfall_mod.json into res://Mods or user://mods."
+		return "No manifests found. Drop vector_anomaly_mod.json into res://Mods or user://mods."
 	var lines: Array[String] = []
 	for manifest_id in manifests.keys():
 		var manifest_value: Variant = manifests[manifest_id]

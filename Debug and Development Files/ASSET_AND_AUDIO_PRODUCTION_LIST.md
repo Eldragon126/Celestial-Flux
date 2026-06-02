@@ -1,10 +1,10 @@
-# ORBITRON: VECTORFALL Asset And Audio Production List
+# VECTOR ANOMALY Asset And Audio Production List
 
 This is the current production checklist for art, VFX, UI, music, and sound. It focuses on assets the game systems already need or will need soon, without requiring a redesign of the playable build.
 
 ## Priority Visual Assets
 
-- Final ORBITRON: VECTORFALL logo, readable at Steam capsule size and in the title screen.
+- Final Vector Anomaly logo, readable at Steam capsule size and in the title screen.
 - Steam capsule set: small capsule, header capsule, main capsule, vertical capsule, library hero, and library logo.
 - Key art showing the player slingshotting through a collapsing gravity field.
 - Press kit screenshots that clearly show player, gravity source, threat, trajectory, and recovery path.

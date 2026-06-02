@@ -11,12 +11,12 @@ Current focus areas:
 - Run-defining powerups that turn mastery movement into combat moments.
 - Skill signatures, spacetime swim/tear effects, and gravity-eating boss rules that make mastery visible.
 - Accessibility and performance settings that keep the game readable on weaker hardware.
-- Documentation that keeps contributors aligned with the current ORBITRON direction.
+- Documentation that keeps contributors aligned with the current Vector Anomaly direction.
 
 Developer references:
 - `GAME_SYSTEMS_AND_PROGRESSION.md`
-- `ORBITRON_SYSTEMS.md`
-- `Vectorfall Future.txt`
+- `Vector Anomaly systems notes`
+- `VECTOR_ANOMALY_PRODUCTION_ROADMAP.md`
 - `Things to Fix.txt`
 - `Separation_Blueprint.md`
 

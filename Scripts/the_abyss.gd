@@ -1,6 +1,6 @@
 extends Node2D
 
-## Planet Spawner for ORBITRON: VECTORFALL
+## Planet Spawner for Vector Anomaly
 ## Creates planets around the player while avoiding overlaps.
 ## Tiny procedural cosmos machine
 
@@ -62,7 +62,7 @@ func spawn_planets() -> void:
 		var success := try_spawn_planet(player.global_position)
 
 		if !success:
-			print("Failed to place planet #%s" % i)
+			continue
 
 # ============================================================
 # SPAWN SINGLE PLANET

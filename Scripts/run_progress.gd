@@ -1,5 +1,5 @@
 extends Node
-## Progress anchor for ORBITRON: VECTORFALL — not a physics snapshot.
+## Progress anchor for Vector Anomaly: not a physics snapshot.
 
 enum Phase {
 	PHYSICS_WAVES,

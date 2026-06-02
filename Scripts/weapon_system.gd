@@ -615,7 +615,7 @@ func _get_gravity_scar_manager() -> Node:
 
 func _get_anomaly_director() -> Node:
 	var root := get_tree().current_scene
-	return root.find_child("VectorfallAnomalyDirector", true, false) if root != null else null
+	return root.find_child("VectorAnomalyDirector", true, false) if root != null else null
 
 
 func _powerup_stack_count(powerup_id: StringName) -> int:

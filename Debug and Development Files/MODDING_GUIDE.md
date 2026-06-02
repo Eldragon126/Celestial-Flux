@@ -1,4 +1,4 @@
-# ORBITRON: VECTORFALL Modding Guide
+# VECTOR ANOMALY Modding Guide
 
 This is the current data-driven modding foundation. It is intentionally conservative: manifests are discovered and registered, but the game does not execute arbitrary mod scripts or automatically spawn untrusted content.
 
@@ -9,11 +9,11 @@ This is the current data-driven modding foundation. It is intentionally conserva
 - `res://Mods`
 - `user://mods`
 
-Each mod can either place `vectorfall_mod.json` directly in the root or inside its own folder.
+Each mod can either place `vector_anomaly_mod.json` directly in the root or inside its own folder.
 
 An example manifest lives at:
 
-- `res://Mods/example_vector_laws/vectorfall_mod.json`
+- `res://Mods/example_vector_laws/vector_anomaly_mod.json`
 
 ## Manifest Shape
 

@@ -1,7 +1,7 @@
 extends Node
 class_name PhysicsAwareEnemyDirector
 
-# Lightweight enemy intelligence layer for ORBITRON: VECTORFALL.
+# Lightweight enemy intelligence layer for Vector Anomaly.
 
 signal enemy_profile_assigned(enemy: Node, profile: StringName)
 signal enemy_physics_nudge(enemy: Node, profile: StringName, impulse: Vector2)

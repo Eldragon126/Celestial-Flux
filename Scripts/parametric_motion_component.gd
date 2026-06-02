@@ -1,7 +1,7 @@
 extends Node2D
 class_name ParametricMotionComponent
 
-## Parametric Motion System for ORBITRON: VECTORFALL
+## Parametric Motion System for Vector Anomaly
 ## Supports circles, spirals, ellipses, figure eights, rose curves, lissajous curves, and custom equations
 ## Movement itself teaches calculus intuitively through velocity, speed, and acceleration visualization
 

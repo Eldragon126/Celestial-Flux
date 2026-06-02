@@ -1,4 +1,4 @@
-# ORBITRON: VECTORFALL How To Play
+# VECTOR ANOMALY How To Play
 
 ## Core Fantasy
 
@@ -119,9 +119,9 @@ Challenge codes are seed-based score summaries. They are meant for friendly comp
 
 ## Mods
 
-The first modding foundation is data-driven. `ModContentRegistry` can discover `vectorfall_mod.json` manifests from `res://Mods` and `user://mods` with entries for arenas, waves, upgrades, and gameplay rules. The registry does not automatically run mod code.
+The first modding foundation is data-driven. `ModContentRegistry` can discover `vector_anomaly_mod.json` manifests from `res://Mods` and `user://mods` with entries for arenas, waves, upgrades, and gameplay rules. The registry does not automatically run mod code.
 
-The pause menu has a Modding section that shows loaded manifest counts, failed manifest reasons, and a `RESCAN MODS` button. An example manifest lives at `res://Mods/example_vector_laws/vectorfall_mod.json`.
+The pause menu has a Modding section that shows loaded manifest counts, failed manifest reasons, and a `RESCAN MODS` button. An example manifest lives at `res://Mods/example_vector_laws/vector_anomaly_mod.json`.
 
 See `MODDING_GUIDE.md` for the current manifest shape and validation rules.
 

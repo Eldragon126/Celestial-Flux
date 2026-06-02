@@ -68,19 +68,23 @@ func attack_pattern_loop() -> void:
 	_run_attack_pattern()
 
 func on_damage_taken(_amount: float) -> void:
-	pass
+	set_meta(&"last_damage_taken", maxf(_amount, 0.0))
 
 func _boss_physics(_delta: float) -> void:
-	pass
+	velocity = velocity.move_toward(Vector2.ZERO, 90.0 * _delta)
+	move_and_slide()
 
 func _run_attack_pattern() -> void:
-	pass
+	if attack_timer != null:
+		attack_timer.wait_time = maxf(attack_interval, 0.05)
 
 func _on_enter_phase(_phase: int) -> void:
-	pass
+	if attack_timer != null:
+		attack_timer.wait_time = maxf(attack_interval / maxf(float(_phase), 1.0), 0.08)
+		attack_timer.start()
 
 func _on_exit_phase(_phase: int) -> void:
-	pass
+	set_meta(&"last_phase_exited", _phase)
 
 func _build_health() -> void:
 	health = get_node_or_null("HealthComponent") as HealthComponent

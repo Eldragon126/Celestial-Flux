@@ -1,5 +1,5 @@
 extends Node2D
-class_name VectorfallAnomalyDirector
+class_name VectorAnomalyDirector
 
 signal micro_lens_created(lens_data: Dictionary)
 signal vacuum_collapse_triggered(collapse_data: Dictionary)
@@ -11,6 +11,8 @@ signal orbital_debris_seeded(debris: Node, debris_data: Dictionary)
 
 const CombatStatusApi := preload("res://Scripts/combat_status.gd")
 const GravityDebrisScript := preload("res://Scripts/gravity_debris.gd")
+const TARGET_GROUPS: Array[StringName] = [&"Projectiles", &"player_projectiles", &"enemy_projectiles", &"enemies", &"wave_enemy", &"bosses", &"law_gravity_debris"]
+const PLAYER_TARGET_GROUPS: Array[StringName] = [&"Projectiles", &"player_projectiles", &"enemy_projectiles", &"enemies", &"wave_enemy", &"bosses", &"law_gravity_debris", &"Player"]
 
 @export var enabled: bool = true
 @export var field_tick_interval: float = 0.045
@@ -98,12 +100,14 @@ var _debris_orbits: Dictionary = {}
 var _gravity_sources: Array[Node2D] = []
 var _cascade_charge: Dictionary = {}
 var _lens_visual_pool: Array[Line2D] = []
+var _transient_ring_pool: Array[Line2D] = []
+var _query_targets: Array[Node2D] = []
 var _memory_line: Line2D = null
 var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
-	add_to_group("vectorfall_anomaly_director")
+	add_to_group("vector_anomaly_director")
 	_rng.randomize()
 	set_process(true)
 	set_physics_process(true)
@@ -764,7 +768,18 @@ func _apply_momentum_drift(direction: Vector2, intensity: float, source_label: S
 
 
 func _collect_targets(center: Vector2, radius: float, limit: int, include_player: bool) -> Array[Node2D]:
-	var targets: Array[Node2D] = []
+	_query_targets.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius(
+			PLAYER_TARGET_GROUPS if include_player else TARGET_GROUPS,
+			center,
+			radius,
+			limit,
+			include_player,
+			_query_targets
+		)
+		return _query_targets
+
 	var radius_squared := radius * radius
 	var seen := {}
 	var groups: Array[StringName] = [&"Projectiles", &"player_projectiles", &"enemy_projectiles", &"enemies", &"wave_enemy", &"bosses", &"law_gravity_debris"]
@@ -773,8 +788,8 @@ func _collect_targets(center: Vector2, radius: float, limit: int, include_player
 
 	for group_name in groups:
 		for node in get_tree().get_nodes_in_group(group_name):
-			if targets.size() >= limit:
-				return targets
+			if _query_targets.size() >= limit:
+				return _query_targets
 			var body := node as Node2D
 			if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
 				continue
@@ -786,12 +801,22 @@ func _collect_targets(center: Vector2, radius: float, limit: int, include_player
 			seen[id] = true
 			if body.global_position.distance_squared_to(center) > radius_squared:
 				continue
-			targets.append(body)
-	return targets
+			_query_targets.append(body)
+	return _query_targets
 
 
 func _refresh_gravity_sources() -> void:
 	_gravity_sources.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_nearest_gravity_sources(
+			_player.global_position if _player != null and is_instance_valid(_player) else global_position,
+			_gravity_sources,
+			14,
+			0.0,
+			_player
+		)
+		return
+
 	var seen := {}
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for node in get_tree().get_nodes_in_group(group_name):
@@ -983,21 +1008,45 @@ func _spawn_transient_ring(center: Vector2, radius: float, color: Color, duratio
 	var root := get_tree().current_scene
 	if root == null:
 		return
-	var ring := Line2D.new()
-	ring.name = "VectorfallTransientRing"
+	var ring := _acquire_transient_ring(root)
 	ring.closed = true
 	ring.antialiased = true
 	ring.width = width
 	ring.default_color = color
-	ring.points = _circle_points(56, 1.0)
 	ring.global_position = center
 	ring.scale = Vector2.ONE * 12.0
+	ring.modulate.a = 1.0
 	ring.z_index = 30
-	root.add_child(ring)
+	ring.visible = true
 	var tween := ring.create_tween()
 	tween.tween_property(ring, "scale", Vector2.ONE * maxf(radius, 16.0), duration)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, duration)
-	tween.tween_callback(ring.queue_free)
+	tween.tween_callback(Callable(self, "_release_transient_ring").bind(ring))
+
+
+func _acquire_transient_ring(root: Node) -> Line2D:
+	for ring in _transient_ring_pool:
+		if ring != null and is_instance_valid(ring) and not ring.visible:
+			if ring.get_parent() != root:
+				ring.reparent(root)
+			return ring
+
+	var ring := Line2D.new()
+	ring.name = "VectorAnomalyTransientRing"
+	ring.closed = true
+	ring.antialiased = true
+	ring.top_level = true
+	ring.points = _circle_points(56, 1.0)
+	root.add_child(ring)
+	_transient_ring_pool.append(ring)
+	return ring
+
+
+func _release_transient_ring(ring: Line2D) -> void:
+	if ring == null or not is_instance_valid(ring):
+		return
+	ring.visible = false
+	ring.modulate.a = 1.0
 
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:

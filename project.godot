@@ -25,6 +25,7 @@ config/icon="res://icon.svg"
 Settings="*uid://cdqcblk11uskc"
 RunProgress="*res://Scripts/run_progress.gd"
 BulletManager="*res://Scripts/bullet_manager.gd"
+RuntimeRegistry="*res://Scripts/vector_runtime_registry.gd"
 
 [display]
 

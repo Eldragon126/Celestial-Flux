@@ -4,7 +4,7 @@ This document is the current developer-facing map of what the game does, how a r
 
 ## Current Game Loop
 
-ORBITRON is a physics-driven arena survival game. The player survives by building velocity, reading gravity fields, slingshotting around mass, and using momentum as a weapon. Waves spawn enemies, hazards, and bosses; gravity, resonance, time dilation, and arena instability increasingly alter the rules.
+Vector Anomaly is a physics-driven arena survival game. The player survives by building velocity, reading gravity fields, slingshotting around mass, and using momentum as a weapon. Waves spawn enemies, hazards, and bosses; gravity, resonance, time dilation, and arena instability increasingly alter the rules.
 
 The game is not a live-state save simulation. `RunProgress` stores stable progression anchors such as wave, boss count, seed, challenge flags, arena flags, and powerup stacks. Loading reconstructs the encounter instead of restoring active projectile or gravity state.
 
@@ -215,7 +215,7 @@ The current layers are `silence`, `drift`, `tension`, `overload`, and `collapse`
 
 `ModContentRegistry` discovers data manifests from `res://Mods` and `user://mods`. It registers arenas, waves, upgrades, and rule definitions from JSON without executing arbitrary code or spawning content automatically.
 
-The registry validates manifests before registration, stores failed manifest reasons, and exposes a snapshot for UI/debugging. `Mods/example_vector_laws/vectorfall_mod.json` is the current reference manifest.
+The registry validates manifests before registration, stores failed manifest reasons, and exposes a snapshot for UI/debugging. `Mods/example_vector_laws/vector_anomaly_mod.json` is the current reference manifest.
 
 This is an initial data-driven foundation. The game still needs runtime selection UI, editor tooling, dependency rules, and activation paths before it should be described as fully moddable.
 
@@ -239,7 +239,7 @@ The game uses capped sampling and modular directors instead of full scene scans 
 
 ## Universe And Tone
 
-`ORBITRON_UNIVERSE_GUIDE.md` defines the simulation fiction, system terms, progression-as-story, and writing rules. The game should talk like a failing physics system giving survival telemetry, not like a generic space shooter.
+The universe guide defines the simulation fiction, system terms, progression-as-story, and writing rules. The game should talk like a failing physics system giving survival telemetry, not like a generic space shooter.
 
 ## Current Known Runtime Caveat
 

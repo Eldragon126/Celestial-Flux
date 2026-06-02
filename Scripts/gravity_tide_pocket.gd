@@ -106,11 +106,23 @@ func _apply_mode_gravity_groups() -> void:
 	if mode == TideMode.COMPRESSION or mode == TideMode.INVERSION:
 		add_to_group("Objects_With_Gravity")
 		add_to_group("planets")
+		if RuntimeRegistry != null:
+			RuntimeRegistry.register_node(self, &"Objects_With_Gravity")
+			RuntimeRegistry.register_node(self, &"planets")
 		mass = absf(mass) * (-1.0 if mode == TideMode.INVERSION else 1.0)
 	else:
 		remove_from_group("Objects_With_Gravity")
 		remove_from_group("planets")
+		if RuntimeRegistry != null:
+			RuntimeRegistry.unregister_node(self, &"Objects_With_Gravity")
+			RuntimeRegistry.unregister_node(self, &"planets")
 		mass = 0.0
+
+
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"Objects_With_Gravity")
+		RuntimeRegistry.unregister_node(self, &"planets")
 
 func _activate() -> void:
 	if _active:

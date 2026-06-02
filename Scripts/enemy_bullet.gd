@@ -36,6 +36,9 @@ func _ready() -> void:
 
 	add_to_group("Projectiles")
 	add_to_group("enemy_projectiles")
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"Projectiles")
+		RuntimeRegistry.register_node(self, &"enemy_projectiles")
 
 	target = get_tree().get_first_node_in_group("Player")
 
@@ -234,11 +237,26 @@ func _on_timer_timeout() -> void:
 	queue_free()
 
 
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"Projectiles")
+		RuntimeRegistry.unregister_node(self, &"enemy_projectiles")
+
+
 func _refresh_gravity_sources() -> void:
 	if not is_inside_tree():
 		return
 
 	planets.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_nearest_gravity_sources(
+			global_position,
+			planets,
+			max_gravity_sources,
+			2000.0,
+			self
+		)
+		return
 
 	var seen := {}
 

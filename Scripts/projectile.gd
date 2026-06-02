@@ -13,7 +13,7 @@ extends RigidBody2D
 @export var initial_speed: float = 850.0
 @export var debug_logging: bool = false
 
-@export_group("Vectorfall Upgrade Responses")
+@export_group("Vector Anomaly Upgrade Responses")
 @export var relativistic_rail_acceleration: float = 640.0
 @export var relativistic_rail_speed_cap: float = 2850.0
 @export var relativistic_rail_warp_threshold: float = 1550.0
@@ -23,6 +23,7 @@ extends RigidBody2D
 # == STATE VARIABLES ==
 # ========================
 var planets: Array[Node2D] = []
+var _rail_points := PackedVector2Array([Vector2.ZERO, Vector2.ZERO])
 var _has_launched: bool = false
 var _rail_trail: Line2D = null
 var _rail_heat: float = 0.0
@@ -39,6 +40,9 @@ func _ready() -> void:
 	
 	add_to_group("Projectiles")
 	add_to_group("player_projectiles")
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"Projectiles")
+		RuntimeRegistry.register_node(self, &"player_projectiles")
 	
 	_refresh_gravity_sources()
 	
@@ -159,6 +163,12 @@ func _roll_damage() -> float:
 		
 	return final_damage
 
+
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"Projectiles")
+		RuntimeRegistry.unregister_node(self, &"player_projectiles")
+
 func _apply_relativistic_rail(delta: float) -> void:
 	if not has_meta(&"relativistic_rail_stacks"):
 		_update_rail_trail(false, delta)
@@ -195,7 +205,9 @@ func _update_rail_trail(active: bool, delta: float, ratio: float = 0.0) -> void:
 		add_child(_rail_trail)
 
 	var length := lerpf(42.0, relativistic_trail_max_length, _rail_heat)
-	_rail_trail.points = PackedVector2Array([Vector2(-length, 0.0), Vector2.ZERO])
+	_rail_points[0] = Vector2(-length, 0.0)
+	_rail_points[1] = Vector2.ZERO
+	_rail_trail.points = _rail_points
 	_rail_trail.width = lerpf(2.0, 9.0, _rail_heat)
 	_rail_trail.default_color = Color(
 		lerpf(0.42, 0.72, _rail_heat),
@@ -232,8 +244,9 @@ func _trigger_upgrade_impacts(body: Node) -> void:
 
 
 func _find_anomaly_director() -> Node:
-	var directors := get_tree().get_nodes_in_group("vectorfall_anomaly_director")
-	for director in directors:
+	var root := get_tree().current_scene
+	if root != null:
+		var director := root.find_child("VectorAnomalyDirector", true, false)
 		if director != null and is_instance_valid(director) and not director.is_queued_for_deletion():
 			return director
 	return null
@@ -246,25 +259,27 @@ func _refresh_gravity_sources() -> void:
 		return
 
 	planets.clear()
-	var seen = {}
-	
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_nearest_gravity_sources(
+			global_position,
+			planets,
+			max_gravity_sources,
+			2000.0,
+			self
+		)
+		return
+
+	var seen: Dictionary = {}
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for source in get_tree().get_nodes_in_group(group_name):
-			if not source is Node2D:
+			var source_2d := source as Node2D
+			if source_2d == null:
 				continue
-			var id = source.get_instance_id()
+			var id = source_2d.get_instance_id()
 			if seen.has(id):
 				continue
 			seen[id] = true
-			planets.append(source)
-	
-	planets.sort_custom(func(a: Node2D, b: Node2D) -> bool:
-		return a.global_position.distance_squared_to(global_position) < \
-			   b.global_position.distance_squared_to(global_position)
-	)
-	
-	if max_gravity_sources > 0 and planets.size() > max_gravity_sources:
-		planets.resize(max_gravity_sources)
+			planets.append(source_2d)
 
 func _on_timer_timeout() -> void:
 	queue_free()

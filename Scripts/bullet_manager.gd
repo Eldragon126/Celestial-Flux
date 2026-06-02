@@ -15,6 +15,10 @@ var _refresh_elapsed: float = 0.0
 
 func _ready() -> void:
 	add_to_group("bullet_manager")
+	if RuntimeRegistry != null:
+		var callback := Callable(self, "_on_registry_group_count_changed")
+		if not RuntimeRegistry.group_count_changed.is_connected(callback):
+			RuntimeRegistry.group_count_changed.connect(callback)
 	set_process(true)
 
 
@@ -27,7 +31,10 @@ func _process(delta: float) -> void:
 
 func _refresh_bullet_count() -> void:
 	var previous_count := _bullet_count
-	_bullet_count = get_tree().get_nodes_in_group("enemy_projectiles").size()
+	if RuntimeRegistry != null:
+		_bullet_count = RuntimeRegistry.get_count(&"enemy_projectiles")
+	else:
+		_bullet_count = get_tree().get_nodes_in_group("enemy_projectiles").size()
 	
 	if _bullet_count != previous_count:
 		bullet_count_changed.emit(_bullet_count, max_enemy_bullets)
@@ -36,7 +43,10 @@ func _refresh_bullet_count() -> void:
 
 
 func can_spawn_bullet() -> bool:
-	_refresh_bullet_count()
+	if RuntimeRegistry != null:
+		_bullet_count = RuntimeRegistry.get_count(&"enemy_projectiles")
+	else:
+		_refresh_bullet_count()
 	var can_spawn := _bullet_count < max_enemy_bullets
 	
 	if enable_debug_logging and not can_spawn:
@@ -46,7 +56,10 @@ func can_spawn_bullet() -> bool:
 
 
 func get_bullet_count() -> int:
-	_refresh_bullet_count()
+	if RuntimeRegistry != null:
+		_bullet_count = RuntimeRegistry.get_count(&"enemy_projectiles")
+	else:
+		_refresh_bullet_count()
 	return _bullet_count
 
 
@@ -55,5 +68,17 @@ func get_bullet_cap() -> int:
 
 
 func get_bullet_usage_ratio() -> float:
-	_refresh_bullet_count()
+	if RuntimeRegistry != null:
+		_bullet_count = RuntimeRegistry.get_count(&"enemy_projectiles")
+	else:
+		_refresh_bullet_count()
 	return float(_bullet_count) / float(maxi(max_enemy_bullets, 1))
+
+
+func _on_registry_group_count_changed(group_name: StringName, count: int) -> void:
+	if group_name != &"enemy_projectiles":
+		return
+	var previous_count := _bullet_count
+	_bullet_count = count
+	if _bullet_count != previous_count:
+		bullet_count_changed.emit(_bullet_count, max_enemy_bullets)

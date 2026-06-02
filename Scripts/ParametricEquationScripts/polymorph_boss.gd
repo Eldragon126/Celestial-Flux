@@ -1,7 +1,7 @@
 extends CharacterBody2D
 
 # ============================================================================
-# ORBITRON: "THE POLYMORPH"
+# VECTOR ANOMALY: "THE POLYMORPH"
 # A shape-shifting geometric boss that mutates:
 #
 # - Polygon2D visuals

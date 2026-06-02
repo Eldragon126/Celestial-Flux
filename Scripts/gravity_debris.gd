@@ -21,8 +21,19 @@ func _ready() -> void:
 	add_to_group("Objects_With_Gravity")
 	add_to_group("planets")
 	add_to_group("law_gravity_debris")
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"Objects_With_Gravity")
+		RuntimeRegistry.register_node(self, &"planets")
+		RuntimeRegistry.register_node(self, &"law_gravity_debris")
 	_build_visuals()
 	set_process(true)
+
+
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"Objects_With_Gravity")
+		RuntimeRegistry.unregister_node(self, &"planets")
+		RuntimeRegistry.unregister_node(self, &"law_gravity_debris")
 
 func configure(new_mass: float, new_radius: float, new_lifetime: float, new_color: Color) -> void:
 	mass = new_mass

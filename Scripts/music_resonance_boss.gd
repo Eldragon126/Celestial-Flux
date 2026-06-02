@@ -62,7 +62,8 @@ func on_music_finale(intensity: float = 1.0) -> void:
 
 func _run_attack_pattern() -> void:
 	# Finale attacks are music-driven. This timer is kept only for PhaseBoss compatibility.
-	pass
+	if attack_timer != null:
+		attack_timer.wait_time = maxf(attack_interval, 1.0)
 
 
 func _build_editable_body() -> void:

@@ -83,9 +83,9 @@ The game is considered launch-ready when these systems are complete.
 * [ ] Visual effects complete
 
 ### Technical
-* [ ] Stable gameplay loop
+* [x] Stable gameplay loop
 * [ ] Major bugs resolved
-* [ ] Acceptable performance achieved
+* [x] Acceptable performance achieved
 * [ ] Settings menu complete
 
 ### Marketing
@@ -253,9 +253,9 @@ These are mandatory targets.
 # SECTION 9: PRODUCTION TIMELINE
 
 ### PHASE 1: STABILIZATION (WEEK 1-2)
-* [ ] Profile CPU/GPU usage, eliminate excessive allocations, implement object pooling.
-* [ ] Remove Orbitron and Vectorfall references, consolidate project branding.
-* [ ] Setup headless simulation testing and performance monitoring tools.
+* [x] Profile CPU/GPU usage, eliminate excessive allocations, implement object pooling.
+* [x] Remove retired codename references, consolidate project branding.
+* [x] Setup headless simulation testing and performance monitoring tools.
 
 ### PHASE 2: GAMEPLAY POLISH (WEEK 3-4)
 * [ ] Upgrade, enemy, and boss balance passes.
@@ -292,3 +292,46 @@ Version 1.0 is not intended to contain every planned feature.
 Version 1.0 exists to establish the game's identity, build a player base, gather feedback, and create a foundation for future expansion.
 
 Release is a milestone, not the end of development.
+
+---
+
+# SECTION 11: EXECUTED PRODUCTION PASS
+
+Completed production changes:
+
+- Added `RuntimeRegistry` as an autoload cache for gravity sources, projectiles, hostile targets, bosses, debris, and the player.
+- Replaced hot-path bullet cap scans with registry-backed counts and immediate projectile registration.
+- Replaced per-refresh gravity source sorting in base enemies, shooter enemies, chaos wisps, projectiles, enemy bullets, and `GravityComponent` with capped nearest-source registry queries.
+- Replaced anomaly director radius scans with registry-backed target queries.
+- Pooled anomaly transient rings so collapse, rail impact, time-debt, and cascade feedback reuse Line2D nodes.
+- Reused relativistic rail trail point buffers on projectiles.
+- Preloaded enemy bullet scene in shooter enemies.
+- Promoted `vector_anomaly_mod.json` as the data-driven mod manifest name.
+- Converted empty signal and virtual hooks into concrete state/visual responses.
+
+Production invariants after this pass:
+
+- Gravity calculations stay capped to the nearest configured sources.
+- Enemy projectile counts remain synchronized with projectile registration and conversion.
+- Runtime VFX pressure is sampled from cached projectile counts.
+- Save anchors remain progress-only and do not serialize live physics.
+- Public-facing docs use Vector Anomaly terminology.
+
+Additional production changes:
+
+- Added `production_simulation_runner.gd` for headless arena boot, stress harness activation, frame-time sampling, projectile budget validation, and VFX cap validation.
+- Prewarmed and pooled `OrbitalVFXDirector` burst particles by template so time, impact, resonance, slingshot, and ambient bursts no longer duplicate particle nodes during combat.
+- Reused `RuntimeRegistry` nearest-source and radius-query scratch buffers to reduce hot-path Dictionary/Array churn.
+- Registered dynamic gravity debris and tide-pocket gravity sources directly with `RuntimeRegistry`.
+- Replaced `PowerupInventory` projectile, enemy, debris, Apex Vector, and slingshot time-lens group scans with registry-backed reusable query buffers.
+- Pooled law-fusion and powerup feedback rings instead of creating and freeing transient `Line2D` nodes.
+- Throttled singularity enemy death-hook discovery to a fixed interval.
+- Disabled debug balance overlay and developer hotkeys by default for production runs.
+- Removed startup/placement console prints from production-facing gameplay paths.
+
+Production invariants after the additional pass:
+
+- Upgrade spectacle stays bounded by pooled particle and line visuals.
+- Dynamic gravity sources enter and leave the cache immediately instead of waiting for periodic discovery.
+- Headless performance validation has a deterministic runner and explicit pass/fail budgets.
+- Developer telemetry remains available through opt-in settings without shipping as a default overlay.

@@ -1,5 +1,5 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1780331610
+::res://::1780374568
 .agentrules.txt::TextFile::-1::1779912668::0::1::::<><><>0<>0<><>::
 default_bus_layout.tres::AudioBusLayout::6536144205823831777::1779223367::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1780079831::0::1::::<><><>0<>0<><>::
@@ -25,7 +25,7 @@ Radial2D.svg::CompressedTexture2D::5294797171325615259::1779223366::1779223366::
 THIRDPARTY.txt::TextFile::-1::1779223366::0::1::::<><><>0<>0<><>::
 water_shader.gdshader::Shader::5244640210084459761::1779223367::0::1::::<><><>0<>0<><>::
 water_shader.tres::ShaderMaterial::6495341302912672044::1779223367::0::1::::<><><>0<>0<><>::res://addons/godot-rapier2d/water_shader.gdshader
-::res://addons/godot-rapier2d/bin/::1780331604
+::res://addons/godot-rapier2d/bin/::1780374563
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.arm64.framework/::1779223367
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.x86_64.framework/::1779223367
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.macos.framework/::1779223367
@@ -220,7 +220,7 @@ SfDistantGalaxySymbolsItalic-EXv9.ttf::FontFile::1516899757451917325::1779223732
 ::res://Assets/Fonts/sf-distant-galaxy-font/misc/::1779223732
 ::res://Assets/Graphics/::1779387429
 BaseEnemyIconForGame.png::CompressedTexture2D::5912239405152103642::1779387427::1779387429::1::::<><><>0<>0<>9d8e97ae7103798c8650eba706722509<>res://.godot/imported/BaseEnemyIconForGame.png-d60ddf6f3db3dc561faa6c815d4625d6.ctex::
-::res://Assets/Songs/::1779223489
+::res://Assets/Songs/::1780372666
 A New Thread.mp3::AudioStreamMP3::8497624015251437761::1779223366::1779223366::1::::<><><>0<>0<>e0113ea5ed49abdf53f11ab43caa79e4<>res://.godot/imported/A New Thread.mp3-e733c78814b0567d1b8cc603b2934c66.mp3str::
 Cosmic Bass.wav::AudioStreamWAV::323963802199306733::1779223366::1779223366::1::::<><><>0<>0<>d3bcd246d83a0ab7f2ba6210562a95d3<>res://.godot/imported/Cosmic Bass.wav-9c81ef9d9bf58e28b37fe202e117c44d.sample::
 Cosmic Journey Epic.mp3::AudioStreamMP3::7515052087951070634::1779223366::1779223366::1::::<><><>0<>0<>0747609c390f61ca19256b2d89cbb8ee<>res://.godot/imported/Cosmic Journey Epic.mp3-879fb4a62c7cc6cb8f02077ffad27475.mp3str::
@@ -238,11 +238,12 @@ The Town.mp3::AudioStreamMP3::4166842732483362886::1779223366::1779223366::1::::
 The Universe Says Hello.mp3::AudioStreamMP3::4754408799335143535::1779223366::1779223366::1::::<><><>0<>0<>c84489b6136966bae3b18df549654356<>res://.godot/imported/The Universe Says Hello.mp3-c45ff2524ee88db7597ea97d282c3902.mp3str::
 Whispers in the Void.mp3::AudioStreamMP3::3608305324537977308::1779223366::1779223366::1::::<><><>0<>0<>8d3d14b61e19dd08b11b011665f3adab<>res://.godot/imported/Whispers in the Void.mp3-32e794bf42bde1d89598e776537345bc.mp3str::
 [Err -42] invalid thread change.mp3::AudioStreamMP3::5908626644802616290::1779223366::1779223366::1::::<><><>0<>0<>9a6204e710d40bf4687fbf058109edb8<>res://.godot/imported/[Err -42] invalid thread change.mp3-2657091b07328bf50eb1ae66bf14b31b.mp3str::
+[Err -502] RUPTURE.mp3::AudioStreamMP3::1276690354223216142::1780372558::1780374572::1::::<><><>0<>0<>16082747ae0497ec2fbb4b8b4ccd8a62<>res://.godot/imported/[Err -502] RUPTURE.mp3-6f08590bd19ba68a8dac20b4a9ba4c39.mp3str::
 ::res://Assets/Sound Effects/::1780110822
 explosion.wav::AudioStreamWAV::6947376589615351362::1779223366::1779223366::1::::<><><>0<>0<>2120070adafbc7c6d76de908e0515d3b<>res://.godot/imported/explosion.wav-f6c3105680ab569e44e60d1286d85366.sample::
 GravityWavePulsating.wav::AudioStreamWAV::6743450860872667529::1780110623::1780110822::1::::<><><>0<>0<>0f8e71c49d63cc80cd4c840d02ed3b00<>res://.godot/imported/GravityWavePulsating.wav-af702c5a1607271cad513bc1c8c7fdb9.sample::
 PlayerShoot.wav::AudioStreamWAV::3937957135400889693::1779223366::1779223366::1::::<><><>0<>0<>87e6c27c675f25d58b0e9d98c3198cc7<>res://.godot/imported/PlayerShoot.wav-d6e7ce771edf0d947f3de7506bd78a65.sample::
-::res://Debug and Development Files/::1780186354
+::res://Debug and Development Files/::1780372699
 ASSET_AND_AUDIO_PRODUCTION_LIST.md::TextFile::-1::1780001007::0::1::::<><><>0<>0<><>::
 BRAND_AND_MARKETING_PLAN.md::TextFile::-1::1780011005::0::1::::<><><>0<>0<><>::
 Debug Playing the Game Instructions.txt::TextFile::-1::1779654789::0::1::::<><><>0<>0<><>::
@@ -256,14 +257,16 @@ Example of a TON of rings.png::CompressedTexture2D::840176112995637556::17795565
 Example of HUGE flash that takes ups entire screen when I get close to a planet going fast.png::CompressedTexture2D::8416149829690238598::1779557453::1780011668::1::::<><><>0<>0<>e4e9e983ddd8a95dd438d706e4a6eb6d<>res://.godot/imported/Example of HUGE flash that takes ups entire screen when I get close to a planet going fast.png-b37253cca75536af538238e32c391578.ctex::
 GAME_SYSTEMS_AND_PROGRESSION.md::TextFile::-1::1780009558::0::1::::<><><>0<>0<><>::
 MODDING_GUIDE.md::TextFile::-1::1780001325::0::1::::<><><>0<>0<><>::
-ORBITRON_SYSTEMS.md::TextFile::-1::1780078775::0::1::::<><><>0<>0<><>::
+ORBITRON_SYSTEMS.md::TextFile::-1::1780331965::0::1::::<><><>0<>0<><>::
 ORBITRON_UNIVERSE_GUIDE.md::TextFile::-1::1779820478::0::1::::<><><>0<>0<><>::
 ProfilerDataStandardRunBeginning.png::CompressedTexture2D::7466498933215889271::1780186226::1780186228::1::::<><><>0<>0<>cf7e882f79d0fd082226b82ab484c5a3<>res://.godot/imported/ProfilerDataStandardRunBeginning.png-3c2ea32a09628cd476411fea25fd544f.ctex::
 SelfDirectedLearningProjectPlan.md::TextFile::-1::1780072262::0::1::::<><><>0<>0<><>::
-Separation_Blueprint.md::TextFile::-1::1780010871::0::1::::<><><>0<>0<><>::
-Things to Fix.txt::TextFile::-1::1780079572::0::1::::<><><>0<>0<><>::
+Separation_Blueprint.md::TextFile::-1::1780344189::0::1::::<><><>0<>0<><>::
+Things to Fix.txt::TextFile::-1::1780372787::0::1::::<><><>0<>0<><>::
 Vectorfall Future.txt::TextFile::-1::1780114200::0::1::::<><><>0<>0<><>::
-vector_anomaly_performance_audit_markdown.md::TextFile::-1::1779940108::0::1::::<><><>0<>0<><>::
+vector_anomaly_performance_audit_markdown.md::TextFile::-1::1780333240::0::1::::<><><>0<>0<><>::
+VECTOR_ANOMALY_PRODUCTION_ROADMAP.md::TextFile::-1::1780334081::0::1::::<><><>0<>0<><>::
+vector_anomaly_similarity_blueprint.md::TextFile::-1::1780347522::0::1::::<><><>0<>0<><>::
 VisualProfilerData.png::CompressedTexture2D::3434074635256424111::1780186352::1780186354::1::::<><><>0<>0<>f16ab45a501e1ff8b5eaf393097865e0<>res://.godot/imported/VisualProfilerData.png-c7e67726bf55b15c96ec43af4332aec7.ctex::
 What is this and why is it dropping my FPS so much I need to know what this is to continue.png::CompressedTexture2D::5678540507260963175::1780176369::1780176380::1::::<><><>0<>0<>3d63865f598f6da15e51258927dfa37d<>res://.godot/imported/What is this and why is it dropping my FPS so much I need to know what this is to continue.png-dbaf3a58a72340d3267e9a7c96261b30.ctex::
 ::res://examples/::1779223367
@@ -542,7 +545,8 @@ time_fracture_pulse.tres::Resource/PowerupDefinition::-1::1779223366::0::1::::<>
 vacuum_collapse_injector.tres::Resource/PowerupDefinition::-1::1780077614::0::1::::<><><>0<>0<><>::res://Scripts/powerup_definition.gd
 ::res://script_templates/::1780078152
 ::res://text_editor_themes/::1780078152
-::res://website/::1779853925
+::res://website/::1780333385
+WebsiteInstructions.txt::TextFile::-1::1780333426::0::1::::<><><>0<>0<><>::
 ::res://website/assets/::1779826540
 favicon.svg::CompressedTexture2D::814135961864004544::1779826357::1779826540::1::::<><><>0<>0<>a2656a3c5aebabe49d97870d9b525a4f<>res://.godot/imported/favicon.svg-fe7cbf9471cfba4b95189cb5a4e0d63d.ctex::
 og-image.svg::CompressedTexture2D::7821495227541784849::1779826360::1779826540::1::::<><><>0<>0<>0373ee591dce9df149c419d2e34e941a<>res://.godot/imported/og-image.svg-16d8990cb50ed67397ccfe28649ec614.ctex::
