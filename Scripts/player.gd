@@ -6,6 +6,8 @@ signal slingshot_mastery_scored(data: Dictionary)
 signal slingshot_window_changed(data: Dictionary)
 signal momentum_projectile_spawned(projectile: Node, direction: Vector2)
 signal death_lesson_generated(lesson: String)
+signal player_hit_invulnerability_started(duration: float)
+signal damage_ignored_during_invulnerability(amount: float)
 
 # ========================
 # == EXPORT VARIABLES ==
@@ -24,12 +26,21 @@ signal death_lesson_generated(lesson: String)
 @export var counter_thrust_control_bonus: float = 0.32
 @export var lateral_thrust_control_bonus: float = 0.18
 
+@export_group("Drag Precision")
+@export var drag_precision_alignment_rate: float = 5.2
+@export var drag_precision_brake_blend: float = 0.38
+@export var drag_gravity_turn_blend: float = 0.28
+@export var drag_slingshot_energy_recovery: float = 4.5
+@export var drag_precision_min_speed: float = 240.0
+
+@export_group("Gravity")
 @export var gravity_constant: float = 400.0
 @export var min_grav_dist: float = 50.0
 @export var gravity_pull_radius: float = 1800.0
 @export var max_gravity_sources: int = 4
 @export var gravity_source_refresh_interval: float = 0.35
 
+@export_group("Slingshot")
 @export var slingshot_factor: float = 1.5
 @export var slingshot_max_impulse: float = 800.0
 @export var slingshot_speed_cap: float = 2500.0
@@ -47,6 +58,7 @@ signal death_lesson_generated(lesson: String)
 @export var max_gravity_anchors: int = 1
 @export var orbit_control_bonus: float = 0.0
 
+@export_group("Energy")
 @export var energy_cost_per_work: float = 0.00001
 @export var minimum_thrust_energy_cost_per_second: float = 5.0
 @export var gravity_charge_per_work: float = 0.0001
@@ -56,6 +68,10 @@ signal death_lesson_generated(lesson: String)
 
 @export_group("Death")
 @export var death_watch_duration: float = 0.82
+
+@export_group("Damage Grace")
+@export var post_hit_invulnerability_seconds: float = 0.62
+@export var post_hit_invulnerability_flash_rate: float = 14.0
 
 # ========================
 # == STATE VARIABLES ==
@@ -100,6 +116,8 @@ var menu_is_hidden := true
 var time_tween: Tween
 var _last_damage_amount: float = 0.0
 var _last_damage_time: float = -999.0
+var _damage_invulnerable_until: float = -999.0
+var _invulnerability_flash_elapsed: float = 0.0
 var _death_in_progress: bool = false
 # ========================
 # == NODE REFERENCES ==
@@ -116,6 +134,8 @@ var _death_in_progress: bool = false
 
 @onready var health_component = get_node_or_null("HealthComponent")
 @onready var projectile_scene = preload("res://Nodes/projectile.tscn")
+@onready var hull_polygon: Polygon2D = get_node_or_null("Polygon2D") as Polygon2D
+@onready var shield_polygon: Polygon2D = get_node_or_null("Shield/Polygon2D") as Polygon2D
 
 # ========================
 # == READY ==
@@ -130,9 +150,9 @@ func _ready():
 	if Settings.input_type == false:
 		camera.ignore_rotation = true
 		camera.rotation_degrees = 0
-	else:
-		camera.ignore_rotation = false
-		camera.rotation_degrees = 270
+	#else:
+	#	camera.ignore_rotation = false
+	#	camera.rotation_degrees = 270
 
 	_camera_base_rotation = camera.rotation
 
@@ -239,24 +259,17 @@ func calculate_gravity() -> Vector2:
 # == ROTATION ==
 # ========================
 
-func handle_rotation(delta):
-	var input = Input.get_axis("rotate_ccw", "rotate_cw")
-
+func handle_rotation(delta: float) -> void:
 	if Settings.input_type:
-		rotation += input * rotation_speed * delta
+		var aim_direction := Vector2(
+		Input.get_joy_axis(0, JOY_AXIS_LEFT_X),
+		Input.get_joy_axis(0, JOY_AXIS_LEFT_Y)
+		)
+
+		if aim_direction.length() > 0.70:
+			rotation = (-aim_direction).angle()
 	else:
-		rotation = (global_position - get_global_mouse_position()).angle()
-
-	# orbital alignment assist
-	if is_instance_valid(closest_planet) and Settings.input_type:
-		var radial = (global_position - closest_planet.global_position).normalized()
-		var tangent = Vector2(-radial.y, radial.x)
-
-		if velocity.dot(tangent) < 0:
-			tangent = -tangent
-
-		var target = tangent.angle()
-		rotation = lerp_angle(rotation, target, clampf(orbit_alignment_assist_strength, 0.0, 1.0))
+		rotation = (global_position - get_global_mouse_position()).angle() #This may look opposite, but it works correctly.
 
 # ========================
 # == SLINGSHOT SYSTEM ==
@@ -468,14 +481,27 @@ func apply_gravity_recharge(gravity: Vector2, delta: float):
 # == DRAG ==
 # ========================
 
-func apply_drag(gravity, delta: float):
+func apply_drag(gravity: Vector2, delta: float):
 	if not DRAG_enabled or velocity.length() < 1:
 		return
 
-	var coeff = drag if Input.is_action_pressed("thrust") else idle_drag
-	var old_v = velocity
+	var thrusting := Input.is_action_pressed("thrust")
+	var coeff := drag if thrusting else idle_drag
+	var old_v := velocity
+	var in_slingshot_band := _is_drag_slingshot_band(gravity)
+
+	if in_slingshot_band:
+		coeff = lerpf(coeff, 0.992, drag_gravity_turn_blend)
+	elif thrusting:
+		var speed := velocity.length()
+		if speed > drag_precision_min_speed:
+			var forward := -transform.x.normalized()
+			var alignment := velocity.normalized().dot(forward)
+			if alignment < -0.18:
+				coeff = lerpf(coeff, 0.988, drag_precision_brake_blend)
 
 	velocity *= pow(coeff, delta * 60.0)
+	_apply_drag_precision_control(gravity, old_v, delta, thrusting, in_slingshot_band)
 
 	var energy_loss = 0.0
 
@@ -485,6 +511,58 @@ func apply_drag(gravity, delta: float):
 
 	if energy_component and energy_loss > 0.0001:
 		energy_component.spend(energy_loss)
+
+	if energy_component and in_slingshot_band:
+		var recovery_scale := clampf(old_v.length() / maxf(slingshot_speed_cap, 1.0), 0.0, 1.0)
+		energy_component.restore(drag_slingshot_energy_recovery * recovery_scale * delta)
+
+
+func _apply_drag_precision_control(
+	gravity: Vector2,
+	old_velocity: Vector2,
+	delta: float,
+	thrusting: bool,
+	in_slingshot_band: bool
+) -> void:
+	var speed := velocity.length()
+	if speed < drag_precision_min_speed:
+		return
+
+	var blend := 0.0
+	var target_direction := Vector2.ZERO
+
+	if in_slingshot_band and is_instance_valid(closest_planet):
+		var radial := global_position - closest_planet.global_position
+		if radial.length_squared() > 0.001:
+			var tangent := radial.normalized().orthogonal()
+			if tangent.dot(old_velocity) < 0.0:
+				tangent = -tangent
+			target_direction = tangent
+			blend = drag_gravity_turn_blend
+
+	if thrusting:
+		var forward := -transform.x.normalized()
+		var speed_dir := old_velocity.normalized()
+		var aim_quality := clampf(1.0 - absf(speed_dir.dot(forward)), 0.0, 1.0)
+		target_direction = (target_direction + forward * (0.62 + aim_quality)).normalized()
+		blend = maxf(blend, drag_precision_brake_blend * (0.45 + aim_quality * 0.55))
+
+	if target_direction.length_squared() <= 0.001 or blend <= 0.0:
+		return
+
+	var gravity_bonus := clampf(gravity.length() / 440.0, 0.0, 0.55)
+	var turn_amount := clampf(delta * drag_precision_alignment_rate * (blend + gravity_bonus), 0.0, 0.34)
+	velocity = velocity.lerp(target_direction.normalized() * speed, turn_amount)
+
+
+func _is_drag_slingshot_band(gravity: Vector2) -> bool:
+	return (
+		is_instance_valid(closest_planet)
+		and closest_dist > 70.0
+		and closest_dist < 540.0
+		and gravity.length_squared() > 0.001
+		and velocity.length() >= slingshot_min_tangential_speed
+	)
 
 # ========================
 # == CONSTRAINTS ==
@@ -635,7 +713,7 @@ func _is_pause_blocking() -> bool:
 	return not menu_is_hidden or get_tree().paused
 
 func update_ui():
-	drag_label.text = "Drag: " + ("Enabled" if DRAG_enabled else "Disabled")
+	drag_label.text = "Drag: " + ("Precision" if DRAG_enabled else "Momentum")
 
 	if health_component:
 		var shield_text = ""
@@ -662,6 +740,7 @@ func update_ui():
 # ========================
 
 func _process(delta):
+	_update_hit_invulnerability_visual(delta)
 	if _death_in_progress:
 		update_camera(delta)
 		return
@@ -715,6 +794,11 @@ func shield_process():
 func take_damage(amount: float):
 	if _death_in_progress:
 		return
+	if amount <= 0.0:
+		return
+	if is_damage_invulnerable():
+		damage_ignored_during_invulnerability.emit(amount)
+		return
 
 	_last_damage_amount = amount
 	_last_damage_time = Time.get_ticks_msec() / 1000.0
@@ -726,9 +810,46 @@ func take_damage(amount: float):
 	if remaining > 0.0 and health_component:
 		health_component.take_damage(remaining)
 
+	_start_hit_invulnerability()
+
+
+func is_damage_invulnerable() -> bool:
+	return _now_seconds() < _damage_invulnerable_until
+
+
+func _start_hit_invulnerability() -> void:
+	if post_hit_invulnerability_seconds <= 0.0:
+		return
+	_damage_invulnerable_until = maxf(_damage_invulnerable_until, _now_seconds() + post_hit_invulnerability_seconds)
+	_invulnerability_flash_elapsed = 0.0
+	player_hit_invulnerability_started.emit(post_hit_invulnerability_seconds)
+
+
+func _update_hit_invulnerability_visual(delta: float) -> void:
+	if not is_inside_tree():
+		return
+	if not is_damage_invulnerable():
+		if hull_polygon != null:
+			hull_polygon.modulate.a = 1.0
+		if shield_polygon != null:
+			shield_polygon.modulate.a = 1.0
+		return
+
+	_invulnerability_flash_elapsed += delta
+	var pulse := 0.52 + 0.48 * absf(sin(_invulnerability_flash_elapsed * post_hit_invulnerability_flash_rate))
+	if hull_polygon != null:
+		hull_polygon.modulate.a = pulse
+	if shield_polygon != null:
+		shield_polygon.modulate.a = maxf(pulse, 0.72)
+
 func take_shield_damage(amount: float) -> float:
+	if is_damage_invulnerable():
+		damage_ignored_during_invulnerability.emit(amount)
+		return 0.0
 	if shield_component != null and shield_component.has_method("take_shield_damage"):
-		return float(shield_component.call("take_shield_damage", amount))
+		var remaining := float(shield_component.call("take_shield_damage", amount))
+		_start_hit_invulnerability()
+		return remaining
 	return amount
 
 func restore_shield(amount: float) -> float:
@@ -1119,6 +1240,9 @@ func get_slingshot_debug_state() -> Dictionary:
 	state["last_age"] = Time.get_ticks_msec() / 1000.0 - last_slingshot_time
 	state["cooldown_ready"] = slingshot_ready
 	return state
+
+func _now_seconds() -> float:
+	return Time.get_ticks_msec() / 1000.0
 	
 func get_pause_menu() -> Node:
 	# First try direct path (works in player scene)

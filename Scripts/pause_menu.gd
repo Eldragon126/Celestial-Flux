@@ -52,6 +52,7 @@ var _menu_base_scale := Vector2.ONE
 
 
 func _ready() -> void:
+	$MenuPanel/MenuRows/UIScaleRow/UIScaleSlider.grab_focus()
 	add_to_group("PauseMenu")
 	visible = false
 	modulate.a = 0.0

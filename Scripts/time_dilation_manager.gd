@@ -21,6 +21,7 @@ class_name TimeDilationManager
 
 @export var base_time_scale: float = 1.0
 @export var min_time_scale: float = 0.18
+@export var safe_global_min_time_scale: float = 0.34
 @export var max_time_scale: float = 1.0
 
 @export var dilation_rate: float = 7.0
@@ -62,6 +63,8 @@ class_name TimeDilationManager
 @export var field_tick_interval: float = 0.03
 
 @export var max_targets_per_tick: int = 64
+@export var max_local_slow_effects: int = 36
+@export var minimum_local_slow_multiplier: float = 0.32
 
 # ============================================================
 # AFTERIMAGES
@@ -303,8 +306,9 @@ func _update_time_scale(unscaled_delta: float) -> void:
 			0.001
 		)
 
+		var effective_min_scale := maxf(min_time_scale, safe_global_min_time_scale)
 		target_scale = lerpf(
-			min_time_scale,
+			effective_min_scale,
 			base_time_scale,
 			fraction
 		)
@@ -324,7 +328,7 @@ func _update_time_scale(unscaled_delta: float) -> void:
 
 	current_time_scale = clampf(
 		current_time_scale,
-		min_time_scale,
+		maxf(min_time_scale, safe_global_min_time_scale),
 		max_time_scale
 	)
 
@@ -470,8 +474,10 @@ func apply_local_slow_to_target(
 		return
 
 	var id := target.get_instance_id()
-	var clamped_multiplier := clampf(multiplier, 0.05, 1.0)
 	var existing: Dictionary = _local_slow_effects.get(id, {})
+	if existing.is_empty() and max_local_slow_effects > 0 and _local_slow_effects.size() >= max_local_slow_effects:
+		return
+	var clamped_multiplier := clampf(multiplier, minimum_local_slow_multiplier, 1.0)
 	var was_new := existing.is_empty()
 	var previous_multiplier := float(existing.get("multiplier", 1.0))
 

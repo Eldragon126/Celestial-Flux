@@ -15,18 +15,18 @@ signal visual_phase_changed(phase: StringName, wave: int)
 
 @export_group("Mid Run")
 @export var mid_glow_intensity: float = 0.85
-@export var mid_particle_scale: float = 1.0
-@export var mid_vfx_burst_cap: int = 14
+@export var mid_particle_scale: float = 0.82
+@export var mid_vfx_burst_cap: int = 12
 
 @export_group("Late Run")
-@export var late_glow_intensity: float = 1.15
-@export var late_particle_scale: float = 1.22
-@export var late_vfx_burst_cap: int = 18
+@export var late_glow_intensity: float = 0.95
+@export var late_particle_scale: float = 0.9
+@export var late_vfx_burst_cap: int = 14
 
 @export_group("Rupture")
-@export var rupture_glow_intensity: float = 1.45
-@export var rupture_particle_scale: float = 1.38
-@export var rupture_vfx_burst_cap: int = 22
+@export var rupture_glow_intensity: float = 1.08
+@export var rupture_particle_scale: float = 0.96
+@export var rupture_vfx_burst_cap: int = 16
 
 var _elapsed := 0.0
 var _current_phase: StringName = &"early"
@@ -114,9 +114,9 @@ func _apply_presets(phase: StringName, wave: int) -> void:
 
 	var resonance := get_tree().current_scene.find_child("GravityResonanceManager", true, false)
 	if resonance != null and resonance.get("max_visual_particles_per_zone") != null:
-		var base := 32 if phase == &"early" else 48
+		var base := 24 if phase == &"early" else 34
 		if phase == &"late" or phase == &"rupture":
-			base = 64
+			base = 42
 		resonance.set("max_visual_particles_per_zone", int(float(base) * particle_scale))
 
 	var player := get_tree().get_first_node_in_group("Player")

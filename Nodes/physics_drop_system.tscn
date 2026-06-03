@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/physics_drop_system.gd" id="1_drop_system"]
+
+[node name="PhysicsDropSystem" type="Node"]
+script = ExtResource("1_drop_system")

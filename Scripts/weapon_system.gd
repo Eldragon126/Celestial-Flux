@@ -12,6 +12,7 @@ const WEAPON_NAMES := {
 	&"gravity_wave_beam": "Gravity Wave Beam",
 	&"chronal_refraction_beam": "Chronal Refraction Beam",
 }
+const IMPACT_RING_WIDTH: float = 2.0
 
 @export_node_path("Node2D") var player_path: NodePath = ^".."
 @export var selected_weapon_index: int = 0
@@ -45,6 +46,9 @@ const WEAPON_NAMES := {
 @export var gravity_wave_axis_pull_per_second: float = 1220.0
 @export var gravity_wave_enemy_pull_multiplier: float = 1.25
 @export var gravity_wave_forward_drift: float = 0.18
+@export var gravity_wave_planet_damage_per_second: float = 46.0
+@export var gravity_wave_planet_displacement_per_second: float = 42.0
+@export var gravity_wave_planet_fracture_interval: float = 0.72
 
 @export_group("Chronal Refraction Beam")
 @export var chronal_slow_multiplier: float = 0.46
@@ -53,13 +57,19 @@ const WEAPON_NAMES := {
 @export var chronal_delayed_impulse: float = 280.0
 @export var chronal_delay_seconds: float = 0.36
 @export var chronal_zone_interval: float = 0.42
+@export var chronal_echo_count: int = 3
+@export var chronal_echo_spacing: float = 0.11
+@export var chronal_echo_max_per_tick: int = 10
+@export var chronal_desync_lateral_impulse: float = 150.0
+@export var chronal_echo_zone_interval: float = 0.16
 
 @export_group("Visuals")
 @export var vector_bolt_color: Color = Color(0.34, 1.0, 0.86, 1.0)
 @export var positron_color: Color = Color(1.0, 0.72, 0.28, 1.0)
 @export var gravity_wave_color: Color = Color(0.3, 0.72, 1.0, 1.0)
 @export var chronal_color: Color = Color(0.74, 0.36, 1.0, 1.0)
-@export var beam_alpha_cap: float = 0.72
+@export_range(0.0, 0.42, 0.01) var beam_alpha_cap: float = 0.34
+@export var beam_impact_radius_cap: float = 96.0
 @export var beam_pulse_speed: float = 10.0
 
 @onready var _beam_root: Node2D = get_node_or_null("BeamRoot") as Node2D
@@ -70,6 +80,7 @@ const WEAPON_NAMES := {
 var _player: Node2D = null
 var _energy_component: Node = null
 var _powerup_inventory: Node = null
+var _pause_menu: Node = null
 var _query_shape := RectangleShape2D.new()
 var _query_params := PhysicsShapeQueryParameters2D.new()
 var _active_weapon_id: StringName = &"vector_bolt"
@@ -78,12 +89,17 @@ var _beam_heat := 0.0
 var _last_switch_time := -999.0
 var _last_positron_scar_time := -999.0
 var _last_wave_resonance_time := -999.0
+var _last_wave_planet_fracture_time := -999.0
 var _last_chronal_zone_time := -999.0
+var _last_chronal_echo_zone_time := -999.0
+var _chronal_phantoms_this_tick: int = 0
+var _beam_points := PackedVector2Array([Vector2.ZERO, Vector2.ZERO])
 
 
 func _ready() -> void:
 	add_to_group("weapon_system")
 	_resolve_player()
+	call_deferred("_resolve_pause_menu")
 	_configure_query()
 	_ensure_visual_nodes()
 	select_weapon(selected_weapon_index)
@@ -257,6 +273,10 @@ func _apply_gravity_wave_beam(origin: Vector2, direction: Vector2, hits: Array[N
 		var projectile_multiplier := gravity_wave_projectile_force_multiplier if target_2d.is_in_group("enemy_projectiles") else 1.0
 		var falloff := lerpf(1.0, 0.48, along)
 
+		if _is_destructible_planet(target_2d):
+			_apply_gravity_wave_to_planet(target_2d, warp_dir, falloff, delta)
+			continue
+
 		CombatStatus.add_velocity(target_2d, warp_dir * (force + axis_pull) * hostile_multiplier * projectile_multiplier * falloff)
 		target_2d.set_meta(&"gravity_wave_beam_pressure", clampf(1.0 - along * 0.42, 0.0, 1.0))
 
@@ -267,6 +287,7 @@ func _apply_gravity_wave_beam(origin: Vector2, direction: Vector2, hits: Array[N
 
 
 func _apply_chronal_refraction_beam(origin: Vector2, direction: Vector2, hits: Array[Node], delta: float) -> void:
+	_chronal_phantoms_this_tick = 0
 	var stacks := maxi(_powerup_stack_count(&"chronal_refraction_beam"), 1)
 	var slow := clampf(chronal_slow_multiplier - 0.035 * float(stacks - 1), 0.25, 0.86)
 	var duration := chronal_slow_duration * (1.0 + 0.12 * float(stacks - 1))
@@ -280,15 +301,22 @@ func _apply_chronal_refraction_beam(origin: Vector2, direction: Vector2, hits: A
 		if target_2d.is_in_group("Player"):
 			continue
 
+		var body_velocity := _body_velocity(target_2d)
+		var lateral := direction.orthogonal()
+		if lateral.dot(body_velocity) < 0.0:
+			lateral = -lateral
+		var desync_impulse := lateral * chronal_desync_lateral_impulse * (1.0 + 0.08 * float(stacks - 1))
+
 		CombatStatus.apply_local_time_scale(target_2d, slow, duration)
 		target_2d.set_meta(&"chronal_refraction_delay", chronal_delay_seconds)
-		target_2d.set_meta(&"chronal_phantom_position", target_2d.global_position - _body_velocity(target_2d) * chronal_delay_seconds)
+		target_2d.set_meta(&"chronal_phantom_position", target_2d.global_position - body_velocity * chronal_delay_seconds)
+		target_2d.set_meta(&"chronal_desync_impulse", desync_impulse)
 
 		if target_2d.has_method("take_damage") and _is_hostile_target(target_2d):
 			target_2d.call("take_damage", damage)
 
-		_spawn_chronal_phantom(target_2d)
-		_apply_delayed_chronal_chain(target_2d, impulse, damage * 0.8, chronal_delay_seconds)
+		_spawn_chronal_echoes(target_2d, body_velocity)
+		_apply_delayed_chronal_chain(target_2d, impulse + desync_impulse, damage * 0.9, chronal_delay_seconds)
 
 	_stamp_chronal_refraction_zone(origin, direction, stacks)
 
@@ -332,6 +360,29 @@ func _stamp_gravity_wave_resonance(origin: Vector2, direction: Vector2) -> void:
 	)
 
 
+func _apply_gravity_wave_to_planet(target: Node2D, warp_dir: Vector2, falloff: float, delta: float) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+
+	var displacement := warp_dir * gravity_wave_planet_displacement_per_second * falloff * delta
+	target.global_position += displacement
+	target.set_meta(&"gravity_wave_beam_pressure", falloff)
+	target.set_meta(&"gravity_wave_displacement", displacement)
+
+	var now := _now_seconds()
+	if now - _last_wave_planet_fracture_time < gravity_wave_planet_fracture_interval:
+		return
+	_last_wave_planet_fracture_time = now
+
+	if target.has_method("apply_spacetime_damage"):
+		target.call(
+			"apply_spacetime_damage",
+			gravity_wave_planet_damage_per_second * falloff * maxf(delta, 0.016),
+			target.global_position,
+			&"gravity_wave_beam"
+		)
+
+
 func _stamp_chronal_refraction_zone(origin: Vector2, direction: Vector2, stacks: int) -> void:
 	var now := _now_seconds()
 	if now - _last_chronal_zone_time < chronal_zone_interval:
@@ -365,27 +416,56 @@ func _apply_delayed_chronal_chain(target: Node2D, impulse: Vector2, damage: floa
 	if target == null or not is_instance_valid(target) or target.is_queued_for_deletion():
 		return
 	CombatStatus.add_velocity(target, impulse)
+	CombatStatus.apply_local_time_scale(target, 0.72, 0.22)
 	if target.has_method("take_damage") and _is_hostile_target(target):
 		target.call("take_damage", damage)
+	_stamp_chronal_echo_zone(target.global_position)
 
 
-func _spawn_chronal_phantom(target: Node2D) -> void:
+func _spawn_chronal_echoes(target: Node2D, body_velocity: Vector2) -> void:
+	for echo_index in range(maxi(chronal_echo_count, 1)):
+		if _chronal_phantoms_this_tick >= chronal_echo_max_per_tick:
+			return
+		var echo_delay := chronal_delay_seconds + chronal_echo_spacing * float(echo_index)
+		var phantom_position := target.global_position - body_velocity * echo_delay
+		_spawn_chronal_phantom(target, phantom_position, echo_index)
+		_chronal_phantoms_this_tick += 1
+
+
+func _spawn_chronal_phantom(target: Node2D, phantom_position: Vector2, echo_index: int) -> void:
 	var root := get_tree().current_scene
 	if root == null or target == null:
 		return
-	var phantom_position: Vector2 = target.get_meta(&"chronal_phantom_position", target.global_position)
 	var line := Line2D.new()
 	line.name = "ChronalPhantomTrace"
 	line.antialiased = true
-	line.width = 2.0
-	line.default_color = Color(chronal_color.r, chronal_color.g, chronal_color.b, 0.42)
+	line.width = maxf(1.2, 2.6 - float(echo_index) * 0.35)
+	line.default_color = Color(chronal_color.r, chronal_color.g, chronal_color.b, _visual_alpha(0.38 - float(echo_index) * 0.055))
 	line.points = PackedVector2Array([phantom_position, target.global_position])
 	line.top_level = true
 	line.z_index = 34
 	root.add_child(line)
 	var tween := line.create_tween()
-	tween.tween_property(line, "modulate:a", 0.0, 0.32)
+	tween.tween_property(line, "modulate:a", 0.0, 0.38 + float(echo_index) * 0.05)
 	tween.tween_callback(line.queue_free)
+
+
+func _stamp_chronal_echo_zone(position: Vector2) -> void:
+	var now := _now_seconds()
+	if now - _last_chronal_echo_zone_time < chronal_echo_zone_interval:
+		return
+	_last_chronal_echo_zone_time = now
+	var resonance := _get_resonance_manager()
+	if resonance == null or not resonance.has_method("create_manual_resonance_zone"):
+		return
+	resonance.call(
+		"create_manual_resonance_zone",
+		position,
+		150.0,
+		GravityResonanceManager.ZoneType.TEMPORAL_SCAR,
+		0.38,
+		0.62
+	)
 
 
 func _collect_beam_hits(origin: Vector2, direction: Vector2, width: float) -> Array[Node]:
@@ -427,24 +507,27 @@ func _update_beam_visual(origin: Vector2, direction: Vector2, width: float, hits
 
 	var pulse := 0.72 + 0.28 * sin(_now_seconds() * beam_pulse_speed)
 	var color := _weapon_color(_active_weapon_id)
-	var safe_alpha := minf(beam_alpha_cap, Settings.flash_alpha(beam_alpha_cap) if Settings != null and Settings.has_method("flash_alpha") else beam_alpha_cap)
+	var safe_alpha := _visual_alpha(beam_alpha_cap)
 	var visual_range := _visual_range_from_hits(origin, direction, hits)
+	_beam_points[1] = Vector2(visual_range, 0.0)
 
 	_beam_root.visible = true
 	_beam_root.global_position = origin
 	_beam_root.rotation = direction.angle()
 
-	_beam_glow.points = PackedVector2Array([Vector2.ZERO, Vector2(visual_range, 0.0)])
+	_beam_glow.points = _beam_points
 	_beam_glow.width = width * 0.78
 	_beam_glow.default_color = Color(color.r, color.g, color.b, safe_alpha * 0.24 * pulse)
 
-	_beam_core.points = PackedVector2Array([Vector2.ZERO, Vector2(visual_range, 0.0)])
+	_beam_core.points = _beam_points
 	_beam_core.width = maxf(width * 0.18, 6.0)
 	_beam_core.default_color = Color(color.r, color.g, color.b, safe_alpha * pulse)
 
 	if _impact_ring != null:
+		var ring_radius := _impact_radius(maxf(width * 0.18, 12.0))
 		_impact_ring.position = Vector2(visual_range, 0.0)
-		_impact_ring.points = _circle_points(28, maxf(width * 0.18, 12.0))
+		_impact_ring.scale = Vector2.ONE * ring_radius
+		_impact_ring.width = IMPACT_RING_WIDTH / maxf(ring_radius, 1.0)
 		_impact_ring.default_color = Color(color.r, color.g, color.b, safe_alpha * 0.64)
 		_impact_ring.rotation += get_physics_process_delta_time() * 3.2
 
@@ -515,8 +598,10 @@ func _ensure_visual_nodes() -> void:
 		_impact_ring.name = "ImpactRing"
 		_impact_ring.closed = true
 		_impact_ring.antialiased = true
-		_impact_ring.width = 2.0
+		_impact_ring.width = IMPACT_RING_WIDTH
 		_beam_root.add_child(_impact_ring)
+	if _impact_ring.points.size() < 3:
+		_impact_ring.points = _circle_points(28, 1.0)
 	_beam_root.visible = false
 
 
@@ -667,10 +752,30 @@ func _body_velocity(body: Node) -> Vector2:
 
 
 func _is_gameplay_blocked() -> bool:
-	var pause_menu := get_tree().get_first_node_in_group("PauseMenu")
-	if pause_menu != null and pause_menu.has_method("is_gameplay_blocked"):
-		return bool(pause_menu.call("is_gameplay_blocked"))
+	if _pause_menu != null and is_instance_valid(_pause_menu) and _pause_menu.has_method("is_gameplay_blocked"):
+		return bool(_pause_menu.call("is_gameplay_blocked"))
 	return get_tree().paused
+
+
+func _resolve_pause_menu() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	_pause_menu = tree.get_first_node_in_group("PauseMenu")
+
+
+func _visual_alpha(alpha: float) -> float:
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		return Settings.world_visual_alpha(alpha, beam_alpha_cap)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return minf(Settings.flash_alpha(alpha), beam_alpha_cap)
+	return minf(alpha, beam_alpha_cap)
+
+
+func _impact_radius(radius: float) -> float:
+	if Settings != null and Settings.has_method("world_effect_radius"):
+		return Settings.world_effect_radius(radius, beam_impact_radius_cap)
+	return minf(radius, beam_impact_radius_cap)
 
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:

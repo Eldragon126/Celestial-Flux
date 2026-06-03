@@ -4,6 +4,7 @@ class_name EventHorizonWarden
 signal collapse_field_expanded(radius: float, intensity: float)
 
 const FIELD_TARGET_GROUPS: Array[StringName] = [&"Player", &"enemies", &"wave_enemy", &"bosses", &"Projectiles", &"enemy_projectiles", &"player_projectiles"]
+const COLLAPSE_RING_WIDTH: float = 3.0
 
 @export var mass: float = 420000.0
 @export var max_health: float = 150.0
@@ -17,6 +18,10 @@ const FIELD_TARGET_GROUPS: Array[StringName] = [&"Player", &"enemies", &"wave_en
 @export var boundary_shear: float = 310.0
 @export var contact_damage: float = 22.0
 @export var max_targets_per_tick: int = 42
+
+@export_group("Visual Caps")
+@export var field_visual_radius_cap: float = 360.0
+@export_range(0.0, 0.42, 0.01) var field_ring_alpha_cap: float = 0.24
 
 var _player: Node2D = null
 var _health: HealthComponent = null
@@ -54,9 +59,11 @@ func _exit_tree() -> void:
 
 func _process(delta: float) -> void:
 	if _ring != null:
+		var visual_radius := _visual_radius(_field_radius)
 		_ring.rotation += delta * (0.35 if _anchored else 0.9)
-		_ring.points = _circle_points(72, _field_radius)
-		_ring.default_color = Color(1.0, 0.24, 0.14, 0.28 + 0.22 * _field_intensity())
+		_ring.scale = Vector2.ONE * visual_radius
+		_ring.width = COLLAPSE_RING_WIDTH / maxf(visual_radius, 1.0)
+		_ring.default_color = _ring_color(0.28 + 0.22 * _field_intensity())
 	if _core != null:
 		_core.rotation -= delta * 1.4
 
@@ -179,8 +186,9 @@ func _build_body() -> void:
 	_ring.name = "CollapseBoundary"
 	_ring.closed = true
 	_ring.antialiased = true
-	_ring.width = 3.0
-	_ring.points = _circle_points(72, _field_radius)
+	_ring.width = COLLAPSE_RING_WIDTH / maxf(_visual_radius(_field_radius), 1.0)
+	_ring.points = _circle_points(72, 1.0)
+	_ring.scale = Vector2.ONE * _visual_radius(_field_radius)
 	add_child(_ring)
 
 
@@ -195,6 +203,14 @@ func _build_health() -> void:
 func _on_died() -> void:
 	PowerupLibrary.try_spawn_drop(get_parent(), global_position, 0.18, true)
 	queue_free()
+
+
+func _ring_color(alpha: float) -> Color:
+	return Color(1.0, 0.24, 0.14, Settings.world_visual_alpha(alpha, field_ring_alpha_cap))
+
+
+func _visual_radius(radius: float) -> float:
+	return Settings.world_effect_radius(radius, field_visual_radius_cap)
 
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:

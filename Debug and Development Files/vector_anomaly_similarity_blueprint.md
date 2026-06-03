@@ -168,6 +168,15 @@ The current architecture preserves genre readability while scaling the unusual p
 - Death is immediate to understand: no post-death shooting, no false comeback, no delayed surprise transition.
 - Tutorial prompts now teach the genre handshake first: thrust, tangent, speed, distance, time precision, and beam field control.
 
+## 2026-06-03 Feel And Readability Corrections
+
+- Drag ON now has its own identity as Precision control: braking, tangent cleanup, recovery routing, and short energy recovery inside gravity windows. Drag OFF remains the Momentum style.
+- Gravity Wave Beam produces clearer results by moving hostile bodies, bending projectiles, shifting destructible planets, and applying planet fracture pressure.
+- Chronal Refraction Beam now reads as time manipulation through capped echo traces, delayed desync impulses, and short echo zones.
+- Vector Bolts are larger, faster, and sharper while the predictor uses the same constants/source filters. Baseline bullets no longer orbit the player from self-gravity; intentional Orbital Tether captures are tagged.
+- The title screen now exposes a playable tutorial scene so players can practice thrust, drag, slingshots, bolts, Gravity Wave, and Chronal Beam without waiting for a run to teach them.
+- Purple/pink temporal overload is capped through reduced flash/radius budgets, lower VFX burst counts, glitch cooldowns, local slow budgets, and a safe global time-scale floor.
+
 ## 2026-06-02 Launch Matrix Completion
 
 - Barycentric Tether uses a familiar crowd-control shape while changing the substance: enemies are linked by an artificial center of mass and forced into binary orbital motion.

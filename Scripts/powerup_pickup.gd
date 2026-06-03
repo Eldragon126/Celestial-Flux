@@ -4,26 +4,41 @@ class_name PowerupPickup
 @export var definition: PowerupDefinition
 @export var pickup_radius: float = 46.0
 @export var drift_spin: float = 2.4
+@export var particle_focus_radius: float = 1500.0
+@export var particle_focus_refresh_interval: float = 0.2
 
-var _core: Polygon2D
-var _ring: Polygon2D
+var _core: Polygon2D = null
+var _ring: Polygon2D = null
+var _particles: GPUParticles2D = null
+var _player: Node2D = null
+var _particle_focus_elapsed: float = 0.0
+var _particle_focus_radius_sq: float = 2250000.0
 
 func _ready() -> void:
 	monitoring = true
 	body_entered.connect(_on_body_entered)
+	_particle_focus_radius_sq = particle_focus_radius * particle_focus_radius
+	_cache_player()
 	_build_collision()
 	_build_visuals()
+	_update_particle_focus(true)
 
 func _process(delta: float) -> void:
 	rotation += drift_spin * delta
 	if _ring != null:
 		_ring.rotation -= drift_spin * 1.7 * delta
+	_particle_focus_elapsed += delta
+	if _particle_focus_elapsed >= particle_focus_refresh_interval:
+		_particle_focus_elapsed = 0.0
+		_update_particle_focus(false)
 
 func _on_body_entered(body: Node) -> void:
+	if body == null or not is_instance_valid(body):
+		return
 	if not body.is_in_group("Player"):
 		return
 
-	var inventory = body.get_node_or_null("PowerupInventory") as PowerupInventory
+	var inventory: PowerupInventory = body.get_node_or_null("PowerupInventory") as PowerupInventory
 	if inventory == null:
 		inventory = PowerupInventory.new()
 		inventory.name = "PowerupInventory"
@@ -38,14 +53,14 @@ func _on_body_entered(body: Node) -> void:
 	queue_free()
 
 func _build_collision() -> void:
-	var collision = CollisionShape2D.new()
-	var shape = CircleShape2D.new()
+	var collision: CollisionShape2D = CollisionShape2D.new()
+	var shape: CircleShape2D = CircleShape2D.new()
 	shape.radius = pickup_radius
 	collision.shape = shape
 	add_child(collision)
 
 func _build_visuals() -> void:
-	var pickup_color = Color(0.0, 0.9, 1.0, 1.0)
+	var pickup_color: Color = Color(0.0, 0.9, 1.0, 1.0)
 	if definition != null:
 		pickup_color = definition.color
 
@@ -61,13 +76,14 @@ func _build_visuals() -> void:
 	_core.polygon = _circle_points(4, pickup_radius * 0.34)
 	add_child(_core)
 
-	var particles = GPUParticles2D.new()
-	particles.name = "PowerupParticles"
-	particles.amount = 50
-	particles.lifetime = 1.2
-	particles.randomness = 0.5
-	particles.process_material = _make_particle_material(pickup_color)
-	add_child(particles)
+	_particles = GPUParticles2D.new()
+	_particles.name = "PowerupParticles"
+	_particles.amount = 36
+	_particles.lifetime = 1.2
+	_particles.randomness = 0.5
+	_particles.process_material = _make_particle_material(pickup_color)
+	add_child(_particles)
+	_update_particle_focus(true)
 
 func _make_particle_material(pickup_color: Color) -> ParticleProcessMaterial:
 	var material = ParticleProcessMaterial.new()
@@ -86,8 +102,33 @@ func _make_particle_material(pickup_color: Color) -> ParticleProcessMaterial:
 	return material
 
 func _circle_points(count: int, circle_radius: float) -> PackedVector2Array:
-	var points = PackedVector2Array()
+	var points: PackedVector2Array = PackedVector2Array()
 	for i in range(count):
-		var angle = TAU * float(i) / float(count)
+		var angle: float = TAU * float(i) / float(count)
 		points.append(Vector2(cos(angle), sin(angle)) * circle_radius)
 	return points
+
+
+func _cache_player() -> void:
+	if _player != null and is_instance_valid(_player):
+		return
+	var tree: SceneTree = get_tree()
+	if tree == null:
+		return
+	var found: Node = tree.get_first_node_in_group(&"Player")
+	if found == null or not is_instance_valid(found):
+		return
+	if not found is Node2D:
+		return
+	_player = found as Node2D
+
+
+func _update_particle_focus(_force: bool) -> void:
+	if _particles == null or not is_instance_valid(_particles):
+		return
+	_cache_player()
+	var in_focus: bool = false
+	if _player != null and is_instance_valid(_player):
+		in_focus = global_position.distance_squared_to(_player.global_position) <= _particle_focus_radius_sq
+	_particles.visible = in_focus
+	_particles.emitting = in_focus

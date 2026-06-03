@@ -8,8 +8,9 @@ signal spacetime_glitch_triggered(data: Dictionary)
 @export var swim_lifetime: float = 0.42
 @export var swim_spawn_interval: float = 0.16
 @export var max_swim_ribbons: int = 7
-@export var max_glitch_slices: int = 8
-@export var overlay_alpha_cap: float = 0.10
+@export var max_glitch_slices: int = 5
+@export var overlay_alpha_cap: float = 0.075
+@export var glitch_cooldown: float = 0.22
 @export var ribbon_point_count: int = 9
 @export var ribbon_length: float = 96.0
 @export var ribbon_width: float = 3.0
@@ -29,6 +30,7 @@ var _swim_until := 0.0
 var _swim_elapsed := 999.0
 var _time_tear_intensity := 0.0
 var _last_weapon_swim_time := -999.0
+var _last_glitch_time := -999.0
 
 
 func _ready() -> void:
@@ -97,8 +99,8 @@ func _on_dilation_ended() -> void:
 
 func _on_time_tear_intensity_changed(intensity: float) -> void:
 	_time_tear_intensity = clampf(intensity, 0.0, 1.0)
-	if _time_tear_intensity > 0.36:
-		_trigger_swim(_player_position(), _player_velocity(), _time_tear_intensity, 0.42, Color(0.76, 0.42, 1.0, 1.0), _time_tear_intensity > 0.62)
+	if _time_tear_intensity > 0.52:
+		_trigger_swim(_player_position(), _player_velocity(), _time_tear_intensity, 0.34, Color(0.48, 0.78, 1.0, 1.0), _time_tear_intensity > 0.72)
 
 
 func _on_local_time_pocket_entered(target: Node, multiplier: float, _duration: float) -> void:
@@ -165,7 +167,12 @@ func _trigger_swim(
 func _trigger_glitch(intensity: float, color: Color, count: int) -> void:
 	if _canvas == null or _glitch_root == null:
 		return
-	for _i in range(mini(count, max_glitch_slices)):
+	var now := _now_seconds()
+	if now - _last_glitch_time < glitch_cooldown:
+		return
+	_last_glitch_time = now
+	var available := maxi(max_glitch_slices - _glitch_slices.size(), 1)
+	for _i in range(mini(count, available)):
 		_spawn_glitch_slice(clampf(intensity, 0.0, 1.0), color)
 	spacetime_glitch_triggered.emit({
 		"intensity": clampf(intensity, 0.0, 1.0),

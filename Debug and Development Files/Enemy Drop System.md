@@ -1,191 +1,160 @@
-# VECTOR ANOMALY — Enemy Drop System (Physics Residue Economy)
+# VECTOR ANOMALY - Enemy Drop System (Physics Residue Economy)
 
-This document defines the enemy drop system inspired by “Window-like” systemic chaos, but adapted to Vector Anomaly’s grounded gravitational simulation.
+This document defines the implemented enemy drop economy for Vector Anomaly. Drops are not generic loot. They are readable fragments of broken physics that create movement, gravity, time, momentum, or reality-collapse decisions inside the arena.
 
-Instead of traditional loot, enemies release **residual physical laws** when destroyed. These drops are temporary, interactable, and modify the physics sandbox of the arena.
+## Core Design Philosophy
 
----
+- Drops are not gold, ammo, crafting filler, or health spam.
+- Drops should alter movement, gravity, time, orbit behavior, instability, or rule state.
+- Drops should be physically represented in the arena when possible.
+- Drops must respect the same gravity-source performance language as the rest of the game.
+- Drops should create mastery opportunities, not menu interruptions.
 
-# Core Design Philosophy
+## Runtime Owner
 
-- Drops are not currency
-- Drops are not items
-- Drops are **broken fragments of local physics**
-- Everything dropped should:
-  - Alter movement, gravity, time, or orbit behavior
-  - Be physically represented in the arena when possible
-  - Interact with existing gravity systems
+`PhysicsDropSystem` is installed by `OrbitalJuiceManager` as `PhysicsDropSystem`.
 
----
+`WaveDirector` already tracks spawned enemies through their `HealthComponent.died` signal for wave completion and energy droplets. That same death path calls:
 
-# DROP TYPES
+`PhysicsDropSystem.try_spawn_for_enemy(enemy, death_position, is_boss)`
 
-## ☐ Vector Fragments
-Directional momentum crystallized into physical shards.
+This keeps drops signal-driven and avoids polling enemy state.
 
-- Stores a directional impulse when collected
-- Can be consumed to:
-  - Modify dash angle mid-execution
-  - Redirect orbital tether trajectory
-  - Inject burst velocity into orbit paths
+## Implemented Drop Types
 
-Implementation notes:
-- Represent as floating particles with velocity vectors
-- Absorbed on contact with player hitbox
-- Stackable “momentum charge” system
+### Fragments
 
----
+Baseline upgrade/run currency represented as physical shards.
 
-## ☐ Gravity Residue
-Localized instability pockets left behind by destroyed entities.
+- Common from standard enemies.
+- Stored on player metadata as `vector_fragments`.
+- Mirrored into `RunProgress.arena_flags["vector_fragments"]`.
+- Intended for future upgrade/shop routing, not immediate stat spam.
 
-- Creates small temporary gravity wells
-- Can be placed or auto-triggered on pickup
-- Variants:
-  - ☐ Attraction Residue (pulls inward)
-  - ☐ Repulsion Residue (pushes outward)
-  - ☐ Orbit Residue (forces circular motion)
+### Momentum Orbs
 
-Implementation notes:
-- Uses same system as gravity sources group: `Objects_With_Gravity`
-- Has decay curve over time
-- Radius scales with enemy difficulty tier
+Temporary velocity amplifiers for slingshot play.
 
----
+- Occasional common/uncommon drop.
+- Adds capped velocity through `CombatStatus.add_velocity()`.
+- Uses the player's current velocity direction when possible.
+- Creates routing opportunities for apex slingshots, escapes, and kinetic kills.
 
-## ☐ Time Shards
-Crystallized fragments of local temporal distortion.
+### Gravity Residue
 
-- Creates localized slow/fast zones
-- Can be:
-  - Activated on demand
-  - Automatically triggered on damage threshold
+Temporary field residue left by destroyed enemies.
 
-Use cases:
-- Escape tool during swarm pressure
-- Precision aiming windows
-- Combo extension during orbital chains
+- Uncommon drop after early waves.
+- Registers as `Objects_With_Gravity` / `planets` while active when configured as residue.
+- On pickup creates a compression resonance zone through `GravityResonanceManager`.
+- Designed to bend movement and enemy/projectile paths rather than act as a passive stat.
 
-Implementation notes:
-- Prefer local velocity scaling over global time scaling
-- Must respect existing Time Fracture upgrade family
+### Temporal Charges
 
----
+Crystallized time-dilation fuel.
 
-## ☐ Orbit Cores
-Rotational physics stabilizers and corruptors.
+- Uncommon drop after early waves.
+- Calls `TimeDilationManager.add_near_miss_charge()` when available.
+- Supports skill windows without relying on global time slowdown as a reward.
 
-- Modifies orbital behavior around:
-  - Player
-  - Gravity sources
-  - Enemy clusters
+### Instability Shards
 
-Effects:
-- Invert orbit direction
-- Lock orbit radius
-- Introduce elliptical drift
-- Create multi-orbit layering
+High-risk escalation rewards.
 
-Implementation notes:
-- Interacts with Orbital upgrade family
-- Can override current orbital constraints temporarily
+- Rare drop in later waves or from elite pressure.
+- Raises `ArenaDestabilizationManager.instability`.
+- Records `RunProgress.arena_flags["instability_shards"]`.
+- The player trades more reality-collapse pressure for greater reward potential.
 
----
+### Anomaly Seeds
 
-## ☐ Fracture Dust
-Unstable simulation residue from high-chaos entities.
+Compressed emergent event triggers.
 
-- Increases “reality instability” meter
-- Used to unlock:
-  - Hidden enemy behaviors
-  - Chaos modifiers
-  - Stage fracture events
+- Rare drop in later waves and guaranteed as a boss bonus.
+- Preferentially asks `ArenaDestabilizationManager.force_arena_event()` for deterministic arena events.
+- Falls back to a manual slipstream resonance zone if the arena event API is unavailable.
+- Can spawn wormhole/resonance/slipstream-style opportunities through existing systems.
 
-Effects at thresholds:
-- Visual distortion increases
-- Enemy AI becomes less predictable
-- Gravity fields become partially recursive
+### Celestial Cores
 
-Implementation notes:
-- Acts as meta-progression currency for run escalation
-- Tied to Option B Fracture Wave system
+Boss-grade rule-changing drops.
 
----
+- Bosses drop a unique core payload.
+- Applies a `PowerupDefinition` through `PowerupInventory`.
+- Current boss core routing chooses from existing law-defining powers such as Apex Vector Core, Barycentric Tether, Frame-Dragging Anchor, or Singularity Amplifier.
+- These should change how the run plays, not provide small percentage stat bumps.
 
-## ☐ Singularity Seeds (Rare Drop)
-Compressed potential gravity collapse points.
+## Energy Droplets
 
-- Can be deployed as micro black holes
-- Pulls in:
-  - Enemies
-  - Projectiles
-  - Some environmental particles
+Energy droplets remain a separate combat sustain layer:
 
-Advanced interactions:
-- Can merge with Gravity Residue
-- Can be upgraded into permanent field modifiers
+- Spawned through `PowerupLibrary.try_spawn_energy_droplets()`.
+- Called from `WaveDirector` enemy death tracking.
+- Restore `EnergyComponent` on pickup.
+- Magnetize only near the player.
+- Disable long-lived particles outside focus range.
 
-Implementation notes:
-- Must obey cap: max 1–2 active per arena
-- Heavy performance constraint awareness required
+Energy droplets are intentionally simple because they support basic combat rhythm. The physics drop ecosystem is where mastery and rule-change decisions live.
 
----
+## Drop Generation Rules
 
-# DROP SYSTEM RULES
+- Standard enemies: Fragments, occasional Momentum Orbs.
+- Uncommon/deeper wave enemies: Gravity Residue and Temporal Charges.
+- Rare/elite pressure: Instability Shards and Anomaly Seeds.
+- Bosses: guaranteed Celestial Core plus Anomaly Seed.
+- Elite enemies bias optional drop chances upward by health/difficulty metadata.
+- Active drops are capped by `PhysicsDropSystem.max_active_drops`.
 
-## ☐ Drop Generation Rules
-- Drops scale with enemy complexity tier
-- Elite enemies guarantee at least one physics-altering drop
-- Bosses may drop multi-type “composite residues”
+## Pickup Behavior Rules
 
----
+- Player contact absorbs the drop.
+- No pickup UI interrupts combat.
+- Drops move with launch impulse, mild drag, gravity sampling, and close-range magnetism.
+- Gravity sampling uses a capped source list and interval refresh to avoid allocation churn.
+- Visuals use readable glyph/ring/color language rather than inventory icons.
 
-## ☐ Pickup Behavior Rules
-- Player contact = absorption (no UI interruption)
-- Optional: magnetic pull scaling with Momentum upgrades
-- Drops may interact before pickup (important for emergent chaos)
+## Integration Checklist
 
----
+### Gravity
 
-## ☐ Persistence Rules
-- Most drops decay over time (soft urgency system)
-- Some high-tier drops persist longer under Time Fracture effects
-- Fracture Dust is permanent within a run
+- Gravity Residue can register as `Objects_With_Gravity`.
+- Drops sample capped nearby gravity sources.
+- Celestial body and arena directors remain responsible for heavy gravitational changes.
 
----
+### Momentum
 
-# SYSTEM INTEGRATION CHECKLIST
+- Momentum Orbs amplify player velocity without breaking speed caps.
+- Fragments are reserved for future vector/momentum upgrade routing.
 
-## ☐ Integration with Gravity System
-- Drops must register as valid gravity sources when active
-- Must obey `Objects_With_Gravity` constraints
-- Cap influence per object respected (3–4 sources max)
+### Time
 
-## ☐ Integration with Upgrade Families
-- Singularity: interacts with Gravity Residue + Seeds
-- Momentum: interacts with Vector Fragments
-- Repulsion: modifies Gravity Residue behavior
-- Time Fracture: enhances Time Shards
-- Orbital: modifies Orbit Cores behavior
+- Temporal Charges feed time-dilation capacity.
+- Recovery windows and time pockets use `TimeDilationManager` local slow APIs.
 
-## ☐ Performance Budgeting
-- Limit active drop entities per frame
-- Use pooling for all drop types
-- Decay inactive drops aggressively during high chaos waves
+### Instability And Reality Collapse
 
----
+- Instability Shards raise arena instability.
+- Anomaly Seeds trigger deterministic physics events.
+- These can push late runs toward `RealityCollapseDirector` pressure.
 
-# FUTURE EXPANSION (NOT IMPLEMENTED YET)
+### Boss Rewards
 
-## ☐ Combo Drop Reactions
-- Combining different drops creates emergent physics events
-  - Example: Gravity Residue + Time Shard = “Temporal Sink”
-  - Example: Orbit Core + Vector Fragment = “Helical Dash State”
+- Celestial Cores apply rule-defining powerups.
+- Boss rewards should feel like the simulation handing the player a dangerous new law.
 
-## ☐ Enemy Identity Drops
-- Certain enemies drop unique “behavior signatures”
-- Unlocks adaptive counterplay mechanics
+## Performance Rules
 
----
+- No per-frame enemy polling.
+- Drops self-expire.
+- Active drop count is capped and trimmed.
+- Gravity source sampling is interval-based and capped.
+- Long-lived particle visuals are focus-gated by local pickup logic and the global `ParticleFocusCuller`.
+
+## Future Expansion
+
+- Combo reactions between active drops, such as Gravity Residue plus Temporal Charge becoming a Temporal Sink.
+- Enemy identity drops that encode behavior signatures.
+- Player-facing fragment spend paths that alter momentum routing rather than flat stats.
+- Celestial Core variants that temporarily make the player a mobile gravity source, convert velocity to weapon damage, create persistent orbit fields, or rewrite local spacetime behavior.
 
 END OF FILE

@@ -52,7 +52,6 @@ corner_radius_bottom_left = 4
 
 [node name="PauseMenu" type="Control" unique_id=1603217995]
 process_mode = 3
-modulate = Color(1, 1, 1, 1)
 z_index = 100
 layout_mode = 3
 anchors_preset = 15

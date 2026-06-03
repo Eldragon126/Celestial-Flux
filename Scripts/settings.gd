@@ -4,6 +4,11 @@ signal accessibility_changed(settings: Dictionary)
 
 const SETTINGS_PATH := "user://settings.cfg"
 const SECTION_ACCESSIBILITY := "accessibility"
+const WORLD_ALPHA_CAP: float = 0.34
+const WORLD_FILL_ALPHA_CAP: float = 0.06
+const WORLD_LIGHT_ALPHA_CAP: float = 0.22
+const WORLD_EFFECT_RADIUS_CAP: float = 320.0
+const REDUCED_FLASH_ALPHA_SCALE: float = 0.45
 
 enum ColorblindMode {
 	OFF,
@@ -12,7 +17,7 @@ enum ColorblindMode {
 	TRITANOPIA,
 }
 
-var input_type: bool = false # Arrow keys true; mouse aim if false.
+var input_type: bool = false # Controller true; mouse aim if false.
 var ui_scale: float = 1.0
 var screen_shake_scale: float = 1.0
 var reduce_flash: bool = false
@@ -101,7 +106,25 @@ func apply_readability_color(color: Color) -> Color:
 
 
 func flash_alpha(alpha: float) -> float:
-	return alpha * 0.55 if reduce_flash else alpha
+	var capped_alpha: float = clampf(alpha, 0.0, WORLD_ALPHA_CAP)
+	return capped_alpha * REDUCED_FLASH_ALPHA_SCALE if reduce_flash else capped_alpha
+
+
+func world_visual_alpha(alpha: float, hard_cap: float = WORLD_ALPHA_CAP) -> float:
+	var capped_alpha: float = clampf(alpha, 0.0, minf(hard_cap, WORLD_ALPHA_CAP))
+	return flash_alpha(capped_alpha)
+
+
+func world_fill_alpha(alpha: float) -> float:
+	return world_visual_alpha(alpha, WORLD_FILL_ALPHA_CAP)
+
+
+func world_light_alpha(alpha: float) -> float:
+	return world_visual_alpha(alpha, WORLD_LIGHT_ALPHA_CAP)
+
+
+func world_effect_radius(radius: float, hard_cap: float = WORLD_EFFECT_RADIUS_CAP) -> float:
+	return clampf(radius, 0.0, maxf(hard_cap, 1.0))
 
 
 func export_accessibility_settings() -> Dictionary:

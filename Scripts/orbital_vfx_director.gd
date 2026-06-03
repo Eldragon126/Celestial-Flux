@@ -13,13 +13,14 @@ class_name OrbitalVFXDirector
 @export var effects_enabled: bool = true
 @export_enum("Off", "Low", "High") var visual_quality: int = 2
 @export var low_performance_mode: bool = false
-@export var max_active_bursts: int = 18
-@export var max_particles_per_burst: int = 72
-@export var max_burst_alpha: float = 0.68
-@export var chaos_clutter_threshold: float = 0.74
+@export var max_active_bursts: int = 14
+@export var max_particles_per_burst: int = 48
+@export var max_burst_alpha: float = 0.46
+@export var chaos_clutter_threshold: float = 0.58
 @export var chaos_sample_interval: float = 0.2
 @export var prewarm_bursts_per_template: int = 4
 @export var max_pooled_bursts_per_template: int = 8
+@export var burst_player_focus_radius: float = 1320.0
 
 @export_group("Templates")
 @export var time_afterimage_template_path: NodePath = ^"Templates/TimeAfterimageBurst"
@@ -118,6 +119,8 @@ func _on_dilation_started() -> void:
 
 
 func _on_local_time_pocket_entered(target: Node, multiplier: float, _duration: float) -> void:
+	if target == null or not is_instance_valid(target):
+		return
 	var target_2d := target as Node2D
 	if target_2d == null:
 		return
@@ -213,6 +216,8 @@ func _on_powerup_applied(_definition: PowerupDefinition, _stacks: int) -> void:
 
 
 func _on_orbital_satellite_captured(projectile: Node, _stacks: int) -> void:
+	if projectile == null or not is_instance_valid(projectile):
+		return
 	var projectile_2d := projectile as Node2D
 	if projectile_2d == null:
 		return
@@ -227,14 +232,14 @@ func _on_slingshot_mastery_triggered(data: Dictionary) -> void:
 	var fallback := player_2d.global_position if player_2d != null else global_position
 	var position: Vector2 = data.get("position", fallback)
 	var score := clampf(float(data.get("score", 0.45)), 0.0, 1.0)
-	var color := Color(0.28, 1.0, 0.88, 1.0)
+	var color: Color = Color(0.28, 1.0, 0.88, 1.0)
 	if StringName(data.get("tier", &"idle")) == &"god_vector":
 		color = Color(1.0, 0.86, 0.28, 1.0)
 	_spawn_burst(_slingshot_template, position, minf(score, 0.76), color)
 
 
 func _spawn_burst(template: GPUParticles2D, position: Vector2, intensity: float, color: Color) -> void:
-	if not _can_spawn_burst(template, intensity):
+	if not _can_spawn_burst(template, intensity, position):
 		return
 
 	var burst := _acquire_burst(template)
@@ -254,12 +259,26 @@ func _spawn_burst(template: GPUParticles2D, position: Vector2, intensity: float,
 	_active_bursts.append(burst)
 
 
-func _can_spawn_burst(template: GPUParticles2D, intensity: float) -> bool:
+func _can_spawn_burst(template: GPUParticles2D, intensity: float, position: Vector2) -> bool:
 	if not effects_enabled or visual_quality <= 0 or template == null:
 		return false
 	if _chaos_intensity > chaos_clutter_threshold and intensity < 0.55:
 		return false
+	if not _burst_in_player_focus(position, intensity):
+		return false
 	return _active_bursts.size() < _active_burst_cap()
+
+
+func _burst_in_player_focus(position: Vector2, intensity: float) -> bool:
+	if burst_player_focus_radius <= 0.0:
+		return true
+	if _player == null or not is_instance_valid(_player):
+		return true
+	var player_2d := _player as Node2D
+	if player_2d == null or player_2d.is_queued_for_deletion():
+		return true
+	var focus_radius: float = burst_player_focus_radius * lerpf(0.78, 1.15, clampf(intensity, 0.0, 1.0))
+	return player_2d.global_position.distance_squared_to(position) <= focus_radius * focus_radius
 
 
 func _particle_amount(base_amount: int, intensity: float) -> int:
@@ -280,7 +299,7 @@ func _active_burst_cap() -> int:
 
 
 func _burst_modulate(color: Color, intensity: float) -> Color:
-	var alpha := lerpf(0.28, max_burst_alpha, clampf(intensity, 0.0, 1.0))
+	var alpha: float = lerpf(0.28, max_burst_alpha, clampf(intensity, 0.0, 1.0))
 	if Settings != null and Settings.has_method("flash_alpha"):
 		alpha = Settings.flash_alpha(alpha)
 	return Color(color.r, color.g, color.b, alpha)

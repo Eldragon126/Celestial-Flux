@@ -9,6 +9,7 @@ const GAMEPLAY_TEACHING_SCENE = preload("res://Nodes/gameplay_teaching_director.
 const MECHANIC_AUDIO_SCENE = preload("res://Nodes/mechanic_audio_director.tscn")
 const ENEMY_READABILITY_SCENE = preload("res://Nodes/enemy_readability_director.tscn")
 const PERFORMANCE_BUDGET_SCENE = preload("res://Nodes/performance_budget_director.tscn")
+const PARTICLE_FOCUS_CULLER_SCENE = preload("res://Nodes/particle_focus_culler.tscn")
 const THRUSTER_TRAILS_SCENE = preload("res://Nodes/player_thruster_trails.tscn")
 const ENGINE_HUM_SCENE = preload("res://Nodes/player_engine_hum.tscn")
 const CAMERA_SHAKE_SCENE = preload("res://Nodes/player_damage_camera_shake.tscn")
@@ -21,6 +22,7 @@ const JUICE_COORDINATOR_SCENE = preload("res://Nodes/juice_coordinator.tscn")
 const TIME_DILATION_SCENE = preload("res://Nodes/time_dilation_manager.tscn")
 const VISUAL_ESCALATION_SCENE = preload("res://Nodes/visual_escalation_director.tscn")
 const ARENA_DESTABILIZATION_SCENE = preload("res://Nodes/arena_destabilization_manager.tscn")
+const ARENA_INSTABILITY_DIRECTOR_SCENE = preload("res://Nodes/arena_instability_director.tscn")
 const GRAVITY_SCAR_MANAGER_SCENE = preload("res://Nodes/gravity_scar_manager.tscn")
 const EVENT_HORIZON_DIRECTOR_SCENE = preload("res://Nodes/event_horizon_director.tscn")
 const PHYSICS_AWARE_ENEMY_DIRECTOR_SCENE = preload("res://Nodes/physics_aware_enemy_director.tscn")
@@ -30,6 +32,7 @@ const RUN_VARIATION_DIRECTOR_SCENE = preload("res://Nodes/run_variation_director
 const MULTIPLAYER_SYNC_FOUNDATION_SCENE = preload("res://Nodes/multiplayer_sync_foundation.tscn")
 const MOD_CONTENT_REGISTRY_SCENE = preload("res://Nodes/mod_content_registry.tscn")
 const RUN_SCORE_TRACKER_SCENE = preload("res://Nodes/run_score_tracker.tscn")
+const PHYSICS_DROP_SYSTEM_SCENE = preload("res://Nodes/physics_drop_system.tscn")
 const ARENA_RULE_DIRECTOR_SCENE = preload("res://Nodes/arena_rule_director.tscn")
 const LATE_GAME_INSTABILITY_DIRECTOR_SCENE = preload("res://Nodes/late_game_instability_director.tscn")
 const COOP_COMBO_DIRECTOR_SCENE = preload("res://Nodes/coop_combo_director.tscn")
@@ -37,12 +40,15 @@ const ADAPTIVE_MUSIC_STATE_DIRECTOR_SCENE = preload("res://Nodes/adaptive_music_
 const RUN_TRANSITION_DIRECTOR_SCENE = preload("res://Nodes/run_transition_director.tscn")
 const DEATH_FAIRNESS_DIRECTOR_SCENE = preload("res://Nodes/death_fairness_director.tscn")
 const FAIR_PACING_DIRECTOR_SCENE = preload("res://Nodes/fair_pacing_director.tscn")
+const RECOVERY_OPPORTUNITY_DIRECTOR_SCENE = preload("res://Nodes/recovery_opportunity_director.tscn")
 const RUN_STORY_ARC_DIRECTOR_SCENE = preload("res://Nodes/run_story_arc_director.tscn")
 const WEAPON_SYSTEM_SCENE = preload("res://Nodes/weapon_system.tscn")
 const SKILL_SIGNATURE_DIRECTOR_SCENE = preload("res://Nodes/skill_signature_director.tscn")
 const SPACETIME_SWIM_DIRECTOR_SCENE = preload("res://Nodes/spacetime_swim_director.tscn")
 const SPACETIME_TEAR_DIRECTOR_SCENE = preload("res://Nodes/spacetime_tear_director.tscn")
 const VECTOR_ANOMALY_DIRECTOR_SCENE = preload("res://Nodes/vector_anomaly_director.tscn")
+const CELESTIAL_BODY_DIRECTOR_SCENE = preload("res://Nodes/celestial_body_director.tscn")
+const REALITY_COLLAPSE_DIRECTOR_SCENE = preload("res://Nodes/reality_collapse_director.tscn")
 
 const PLANET_ATMOSPHERE_SCENE = preload("res://Nodes/planet_atmosphere_dust.tscn")
 const WAVE_DIRECTOR_SCENE = preload("res://Nodes/wave_director.tscn")
@@ -70,6 +76,7 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var attach_mechanic_audio = true
 @export var attach_enemy_readability = true
 @export var attach_performance_budget = true
+@export var attach_particle_focus_culler = true
 @export var attach_momentum_combat = true
 @export var attach_planet_atmospheres = true
 @export var attach_projectile_sparks = true
@@ -80,12 +87,14 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var enable_event_horizon_moments = true
 @export var enable_wave_game = true
 @export var enable_arena_destabilization = true
+@export var enable_data_driven_arena_instability = true
 @export var enable_physics_aware_enemy_ai = true
 @export var enable_secret_bosses = true
 @export var enable_run_variation = true
 @export var enable_multiplayer_sync_foundation = true
 @export var enable_mod_content_registry = true
 @export var enable_run_score_tracker = true
+@export var enable_physics_drop_system = true
 @export var enable_arena_rule_profiles = true
 @export var enable_late_game_instability = true
 @export var enable_coop_combos = true
@@ -93,12 +102,15 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var enable_run_transitions = true
 @export var enable_death_fairness = true
 @export var enable_fair_pacing = true
+@export var enable_recovery_opportunities = true
 @export var enable_run_story_arc = true
 @export var enable_weapon_system = true
 @export var enable_skill_signatures = true
 @export var enable_spacetime_swim_effects = true
 @export var enable_spacetime_tear_spawns = true
 @export var enable_vector_anomaly_rules = true
+@export var enable_dynamic_celestial_bodies = true
+@export var enable_reality_collapse = true
 @export_group("Developer Showcase")
 @export var enable_stress_test_tools = false
 @export var run_stress_test_on_ready = false
@@ -155,8 +167,12 @@ func _install_modular_additions() -> void:
 		_add_child_scene_once(level_root, GAMEPLAY_TEACHING_SCENE, "GameplayTeachingDirector")
 	if attach_performance_budget:
 		_add_child_scene_once(level_root, PERFORMANCE_BUDGET_SCENE, "PerformanceBudgetDirector")
+	if attach_particle_focus_culler:
+		_add_child_scene_once(level_root, PARTICLE_FOCUS_CULLER_SCENE, "ParticleFocusCuller")
 	if enable_mod_content_registry:
 		_add_child_scene_once(level_root, MOD_CONTENT_REGISTRY_SCENE, "ModContentRegistry")
+	if enable_physics_drop_system:
+		_add_child_scene_once(level_root, PHYSICS_DROP_SYSTEM_SCENE, "PhysicsDropSystem")
 	if enable_multiplayer_sync_foundation:
 		_add_child_scene_once(level_root, MULTIPLAYER_SYNC_FOUNDATION_SCENE, "MultiplayerSyncFoundation")
 	if enable_adaptive_music_state:
@@ -194,6 +210,10 @@ func _install_modular_additions() -> void:
 		_add_child_scene_once(level_root, SPACETIME_TEAR_DIRECTOR_SCENE, "SpacetimeTearDirector")
 	if enable_vector_anomaly_rules:
 		_add_child_scene_once(level_root, VECTOR_ANOMALY_DIRECTOR_SCENE, "VectorAnomalyDirector")
+	if enable_dynamic_celestial_bodies:
+		_add_child_scene_once(level_root, CELESTIAL_BODY_DIRECTOR_SCENE, "CelestialBodyDirector")
+	if enable_reality_collapse:
+		_add_child_scene_once(level_root, REALITY_COLLAPSE_DIRECTOR_SCENE, "RealityCollapseDirector")
 
 	if player != null:
 		if attach_player_juice:
@@ -245,12 +265,16 @@ func _install_modular_additions() -> void:
 			_add_child_scene_once(level_root, PHYSICS_AWARE_ENEMY_DIRECTOR_SCENE, "PhysicsAwareEnemyDirector")
 		if enable_arena_destabilization:
 			_add_child_scene_once(level_root, ARENA_DESTABILIZATION_SCENE, "ArenaDestabilizationManager")
+		if enable_data_driven_arena_instability:
+			_add_child_scene_once(level_root, ARENA_INSTABILITY_DIRECTOR_SCENE, "ArenaInstabilityDirector")
 		if enable_arena_rule_profiles:
 			_add_child_scene_once(level_root, ARENA_RULE_DIRECTOR_SCENE, "ArenaRuleDirector")
 		if enable_late_game_instability:
 			_add_child_scene_once(level_root, LATE_GAME_INSTABILITY_DIRECTOR_SCENE, "LateGameInstabilityDirector")
 		if enable_fair_pacing:
 			_add_child_scene_once(level_root, FAIR_PACING_DIRECTOR_SCENE, "FairPacingDirector")
+		if enable_recovery_opportunities:
+			_add_child_scene_once(level_root, RECOVERY_OPPORTUNITY_DIRECTOR_SCENE, "RecoveryOpportunityDirector")
 		if enable_run_variation:
 			_add_child_scene_once(level_root, RUN_VARIATION_DIRECTOR_SCENE, "RunVariationDirector")
 		if enable_secret_bosses:

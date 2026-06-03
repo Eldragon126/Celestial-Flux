@@ -76,6 +76,11 @@ const PLAYER_TARGET_GROUPS: Array[StringName] = [&"Projectiles", &"player_projec
 @export var cascade_force: float = 620.0
 @export var cascade_damage: float = 16.0
 
+@export_group("Visual Caps")
+@export var anomaly_visual_radius_cap: float = 360.0
+@export_range(0.0, 0.42, 0.01) var anomaly_ring_alpha_cap: float = 0.26
+@export_range(0.0, 0.42, 0.01) var anomaly_trace_alpha_cap: float = 0.18
+
 var _player: CharacterBody2D = null
 var _inventory: Node = null
 var _momentum_component: Node = null
@@ -998,11 +1003,12 @@ func _update_lens_visual(lens: Dictionary, delta: float) -> void:
 	var duration := maxf(float(lens.get("duration", 1.0)), 0.001)
 	var life := 1.0 - clampf(age / duration, 0.0, 1.0)
 	var radius := float(lens.get("radius", micro_lens_radius))
+	var visual_radius := _visual_radius(radius)
 	visual.global_position = lens.get("position", Vector2.ZERO)
 	visual.rotation += delta * 2.2
-	visual.scale = Vector2.ONE * radius
+	visual.scale = Vector2.ONE * visual_radius
 	visual.width = lerpf(1.2, 3.2, life)
-	visual.default_color = Color(0.24, 0.92, 1.0, 0.52 * life)
+	visual.default_color = _visual_color(Color(0.24, 0.92, 1.0, 0.52 * life), anomaly_ring_alpha_cap)
 	visual.visible = true
 
 
@@ -1025,7 +1031,7 @@ func _sync_memory_visual() -> void:
 			_memory_line_points.append(point)
 		_memory_line.points = _memory_line_points
 		_memory_points_dirty = false
-	_memory_line.default_color = Color(0.32, 0.78, 1.0, memory_visual_alpha)
+	_memory_line.default_color = _visual_color(Color(0.32, 0.78, 1.0, memory_visual_alpha), anomaly_trace_alpha_cap)
 	_memory_line.visible = true
 
 
@@ -1034,17 +1040,18 @@ func _spawn_transient_ring(center: Vector2, radius: float, color: Color, duratio
 	if root == null:
 		return
 	var ring := _acquire_transient_ring(root)
+	var visual_radius := _visual_radius(radius)
 	ring.closed = true
 	ring.antialiased = true
 	ring.width = width
-	ring.default_color = color
+	ring.default_color = _visual_color(color, anomaly_ring_alpha_cap)
 	ring.global_position = center
 	ring.scale = Vector2.ONE * 12.0
 	ring.modulate.a = 1.0
 	ring.z_index = 30
 	ring.visible = true
 	var tween := ring.create_tween()
-	tween.tween_property(ring, "scale", Vector2.ONE * maxf(radius, 16.0), duration)
+	tween.tween_property(ring, "scale", Vector2.ONE * maxf(visual_radius, 16.0), duration)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, duration)
 	tween.tween_callback(Callable(self, "_release_transient_ring").bind(ring))
 
@@ -1072,6 +1079,16 @@ func _release_transient_ring(ring: Line2D) -> void:
 		return
 	ring.visible = false
 	ring.modulate.a = 1.0
+
+
+func _visual_color(source_color: Color, alpha_cap: float) -> Color:
+	var color := source_color
+	color.a = Settings.world_visual_alpha(color.a, alpha_cap)
+	return color
+
+
+func _visual_radius(radius: float) -> float:
+	return Settings.world_effect_radius(radius, anomaly_visual_radius_cap)
 
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:

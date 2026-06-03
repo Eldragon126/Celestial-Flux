@@ -367,7 +367,7 @@ func _current_wave() -> int:
 func _color_for_type(type_name: StringName) -> Color:
 	match type_name:
 		&"temporal_rip":
-			return Color(0.78, 0.36, 1.0, 1.0)
+			return Color(0.55, 0.66, 1.0, 1.0)
 		&"harmonic_fracture":
 			return Color(1.0, 0.82, 0.24, 1.0)
 		&"inversion_wake":

@@ -75,4 +75,6 @@ fixed_fps = 60
 process_material = SubResource("ParticleProcessMaterial_x1rvw")
 
 [node name="PointLight2D" type="PointLight2D" parent="." unique_id=514427333]
+energy = 0.26
+texture_scale = 0.36
 texture = SubResource("GradientTexture2D_bppx8")

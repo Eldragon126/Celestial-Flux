@@ -16,6 +16,7 @@ var _secret_completion_elapsed := 0.0
 
 
 func _ready() -> void:
+	$Menu/NewRunButton.grab_focus()
 	if not RunProgress:
 		push_error("RunProgress autoload not found!")
 		return
@@ -55,6 +56,11 @@ func _process(_delta: float) -> void:
 
 func _on_new_run_button_pressed() -> void:
 	_begin_new_run(false)
+
+
+func _on_tutorial_button_pressed() -> void:
+	RunProgress.begin_new_run(false)
+	get_tree().change_scene_to_file("res://Nodes/playable_tutorial.tscn")
 
 
 func _on_continue_button_pressed() -> void:

@@ -47,6 +47,32 @@ Or at least, I can't tell what it's doing, and it seems like the harmonic orbits
 
 [x] I keep getting "Tried to cast a freed object" Errors. These can be fixed by checking if the instance is valid before assigning variables. Fixed: RuntimeRegistry, beam queries, resonance/scar visuals, pooled swim/lens/debris objects, powerup projectile instance IDs, gravity source refreshes, and enemy AI scans now validate objects before casting or reusing them.
 
-[ ] There are random purple flashes sometimes. I don't know what to do or how to function with these.
+[x] There are random purple flashes sometimes. I don't know what to do or how to function with these. They may be coming from a certain enemy or powerup but they bog down the c. Fixed: temporal scar/rip colors now lean blue-violet instead of hot magenta, global flash/radius caps are lower, swim glitch slices are throttled, and global time dilation has a safe minimum so pink/purple events cannot tank readability or apparent frame speed as hard.
 
-[ ] I don't see any readily available tutorial. A separate playable tutorial scene would be wonderful.
+[x] Some visual effects are too noisy. Fixed: global world alpha/fill/light/radius caps were tightened, OrbitalVFX burst caps/particle counts were reduced, visual escalation no longer ramps late/rupture particles as aggressively, and spacetime swim glitch slices are capped/cooldown-gated.
+
+[x] What are the player orbit telemetry arcs? Update the documentation to answer this question. Fixed: documentation now explains that player orbit telemetry arcs are development-only SkillSignature/trajectory readouts for orbit quality and should remain off by default in player-facing builds.
+
+[x] I don't see any readily available tutorial. A separate playable tutorial scene would be wonderful. Fixed: added `res://Nodes/playable_tutorial.tscn`, `PlayableTutorialDirector`, a title-screen Tutorial button, planets, targets, beam systems, and simple objective progression for thrust, drag precision, slingshotting, bolt prediction, Gravity Wave, and Chronal Beam practice.
+
+[x] Drag-enabled combat needs to be as fun as drag-disabled combat. Drag ON should feel like precision control, tactical braking, beam steering, and recovery routing, not like the less exciting option. Acceptance: both drag modes should create clip-worthy moments and viable late-game survival styles. Fixed: Drag ON is now labeled Precision, blends velocity toward aim/tangent during thrust and slingshot windows, reduces harsh damping near gravity wells, and restores a little energy while routing clean slingshots. Drag OFF remains the Momentum style.
+
+[x] Gravity Wave Beam needs stronger gameplay results. It should do more than pull enemies/projectiles: investigate planet movement/fracture pressure, stronger field warping, better enemy repositioning, and clearer impact feedback. Fixed: Gravity Wave now moves/fractures destructible planets, records beam pressure/displacement metadata, keeps stronger hostile/projectile axis pull, and continues stamping short compression zones.
+
+[x] Chronal Refraction Beam is cool, but not cool enough. It needs stronger visual identity and more gameplay payoff: phantom offsets, delayed collision chains, timeline echoes, or desync effects that players can read and exploit. Fixed: Chronal now creates capped multi-echo phantom traces, stores readable desync impulse metadata, applies a lateral delayed impulse/damage chain, and stamps short echo scars without uncapped zone spam.
+
+[x] Add slight invincibility time after the player gets hit. Keep it short and readable so multi-hit bursts do not erase the player instantly, but do not let it flatten high-skill danger. Fixed: player damage now starts a short configurable post-hit invulnerability window with hull/shield flashing and an ignored-damage signal for telemetry.
+
+[x] Add planets farther out from the player/arena center so the orbital space feels larger. Make sure stationary shooter enemies do not spawn on top of planets or inside planet collision. Fixed: WaveDirector now seeds far-orbit planets and validates stationary shooter/sniper spawns against planet radius plus safety clearance.
+
+[x] Make teleporters/wormholes avoid clipping into planets. Spawn endpoints should validate against planet/gravity-source radius plus a safety margin. Fixed: WaveDirector chooses safe permanent wormhole endpoints, and WormholePair now pushes endpoints out of planet overlap using endpoint radius plus a configurable safety margin.
+
+[x] Make bullets a little larger and faster. Update the player bullet visualizer/predictor to match the new bullet size, speed, gravity sampling, and collision behavior. Fixed: player bolts are larger/faster, have a larger collision shape, and both projectile predictors now use the same speed, capped gravity source sampling, gravity radius, and planet-hit behavior.
+
+[x] Make the bullet visualizer visually and mechanically match the bullets better. It should feel like a reliable preview of the actual projectile path, not a separate visual language. Fixed: predictor line width, impact radius, speed, source refresh, self/player-source exclusion, and cyan bolt markers now align with the actual Vector Bolt.
+
+[x] Make player bullets feel more like WINDOWKILL: sharper, juicier, more kinetic, with better trail/readability/impact language while staying original to Vector Anomaly. Fixed: Vector Bolt now has a brighter core, larger impact body, faster launch, light tuning, and a built-in speed-scaled cyan trail that reads as a sharp kinetic slash while keeping Vector Anomaly colors.
+
+[x] Investigate why bullets sometimes orbit the player. Determine whether this comes from orbital projectile capture, frame-dragging, gravity source sampling, projectile inheritance, or an unintended self-gravity interaction. Decide whether to keep it as an intentional upgrade behavior with clear visuals or remove it from baseline shooting. Fixed: baseline player bullets now ignore player/player-projectile gravity sources and nearby non-planet self-gravity. Intentional orbital capture from Orbital Tether is marked with `intentional_orbital_capture` metadata and the `orbital_satellite_projectiles` group, then cleared on release.
+
+[x] Pink effect that drastically slows the game needs root-cause investigation. Player feedback says it may connect to a power, upgrade, effect, or specific enemy. See `WeAreCooked.png`. It must be capped, reduced, or redesigned so it never tanks performance or obscures play. Fixed: likely temporal/time-tear contributors are capped across `Settings`, `SpacetimeSwimDirector`, `VisualEscalationDirector`, and `TimeDilationManager`; local slow effects now have a max active budget and minimum multiplier, and global dilation cannot drop below the new safe floor.

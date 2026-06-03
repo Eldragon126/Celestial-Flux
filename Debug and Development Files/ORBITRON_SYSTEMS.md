@@ -10,6 +10,7 @@
 - `GravityResonanceManager` samples gravity-source overlap and emits zone dictionaries for gameplay, VFX, HUD, and audio.
 - `TimeDilationManager` applies player-safe dilation plus localized time pockets through metadata and lightweight signals.
 - `OrbitalVFXDirector` listens to gameplay signals and spawns capped burst particles from inspector-editable templates.
+- `ParticleFocusCuller` focus-gates long-lived particle nodes by screen/player distance.
 - `PerformanceBudgetDirector` adjusts particle and VFX budgets for quality tiers.
 - `RunVariationDirector` applies seed-named run laws, pacing states, and deterministic rare events.
 - `SecretBossDirector` listens for hidden mastery conditions and registers optional bosses with the wave UI.
@@ -17,8 +18,13 @@
 - `CoopComboDirector` turns sync-safe vector events into deterministic shared resonance/time payoffs.
 - `ModContentRegistry` discovers data-driven mod manifests without executing arbitrary code.
 - `RunScoreTracker` emits score snapshots and shareable challenge codes.
+- `PhysicsDropSystem` spawns physics-based enemy rewards from death signals.
 - `ArenaRuleDirector` applies seeded arena law profiles for alternate arena physics.
+- `ArenaInstabilityDirector` schedules data-driven battlefield mutations.
 - `LateGameInstabilityDirector` injects capped impossible-physics events in late game.
+- `RecoveryOpportunityDirector` creates rare deterministic near-death recovery windows.
+- `CelestialBodyDirector` spawns active orbiting/merging/splitting celestial bodies.
+- `RealityCollapseDirector` escalates high-instability reality failure events.
 - `AdaptiveMusicStateDirector` emits music intensity layers and beat hints from gameplay pressure.
 - `RunTransitionDirector` provides scene-authored visual punctuation for major state changes.
 - `FairPacingDirector` adjusts recovery windows from player condition/mastery without changing physics depth.
@@ -37,6 +43,8 @@ One-shot detached bursts should use reusable scenes, set their final transform b
 `OrbitalVFXDirector` prewarms burst pools per template and reuses those `GPUParticles2D` nodes for time dilation, kinetic impact, resonance, slingshot, and ambient feedback. New burst templates must be added to the pool path rather than duplicated at signal time.
 
 Powerup and law-fusion feedback rings are pooled `Line2D` nodes. Upgrade pickup flashes, slingshot law convergence, Apex Vector releases, Barycentric/Frame-Dragging pickup feedback, and fusion feedback must reuse the inventory ring pools and respect `Settings.flash_alpha()`.
+
+Long-lived pickup/debris particles must be focus-gated. `PowerupPickup`, `EnergyDroplet`, and `GravityDebris` keep their gameplay visuals active but disable `GPUParticles2D.visible` and `emitting` outside player focus range. `ParticleFocusCuller` is the global fallback for any remaining long-lived `GPUParticles2D` or `CPUParticles2D` node; it scans at an interval, caches tracked particles, and gates rendering/emission only near the screen or player.
 
 ## Enemy And Boss Visuals
 
@@ -86,12 +94,15 @@ Current visual readability rules:
 
 - it applies damage to hostile targets each beam tick
 - it pulls enemies and enemy projectiles toward the beam axis
+- it can push destructible planets, adding fracture pressure and visible displacement metadata
 - it stamps a short compression resonance zone instead of long-lived slipstream clutter
 - it stops immediately when gameplay is paused or the player enters death flow
 
+Chronal Refraction Beam is the time-fantasy beam. It applies local slow, draws capped timeline echo traces, stores desync impulse metadata, and fires a delayed lateral impulse/damage chain that can create a short temporal echo zone. Echoes are capped per beam tick so the effect stays readable instead of becoming the pink/purple slowdown wall.
+
 ## Time Dilation Architecture
 
-`TimeDilationManager` avoids global slowdown by default. It keeps player motion responsive while applying local time pockets to enemies, bosses, and enemy projectiles. Existing signals remain, and aliases are provided for broader system hooks:
+`TimeDilationManager` avoids global slowdown by default. It keeps player motion responsive while applying local time pockets to enemies, bosses, and enemy projectiles. Global dilation now has a safe minimum scale, and local slow effects have a max active budget plus a minimum multiplier so temporal effects cannot turn into unbounded performance/readability stalls. Existing signals remain, and aliases are provided for broader system hooks:
 
 - `dilation_started`
 - `dilation_ended`
@@ -108,6 +119,8 @@ Targets read `local_time_scale` metadata through `CombatStatus` or manager helpe
 Projectile attacks should use `enemy_bullet.configure_launch(direction, speed, source)` so source collision exceptions and spawn safety are deterministic.
 
 `WaveDirector` applies production boss pressure after scene `_ready()` so authored boss scripts keep their editable setup while still receiving wave-appropriate difficulty. The tuning scales health floors, attack timers, projectile pressure, contact damage, movement pressure, and Polymorph's phase pressure.
+
+`ExtradimensionalBreacherBoss` is the wave 40 capstone. It extends `PhaseBoss`, physically moves outside the viewport before slamming back into the arena, and uses deterministic attacks built from existing systems: moving singularities, orbiting moon fragments, slipstream corridors, unstable wormholes, outside-space breaches, timeline slams, gravity scars, resonance zones, camera trauma, and reality-collapse hooks. The boss can look like the simulation is failing, but every attack path still creates telegraph geometry before damage/pressure.
 
 ## Secret Bosses
 
@@ -160,6 +173,36 @@ This keeps the separation blueprint intact: the difference between arenas is phy
 
 The director uses existing resonance, arena, and time APIs, so events remain readable, inspectable, and bounded.
 
+## Arena Instability Director
+
+`ArenaInstabilityDirector` is a data-driven battlefield mutation layer. Event definitions specify id, telegraph time, duration, radius, color, weight, and minimum wave. The active set currently includes gravity tides, resonance storms, slipstream surges, momentum inversions, collapsing orbit lanes, and spacetime fractures.
+
+The director emits telegraph/start/end signals and creates short HUD notices. Gameplay effects are routed through `GravityTidePocket`, `GravityResonanceManager`, `GravityScarManager`, `TimeDilationManager`, and `CombatStatus`, so arena mutations remain part of the core physics language instead of isolated hazard scripts.
+
+## Recovery Opportunities
+
+`RecoveryOpportunityDirector` samples player health/shield, nearby threat density, speed, and near-miss telemetry at a capped interval. When the player is critically pressured and the deterministic cooldown allows it, the director creates one rare recovery opportunity:
+
+- slingshot escape corridor
+- emergency wormhole exit
+- resonance rebound
+- momentum conservation chain
+- time-dilation dodge window
+
+Near misses are stored in `RunProgress.arena_flags` as counts/recent records, emitted through `near_miss_recorded`, and recovery windows emit start/resolved signals for HUD, score, and transition listeners. These windows should feel earned, not charitable: they create a route, but the player still has to read and execute the physics.
+
+## Dynamic Celestial Bodies
+
+`CelestialBodyDirector` and `DynamicCelestialBody` make celestial bodies active run participants. Bodies can orbit anchors, drift, register as capped gravity sources, collide, merge, destabilize, split, and apply bounded field pressure to players, enemies, and projectiles. Current seeded events include binary systems, rogue planets, wandering singularities, and orbital structures.
+
+This keeps runs feeling like changing orbital puzzles while respecting the existing 3-4 gravity-source sampling caps.
+
+## Reality Collapse
+
+`RealityCollapseDirector` activates from late-game/high-instability pressure. It opens deterministic screen-edge breaches, corrupted spacetime regions, overlapping timeline echoes, and boundary fractures. It can drift player-local gravity/drag constants temporarily, sends camera trauma through `DamageCameraShake.add_trauma()`, and uses resonance/scar APIs for gameplay effects.
+
+Reality collapse is escalation, not unreadable randomness: events have cooldowns, caps, HUD notices, and predictable geometry.
+
 ## Transition Juice
 
 `RunTransitionDirector` is a `CanvasLayer` with editable child nodes:
@@ -168,7 +211,7 @@ The director uses existing resonance, arena, and time APIs, so events remain rea
 - `VectorLine`
 - `TransitionLabel`
 
-It listens to wave, boss, arena-law, impossible-event, co-op combo, Rupture, and finale signals. The effect is deliberately brief and non-blocking so it adds juice without hiding the player or pausing the simulation.
+It listens to wave, boss, arena-law, arena-instability, recovery-opportunity, celestial-event, reality-breach, impossible-event, co-op combo, Rupture, and finale signals. The effect is deliberately brief and non-blocking so it adds juice without hiding the player or pausing the simulation.
 
 ## Skill Signatures And Spacetime Swim
 
@@ -200,6 +243,8 @@ Enemies that emerge from tears are registered through `WaveDirector.register_ext
 `DeathFairnessDirector` samples readable context and updates `RunProgress.last_death_message` after the player emits a death lesson. The game-over scene then shows both the lesson and the concrete run readout.
 
 Player death flow is intentionally short and locked. `player.gd`, `HealthComponent`, and `WeaponSystem` stop repeat death signals, held fire, beam fire, input, and movement acceleration as soon as death begins, while preserving a brief collapse watch before game over.
+
+Player hit flow now includes a short configurable post-hit invulnerability window in `player.gd`. The window applies to shield/hull damage, emits telemetry signals for started/ignored damage, and flashes hull/shield visuals so burst hits feel fair without removing danger.
 
 ## Freed Object Safety
 
@@ -251,11 +296,33 @@ Manifest validation now rejects malformed roots, missing ids, invalid versions, 
 - `WaveDirector.boss_defeated_anchor`
 - `SecretBossDirector.secret_boss_defeated`
 - `RunVariationDirector.rare_event_started`
+- `MomentumCombatComponent.kinetic_impact_dealt`
+- `MomentumCombatComponent.near_miss_velocity_gained`
+- `GravityResonanceManager.fracture_applied`
+- `GravityScarManager.gravity_scar_applied`
 - `EventHorizonDirector.horizon_escape_scored`
+- `EventHorizonDirector.event_horizon_started`
+- `EventHorizonDirector.event_horizon_ended`
 - `CoopComboDirector.coop_combo_triggered`
 - player `slingshot_mastery_scored`
 
-It emits a score snapshot and challenge code. The code combines `RunProgress.get_run_seed_code()`, score, and a checksum so players can share repeatable seed challenges before a full leaderboard exists.
+It emits a score snapshot, writes the latest snapshot/challenge code into `RunProgress.arena_flags`, emits `physics_anomaly_achieved`, and publishes a challenge code. The code format is `mode:seed:wave:score_checksum`, so players can share repeatable seed challenges before a full leaderboard exists.
+
+The anomaly score path is fully signal-driven. Kinetic multipliers capture the player's current velocity when the enemy death signal fires, then quantize an exponential reward. Vector shears are awarded from counter-opposing gravitational-zone impulses. Event-horizon grazes require proximity to an `Objects_With_Gravity` source while shield/hull remain undamaged. Apex slingshots score from tangential exit velocity signatures. The checksum is a stable SHA-256-derived digest of the unified score snapshot.
+
+## Physics Drop Ecosystem
+
+`PhysicsDropSystem` listens through `WaveDirector` death tracking and spawns readable physics rewards:
+
+- Fragments: upgrade/run currency stored on player metadata and `RunProgress.arena_flags`.
+- Momentum Orbs: velocity amplification for advanced slingshot routing.
+- Gravity Residue: temporary compression fields and gravity-source residue.
+- Temporal Charges: time-dilation capacity fuel.
+- Instability Shards: optional reward/escalation tradeoff.
+- Anomaly Seeds: deterministic arena/resonance event triggers.
+- Celestial Cores: boss-grade rule-changing powerup drops.
+
+Drops are arena entities with decay, readable glyphs, gravity interaction where appropriate, and no generic gold/ammo/health-spam behavior.
 
 ## Production Simulation Runner
 
@@ -283,7 +350,7 @@ The runner is a progress/performance validator, not a live-state save or determi
 
 ## Endgame Flow
 
-`RunProgress.on_boss_defeated()` treats the wave 35 capstone boss as authoritative. When `res://Nodes/centrifuge_marshal_boss.tscn` is defeated, the run enters `RUPTURE` even if the wave director has not finished advancing its own wave-cleared state yet.
+`RunProgress.on_boss_defeated()` treats the wave 40 capstone boss as authoritative. When `res://Nodes/extradimensional_breacher_boss.tscn` is defeated, the run enters `RUPTURE` even if the wave director has not finished advancing its own wave-cleared state yet.
 
 `RunDirector` then halts waves, shows the rupture banner, starts `RuptureDirector`, and moves into `MusicFinaleDirector` after the rupture countdown. `MusicFinaleDirector` spawns `res://Nodes/music_resonance_boss.tscn`; music beat events call the boss pulse, burst, and finale methods directly. The credits transition occurs when that boss is defeated.
 
@@ -309,7 +376,20 @@ Pause and HUD scaling are separated: the pause panel scales around its center an
 
 The player projectile predictor now mirrors the projectile's capped gravity-source sampling, launch speed inheritance from momentum, and planet-hit behavior. If a shot would hit a planet, the predictor stops at impact because the actual projectile is destroyed there.
 
+Vector Bolt tuning is now larger/faster than the original baseline. `projectile.gd`, `projectile.tscn`, `ProjectileAimPredictor`, and `ProjectileTrajectoryVisualizer` must stay in lockstep: launch speed is 1080, collision preview radius is 68.5 around planets, source sampling is capped, and player/player-projectile gravity sources are excluded so baseline shots do not orbit the player. Orbital projectile behavior is intentional only when `PowerupInventory` captures hostile shots through Orbital Tether; those shots carry `intentional_orbital_capture` metadata and join `orbital_satellite_projectiles` until released.
+
 Flash-heavy success feedback should use `Settings.flash_alpha()` or an explicit low alpha cap. Slingshot mastery, law fusion rings, powerup bursts, and VFX bursts all follow this rule so perfect movement can feel rewarding without becoming a full-screen flash.
+
+## Current Technical Tuning Targets
+
+Latest feedback pass completed:
+
+- Drag ON is now the `Precision` style: tactical braking, slingshot tangent blending, cleaner recovery routing, and small energy recovery inside gravity windows.
+- Gravity Wave Beam now moves/fractures destructible planets while keeping enemy/projectile beam-axis displacement.
+- Chronal Refraction Beam now creates capped timeline echoes and delayed desync payoff.
+- WaveDirector seeds far-orbit planets and validates stationary shooter spawns against planet clearances.
+- WormholePair validates endpoints against planet radius plus safety margin.
+- The pink/purple slowdown path is capped through lower visual alpha/radius budgets, lower VFX burst budgets, glitch cooldowns, local slow budgets, and a safe global time-scale floor.
 
 ## Vector Anomaly Director
 

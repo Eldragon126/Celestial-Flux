@@ -43,6 +43,9 @@ func _process(delta: float) -> void:
     _camera.rotation += _rng.randf_range(-max_roll, max_roll) * shake * shake_scale
     _trauma = maxf(_trauma - trauma_decay * delta, 0.0)
 
+func add_trauma(amount: float) -> void:
+    _trauma = clampf(_trauma + maxf(amount, 0.0), 0.0, 1.0)
+
 func _on_player_health_changed(current_health: float, _max_health: float) -> void:
     if current_health < _last_health:
         var damage = _last_health - current_health

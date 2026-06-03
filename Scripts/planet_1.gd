@@ -14,6 +14,10 @@ enum PlanetKind { AUTO, BLUE_DENSE, RED_VOLATILE, CYAN_LENS, VIOLET_TEMPORAL }
 @export var minimum_fractured_radius_ratio: float = 0.36
 @export var fracture_scar_cooldown: float = 0.7
 @export var collapse_scar_radius_multiplier: float = 2.2
+@export_group("Readability Visual Caps")
+@export var max_planet_glow_radius: float = 280.0
+@export var planet_glow_radius_multiplier: float = 1.35
+@export_range(0.0, 1.0, 0.01) var planet_glow_energy: float = 0.26
 
 var mass: float
 var radius: float
@@ -156,13 +160,13 @@ func _planet_type_data(type: PlanetKind) -> Dictionary:
 	return PLANET_CONFIGS.get(type, PLANET_CONFIGS[PlanetKind.BLUE_DENSE])
 
 func _apply_planet_type_visuals(type_data: Dictionary) -> void:
-	if not polygon: return
-	
+	if polygon == null:
+		return
+
 	var base_col: Color = type_data.get("base_color", Color.WHITE)
-	polygon.color = base_col
-	
-	if point_light:
-		point_light.color = base_col
+	polygon.color = _readability_color(base_col)
+
+	_update_planet_glow()
 
 # ==========================================
 # CORE LOGIC
@@ -184,6 +188,7 @@ func apply_spacetime_damage(amount: float, hit_position: Vector2 = Vector2.ZERO,
 	draw_circle_polygon(64, radius)
 	_update_collision_radius()
 	_update_particle_radius()
+	_update_planet_glow()
 	_emit_fracture(hit_position, source_label, stability_ratio)
 	_apply_planet_type_fracture_effect(hit_position, source_label, stability_ratio)
 
@@ -224,6 +229,49 @@ func _update_particle_radius() -> void:
 		return
 	var mat := particles.process_material as ParticleProcessMaterial
 	mat.emission_sphere_radius = radius
+	var particle_radius: float = _world_effect_radius(radius * 1.25, max_planet_glow_radius)
+	particles.visibility_rect = Rect2(
+		Vector2(-particle_radius, -particle_radius),
+		Vector2(particle_radius * 2.0, particle_radius * 2.0)
+	)
+
+
+func _update_planet_glow() -> void:
+	if point_light == null:
+		return
+
+	var target_radius: float = maxf(radius * planet_glow_radius_multiplier, radius + 28.0)
+	target_radius = _world_effect_radius(target_radius, max_planet_glow_radius)
+	var texture_width: float = 1000.0
+	if point_light.texture != null:
+		texture_width = maxf(float(point_light.texture.get_width()), 1.0)
+
+	var glow_color: Color = polygon.color if polygon != null else Color.WHITE
+	point_light.texture_scale = clampf((target_radius * 2.0) / texture_width, 0.02, 0.62)
+	point_light.energy = _world_light_alpha(planet_glow_energy)
+	point_light.color = _readability_color(Color(glow_color.r, glow_color.g, glow_color.b, 1.0))
+	point_light.visible = point_light.energy > 0.01
+	point_light.enabled = point_light.energy > 0.01
+
+
+func _readability_color(color: Color) -> Color:
+	if Settings != null and Settings.has_method("apply_readability_color"):
+		return Settings.apply_readability_color(color)
+	return color
+
+
+func _world_light_alpha(alpha: float) -> float:
+	if Settings != null and Settings.has_method("world_light_alpha"):
+		return Settings.world_light_alpha(alpha)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return minf(Settings.flash_alpha(alpha), 0.28)
+	return minf(alpha, 0.28)
+
+
+func _world_effect_radius(value: float, hard_cap: float) -> float:
+	if Settings != null and Settings.has_method("world_effect_radius"):
+		return Settings.world_effect_radius(value, hard_cap)
+	return clampf(value, 0.0, maxf(hard_cap, 1.0))
 
 
 func _emit_fracture(hit_position: Vector2, source_label: StringName, stability_ratio: float) -> void:

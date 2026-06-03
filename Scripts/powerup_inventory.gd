@@ -33,6 +33,9 @@ signal frame_dragging_anchor_applied(data: Dictionary)
 @export_group("Pickup Readability")
 @export var powerup_visuals_enabled: bool = true
 @export var powerup_burst_radius: float = 180.0
+@export var powerup_visual_radius_cap: float = 360.0
+@export_range(0.0, 0.42, 0.01) var powerup_ring_alpha_cap: float = 0.26
+@export_range(0.0, 0.42, 0.01) var powerup_echo_alpha_cap: float = 0.16
 
 @export_group("Law Fusion")
 @export var enable_law_fusions: bool = true
@@ -349,9 +352,11 @@ func _capture_nearby_projectiles(stacks: int, override_radius: float = -1.0) -> 
 
 		projectile_2d.set_meta(&"orbital_satellite_owner", _player.get_instance_id())
 		projectile_2d.set_meta(&"converted_to_player_projectile", true)
+		projectile_2d.set_meta(&"intentional_orbital_capture", true)
 
 		projectile_2d.remove_from_group("enemy_projectiles")
 		projectile_2d.add_to_group("player_projectiles")
+		projectile_2d.add_to_group("orbital_satellite_projectiles")
 		if RuntimeRegistry != null:
 			RuntimeRegistry.unregister_node(projectile_2d, &"enemy_projectiles")
 			RuntimeRegistry.register_node(projectile_2d, &"player_projectiles")
@@ -449,7 +454,9 @@ func _release_satellite(
 		return
 
 	projectile.remove_meta(&"orbital_satellite_owner")
+	projectile.remove_meta(&"intentional_orbital_capture")
 	projectile.remove_meta(&"singularity_debris_anchor")
+	projectile.remove_from_group("orbital_satellite_projectiles")
 
 	if projectile.get("linear_velocity") is Vector2:
 		projectile.set(
@@ -1683,7 +1690,7 @@ func _spawn_fusion_ring(
 		return
 
 	var ring := _acquire_ring(_fusion_ring_pool, root, "LawFusionRing", 54, 2.6, 26)
-	ring.default_color = _safe_flash_color(ring_color, 0.5)
+	ring.default_color = _safe_flash_color(ring_color, powerup_ring_alpha_cap)
 	ring.global_position = center
 	ring.scale = Vector2.ONE * 18.0
 	ring.modulate = Color.WHITE
@@ -1691,7 +1698,7 @@ func _spawn_fusion_ring(
 
 	var tween := ring.create_tween()
 
-	tween.tween_property(ring, "scale", Vector2.ONE * minf(radius, 620.0), 0.24)
+	tween.tween_property(ring, "scale", Vector2.ONE * _visual_radius(radius), 0.24)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.26)
 	tween.tween_callback(Callable(self, "_release_ring").bind(ring))
 
@@ -1707,35 +1714,43 @@ func _spawn_powerup_burst(definition: PowerupDefinition, stacks: int) -> void:
 	var radius := powerup_burst_radius + 24.0 * float(maxi(stacks - 1, 0))
 
 	var ring := _acquire_ring(_powerup_ring_pool, root, "PowerupLawBurst", 60, 3.2, 28)
-	ring.default_color = _safe_flash_color(Color(burst_color.r, burst_color.g, burst_color.b, 0.62), 0.42)
+	ring.default_color = _safe_flash_color(Color(burst_color.r, burst_color.g, burst_color.b, 0.62), powerup_ring_alpha_cap)
 	ring.global_position = _player.global_position
 	ring.scale = Vector2.ONE * 14.0
 	ring.modulate = Color.WHITE
 	ring.visible = true
 
 	var echo := _acquire_ring(_powerup_echo_pool, root, "PowerupLawEcho", 36, 2.0, 29)
-	echo.default_color = _safe_flash_color(Color(1.0, 1.0, 1.0, 0.28), 0.22)
+	echo.default_color = _safe_flash_color(Color(1.0, 1.0, 1.0, 0.28), powerup_echo_alpha_cap)
 	echo.global_position = _player.global_position
 	echo.scale = Vector2.ONE * 8.0
 	echo.modulate = Color.WHITE
 	echo.visible = true
 
 	var tween := ring.create_tween()
-	tween.tween_property(ring, "scale", Vector2.ONE * radius, 0.34)
+	tween.tween_property(ring, "scale", Vector2.ONE * _visual_radius(radius), 0.34)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.34)
 	tween.tween_callback(Callable(self, "_release_ring").bind(ring))
 
 	var echo_tween := echo.create_tween()
-	echo_tween.tween_property(echo, "scale", Vector2.ONE * (radius * 0.58), 0.18)
+	echo_tween.tween_property(echo, "scale", Vector2.ONE * _visual_radius(radius * 0.58), 0.18)
 	echo_tween.parallel().tween_property(echo, "modulate:a", 0.0, 0.18)
 	echo_tween.tween_callback(Callable(self, "_release_ring").bind(echo))
 
 
 func _safe_flash_color(color: Color, alpha_cap: float) -> Color:
 	var alpha := minf(color.a, alpha_cap)
-	if Settings != null and Settings.has_method("flash_alpha"):
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		alpha = Settings.world_visual_alpha(alpha, alpha_cap)
+	elif Settings != null and Settings.has_method("flash_alpha"):
 		alpha = Settings.flash_alpha(alpha)
 	return Color(color.r, color.g, color.b, alpha)
+
+
+func _visual_radius(radius: float) -> float:
+	if Settings != null and Settings.has_method("world_effect_radius"):
+		return Settings.world_effect_radius(radius, powerup_visual_radius_cap)
+	return minf(radius, powerup_visual_radius_cap)
 
 
 func get_law_fusion_debug_state() -> Dictionary:

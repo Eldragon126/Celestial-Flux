@@ -57,6 +57,10 @@ func _connect_sources() -> void:
 	_connect_once(root.find_child("WaveDirector", true, false), &"wave_cleared", Callable(self, "_on_wave_cleared"))
 	_connect_once(root.find_child("ArenaRuleDirector", true, false), &"arena_profile_applied", Callable(self, "_on_arena_profile_applied"))
 	_connect_once(root.find_child("LateGameInstabilityDirector", true, false), &"impossible_event_started", Callable(self, "_on_impossible_event_started"))
+	_connect_once(root.find_child("ArenaInstabilityDirector", true, false), &"arena_instability_event_telegraphed", Callable(self, "_on_arena_instability_event_telegraphed"))
+	_connect_once(root.find_child("RealityCollapseDirector", true, false), &"reality_breach_opened", Callable(self, "_on_reality_breach_opened"))
+	_connect_once(root.find_child("RecoveryOpportunityDirector", true, false), &"recovery_opportunity_started", Callable(self, "_on_recovery_opportunity_started"))
+	_connect_once(root.find_child("CelestialBodyDirector", true, false), &"celestial_event_started", Callable(self, "_on_celestial_event_started"))
 	_connect_once(root.find_child("CoopComboDirector", true, false), &"coop_combo_triggered", Callable(self, "_on_coop_combo_triggered"))
 
 	if RunProgress != null:
@@ -101,6 +105,22 @@ func _on_arena_profile_applied(_profile_id: StringName, display_name: String, _p
 
 func _on_impossible_event_started(event_id: StringName, _data: Dictionary) -> void:
 	play_transition(String(event_id).replace("_", " ").to_upper(), Color(1.0, 0.54, 0.18, 1.0))
+
+
+func _on_arena_instability_event_telegraphed(event_id: StringName, _data: Dictionary) -> void:
+	play_transition(String(event_id).replace("_", " ").to_upper(), Color(0.42, 0.9, 1.0, 1.0))
+
+
+func _on_reality_breach_opened(breach_id: StringName, _data: Dictionary) -> void:
+	play_transition(String(breach_id).replace("_", " ").to_upper(), Color(1.0, 0.32, 0.16, 1.0))
+
+
+func _on_recovery_opportunity_started(opportunity_id: StringName, _data: Dictionary) -> void:
+	play_transition(String(opportunity_id).replace("_", " ").to_upper(), Color(0.36, 1.0, 0.74, 1.0))
+
+
+func _on_celestial_event_started(event_id: StringName, _data: Dictionary) -> void:
+	play_transition(String(event_id).replace("_", " ").to_upper(), Color(1.0, 0.82, 0.26, 1.0))
 
 
 func _on_coop_combo_triggered(combo_id: StringName, _data: Dictionary) -> void:

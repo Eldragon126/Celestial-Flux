@@ -112,6 +112,9 @@ signal flow_state_changed(active: bool, intensity: float)
 @export var mastery_audio_enabled: bool = true
 @export var mastery_particle_cap: int = 10
 @export var great_ring_min_score: float = 0.86
+@export var mastery_visual_radius_cap: float = 280.0
+@export_range(0.0, 0.42, 0.01) var mastery_ring_alpha_cap: float = 0.24
+@export_range(0.0, 0.42, 0.01) var mastery_aura_alpha_cap: float = 0.18
 
 # ========================
 # == INTERNAL STATE ==
@@ -516,7 +519,7 @@ func _spawn_shockwave_visual(center: Vector2) -> void:
 	ring.closed = true
 	ring.antialiased = true
 	ring.width = 2.0
-	ring.default_color = Color(0.42, 0.95, 1.0, 0.28)
+	ring.default_color = _visual_color(Color(0.42, 0.95, 1.0, 0.28), mastery_ring_alpha_cap)
 	ring.points = _circle_points(48, 1.0)
 	ring.global_position = center
 	ring.scale = Vector2.ONE * 8.0
@@ -524,7 +527,7 @@ func _spawn_shockwave_visual(center: Vector2) -> void:
 	root.add_child(ring)
 
 	var tween := ring.create_tween()
-	tween.tween_property(ring, "scale", Vector2.ONE * (shockwave_radius * 0.45), 0.18)
+	tween.tween_property(ring, "scale", Vector2.ONE * _visual_radius(shockwave_radius * 0.45), 0.18)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.24)
 	tween.tween_callback(ring.queue_free)
 
@@ -652,11 +655,11 @@ func _update_flow_visuals(delta: float) -> void:
 
 	if _aura_ring != null:
 		_aura_ring.width = lerpf(0.8, 2.4, intensity)
-		_aura_ring.default_color = color
+		_aura_ring.default_color = _visual_color(color, mastery_aura_alpha_cap)
 	if _aura_inner != null:
 		_aura_inner.rotation = -_aura_root.rotation * 1.7
 		_aura_inner.width = lerpf(0.6, 1.8, intensity)
-		_aura_inner.default_color = Color(1.0, 1.0, 1.0, color.a * 0.54)
+		_aura_inner.default_color = _visual_color(Color(1.0, 1.0, 1.0, color.a * 0.54), mastery_aura_alpha_cap)
 	if _aura_particles != null:
 		_aura_particles.emitting = intensity > 0.16
 		_aura_particles.amount = int(lerpf(12.0, float(mastery_particle_cap), intensity))
@@ -712,7 +715,7 @@ func _spawn_slingshot_mastery_visual(data: Dictionary, mastered: bool) -> void:
 	ring.closed = true
 	ring.antialiased = true
 	ring.width = width
-	ring.default_color = color
+	ring.default_color = _visual_color(color, mastery_ring_alpha_cap)
 	ring.points = _circle_points(80, 10.0)
 	ring.global_position = center
 	ring.rotation = tangent.angle()
@@ -724,7 +727,7 @@ func _spawn_slingshot_mastery_visual(data: Dictionary, mastered: bool) -> void:
 	vector_line.name = "SlingshotVectorFlash"
 	vector_line.antialiased = true
 	vector_line.width = width * 0.05
-	vector_line.default_color = Color(1.0, 1.0, 1.0, _flash_alpha(color.a * 0.08))
+	vector_line.default_color = _visual_color(Color(1.0, 1.0, 1.0, color.a * 0.08), mastery_aura_alpha_cap)
 	vector_line.points = PackedVector2Array([
 		-tangent * radius * 0.05,
 		tangent * radius * 0.15,
@@ -734,7 +737,7 @@ func _spawn_slingshot_mastery_visual(data: Dictionary, mastered: bool) -> void:
 	root.add_child(vector_line)
 
 	var tween := ring.create_tween()
-	tween.tween_property(ring, "scale", Vector2.ONE * lerpf(7.0, 16.0, score), duration)
+	tween.tween_property(ring, "scale", Vector2.ONE * (_visual_radius(lerpf(70.0, 160.0, score)) / 10.0), duration)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, duration)
 	tween.tween_callback(ring.queue_free)
 
@@ -747,12 +750,11 @@ func _spawn_combo_ping(position: Vector2, reason: StringName) -> void:
 	var color := Color(0.35, 1.0, 0.84, 0.58)
 	if reason == &"impact":
 		color = Color(1.0, 0.72, 0.26, 0.88)
-	color.a = _flash_alpha(color.a)
 	_spawn_transient_ring(position, 24.0 + 6.0 * float(_mastery_combo), color, 0.18, 3.5)
 
 func _spawn_impact_mastery_flash(position: Vector2, damage: float) -> void:
 	var radius := 36.0 + clampf(damage * 0.5, 0.0, 60.0)
-	_spawn_transient_ring(position, radius, Color(1.0, 0.32, 0.18, _flash_alpha(0.45)), 0.22, 2.5)
+	_spawn_transient_ring(position, radius, Color(1.0, 0.32, 0.18, 0.45), 0.22, 2.5)
 
 func _spawn_transient_ring(center: Vector2, radius: float, color: Color, duration: float, width: float) -> void:
 	var root := get_tree().current_scene
@@ -764,7 +766,7 @@ func _spawn_transient_ring(center: Vector2, radius: float, color: Color, duratio
 	ring.closed = true
 	ring.antialiased = true
 	ring.width = width
-	ring.default_color = color
+	ring.default_color = _visual_color(color, mastery_ring_alpha_cap)
 	ring.points = _circle_points(36, 1.0)
 	ring.global_position = center
 	ring.scale = Vector2.ONE * 2.0
@@ -772,7 +774,7 @@ func _spawn_transient_ring(center: Vector2, radius: float, color: Color, duratio
 	root.add_child(ring)
 
 	var tween := ring.create_tween()
-	tween.tween_property(ring, "scale", Vector2.ONE * radius, duration)
+	tween.tween_property(ring, "scale", Vector2.ONE * _visual_radius(radius), duration)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, duration)
 	tween.tween_callback(ring.queue_free)
 
@@ -800,14 +802,14 @@ func _play_mastery_whoosh(data: Dictionary) -> void:
 func _grade_color(grade: StringName, mastered: bool) -> Color:
 	match grade:
 		&"apex":
-			return Color(1.0, 0.9, 0.25, _flash_alpha(0.10))
+			return Color(1.0, 0.9, 0.25, 0.10)
 		&"perfect":
-			return Color(0.35, 1.0, 0.88, _flash_alpha(0.18))
+			return Color(0.35, 1.0, 0.88, 0.18)
 		&"great":
-			return Color(0.22, 0.72, 1.0, _flash_alpha(0.08))
+			return Color(0.22, 0.72, 1.0, 0.08)
 		&"good":
-			return Color(0.42, 0.86, 1.0, _flash_alpha(0.12))
-	return Color(0.48, 0.66, 0.84, _flash_alpha(0.68 if mastered else 0.46))
+			return Color(0.42, 0.86, 1.0, 0.12)
+	return Color(0.48, 0.66, 0.84, 0.68 if mastered else 0.46)
 
 
 func _apply_boss_contact_rebound(body: Node, speed: float) -> void:
@@ -830,7 +832,7 @@ func _apply_boss_contact_rebound(body: Node, speed: float) -> void:
 
 func _make_flow_particle_material() -> ParticleProcessMaterial:
 	var gradient := Gradient.new()
-	gradient.set_color(0, Color(0.26, 1.0, 0.88, 0.82))
+	gradient.set_color(0, _visual_color(Color(0.26, 1.0, 0.88, 0.82), mastery_aura_alpha_cap))
 	gradient.set_color(1, Color(0.22, 0.38, 1.0, 0.0))
 
 	var texture := GradientTexture1D.new()
@@ -839,7 +841,7 @@ func _make_flow_particle_material() -> ParticleProcessMaterial:
 	var material := ParticleProcessMaterial.new()
 	material.particle_flag_disable_z = true
 	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-	material.emission_sphere_radius = 42.0
+	material.emission_sphere_radius = _visual_radius(42.0)
 	material.spread = 180.0
 	material.initial_velocity_min = 20.0
 	material.initial_velocity_max = 4.0
@@ -858,6 +860,19 @@ func _flash_alpha(alpha: float) -> float:
 	if Settings != null and Settings.has_method("flash_alpha"):
 		return Settings.flash_alpha(alpha)
 	return alpha
+
+func _visual_color(color: Color, alpha_cap: float) -> Color:
+	var result := color
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		result.a = Settings.world_visual_alpha(result.a, alpha_cap)
+	else:
+		result.a = minf(_flash_alpha(result.a), alpha_cap)
+	return result
+
+func _visual_radius(radius: float) -> float:
+	if Settings != null and Settings.has_method("world_effect_radius"):
+		return Settings.world_effect_radius(radius, mastery_visual_radius_cap)
+	return minf(radius, mastery_visual_radius_cap)
 
 func _node_position_or_player(node: Node) -> Vector2:
 	var node_2d := node as Node2D

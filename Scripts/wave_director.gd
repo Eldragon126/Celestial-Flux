@@ -19,6 +19,7 @@ const SPLITTER_SCENE = preload("res://Nodes/splitting_asteroid_bot.tscn")
 const HARASSER_SCENE = preload("res://Nodes/gravity_harasser.tscn")
 const SNIPER_SCENE = preload("res://Nodes/sniper_turret.tscn")
 const SHIELDER_SCENE = preload("res://Nodes/shielder_support.tscn")
+const PLANET_SCENE = preload("res://Nodes/planet_1.tscn")
 const NEBULA_SCENE = preload("res://Nodes/nebula_cloud.tscn")
 const UNSTABLE_MOON_SCENE = preload("res://Nodes/unstable_moon.tscn")
 const WORMHOLE_PAIR_SCENE = preload("res://Nodes/wormhole_pair.tscn")
@@ -29,6 +30,7 @@ const MAGNETAR_TWINS_SCENE = preload("res://Nodes/magnetar_twins_boss.tscn")
 const RIFT_WEAVER_SCENE = preload("res://Nodes/rift_weaver_boss.tscn")
 const POLYMORPH_BOSS_SCENE = preload("res://Nodes/ParametricEquationEnemies/polymorph_boss.tscn")
 const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.tscn")
+const EXTRADIMENSIONAL_BREACHER_SCENE = preload("res://Nodes/extradimensional_breacher_boss.tscn")
 const PARAMETRIC_1_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn")
 const PARAMETRIC_2_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn")
 const PARAMETRIC_3_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn")
@@ -44,7 +46,7 @@ const RESONANCE_PARALYTIC_CONSTRUCT_SCENE = preload("res://Nodes/resonance_paral
 @export var rest_between_waves = 4.0
 @export var spawn_delay = 0.48
 @export var min_spawn_radius = 760.0
-@export var max_spawn_radius = 1220.0
+@export var max_spawn_radius = 1540.0
 @export var boss_every_waves = 5
 @export var max_regular_enemies = 10
 @export var recovery_wave_interval: int = 4
@@ -52,6 +54,20 @@ const RESONANCE_PARALYTIC_CONSTRUCT_SCENE = preload("res://Nodes/resonance_paral
 @export var recovery_rest_bonus: float = 2.5
 @export var early_wave_fire_rate_bonus: float = 1.38
 @export var status_update_interval: float = 0.12
+@export var energy_drop_chance: float = 0.88
+@export var energy_drop_restore_amount: float = 7.0
+@export var energy_drop_base_count: int = 1
+@export var energy_drop_elite_bonus_wave: int = 6
+@export var energy_drop_spread_radius: float = 48.0
+
+@export_group("Spawn Safety")
+@export var far_planet_count: int = 3
+@export var far_planet_min_radius: float = 2850.0
+@export var far_planet_max_radius: float = 4700.0
+@export var far_planet_clearance: float = 420.0
+@export var stationary_enemy_planet_clearance: float = 260.0
+@export var wormhole_planet_clearance: float = 260.0
+@export var spawn_position_attempts: int = 18
 
 var _player: Node2D = null
 var _level_root: Node = null
@@ -74,6 +90,7 @@ var _last_boss_scene_path: String = ""
 var _status_elapsed: float = 999.0
 var _last_status_wave: int = -1
 var _last_status_threats: int = -1
+var _physics_drop_system: Node = null
 
 func _ready() -> void:
 	_rng.randomize()
@@ -137,6 +154,7 @@ func register_secret_boss(boss: Node, display_name: String) -> void:
 	_spawning = false
 	if not _active_enemies.has(boss):
 		_active_enemies.append(boss)
+	_track_enemy_rewards(boss)
 
 	_boss_panel.visible = true
 	_boss_label.text = display_name
@@ -161,6 +179,7 @@ func register_external_enemy(enemy: Node) -> void:
 		enemy.add_to_group("wave_enemy")
 	if not _active_enemies.has(enemy):
 		_active_enemies.append(enemy)
+	_track_enemy_rewards(enemy)
 
 func _begin_next_wave() -> void:
 	if _waves_halted or not _waves_enabled():
@@ -239,6 +258,7 @@ func _spawn_boss_wave() -> void:
 
 	_boss = boss
 	_active_enemies.append(boss)
+	_track_enemy_rewards(boss)
 	_boss_panel.visible = true
 	_boss_label.text = _boss_display_name(boss_scene)
 
@@ -309,7 +329,13 @@ func _spawn_enemy(scene: PackedScene, node_name: String) -> Node:
 	_level_root.add_child(enemy)
 	var enemy_2d = enemy as Node2D
 	if enemy_2d != null:
-		enemy_2d.global_position = _spawn_position_for_index(_active_enemies.size())
+		var avoid_planets := _enemy_requires_planet_clearance(enemy, scene)
+		enemy_2d.global_position = _spawn_position_for_index(
+			_active_enemies.size(),
+			avoid_planets,
+			stationary_enemy_planet_clearance
+		)
+	_track_enemy_rewards(enemy)
 
 	return enemy
 
@@ -330,14 +356,74 @@ func _tune_enemy_for_wave(enemy: Node) -> void:
 	if health != null:
 		health.set("max_health", float(health.get("max_health")) * difficulty)
 
+func _track_enemy_rewards(enemy: Node) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	var health: Node = enemy.get_node_or_null("HealthComponent")
+	if health == null or not is_instance_valid(health):
+		return
+	if not health.has_signal(&"died"):
+		return
+	var callback: Callable = Callable(self, "_on_wave_enemy_died").bind(enemy)
+	if health.is_connected(&"died", callback):
+		return
+	health.connect(&"died", callback, CONNECT_ONE_SHOT)
+
+func _on_wave_enemy_died(enemy: Node) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	var enemy_2d: Node2D = enemy as Node2D
+	if enemy_2d == null:
+		return
+	var parent: Node = enemy.get_parent()
+	if parent == null:
+		parent = _level_root
+	if parent == null:
+		return
+	var drop_count: int = _energy_drop_count_for_enemy(enemy)
+	PowerupLibrary.try_spawn_energy_droplets(
+		parent,
+		enemy_2d.global_position,
+		drop_count,
+		energy_drop_chance,
+		energy_drop_spread_radius,
+		energy_drop_restore_amount
+	)
+	var drop_system := _get_physics_drop_system()
+	if drop_system != null and drop_system.has_method("try_spawn_for_enemy"):
+		drop_system.call("try_spawn_for_enemy", enemy, enemy_2d.global_position, _is_boss_enemy(enemy))
+
+func _energy_drop_count_for_enemy(enemy: Node) -> int:
+	var count: int = maxi(energy_drop_base_count, 0)
+	if _wave >= energy_drop_elite_bonus_wave:
+		count += 1
+	if _is_boss_enemy(enemy):
+		count += 4
+	return mini(count, 8)
+
+
+func _is_boss_enemy(enemy: Node) -> bool:
+	return enemy != null and (enemy.is_in_group("bosses") or enemy.is_in_group("boss") or enemy.has_signal("boss_defeated"))
+
+
+func _get_physics_drop_system() -> Node:
+	if _physics_drop_system != null and is_instance_valid(_physics_drop_system):
+		return _physics_drop_system
+	if _level_root != null:
+		_physics_drop_system = _level_root.find_child("PhysicsDropSystem", true, false)
+	return _physics_drop_system
+
 func _spawn_battlefield_features() -> void:
 	var origin = _player.global_position
+	_spawn_far_planet_field(origin)
 	_spawn_hazard_once(NEBULA_SCENE, "PermanentNebulaNorth", origin + Vector2(-740.0, -520.0))
 	_spawn_hazard_once(NEBULA_SCENE, "PermanentNebulaSouth", origin + Vector2(920.0, 680.0))
 
 	var wormhole = _spawn_hazard_once(WORMHOLE_PAIR_SCENE, "PermanentWormholePair", Vector2.ZERO)
 	if wormhole != null and wormhole.has_method("set_endpoint_positions"):
-		wormhole.set_endpoint_positions(origin + Vector2(-1280.0, 220.0), origin + Vector2(1300.0, -360.0))
+		var entry_position := _safe_orbital_position(origin, 1240.0, 1460.0, 17, wormhole_planet_clearance)
+		var exit_position := _safe_orbital_position(origin, 1300.0, 1560.0, 29, wormhole_planet_clearance)
+		wormhole.set_endpoint_positions(entry_position, exit_position)
 
 func _seed_wave_hazards() -> void:
 	if _wave % 2 == 0:
@@ -365,10 +451,95 @@ func _spawn_hazard_once(scene: PackedScene, node_name: String, global_pos: Vecto
 
 	return _spawn_hazard(scene, node_name, global_pos)
 
-func _spawn_position_for_index(index: int) -> Vector2:
-	var angle = TAU * float(index % 11) / 11.0 + _rng.randf_range(-0.22, 0.22)
-	var radius = _rng.randf_range(min_spawn_radius, max_spawn_radius)
-	return _player.global_position + Vector2(cos(angle), sin(angle)) * radius
+func _spawn_position_for_index(index: int, avoid_planets: bool = false, clearance: float = 0.0) -> Vector2:
+	var center := _player.global_position
+	var fallback := center
+	for attempt in range(maxi(spawn_position_attempts, 1)):
+		var angle := TAU * float((index + attempt * 3) % 17) / 17.0 + _rng.randf_range(-0.24, 0.24)
+		var radius := _rng.randf_range(min_spawn_radius, max_spawn_radius)
+		var candidate := center + Vector2(cos(angle), sin(angle)) * radius
+		if attempt == 0:
+			fallback = candidate
+		if not avoid_planets or _is_position_clear_of_planets(candidate, clearance):
+			return candidate
+	return _push_position_out_of_planets(fallback, clearance)
+
+
+func _spawn_far_planet_field(origin: Vector2) -> void:
+	for i in range(maxi(far_planet_count, 0)):
+		var planet := _spawn_hazard_once(
+			PLANET_SCENE,
+			"FarOrbitPlanet%d" % i,
+			_safe_orbital_position(origin, far_planet_min_radius, far_planet_max_radius, 41 + i * 13, far_planet_clearance)
+		)
+		if planet == null:
+			continue
+
+
+func _safe_orbital_position(center: Vector2, min_radius: float, max_radius: float, index: int, clearance: float) -> Vector2:
+	var fallback := center + Vector2.RIGHT.rotated(TAU * float(index % 19) / 19.0) * min_radius
+	for attempt in range(maxi(spawn_position_attempts, 1)):
+		var angle := TAU * float((index + attempt * 5) % 23) / 23.0 + _rng.randf_range(-0.18, 0.18)
+		var radius := _rng.randf_range(min_radius, max_radius)
+		var candidate := center + Vector2.RIGHT.rotated(angle) * radius
+		if attempt == 0:
+			fallback = candidate
+		if _is_position_clear_of_planets(candidate, clearance):
+			return candidate
+	return _push_position_out_of_planets(fallback, clearance)
+
+
+func _enemy_requires_planet_clearance(enemy: Node, scene: PackedScene) -> bool:
+	if enemy is StaticBody2D:
+		return true
+	if scene == SNIPER_SCENE:
+		return true
+	if enemy.get("stationary") != null and bool(enemy.get("stationary")):
+		return true
+	return false
+
+
+func _is_position_clear_of_planets(position: Vector2, clearance: float) -> bool:
+	for node in get_tree().get_nodes_in_group("planets"):
+		var planet := node as Node2D
+		if planet == null or not is_instance_valid(planet) or planet.is_queued_for_deletion():
+			continue
+		var radius := _node_radius(planet) + clearance
+		if position.distance_squared_to(planet.global_position) < radius * radius:
+			return false
+	return true
+
+
+func _push_position_out_of_planets(position: Vector2, clearance: float) -> Vector2:
+	var adjusted := position
+	for _attempt in range(4):
+		var moved := false
+		for node in get_tree().get_nodes_in_group("planets"):
+			var planet := node as Node2D
+			if planet == null or not is_instance_valid(planet) or planet.is_queued_for_deletion():
+				continue
+			var offset := adjusted - planet.global_position
+			var distance := offset.length()
+			var radius := _node_radius(planet) + clearance
+			if distance >= radius:
+				continue
+			if distance <= 0.001:
+				offset = Vector2.RIGHT.rotated(_rng.randf_range(0.0, TAU))
+			adjusted = planet.global_position + offset.normalized() * radius
+			moved = true
+		if not moved:
+			return adjusted
+	return adjusted
+
+
+func _node_radius(node: Node2D) -> float:
+	var radius_value: Variant = node.get("radius")
+	if radius_value is float or radius_value is int:
+		return float(radius_value) * maxf(node.scale.x, node.scale.y)
+	var collision := node.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		return (collision.shape as CircleShape2D).radius * maxf(node.scale.x, node.scale.y)
+	return 96.0 * maxf(node.scale.x, node.scale.y)
 
 func _complete_wave() -> void:
 	_wave_running = false
@@ -430,7 +601,7 @@ func _choose_boss_scene() -> PackedScene:
 		return _boss_scene_from_path(RunProgress.get_scheduled_boss_scene_path(_wave))
 
 	var boss_number = max(0, int(float(_wave) / float(max(1, boss_every_waves))) - 1)
-	var boss_index = boss_number % 7
+	var boss_index = boss_number % 8
 	if boss_index == 1:
 		return ACCRETION_CORE_SCENE
 	if boss_index == 2:
@@ -443,6 +614,8 @@ func _choose_boss_scene() -> PackedScene:
 		return POLYMORPH_BOSS_SCENE
 	if boss_index == 6:
 		return CENTRIFUGE_MARSHAL_SCENE
+	if boss_index == 7:
+		return EXTRADIMENSIONAL_BREACHER_SCENE
 	return GRAVITY_WARDEN_SCENE
 
 func _boss_scene_from_path(path: String) -> PackedScene:
@@ -459,6 +632,8 @@ func _boss_scene_from_path(path: String) -> PackedScene:
 			return POLYMORPH_BOSS_SCENE
 		"res://Nodes/centrifuge_marshal_boss.tscn":
 			return CENTRIFUGE_MARSHAL_SCENE
+		"res://Nodes/extradimensional_breacher_boss.tscn":
+			return EXTRADIMENSIONAL_BREACHER_SCENE
 		_:
 			return GRAVITY_WARDEN_SCENE
 
@@ -475,6 +650,8 @@ func _boss_display_name(scene: PackedScene) -> String:
 		return "THE POLYMORPH"
 	if scene == CENTRIFUGE_MARSHAL_SCENE:
 		return "CENTRIFUGE MARSHAL"
+	if scene == EXTRADIMENSIONAL_BREACHER_SCENE:
+		return "THE EXTRADIMENSIONAL BREACHER"
 	return "GRAVITY WARDEN"
 
 func _boss_node_prefix(scene: PackedScene) -> String:
@@ -490,6 +667,8 @@ func _boss_node_prefix(scene: PackedScene) -> String:
 		return "Polymorph"
 	if scene == CENTRIFUGE_MARSHAL_SCENE:
 		return "CentrifugeMarshal"
+	if scene == EXTRADIMENSIONAL_BREACHER_SCENE:
+		return "ExtradimensionalBreacher"
 	return "GravityWarden"
 
 func _boss_pressure_index(scene: PackedScene) -> int:
@@ -505,6 +684,8 @@ func _boss_pressure_index(scene: PackedScene) -> int:
 		return 5
 	if scene == CENTRIFUGE_MARSHAL_SCENE:
 		return 6
+	if scene == EXTRADIMENSIONAL_BREACHER_SCENE:
+		return 7
 	return 0
 
 func _boss_health_for_scene(scene: PackedScene) -> float:
@@ -514,6 +695,8 @@ func _boss_health_for_scene(scene: PackedScene) -> float:
 		base_health = 4700.0
 	elif scene == CENTRIFUGE_MARSHAL_SCENE:
 		base_health = 5100.0
+	elif scene == EXTRADIMENSIONAL_BREACHER_SCENE:
+		base_health = 6800.0
 	var wave_pressure := 1.0 + 0.055 * float(maxi(_wave - boss_every_waves, 0))
 	var health := base_health * wave_pressure
 	if RunProgress and RunProgress.boss_rush_mode:

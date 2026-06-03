@@ -175,7 +175,7 @@ anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -210.0
-offset_top = -360.0
+offset_top = -430.0
 offset_right = 210.0
 offset_bottom = -118.0
 grow_horizontal = 2
@@ -195,6 +195,12 @@ layout_mode = 2
 theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 50
 text = "New Run"
+
+[node name="TutorialButton" type="Button" parent="Menu"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
+theme_override_font_sizes/font_size = 50
+text = "Tutorial"
 
 [node name="ContinueButton" type="Button" parent="Menu" unique_id=1112174104]
 layout_mode = 2
@@ -323,6 +329,7 @@ position = Vector2(4927, -3907)
 
 [connection signal="finished" from="AudioStreamPlayer" to="." method="_on_audio_stream_player_finished"]
 [connection signal="pressed" from="Menu/NewRunButton" to="." method="_on_new_run_button_pressed"]
+[connection signal="pressed" from="Menu/TutorialButton" to="." method="_on_tutorial_button_pressed"]
 [connection signal="pressed" from="Menu/ContinueButton" to="." method="_on_continue_button_pressed"]
 [connection signal="pressed" from="Menu/ChallengeButton" to="." method="_on_challenge_button_pressed"]
 [connection signal="pressed" from="Menu/BossRushButton" to="." method="_on_boss_rush_button_pressed"]

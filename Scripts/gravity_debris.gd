@@ -8,14 +8,20 @@ class_name GravityDebris
 @export var color: Color = Color(0.78, 0.32, 1.0, 1.0)
 @export var drift_drag: float = 4.2
 @export var max_drift_speed: float = 420.0
+@export var particle_focus_radius: float = 1650.0
+@export var particle_focus_refresh_interval: float = 0.24
 
-var _age := 0.0
-var _drift_velocity := Vector2.ZERO
-var _fusion_flash := 0.0
-var _fusion_flash_color := Color(0.42, 0.95, 1.0, 1.0)
+var _age: float = 0.0
+var _drift_velocity: Vector2 = Vector2.ZERO
+var _fusion_flash: float = 0.0
+var _fusion_flash_color: Color = Color(0.42, 0.95, 1.0, 1.0)
 var _core: Polygon2D = null
 var _ring: Line2D = null
 var _particles: GPUParticles2D = null
+var _player: Node2D = null
+var _particles_in_focus: bool = false
+var _particle_focus_elapsed: float = 0.0
+var _particle_focus_radius_sq: float = 2722500.0
 
 func _ready() -> void:
 	add_to_group("Objects_With_Gravity")
@@ -25,7 +31,10 @@ func _ready() -> void:
 		RuntimeRegistry.register_node(self, &"Objects_With_Gravity")
 		RuntimeRegistry.register_node(self, &"planets")
 		RuntimeRegistry.register_node(self, &"law_gravity_debris")
+	_particle_focus_radius_sq = particle_focus_radius * particle_focus_radius
+	_cache_player()
 	_build_visuals()
+	_update_particle_focus(true)
 	set_process(true)
 
 
@@ -50,6 +59,10 @@ func _process(delta: float) -> void:
 	_fusion_flash = maxf(_fusion_flash - delta * 3.8, 0.0)
 	var remaining := clampf(1.0 - _age / maxf(lifetime, 0.001), 0.0, 1.0)
 	rotation += delta * 1.5
+	_particle_focus_elapsed += delta
+	if _particle_focus_elapsed >= particle_focus_refresh_interval:
+		_particle_focus_elapsed = 0.0
+		_update_particle_focus(false)
 
 	if _core != null:
 		_core.scale = Vector2.ONE * (lerpf(0.72, 1.12, remaining) + _fusion_flash * 0.18)
@@ -60,7 +73,7 @@ func _process(delta: float) -> void:
 		_ring.width = lerpf(1.0, 3.2, remaining) + _fusion_flash * 2.2
 		_ring.default_color = Color(ring_color.r, ring_color.g, ring_color.b, (0.65 + _fusion_flash * 0.25) * remaining)
 	if _particles != null:
-		_particles.emitting = remaining > 0.12
+		_particles.emitting = _particles_in_focus and remaining > 0.12
 
 	if _age >= lifetime:
 		queue_free()
@@ -102,6 +115,7 @@ func _build_visuals() -> void:
 	_particles.randomness = 0.72
 	_particles.process_material = _make_particle_material()
 	add_child(_particles)
+	_update_particle_focus(true)
 
 func _make_particle_material() -> ParticleProcessMaterial:
 	var material := ParticleProcessMaterial.new()
@@ -135,3 +149,27 @@ func _soft_circle_points(count: int, point_radius: float) -> PackedVector2Array:
 		var wave := sin(angle * 3.0) * 0.08 + cos(angle * 8.0) * 0.04
 		points.append(Vector2(cos(angle), sin(angle)) * point_radius * (1.0 + wave))
 	return points
+
+
+func _cache_player() -> void:
+	if _player != null and is_instance_valid(_player):
+		return
+	var tree: SceneTree = get_tree()
+	if tree == null:
+		return
+	var found: Node = tree.get_first_node_in_group(&"Player")
+	if found == null or not is_instance_valid(found):
+		return
+	if not found is Node2D:
+		return
+	_player = found as Node2D
+
+
+func _update_particle_focus(_force: bool) -> void:
+	if _particles == null or not is_instance_valid(_particles):
+		return
+	_cache_player()
+	_particles_in_focus = false
+	if _player != null and is_instance_valid(_player):
+		_particles_in_focus = global_position.distance_squared_to(_player.global_position) <= _particle_focus_radius_sq
+	_particles.visible = _particles_in_focus

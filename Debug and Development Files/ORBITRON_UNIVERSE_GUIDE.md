@@ -93,6 +93,7 @@ The text should make the player feel that the arena is understandable, even when
 - Do not introduce retired project codenames as player-facing labels.
 - Keep debug and production validation labels clinical: `stress harness`, `runtime registry`, `production simulation`, and `budget report`.
 - Development builds may restore visible telemetry for balance work, but it must remain clinical, toggleable, and removable from launch exports.
+- Player orbit telemetry arcs are development-only diagnostic marks from mastery/trajectory systems. They explain orbit quality, tangent direction, and vector memory for tuning; player-facing builds should keep them disabled by default and rely on HUD readouts/arrows instead.
 
 ## Readability Commitments
 
@@ -100,4 +101,5 @@ The text should make the player feel that the arena is understandable, even when
 - Slingshot copy should reinforce tangent, speed, and distance. The fantasy is controlled momentum, not unexplained particle noise.
 - Resonance and scar language should stay action-first: pull, flow, push, slow, orbit. System names can exist in tooling, but player-facing prompts should describe behavior.
 - Gravity Wave Beam text should communicate field control: the beam bends hostile motion into a visible compression line before it kills.
+- Drag ON text should describe precision control, tactical braking, and recovery routing; Drag OFF text should describe momentum preservation.
 - Barycentric and Frame-Dragging copy should describe enemy motion changing under physics pressure: linked orbit, shared center, dragged spin, and collapsing pursuit.

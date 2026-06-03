@@ -229,6 +229,8 @@ func _on_body_entered(body: Node) -> void:
 	elif (
 		body.is_in_group("planets")
 		or body.is_in_group("obstacles")
+		or body.is_in_group("Projectiles") #Trying this out for now, 
+		#might take it away later.
 	):
 		queue_free()
 

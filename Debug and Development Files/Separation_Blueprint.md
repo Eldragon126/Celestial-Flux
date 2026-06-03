@@ -195,9 +195,15 @@ The current build moves the hook closer to "watchable impossibility" by cutting 
 
 - Slingshot mastery is now the premium moment: rings and audio are reserved for strong great/apex vectors, while routine orbit assists stay quiet and performant.
 - Gravity Wave Beam now visibly edits enemy motion by pulling targets toward the beam line, making field control inspectable in motion.
+- Gravity Wave Beam now also moves/fractures destructible planets, giving the beam visible world-editing results instead of only target drift.
+- Chronal Refraction Beam now sells the time fantasy with capped echo traces, delayed lateral desync impulses, and short temporal echo zones.
+- Drag ON is now the Precision style with braking/tangent control and recovery routing; Drag OFF remains the Momentum style for high-speed preservation.
 - Resonance and scar fields are capped, player-focused, lower-alpha, and shorter-lived so collapse reads as tactical pressure instead of a screen full of identical circles.
 - Player orbit telemetry rings are disabled by default; the HUD keeps the information in compact readouts and arrows.
+- Player bolts are larger/faster with matching predictor constants and sharper speed trails. Baseline bullets ignore player self-gravity; orbiting bullets are intentional Orbital Tether capture behavior.
+- The playable tutorial is available from the title screen for movement, slingshot, bolt, Gravity Wave, and Chronal Beam practice.
 - Death no longer permits postmortem firing or false recovery. It reads as immediate trajectory failure followed by a short collapse watch.
+- Player hits now have a short visible invulnerability window so burst stacks are readable instead of instantly fatal.
 - Boss pressure is no longer flat. Each authored boss receives wave-scaled health, attack cadence, projectile pressure, and contact threat without becoming a generic HP sponge.
 
 ---

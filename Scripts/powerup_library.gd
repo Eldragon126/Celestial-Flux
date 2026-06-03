@@ -15,6 +15,7 @@ const ORBITAL_DEBRIS_SEEDER = preload("res://Scripts/Powerups/orbital_debris_see
 const CHRONAL_REFRACTION_BEAM = preload("res://Scripts/Powerups/chronal_refraction_beam.tres")
 const BARYCENTRIC_TETHER = preload("res://Scripts/Powerups/barycentric_tether.tres")
 const FRAME_DRAGGING_ANCHOR = preload("res://Scripts/Powerups/frame_dragging_anchor.tres")
+const ENERGY_DROPLET_SCENE = preload("res://Nodes/energy_droplet.tscn")
 
 static func get_all_definitions() -> Array[PowerupDefinition]:
 	return [
@@ -54,3 +55,34 @@ static func try_spawn_drop(parent: Node, global_pos: Vector2, chance: float, gua
 	pickup.global_position = global_pos
 	parent.call_deferred("add_child", pickup)
 	return pickup
+
+static func try_spawn_energy_droplets(
+	parent: Node,
+	global_pos: Vector2,
+	count: int,
+	chance: float = 1.0,
+	spread_radius: float = 42.0,
+	restore_per_droplet: float = 8.0
+) -> Array[Node]:
+	var spawned: Array[Node] = []
+	if parent == null:
+		return spawned
+	if count <= 0:
+		return spawned
+	if chance < 1.0 and randf() > chance:
+		return spawned
+
+	var safe_count: int = clampi(count, 1, 8)
+	var safe_spread: float = maxf(spread_radius, 0.0)
+	for i in range(safe_count):
+		var droplet: EnergyDroplet = ENERGY_DROPLET_SCENE.instantiate() as EnergyDroplet
+		if droplet == null:
+			continue
+		var angle: float = TAU * float(i) / float(safe_count) + randf_range(-0.28, 0.28)
+		var distance: float = randf_range(safe_spread * 0.25, safe_spread)
+		var impulse: Vector2 = Vector2(cos(angle), sin(angle)) * randf_range(90.0, 220.0)
+		droplet.configure(restore_per_droplet, impulse)
+		droplet.global_position = global_pos + Vector2(cos(angle), sin(angle)) * distance
+		parent.call_deferred("add_child", droplet)
+		spawned.append(droplet)
+	return spawned

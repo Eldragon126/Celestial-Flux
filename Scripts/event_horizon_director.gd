@@ -43,6 +43,7 @@ const CombatStatusApi := preload("res://Scripts/combat_status.gd")
 @export var screen_warp_enabled: bool = true
 @export var overlay_layer: int = 44
 @export var overlay_fade_rate: float = 7.5
+@export_range(0.0, 0.42, 0.01) var overlay_intensity_cap: float = 0.34
 
 const AUTO_FOCUS_POSITION := Vector2(999999999.0, 999999999.0)
 
@@ -194,7 +195,7 @@ func _start_event_horizon(position: Vector2, event_intensity: float, context: Di
 	_field_elapsed = field_tick_interval
 	_focus_position = position
 	_intensity = clampf(event_intensity, 0.1, 1.0)
-	_target_overlay_intensity = _intensity
+	_target_overlay_intensity = _overlay_intensity(_intensity)
 
 	_activation_data = {
 		"position": _focus_position,
@@ -248,7 +249,7 @@ func _update_active_intensity(delta: float) -> void:
 	var life_ratio := clampf(_timer / maxf(duration, 0.001), 0.0, 1.0)
 	var pulse := 0.82 + 0.18 * sin(Time.get_ticks_msec() / 64.0)
 	_intensity = lerpf(_intensity, clampf(float(_activation_data.get("intensity", 0.7)) * pulse * minf(1.0, life_ratio * 1.8), 0.0, 1.0), clampf(delta * 5.0, 0.0, 1.0))
-	_target_overlay_intensity = _intensity
+	_target_overlay_intensity = _overlay_intensity(_intensity)
 
 	if _player != null and is_instance_valid(_player):
 		_player.set_meta(&"event_horizon_intensity", _intensity)
@@ -589,6 +590,10 @@ func _focus_screen_position() -> Vector2:
 		clampf(screen_position.x / viewport_size.x, 0.0, 1.0),
 		clampf(screen_position.y / viewport_size.y, 0.0, 1.0)
 	)
+
+
+func _overlay_intensity(intensity: float) -> float:
+	return Settings.world_visual_alpha(intensity, overlay_intensity_cap)
 
 
 func _emit_intensity_if_changed() -> void:

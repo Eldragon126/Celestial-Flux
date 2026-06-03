@@ -62,7 +62,7 @@ const ZONE_COLORS = {
 	ZoneType.COMPRESSION: Color(0.22, 0.72, 1.0, 1.0),
 	ZoneType.SLIPSTREAM: Color(0.0, 1.0, 0.78, 1.0),
 	ZoneType.INVERSION: Color(1.0, 0.38, 0.16, 1.0),
-	ZoneType.TEMPORAL_SCAR: Color(0.84, 0.42, 1.0, 1.0),
+	ZoneType.TEMPORAL_SCAR: Color(0.58, 0.66, 1.0, 1.0),
 	ZoneType.HARMONIC_ORBIT: Color(1.0, 0.88, 0.25, 1.0),
 }
 
@@ -74,6 +74,8 @@ const ZONE_COLORS = {
 @export var resonance_detection_radius: float = 400.0
 @export var minimum_resonance_strength: float = 0.5
 @export var maximum_resonance_zones: int = 2
+@export var strongest_local_zone_only: bool = true
+@export_range(0.1, 2.0, 0.05) var local_zone_overlap_scale: float = 0.82
 @export var max_gravity_sources: int = 12
 @export var resonance_decay_rate: float = 2.4
 @export var resonance_buildup_rate: float = 3.0
@@ -106,6 +108,10 @@ const ZONE_COLORS = {
 @export var max_visual_particles_per_zone: int = 24
 @export var visual_ring_segments: int = 72
 @export var resonance_visual_alpha_scale: float = 0.48
+@export var visual_radius_cap: float = 360.0
+@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.055
+@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.24
+@export_range(0.0, 1.0, 0.01) var visual_glyph_alpha_cap: float = 0.2
 @export var maximum_manual_resonance_zones: int = 3
 @export var manual_zone_merge_distance: float = 120.0
 @export var visual_min_intensity: float = 0.26
@@ -384,6 +390,8 @@ func _update_resonance_zones(delta: float) -> void:
 	for zone in _active_resonance_zones:
 		var intensity := float(zone.get("intensity", 0.0))
 		if not bool(zone.get("manual", false)) and not _zone_in_player_focus(zone, effect_player_focus_radius):
+			continue
+		if not _is_strongest_local_zone(zone):
 			continue
 
 		if enable_projectile_acceleration and intensity > 0.3:
@@ -830,6 +838,8 @@ func _should_show_zone_visual(zone: Dictionary) -> bool:
 	var intensity := clampf(float(zone.get("intensity", 0.0)), 0.0, 1.0)
 	if intensity < visual_min_intensity:
 		return false
+	if not _is_strongest_local_zone(zone):
+		return false
 	if bool(zone.get("manual", false)):
 		return _zone_in_player_focus(zone, visual_player_focus_radius * 1.15)
 	return _zone_in_player_focus(zone, visual_player_focus_radius)
@@ -844,6 +854,41 @@ func _zone_in_player_focus(zone: Dictionary, focus_radius: float) -> bool:
 	var radius := _zone_radius(zone)
 	var max_distance := focus_radius + radius
 	return player.global_position.distance_squared_to(center) <= max_distance * max_distance
+
+func _is_strongest_local_zone(zone: Dictionary) -> bool:
+	if not strongest_local_zone_only:
+		return true
+	var zone_id := int(zone.get("id", 0))
+	if zone_id == 0:
+		return false
+	var midpoint: Vector2 = zone.get("midpoint", Vector2.ZERO)
+	var radius := _zone_radius(zone)
+	var score := _zone_strength_score(zone)
+	for other in _active_resonance_zones:
+		var other_id := int(other.get("id", 0))
+		if other_id == zone_id or other_id == 0:
+			continue
+		var other_midpoint: Vector2 = other.get("midpoint", Vector2.ZERO)
+		var other_radius := _zone_radius(other)
+		var local_radius := maxf(minf(radius, other_radius) * local_zone_overlap_scale, manual_zone_merge_distance)
+		if midpoint.distance_squared_to(other_midpoint) > local_radius * local_radius:
+			continue
+		var other_score := _zone_strength_score(other)
+		if other_score > score + 0.001:
+			return false
+		if is_equal_approx(other_score, score) and other_id < zone_id:
+			return false
+	return true
+
+func _zone_strength_score(zone: Dictionary) -> float:
+	var intensity := clampf(float(zone.get("intensity", 0.0)), 0.0, 1.0)
+	var strength := maxf(float(zone.get("combined_strength", intensity)), minimum_resonance_strength)
+	var manual_bias := 1.0
+	if bool(zone.get("manual", false)):
+		var duration := maxf(float(zone.get("duration", 1.0)), 0.001)
+		var remaining := clampf(float(zone.get("remaining", duration)) / duration, 0.0, 1.0)
+		manual_bias = 1.05 + remaining * 0.18
+	return intensity * strength * manual_bias
 
 func _visual_object(visual: Dictionary, key: String) -> Object:
 	var value: Variant = visual.get(key)
@@ -899,8 +944,9 @@ func _update_zone_visual(zone: Dictionary, delta: float) -> void:
 		return
 
 	var center: Vector2 = zone.get("midpoint", Vector2.ZERO)
-	var radius := _zone_radius(zone)
+	var gameplay_radius: float = _zone_radius(zone)
 	var intensity := clampf(float(zone.get("intensity", 0.0)), 0.0, 1.0)
+	var visual_radius: float = _visual_radius(gameplay_radius)
 	var zone_type := _zone_type(zone)
 	var base_color := _zone_type_color(zone_type)
 	var life_alpha := lerpf(0.08, 0.52, intensity) * clampf(resonance_visual_alpha_scale, 0.1, 1.0)
@@ -918,28 +964,28 @@ func _update_zone_visual(zone: Dictionary, delta: float) -> void:
 	root.scale = Vector2.ONE * lerpf(0.96, 1.04, sin(Time.get_ticks_msec() / 180.0) * 0.5 + 0.5)
 
 	if core != null:
-		core.polygon = _soft_circle_points(48, radius * 0.74)
-		core.color = Color(base_color.r, base_color.g, base_color.b, life_alpha * 0.2)
+		core.polygon = _soft_circle_points(40, visual_radius * 0.52)
+		core.color = Color(base_color.r, base_color.g, base_color.b, _visual_alpha(life_alpha * 0.1, visual_fill_alpha_cap))
 	if ring != null:
-		ring.points = _circle_points(maxi(24, visual_ring_segments), radius)
+		ring.points = _circle_points(maxi(24, visual_ring_segments), visual_radius)
 		ring.width = lerpf(1.4, 3.2, intensity)
-		ring.default_color = Color(base_color.r, base_color.g, base_color.b, life_alpha)
+		ring.default_color = Color(base_color.r, base_color.g, base_color.b, _visual_alpha(life_alpha, visual_ring_alpha_cap))
 	if accent != null:
-		accent.points = _circle_points(maxi(18, int(visual_ring_segments / 2)), radius * 0.58)
+		accent.points = _circle_points(maxi(18, int(visual_ring_segments / 2)), visual_radius * 0.58)
 		accent.width = lerpf(0.8, 1.8, intensity)
-		accent.default_color = Color(1.0, 1.0, 1.0, life_alpha * 0.24)
+		accent.default_color = Color(1.0, 1.0, 1.0, _visual_alpha(life_alpha * 0.22, visual_glyph_alpha_cap))
 	if label != null:
 		label.visible = enable_zone_labels and intensity > 0.38
 		label.text = _zone_readable_label(zone_type)
-		label.position = Vector2(-106.0, -radius - 38.0)
+		label.position = Vector2(-106.0, -visual_radius - 38.0)
 		label.size = Vector2(212.0, 26.0)
-		label.modulate = Color(base_color.r, base_color.g, base_color.b, lerpf(0.42, 0.92, intensity))
-	_update_zone_glyphs(glyphs, zone_type, radius, intensity, base_color)
+		label.modulate = Color(base_color.r, base_color.g, base_color.b, _visual_alpha(lerpf(0.42, 0.92, intensity), 0.72))
+	_update_zone_glyphs(glyphs, zone_type, visual_radius, intensity, base_color)
 	if particles != null:
 		particles.amount = maxi(0, max_visual_particles_per_zone)
 		particles.emitting = intensity > 0.24 and resonance_visual_quality == VisualQuality.HIGH
 		if material != null:
-			material.emission_sphere_radius = radius * 0.86
+			material.emission_sphere_radius = visual_radius * 0.72
 	_track_player_zone_entry(zone)
 
 func _track_player_zone_entry(zone: Dictionary) -> void:
@@ -958,7 +1004,7 @@ func _track_player_zone_entry(zone: Dictionary) -> void:
 	var was_inside := _player_inside_zone_ids.has(zone_id)
 	if inside and not was_inside:
 		_player_inside_zone_ids[zone_id] = true
-		if player.has_method("get_resonance_zone_at_position"):
+		if has_method("get_resonance_zone_at_position"):
 			var zone_data: Variant = call("get_resonance_zone_at_position", player.global_position)
 			if typeof(zone_data) == TYPE_DICTIONARY and not zone_data.is_empty():
 				resonance_zone_entered.emit(zone_data)
@@ -991,7 +1037,7 @@ func _make_zone_visual(zone_id: int, zone_type: int) -> Dictionary:
 
 func _update_zone_glyphs(glyphs: Array, zone_type: int, radius: float, intensity: float, base_color: Color) -> void:
 	var visible := enable_zone_glyphs and intensity > 0.16
-	var alpha := lerpf(0.14, 0.62, intensity) * clampf(resonance_visual_alpha_scale, 0.1, 1.0)
+	var alpha: float = _visual_alpha(lerpf(0.14, 0.62, intensity) * clampf(resonance_visual_alpha_scale, 0.1, 1.0), visual_glyph_alpha_cap)
 
 	for i in range(glyphs.size()):
 		var glyph_value: Variant = glyphs[i]
@@ -1040,7 +1086,7 @@ func _update_zone_glyphs(glyphs: Array, zone_type: int, radius: float, intensity
 		glyph.default_color = Color(base_color.r, base_color.g, base_color.b, alpha)
 
 func _make_zone_particle_material(zone_type: int) -> ParticleProcessMaterial:
-	var base := _zone_type_color(zone_type)
+	var base: Color = _zone_type_color(zone_type)
 	var gradient := Gradient.new()
 	gradient.set_color(0, Color(base.r, base.g, base.b, 0.78))
 	gradient.set_color(1, Color(base.r, base.g, base.b, 0.0))
@@ -1173,26 +1219,44 @@ func _zone_type_color(zone_type: int) -> Color:
 func _zone_radius(zone: Dictionary) -> float:
 	return maxf(float(zone.get("radius", resonance_detection_radius * 0.5)), 40.0)
 
+
+func _visual_radius(radius: float) -> float:
+	if Settings != null and Settings.has_method("world_effect_radius"):
+		return Settings.world_effect_radius(radius, visual_radius_cap)
+	return clampf(radius, 0.0, maxf(visual_radius_cap, 1.0))
+
+
+func _visual_alpha(alpha: float, hard_cap: float) -> float:
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		return Settings.world_visual_alpha(alpha, hard_cap)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return minf(Settings.flash_alpha(alpha), hard_cap)
+	return minf(alpha, hard_cap)
+
 func get_active_resonance_zones() -> Array[Dictionary]:
 	return _active_resonance_zones.duplicate()
 
 func get_resonance_at_position(position: Vector2) -> float:
-	var total_intensity := 0.0
+	var best_intensity := 0.0
 
 	for zone in _active_resonance_zones:
+		if not _is_strongest_local_zone(zone):
+			continue
 		var midpoint: Vector2 = zone["midpoint"]
 		var influence_radius := _zone_radius(zone)
 		var distance := position.distance_to(midpoint)
 		if distance < influence_radius:
-			total_intensity += float(zone["intensity"]) * (1.0 - distance / influence_radius)
+			best_intensity = maxf(best_intensity, float(zone["intensity"]) * (1.0 - distance / influence_radius))
 
-	return total_intensity
+	return best_intensity
 
 func get_resonance_zone_at_position(position: Vector2) -> Dictionary:
 	var best_zone := {}
 	var best_intensity := 0.0
 
 	for zone in _active_resonance_zones:
+		if not _is_strongest_local_zone(zone):
+			continue
 		var midpoint: Vector2 = zone["midpoint"]
 		var influence_radius := _zone_radius(zone)
 		var distance := position.distance_to(midpoint)

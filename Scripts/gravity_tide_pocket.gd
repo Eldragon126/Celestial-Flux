@@ -42,6 +42,10 @@ const MODE_RULE_NAMES = {
 @export var particle_cap: int = 150
 @export var enable_particles: bool = true
 @export var debug_visual_enabled: bool = true
+@export var visual_radius_cap: float = 360.0
+@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.055
+@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.22
+@export_range(0.0, 1.0, 0.01) var visual_glyph_alpha_cap: float = 0.22
 @export_group("Temporal")
 @export var temporal_slow_multiplier: float = 0.48
 @export var temporal_slow_duration: float = 0.35
@@ -146,19 +150,20 @@ func _build_collision() -> void:
 	add_child(_collision)
 
 func _build_visuals() -> void:
+	var visual_radius: float = _visual_radius()
 	if debug_visual_enabled:
 		_ring = Polygon2D.new()
 		_ring.name = "TidePocketRing"
 		_ring.z_index = -2
-		_ring.polygon = _ring_points(54, radius * 0.92, radius)
-		_ring.color = _mode_color(0.25)
+		_ring.polygon = _ring_points(54, visual_radius * 0.92, visual_radius)
+		_ring.color = _capped_mode_color(0.16, visual_ring_alpha_cap)
 		add_child(_ring)
 
 		_core = Polygon2D.new()
 		_core.name = "TidePocketCore"
 		_core.z_index = -3
-		_core.polygon = _soft_circle_points(48, radius * 0.72)
-		_core.color = _mode_color(0.1)
+		_core.polygon = _soft_circle_points(40, visual_radius * 0.48)
+		_core.color = _capped_mode_color(0.04, visual_fill_alpha_cap)
 		add_child(_core)
 
 		for i in range(8):
@@ -193,6 +198,7 @@ func _update_visuals(delta: float) -> void:
 	var telegraph_ratio := clampf(_age / maxf(telegraph_time, 0.001), 0.0, 1.0)
 	var life_remaining := clampf((telegraph_time + lifetime - _age) / maxf(lifetime, 0.001), 0.0, 1.0)
 	var alpha_scale := telegraph_ratio * minf(1.0, life_remaining * 2.0)
+	var visual_radius: float = _visual_radius()
 
 	if _ring != null:
 		var spin := 0.75
@@ -201,19 +207,19 @@ func _update_visuals(delta: float) -> void:
 		elif mode == TideMode.INVERSION:
 			spin = -1.1
 		_ring.rotation += delta * spin
-		_ring.color = _mode_color(lerpf(0.08, 0.36, alpha_scale))
+		_ring.color = _capped_mode_color(lerpf(0.08, 0.36, alpha_scale), visual_ring_alpha_cap)
 		_ring.scale = Vector2.ONE * lerpf(1.12, 1.0, telegraph_ratio)
 
 	if _core != null:
 		_core.rotation -= delta * 0.38
-		_core.color = _mode_color(lerpf(0.04, 0.16, alpha_scale))
+		_core.color = _capped_mode_color(lerpf(0.04, 0.16, alpha_scale), visual_fill_alpha_cap)
 
 	if _label != null:
 		_label.visible = alpha_scale > 0.12
 		_label.text = "%s  %s" % [_mode_display_name().to_upper(), _mode_rule_name()]
-		_label.position = Vector2(-90.0, -radius - 34.0)
+		_label.position = Vector2(-90.0, -visual_radius - 34.0)
 		_label.size = Vector2(180.0, 26.0)
-		_label.modulate = _mode_color(lerpf(0.46, 0.94, alpha_scale))
+		_label.modulate = _capped_mode_color(lerpf(0.46, 0.94, alpha_scale), 0.72)
 
 	_update_rule_glyphs(alpha_scale)
 
@@ -351,7 +357,7 @@ func _get_time_dilation_manager() -> Node:
 
 func _make_particle_material() -> ParticleProcessMaterial:
 	var gradient := Gradient.new()
-	var base := _mode_color(0.72)
+	var base: Color = _capped_mode_color(0.72, visual_ring_alpha_cap)
 	gradient.set_color(0, base)
 	gradient.set_color(1, Color(base.r, base.g, base.b, 0.0))
 
@@ -361,7 +367,7 @@ func _make_particle_material() -> ParticleProcessMaterial:
 	var material := ParticleProcessMaterial.new()
 	material.particle_flag_disable_z = true
 	material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-	material.emission_sphere_radius = radius * 0.85
+	material.emission_sphere_radius = _visual_radius() * 0.72
 	material.spread = 180.0
 	material.initial_velocity_min = 8.0
 	material.initial_velocity_max = 58.0
@@ -386,6 +392,13 @@ func _mode_color(alpha: float) -> Color:
 		return Color(0.72, 0.38, 1.0, alpha)
 	return Color(0.28, 0.72, 1.0, alpha)
 
+
+func _capped_mode_color(alpha: float, hard_cap: float) -> Color:
+	var base: Color = _mode_color(_visual_alpha(alpha, hard_cap))
+	if Settings != null and Settings.has_method("apply_readability_color"):
+		return Settings.apply_readability_color(base)
+	return base
+
 func _mode_display_name() -> String:
 	return String(MODE_DISPLAY_NAMES.get(mode, "Compression"))
 
@@ -394,7 +407,8 @@ func _mode_rule_name() -> String:
 
 func _update_rule_glyphs(alpha_scale: float) -> void:
 	var visible := debug_visual_enabled and alpha_scale > 0.1
-	var color := _mode_color(lerpf(0.16, 0.78, alpha_scale))
+	var color: Color = _capped_mode_color(lerpf(0.16, 0.78, alpha_scale), visual_glyph_alpha_cap)
+	var visual_radius: float = _visual_radius()
 
 	for i in range(_glyphs.size()):
 		var glyph := _glyphs[i]
@@ -408,8 +422,8 @@ func _update_rule_glyphs(alpha_scale: float) -> void:
 		var angle := TAU * float(i) / float(maxi(_glyphs.size(), 1))
 		var radial := Vector2(cos(angle), sin(angle))
 		var tangent := radial.orthogonal()
-		var inner := radius * 0.36
-		var outer := radius * 0.78
+		var inner := visual_radius * 0.36
+		var outer := visual_radius * 0.78
 		var points := PackedVector2Array()
 
 		if mode == TideMode.COMPRESSION:
@@ -419,17 +433,31 @@ func _update_rule_glyphs(alpha_scale: float) -> void:
 			points.append(radial * inner)
 			points.append(radial * outer)
 		elif mode == TideMode.SLIPSTREAM:
-			var center := radial * radius * 0.62
-			points.append(center - tangent * radius * 0.18)
-			points.append(center + tangent * radius * 0.18)
+			var center := radial * visual_radius * 0.62
+			points.append(center - tangent * visual_radius * 0.18)
+			points.append(center + tangent * visual_radius * 0.18)
 		else:
-			var center := radial * radius * 0.52
-			points.append(center - tangent * radius * 0.12)
-			points.append(center + tangent * radius * 0.12)
+			var center := radial * visual_radius * 0.52
+			points.append(center - tangent * visual_radius * 0.12)
+			points.append(center + tangent * visual_radius * 0.12)
 
 		glyph.points = points
 		glyph.width = lerpf(1.2, 3.2, alpha_scale)
 		glyph.default_color = color
+
+
+func _visual_radius() -> float:
+	if Settings != null and Settings.has_method("world_effect_radius"):
+		return Settings.world_effect_radius(radius, visual_radius_cap)
+	return clampf(radius, 0.0, maxf(visual_radius_cap, 1.0))
+
+
+func _visual_alpha(alpha: float, hard_cap: float) -> float:
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		return Settings.world_visual_alpha(alpha, hard_cap)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return minf(Settings.flash_alpha(alpha), hard_cap)
+	return minf(alpha, hard_cap)
 
 func _ring_points(count: int, inner_radius: float, outer_radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()

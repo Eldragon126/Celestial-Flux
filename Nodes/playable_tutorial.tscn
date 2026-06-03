@@ -1,0 +1,90 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://Scripts/playable_tutorial_director.gd" id="1_tutorial"]
+[ext_resource type="PackedScene" path="res://Nodes/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://Nodes/planet_1.tscn" id="3_planet"]
+[ext_resource type="PackedScene" path="res://Nodes/base_enemy.tscn" id="4_enemy"]
+[ext_resource type="PackedScene" path="res://Nodes/weapon_system.tscn" id="5_weapon"]
+[ext_resource type="PackedScene" path="res://Nodes/gravity_resonance_manager.tscn" id="6_resonance"]
+[ext_resource type="PackedScene" path="res://Nodes/gravity_scar_manager.tscn" id="7_scar"]
+[ext_resource type="Script" path="res://Scripts/time_dilation_manager.gd" id="8_time"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.015, 0.03, 0.045, 0.78)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.9, 1, 0.32)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="PlayableTutorial" type="Node2D"]
+script = ExtResource("1_tutorial")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(0, 0)
+
+[node name="WeaponSystem" parent="Player" instance=ExtResource("5_weapon")]
+
+[node name="TutorialPlanetA" parent="." instance=ExtResource("3_planet")]
+position = Vector2(420, -60)
+
+[node name="TutorialPlanetB" parent="." instance=ExtResource("3_planet")]
+position = Vector2(-760, 420)
+
+[node name="TutorialPlanetC" parent="." instance=ExtResource("3_planet")]
+position = Vector2(1280, 680)
+
+[node name="TutorialTargetA" parent="." groups=["tutorial_target", "enemies"] instance=ExtResource("4_enemy")]
+position = Vector2(820, -360)
+
+[node name="TutorialTargetB" parent="." groups=["tutorial_target", "enemies"] instance=ExtResource("4_enemy")]
+position = Vector2(-980, -520)
+
+[node name="GravityResonanceManager" parent="." instance=ExtResource("6_resonance")]
+maximum_resonance_zones = 2
+maximum_manual_resonance_zones = 2
+
+[node name="GravityScarManager" parent="." instance=ExtResource("7_scar")]
+max_active_scars = 3
+
+[node name="TimeDilationManager" type="Node" parent="."]
+process_mode = 3
+script = ExtResource("8_time")
+use_global_time_scale = false
+
+[node name="TutorialCanvas" type="CanvasLayer" parent="."]
+layer = 64
+
+[node name="Panel" type="PanelContainer" parent="TutorialCanvas"]
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 520.0
+offset_bottom = 116.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Margin" type="MarginContainer" parent="TutorialCanvas/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="TutorialCanvas/Panel/Margin"]
+layout_mode = 2
+
+[node name="ObjectiveLabel" type="Label" parent="TutorialCanvas/Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 1, 0.92, 1)
+theme_override_font_sizes/font_size = 18
+text = "THRUST INTO THE WELL"
+
+[node name="DetailLabel" type="Label" parent="TutorialCanvas/Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.94, 1, 0.78)
+theme_override_font_sizes/font_size = 14
+text = "Build speed before the first curve."
+autowrap_mode = 2

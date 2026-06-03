@@ -6,7 +6,7 @@ class_name ProjectileAimPredictor
 # ============================================================
 @export var prediction_steps: int = 140
 @export var substeps: int = 3
-@export var line_width: float = 2.2
+@export var line_width: float = 3.0
 @export var ghost_count: int = 4
 @export var ghost_amplitude: float = 18.0
 @export var ghost_frequency: float = 2.2
@@ -19,19 +19,20 @@ class_name ProjectileAimPredictor
 # ============================================================
 # PROJECTILE SETTINGS
 # ============================================================
-@export var projectile_speed: float = 850.0
+@export var projectile_speed: float = 1080.0
 @export var gravity_constant: float = 200.0
 @export var min_grav_dist: float = 50.0
 @export var gravity_radius: float = 2000.0
 @export var max_gravity_sources: int = 4
 @export var spawn_offset: float = 70.0
 @export var projectile_mass: float = 0.25
+@export var gravity_source_refresh_interval: float = 0.08
 
 @export var friction: float = 0.5
 @export var bounce: float = 0.5
-@export var solver_correction: float = 0.995
+@export var solver_correction: float = 1.0
 @export var stop_on_planet_hit: bool = true
-@export var collision_radius: float = 55.0
+@export var collision_radius: float = 68.5
 
 # ============================================================
 # INTERNAL
@@ -41,6 +42,7 @@ var _points: Array[Vector2] = []
 var _gravity_sources: Array[Node2D] = []
 var _dt: float
 var _time := 0.0
+var _gravity_refresh_elapsed: float = 999.0
 
 func _ready() -> void:
 	top_level = true
@@ -56,18 +58,32 @@ func _physics_process(delta: float) -> void:
 	var unscaled_delta = delta / maxf(Engine.time_scale, 0.001)
 	_time += unscaled_delta
 	
-	_update_gravity_sources()
+	_gravity_refresh_elapsed += unscaled_delta
+	if _gravity_refresh_elapsed >= maxf(gravity_source_refresh_interval, 0.02):
+		_gravity_refresh_elapsed = 0.0
+		_update_gravity_sources()
 	_simulate()
 	queue_redraw()   # Always try to redraw
 
 
 func _update_gravity_sources() -> void:
 	_gravity_sources.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_nearest_gravity_sources(
+			_player.global_position,
+			_gravity_sources,
+			max_gravity_sources,
+			gravity_radius,
+			_player
+		)
+		_filter_ignored_sources()
+		return
+
 	var seen := {}
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for n in get_tree().get_nodes_in_group(group_name):
 			var node := n as Node2D
-			if node == null or node == _player or not is_instance_valid(node):
+			if node == null or not is_instance_valid(node) or _should_ignore_source(node):
 				continue
 			var id := node.get_instance_id()
 			if seen.has(id):
@@ -79,6 +95,23 @@ func _update_gravity_sources() -> void:
 	)
 	if max_gravity_sources > 0 and _gravity_sources.size() > max_gravity_sources:
 		_gravity_sources.resize(max_gravity_sources)
+
+
+func _filter_ignored_sources() -> void:
+	for index in range(_gravity_sources.size() - 1, -1, -1):
+		var source := _gravity_sources[index]
+		if source == null or not is_instance_valid(source) or _should_ignore_source(source):
+			_gravity_sources.remove_at(index)
+
+
+func _should_ignore_source(source: Node2D) -> bool:
+	if source == null or not is_instance_valid(source) or source.is_queued_for_deletion():
+		return true
+	if source == _player or source.is_in_group("Player") or source.is_in_group("player_projectiles"):
+		return true
+	if source.is_ancestor_of(_player):
+		return true
+	return false
 
 
 func _simulate() -> void:
@@ -182,4 +215,4 @@ func _draw() -> void:
 		
 		draw_line(a, b, Color(col.r, col.g, col.b, (1.0 - t) * col.a), line_width)
 
-	draw_circle(to_local(_points[0]), 4.0, Color.WHITE)
+	draw_circle(to_local(_points[0]), 8.5, Color(0.42, 1.0, 0.92, 0.72))

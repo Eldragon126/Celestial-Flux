@@ -157,6 +157,7 @@ metadata/_custom_type_script = "uid://cgo7omjjvv108"
 
 [node name="EnergyComponent" type="Node" parent="." unique_id=51219610]
 script = ExtResource("5_8pukx")
+max_energy = 100000000.0
 metadata/_custom_type_script = "uid://dpsx3wfpdu82q"
 
 [node name="BulletBlastSoundEffect" type="AudioStreamPlayer" parent="." unique_id=1794398086]
@@ -188,7 +189,9 @@ script = ExtResource("9_2hphp")
 prediction_color = Color(0, 0.8509804, 1, 0.46666667)
 danger_color = Color(1, 0.34901962, 0.101960786, 0.5254902)
 ghost_color = Color(0, 0.6, 1, 0.21568628)
-solver_correction = 0.9
+projectile_speed = 1080.0
+solver_correction = 1.0
+collision_radius = 68.5
 metadata/_custom_type_script = "uid://8e10xg8c2op6"
 
 [connection signal="timeout" from="Dash" to="." method="_on_dash_timeout"]
