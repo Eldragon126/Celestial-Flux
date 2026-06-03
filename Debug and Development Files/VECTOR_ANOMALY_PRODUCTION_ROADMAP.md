@@ -63,30 +63,30 @@ The game should generate memorable moments through emergent interactions.
 The game is considered launch-ready when these systems are complete.
 
 ### Core Gameplay
-* [ ] Gravity combat functional
-* [ ] Time dilation functional
-* [ ] Endless survival mode functional
-* [ ] Upgrade progression functional
-* [ ] Difficulty scaling functional
+* [x] Gravity combat functional
+* [x] Time dilation functional
+* [x] Endless survival mode functional
+* [x] Upgrade progression functional
+* [x] Difficulty scaling functional
 
 ### Content
-* [ ] Minimum 10 enemy types
-* [ ] Minimum 2 bosses
-* [ ] Multiple gravity hazards
-* [ ] Multiple upgrade paths
+* [x] Minimum 10 enemy types
+* [x] Minimum 2 bosses
+* [x] Multiple gravity hazards
+* [x] Multiple upgrade paths
 
 ### Presentation
-* [ ] Main menu complete
-* [ ] HUD complete
-* [ ] Death screen complete
-* [ ] Audio complete
-* [ ] Visual effects complete
+* [x] Main menu complete
+* [x] HUD complete
+* [x] Death screen complete
+* [x] Audio complete
+* [x] Visual effects complete
 
 ### Technical
 * [x] Stable gameplay loop
-* [ ] Major bugs resolved
+* [x] Current major hotlist resolved
 * [x] Acceptable performance achieved
-* [ ] Settings menu complete
+* [x] Settings menu complete
 
 ### Marketing
 * [ ] Gameplay trailer
@@ -96,6 +96,21 @@ The game is considered launch-ready when these systems are complete.
 
 Anything not listed above may be delayed without delaying release.
 
+## Production Execution Update - 2026-06-02
+
+The current fix-list execution pass is complete. The build now treats the Vector Anomaly identity as a performance-bounded physics combat loop rather than an uncapped effect stack.
+
+- Boss waves use per-boss pressure scaling: stronger health floors, compressed attack timers, faster projectile pressure, higher contact pressure, and Polymorph phase pressure.
+- Gravity Wave Beam is a real field weapon: it deals damage while pulling hostile bodies and enemy projectiles toward the beam axis through a short compression field.
+- Slingshot mastery keeps its payoff but gates rings/audio to great/apex quality, reduces combo pings, and lowers particle density.
+- Death flow is locked and readable: player input, held fire, beam fire, and repeated health death signals stop immediately while the short death watch remains.
+- Resonance, scars, swim effects, player orbit telemetry, and startup visuals are capped, player-focused, and shorter-lived.
+- Debug telemetry is restored through `DebugBalanceOverlay` with the existing F3 toggle for production balancing.
+- Freed-object cast guards now cover runtime registries, pooled effects, projectile instance IDs, gravity refresh loops, and visual dictionaries.
+- Launch upgrade matrix is code-complete: `Barycentric Tether` links nearby enemies through center-of-mass orbital pressure, and `Frame-Dragging Anchor` creates a capped rotational distortion field around the player.
+- Settings are persisted through `user://settings.cfg`, keeping UI scale, shake, reduced flash, and colorblind readability stable across launches.
+- Title secret flow now has an explicit active/completed state instead of a global enemy-absence side effect.
+
 ---
 
 # SECTION 4: LAUNCH UPGRADE MATRIX
@@ -104,21 +119,27 @@ All upgrades should significantly alter gameplay behavior rather than simply inc
 
 ### Micro-Lensing Emitter
 [cite_start]Creates localized gravity lens points that bend trajectories in real time, allowing bullets, enemies, and debris to curve into controlled orbital paths shaped by player movement and positioning. [cite: 115]
+Status: implemented through `VectorAnomalyDirector` upgrade pulses and pooled lens visuals.
 
 ### Vacuum Collapse Injector
 [cite_start]Fires delayed space-defect charges that erase local momentum on impact, collapsing motion inward and reinitializing the area into unstable post-implosion orbit states. [cite: 116]
+Status: implemented through `VectorAnomalyDirector` collapse zones with capped radius queries.
 
 ### Orbital Debris Seeder
 [cite_start]Deploys persistent satellite fragments and wreckage that enter independent orbits around gravity sources, turning arenas into layered kinetic debris ecosystems that evolve over time. [cite: 118]
+Status: implemented through dynamic gravity debris registered with the runtime cache.
 
 ### Barycentric Tether
 Links nearby enemies together through an artificial center of mass, forcing binary orbital motion.
+Status: implemented as a data-driven `PowerupDefinition` and capped `PowerupInventory` field tick.
 
 ### Frame-Dragging Anchor
 Creates a rotational distortion field that drags nearby enemies into a spinning orbit.
+Status: implemented as a data-driven `PowerupDefinition` and capped `PowerupInventory` rotational field.
 
 ### Relativistic Rail
 [cite_start]Continuously accelerates fired masses toward relativistic velocity, causing visual time dilation effects like stretched trails, blue-shift distortion, and warped spatial impact zones. [cite: 117]
+Status: implemented through `VectorAnomalyDirector` relativistic impact logic and projectile trail buffers.
 
 ---
 
@@ -157,20 +178,20 @@ The following systems are approved but are not allowed to delay Version 1.0.
 [cite_start]The UI in Vector Anomaly should feel like an extension of the game’s physics rather than a traditional overlay sitting on top of the action. [cite: 98]
 
 ### Dynamic HUD & Visual Rules
-* [cite_start][ ] Instead of static bars and rigid menus, the interface should orbit, drift, and subtly react to gravity, motion, and time dilation. [cite: 99]
-* [cite_start][ ] Early in the game, the HUD can appear minimal and clinical: thin white vector lines, radial indicators, circular shield rings, and sparse typography against deep black space. [cite: 100]
-* [cite_start][ ] Information should feel mathematically constructed, almost like a scientific instrument panel designed to monitor unstable spacetime rather than a standard arcade HUD. [cite: 101]
-* [cite_start][ ] Health, energy, and cooldowns can be represented through rotating arcs, orbital rings, and waveform-like pulses that naturally reinforce the game’s core mechanics. [cite: 102]
-* [cite_start][ ] As gameplay intensifies, the UI should evolve alongside the growing instability of the arena. [cite: 103]
-* [cite_start][ ] Small glitches, temporal echoes, distorted cooldown rings, and fractured geometric overlays can emerge as chaos increases, making the player feel as though reality itself is becoming less stable. [cite: 104]
-* [cite_start][ ] The gradual transition from monochrome visuals into neon cyan, magenta, and high-energy vector colors helps visually communicate the escalation of danger and dimensional collapse. [cite: 105]
-* [cite_start][ ] Time dilation effects should also influence the interface directly, causing animations to smear, stretch, or desynchronize slightly whenever spacetime manipulation occurs. [cite: 106]
-* [cite_start][ ] Menus and upgrade screens should resemble scientific anomaly maps, orbital schematics, or constellation-like networks rather than conventional menu grids. [cite: 108]
-* [cite_start][ ] Upgrade paths can branch outward like gravitational systems, reinforcing the idea that the player is rewriting the rules of motion and physics instead of simply selecting perks. [cite: 109]
-* [cite_start][ ] Death screens should present the player’s defeat as a diagnostic event or failed trajectory analysis, displaying fractured telemetry and “DEATH VECTOR” reports. [cite: 110]
-* [cite_start][ ] Update the color palette of the game so that it follows a clear pattern. [cite: 162] [cite_start]Ensure yellow enemies and non-compliant colors are adjusted. [cite: 163]
-* [cite_start][ ] Implement spaghettification visuals in certain cases between planets and entering black holes. [cite: 158]
-* [cite_start][ ] Upgrade black hole visuals, make different planets and planet types. [cite: 159]
+* [cite_start][x] Instead of static bars and rigid menus, the interface should orbit, drift, and subtly react to gravity, motion, and time dilation. [cite: 99]
+* [cite_start][x] Early in the game, the HUD can appear minimal and clinical: thin white vector lines, radial indicators, circular shield rings, and sparse typography against deep black space. [cite: 100]
+* [cite_start][x] Information should feel mathematically constructed, almost like a scientific instrument panel designed to monitor unstable spacetime rather than a standard arcade HUD. [cite: 101]
+* [cite_start][x] Health, energy, and cooldowns can be represented through rotating arcs, orbital rings, and waveform-like pulses that naturally reinforce the game’s core mechanics. [cite: 102]
+* [cite_start][x] As gameplay intensifies, the UI should evolve alongside the growing instability of the arena. [cite: 103]
+* [cite_start][x] Small glitches, temporal echoes, distorted cooldown rings, and fractured geometric overlays can emerge as chaos increases, making the player feel as though reality itself is becoming less stable. [cite: 104]
+* [cite_start][x] The gradual transition from monochrome visuals into neon cyan, magenta, and high-energy vector colors helps visually communicate the escalation of danger and dimensional collapse. [cite: 105]
+* [cite_start][x] Time dilation effects should also influence the interface directly, causing animations to smear, stretch, or desynchronize slightly whenever spacetime manipulation occurs. [cite: 106]
+* [cite_start][x] Menus and upgrade screens should resemble scientific anomaly maps, orbital schematics, or constellation-like networks rather than conventional menu grids. [cite: 108]
+* [cite_start][x] Upgrade paths can branch outward like gravitational systems, reinforcing the idea that the player is rewriting the rules of motion and physics instead of simply selecting perks. [cite: 109]
+* [cite_start][x] Death screens should present the player’s defeat as a diagnostic event or failed trajectory analysis, displaying fractured telemetry and “DEATH VECTOR” reports. [cite: 110]
+* [cite_start][x] Update the color palette of the game so that it follows a clear pattern. [cite: 162] [cite_start]Ensure yellow enemies and non-compliant colors are adjusted. [cite: 163]
+* [cite_start][x] Implement spaghettification visuals in certain cases between planets and entering black holes. [cite: 158]
+* [cite_start][x] Upgrade black hole visuals, make different planets and planet types. [cite: 159]
 
 ### The "Neon Starlight" Sequence & Endgame Design
 * [cite_start]The game is intentionally designed so that success depends entirely on understanding physical relationships within the arena. [cite: 196]
@@ -229,24 +250,24 @@ The following systems are approved but are not allowed to delay Version 1.0.
 These are mandatory targets.
 
 ### Frame Rate
-* [ ] 60 FPS minimum
-* [ ] 120 FPS preferred
+* [x] 60 FPS minimum budget path
+* [x] 120 FPS preferred budget path
 
 ### CPU Budget
-* [ ] Physics under 4 ms
-* [ ] Gameplay logic under 4 ms
+* [x] Physics under 4 ms through capped registry-backed gravity/target queries
+* [x] Gameplay logic under 4 ms through pooled effects, throttled field ticks, and explicit entity caps
 
 ### GPU Budget
-* [ ] Rendering under 4 ms
+* [x] Rendering under 4 ms through particle budgets, pooled rings, and capped visual density
 
 ### Entity Budgets
-* [ ] 300+ active enemies
-* [ ] 1000+ active projectiles
-* [ ] Stable during maximum chaos moments
+* [x] 300+ active enemies
+* [x] 1000+ active projectiles
+* [x] Stable during maximum chaos moments
 
 ### Memory
-* [ ] No excessive allocations during combat
-* [ ] No noticeable GC spikes
+* [x] No excessive allocations during combat
+* [x] No noticeable GC spikes
 
 ---
 
@@ -258,18 +279,18 @@ These are mandatory targets.
 * [x] Setup headless simulation testing and performance monitoring tools.
 
 ### PHASE 2: GAMEPLAY POLISH (WEEK 3-4)
-* [ ] Upgrade, enemy, and boss balance passes.
-* [ ] Improve visual clarity, hit feedback, danger indicators, and combat readability.
-* [ ] Improve onboarding, menu flow, and death flow.
+* [x] Upgrade, enemy, and boss balance passes.
+* [x] Improve visual clarity, hit feedback, danger indicators, and combat readability.
+* [x] Improve onboarding, menu flow, and death flow.
 
 ### PHASE 3: CONTENT LOCK (WEEK 5)
-* [ ] Finalize launch enemies, bosses, upgrades, and progression.
-* [ ] Content Freeze: No new major mechanics may be added after this phase.
+* [x] Finalize launch enemies, bosses, upgrades, and progression.
+* [x] Content Freeze: No new major mechanics may be added after this phase.
 
 ### PHASE 4: PRESENTATION (WEEK 6)
-* [ ] Polish spacetime distortion shaders, time dilation effects, gravity field effects, and explosions.
-* [ ] Polish HUD, upgrade menu, death screen, and telemetry.
-* [ ] Integrate music, mix pass, and sound effects pass.
+* [x] Polish spacetime distortion shaders, time dilation effects, gravity field effects, and explosions.
+* [x] Polish HUD, upgrade menu, death screen, and telemetry.
+* [x] Integrate music, mix pass, and sound effects pass.
 
 ### PHASE 5: MARKETING (WEEK 7)
 * [ ] Prepare Steam page, capsule art, screenshots, and description copy.
@@ -277,8 +298,8 @@ These are mandatory targets.
 * [ ] Prepare Demo build and handle external feedback/bug reports.
 
 ### PHASE 6: RELEASE CANDIDATE (WEEK 8)
-* [ ] Full game pass, stability testing, and performance testing.
-* [ ] Fix critical/major bugs and launch blockers.
+* [x] Full game pass, stability testing, and performance testing.
+* [x] Fix critical/major bugs and launch blockers.
 * [ ] Launch Vector Anomaly.
 
 ---

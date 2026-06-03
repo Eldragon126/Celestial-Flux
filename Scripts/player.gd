@@ -54,6 +54,9 @@ signal death_lesson_generated(lesson: String)
 @export_group("Shooting")
 @export var projectile_hold_fire_interval: float = 0.18
 
+@export_group("Death")
+@export var death_watch_duration: float = 0.82
+
 # ========================
 # == STATE VARIABLES ==
 # ========================
@@ -151,6 +154,10 @@ func _on_pause_menu_state_changed(blocked: bool) -> void:
 # ========================
 
 func _physics_process(delta: float):
+	if _death_in_progress:
+		velocity = velocity.move_toward(Vector2.ZERO, 2400.0 * delta)
+		return
+
 	# 1. ALWAYS process inputs first so state updates map cleanly to forces
 	handle_input()
 	
@@ -521,6 +528,9 @@ func _on_dash_timeout():
 # ========================
 
 func shoot():
+	if _death_in_progress:
+		return
+
 	var weapon_system := get_node_or_null("WeaponSystem")
 	if weapon_system != null and weapon_system.has_method("try_primary_fire"):
 		if bool(weapon_system.call("try_primary_fire")):
@@ -565,6 +575,9 @@ func shoot():
 # ========================
 
 func handle_input():
+	if _death_in_progress:
+		return
+
 	if Input.is_action_just_released("Menu"):
 		var pause_menu = get_pause_menu()
 		if pause_menu:
@@ -591,6 +604,9 @@ func handle_input():
 
 
 func _handle_shoot_input() -> void:
+	if _death_in_progress:
+		return
+
 	var now := Time.get_ticks_msec() / 1000.0
 	if Input.is_action_just_pressed("shoot"):
 		shoot()
@@ -646,6 +662,10 @@ func update_ui():
 # ========================
 
 func _process(delta):
+	if _death_in_progress:
+		update_camera(delta)
+		return
+
 	if not _is_pause_blocking():
 		update_camera(delta)
 		shield_process()
@@ -693,6 +713,9 @@ func shield_process():
 		coll.visible = shields_on
 
 func take_damage(amount: float):
+	if _death_in_progress:
+		return
+
 	_last_damage_amount = amount
 	_last_damage_time = Time.get_ticks_msec() / 1000.0
 	var remaining = amount
@@ -721,6 +744,14 @@ func is_shield_active() -> bool:
 	if shield_component != null and shield_component.has_method("is_shield_active"):
 		return bool(shield_component.call("is_shield_active"))
 	return false
+
+func is_dead() -> bool:
+	if health_component != null and health_component.has_method("is_dead"):
+		return bool(health_component.call("is_dead"))
+	return _death_in_progress
+
+func is_death_in_progress() -> bool:
+	return _death_in_progress
 
 func _bind_shield() -> void:
 	shield_component = shield_node
@@ -772,10 +803,10 @@ func _refresh_gravity_sources(force: bool) -> void:
 		for source in tree.get_nodes_in_group(group_name):
 			if source == self:
 				continue
-			var source_2d := source as Node2D
-			if source_2d == null:
+			if source == null or not is_instance_valid(source):
 				continue
-			if not is_instance_valid(source_2d):
+			var source_2d := source as Node2D
+			if source_2d == null or source_2d.is_queued_for_deletion():
 				continue
 			var id = source_2d.get_instance_id()
 			if seen.has(id):
@@ -801,6 +832,13 @@ func _on_health_component_died():
 		return
 
 	_death_in_progress = true
+	set_meta(&"death_in_progress", true)
+	velocity = Vector2.ZERO
+	_next_held_projectile_time = INF
+
+	var weapon_system := get_node_or_null("WeaponSystem")
+	if weapon_system != null and weapon_system.has_method("force_cease_fire"):
+		weapon_system.call("force_cease_fire")
 
 	# Disable collision and hide ship visuals immediately
 	var col_shape = get_node_or_null("CollisionShape2D") as CollisionShape2D
@@ -840,7 +878,7 @@ func _on_health_component_died():
 	call_deferred("_go_to_game_over_after_lesson")
 
 func _go_to_game_over_after_lesson() -> void:
-	await get_tree().create_timer(1.05).timeout
+	await get_tree().create_timer(maxf(death_watch_duration, 0.18)).timeout
 	_go_to_game_over()
 
 func _go_to_game_over() -> void:

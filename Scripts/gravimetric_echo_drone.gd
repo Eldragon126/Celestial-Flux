@@ -111,8 +111,10 @@ func _fill_targets_in_radius(
 		for node in get_tree().get_nodes_in_group(group_name):
 			if max_count > 0 and out_targets.size() >= max_count:
 				return
+			if node == null or not is_instance_valid(node):
+				continue
 			var body := node as Node2D
-			if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
+			if body == null or body.is_queued_for_deletion():
 				continue
 			if not include_player and body.is_in_group("Player"):
 				continue

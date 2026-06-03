@@ -52,7 +52,7 @@ corner_radius_bottom_left = 4
 
 [node name="PauseMenu" type="Control" unique_id=1603217995]
 process_mode = 3
-modulate = Color(1, 1, 1, 0)
+modulate = Color(1, 1, 1, 1)
 z_index = 100
 layout_mode = 3
 anchors_preset = 15
@@ -86,9 +86,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -380.0
-offset_top = -470.0
+offset_top = -420.0
 offset_right = 380.0
-offset_bottom = 470.0
+offset_bottom = 420.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
@@ -244,6 +244,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "MANIFESTS 0 | ARENAS 0 | WAVES 0 | UPGRADES 0 | RULES 0"
 horizontal_alignment = 1
+clip_text = true
 
 [node name="ModEntriesLabel" type="Label" parent="MenuPanel/MenuRows" unique_id=1164655525]
 custom_minimum_size = Vector2(440, 64)

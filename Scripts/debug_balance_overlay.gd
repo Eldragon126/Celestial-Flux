@@ -528,8 +528,10 @@ func _nearby_gravity_sources() -> Array[Node2D]:
 		for source in get_tree().get_nodes_in_group(group_name):
 			if source == _player:
 				continue
+			if source == null or not is_instance_valid(source):
+				continue
 			var source_2d := source as Node2D
-			if source_2d == null:
+			if source_2d == null or source_2d.is_queued_for_deletion():
 				continue
 			var id := source_2d.get_instance_id()
 			if seen.has(id):
@@ -548,7 +550,10 @@ func _nearby_gravity_sources() -> Array[Node2D]:
 
 func _get_active_boss() -> Node:
 	if _is_valid_node(_wave_director):
-		var boss := _wave_director.get("_boss") as Node
+		var boss_value: Variant = _wave_director.get("_boss")
+		var boss: Node = null
+		if boss_value != null and is_instance_valid(boss_value):
+			boss = boss_value as Node
 		if _is_valid_node(boss):
 			return boss
 
@@ -560,7 +565,10 @@ func _get_active_boss() -> Node:
 # ==================== SAFE UTILITIES ====================
 
 func _set_row(key: StringName, value: String) -> void:
-	var label := _rows.get(key, null) as Label
+	var label_value: Variant = _rows.get(key, null)
+	var label: Label = null
+	if label_value != null and is_instance_valid(label_value):
+		label = label_value as Label
 	if label:
 		label.text = _trim_value_text(value)
 

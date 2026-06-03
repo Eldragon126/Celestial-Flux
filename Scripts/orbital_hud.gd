@@ -7,6 +7,7 @@ extends CanvasLayer
 @export var threat_arrow_refresh_interval: float = 0.12
 @export var g_warning_level: float = 850.0
 @export var nearest_field_notice_radius: float = 760.0
+@export var enable_player_orbit_telemetry: bool = false
 
 var _player: Node2D
 var _resonance_manager: Node
@@ -266,8 +267,11 @@ func _build_orbit_telemetry() -> void:
 	_orbit_layer = Node2D.new()
 	_orbit_layer.name = "PlayerOrbitTelemetry"
 	_orbit_layer.z_index = 6
-	_orbit_layer.visible = true
+	_orbit_layer.visible = false
 	add_child(_orbit_layer)
+
+	if not enable_player_orbit_telemetry:
+		return
 
 	_health_arc = _make_orbit_arc("HealthOrbitArc", Color(1.0, 0.24, 0.18, 0.82), 3.6)
 	_energy_arc = _make_orbit_arc("EnergyOrbitArc", Color(0.22, 0.84, 1.0, 0.78), 3.0)
@@ -345,6 +349,8 @@ func _calculate_gravity_at_player() -> Vector2:
 	
 	var total = Vector2.ZERO
 	for planet in get_tree().get_nodes_in_group("planets"):
+		if planet == null or not is_instance_valid(planet):
+			continue
 		if not (planet is Node2D):
 			continue
 		var p: Node2D = planet
@@ -557,13 +563,11 @@ func _update_slingshot_lens() -> void:
 	var score := clampf(float(sling_state.get("score", 0.0)), 0.0, 1.0)
 	var tangential := float(sling_state.get("tangential_speed", 0.0))
 	var distance := float(sling_state.get("distance", 0.0))
-	var grade := String(sling_state.get("grade", "none")).to_upper()
 	var color := _slingshot_color(state, score)
 
 	_slingshot_bar.value = score
-	_slingshot_label.text = "SLING %s  %s %03d%%  T%04d D%03d" % [
+	_slingshot_label.text = "SLING %s %03d%%  T%04d D%03d" % [
 		state,
-		grade,
 		int(round(score * 100.0)),
 		int(round(tangential)),
 		int(round(distance)),
@@ -621,12 +625,16 @@ func _update_weapon_lens() -> void:
 	var color: Color = state.get("color", Color(0.34, 1.0, 0.86, 1.0))
 	var state_label := "FIRING" if active else ("READY" if energy_percent > 0.12 else "LOW ENERGY")
 
-	_weapon_label.text = "WEAPON %s  %s %.0f/s" % [display_name, state_label, cost]
+	_weapon_label.text = "%s  %s %.0f/s" % [display_name, state_label, cost]
 	_weapon_label.modulate = _readability_color(color)
 	_weapon_bar.value = energy_percent
 
 
 func _update_orbit_telemetry(delta: float) -> void:
+	if not enable_player_orbit_telemetry:
+		if _orbit_layer != null:
+			_orbit_layer.visible = false
+		return
 	if _orbit_layer == null or _player == null or not is_instance_valid(_player):
 		return
 
@@ -809,7 +817,7 @@ func _local_tide_state() -> Dictionary:
 
 	for group_name in [&"arena_hazard", &"arena_destabilization_hazard"]:
 		for node in get_tree().get_nodes_in_group(group_name):
-			if not is_instance_valid(node) or node.is_queued_for_deletion():
+			if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
 				continue
 			var id := node.get_instance_id()
 			if seen.has(id):
@@ -890,6 +898,8 @@ func _update_nav_arrows(_gravity_strength: float) -> void:
 	for planet in get_tree().get_nodes_in_group("planets"):
 		if arrow_index >= _arrows.size():
 			break
+		if planet == null or not is_instance_valid(planet):
+			continue
 		if not (planet is Node2D):
 			continue
 			
@@ -945,8 +955,10 @@ func _collect_offscreen_targets(group_name: StringName, limit: int, skip_bosses:
 	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
 
 	for node in get_tree().get_nodes_in_group(group_name):
+		if node == null or not is_instance_valid(node):
+			continue
 		var target := node as Node2D
-		if target == null or target == _player or not is_instance_valid(target) or target.is_queued_for_deletion():
+		if target == null or target == _player or target.is_queued_for_deletion():
 			continue
 		if skip_bosses and target.is_in_group("bosses"):
 			continue

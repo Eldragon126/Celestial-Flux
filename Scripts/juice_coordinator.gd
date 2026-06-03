@@ -8,14 +8,14 @@ signal slingshot_tier_resolved(tier: StringName, score: float)
 
 @export_group("Slingshot Tiers")
 @export var assist_max_score: float = 0.38
-@export var good_max_score: float = 0.7
-@export var great_ring_min_score: float = 0.7
+@export var good_max_score: float = 0.82
+@export var great_ring_min_score: float = 0.86
 
 @export_group("Slingshot Gates")
 @export var assist_thruster_only: bool = true
 @export var good_vfx_or_ring_not_both: bool = true
-@export var good_camera_kick_scale: float = 0.35
-@export var great_camera_kick_scale: float = 1.0
+@export var good_camera_kick_scale: float = 0.25
+@export var great_camera_kick_scale: float = 0.82
 @export var god_vector_camera_kick_scale: float = 1.15
 
 @export_group("Impact Gates")
@@ -74,9 +74,7 @@ func should_spawn_slingshot_vfx(data: Dictionary) -> bool:
 	if low_performance_mode:
 		return false
 	var tier := slingshot_tier_from_data(data)
-	if tier == &"assist":
-		return false
-	if tier == &"good" and good_vfx_or_ring_not_both and should_spawn_slingshot_ring(data):
+	if tier == &"assist" or tier == &"good":
 		return false
 	return true
 
@@ -85,11 +83,9 @@ func should_spawn_slingshot_ring(data: Dictionary) -> bool:
 	if low_performance_mode or disable_mastery_line2d:
 		return false
 	var tier := slingshot_tier_from_data(data)
-	if tier == &"assist":
+	if tier == &"assist" or tier == &"good":
 		return false
 	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
-	if tier == &"good" and good_vfx_or_ring_not_both:
-		return true
 	return score >= great_ring_min_score
 
 
@@ -117,7 +113,8 @@ func should_boost_thrusters_for_slingshot(data: Dictionary) -> bool:
 
 
 func should_play_slingshot_audio(data: Dictionary) -> bool:
-	return slingshot_tier_from_data(data) != &"assist"
+	var tier := slingshot_tier_from_data(data)
+	return tier == &"great" or tier == &"god_vector"
 
 
 func should_spawn_impact_mastery_ring(chaos_intensity: float, shockwave_spawned: bool) -> bool:

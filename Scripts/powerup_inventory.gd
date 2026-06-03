@@ -8,6 +8,8 @@ signal gravity_debris_spawned(debris: Node, source_enemy: Node)
 signal time_fracture_released(impulse: Vector2)
 signal law_fusion_triggered(fusion_id: StringName, fusion_data: Dictionary)
 signal apex_vector_released(data: Dictionary)
+signal barycentric_tether_applied(data: Dictionary)
+signal frame_dragging_anchor_applied(data: Dictionary)
 
 @export_node_path("Node2D") var player_path: NodePath = ^".."
 @export var action_pulse_cooldown: float = 0.65
@@ -53,6 +55,19 @@ signal apex_vector_released(data: Dictionary)
 @export var apex_vector_damage: float = 12.0
 @export var apex_vector_max_targets: int = 24
 
+@export_group("Barycentric Tether")
+@export var barycentric_tick_interval: float = 0.08
+@export var barycentric_max_pairs: int = 6
+@export var barycentric_min_pair_distance: float = 72.0
+@export var barycentric_max_pair_distance: float = 620.0
+@export var barycentric_enemy_damage_per_second: float = 5.5
+
+@export_group("Frame-Dragging Anchor")
+@export var frame_dragging_tick_interval: float = 0.07
+@export var frame_dragging_max_targets: int = 18
+@export var frame_dragging_projectile_force_multiplier: float = 1.35
+@export var frame_dragging_slingshot_boost: float = 0.24
+
 var _player: Node2D = null
 var _stacks: Dictionary = {}
 var _timed_effects: Dictionary = {}
@@ -75,6 +90,8 @@ var _momentum_component: Node = null
 var _last_fusion_id: StringName = &"none"
 var _last_fusion_time := -999.0
 var _enemy_hook_scan_elapsed := 999.0
+var _barycentric_elapsed := 999.0
+var _frame_dragging_elapsed := 999.0
 var _projectile_query: Array[Node2D] = []
 var _enemy_query: Array[Node2D] = []
 var _debris_query: Array[Node2D] = []
@@ -254,6 +271,12 @@ func _apply_effect(definition: PowerupDefinition, stacks: int) -> void:
 		&"apex_vector_core":
 			_apply_apex_vector_core(definition, stacks)
 
+		&"barycentric_tether":
+			_barycentric_elapsed = maxf(barycentric_tick_interval, 0.03)
+
+		&"frame_dragging_anchor":
+			_frame_dragging_elapsed = maxf(frame_dragging_tick_interval, 0.03)
+
 		&"micro_lensing_emitter", &"vacuum_collapse_injector", &"relativistic_rail", &"orbital_debris_seeder", &"chronal_refraction_beam":
 			_activate_vector_anomaly_upgrade(definition, stacks)
 
@@ -284,6 +307,8 @@ func _update_law_rules(delta: float) -> void:
 	_update_orbital_satellites(delta)
 	_update_singularity_death_hooks(delta)
 	_update_time_fracture_storage(delta)
+	_update_barycentric_tether(delta)
+	_update_frame_dragging_anchor(delta)
 
 
 func _update_orbital_satellites(delta: float) -> void:
@@ -357,7 +382,7 @@ func _update_captured_projectiles(delta: float) -> void:
 			expired.append(id)
 			continue
 
-		var projectile := instance_from_id(entry.get("projectile_id", -1)) as Node2D
+		var projectile := _node2d_from_instance_id(int(entry.get("projectile_id", -1)))
 
 		if not _is_node_valid(projectile):
 			expired.append(id)
@@ -439,7 +464,7 @@ func _release_all_satellites() -> void:
 	for id in _captured_projectiles.keys():
 		var entry := _captured_projectiles[id] as Dictionary
 
-		var projectile := instance_from_id(entry.get("projectile_id", -1)) as Node2D
+		var projectile := _node2d_from_instance_id(int(entry.get("projectile_id", -1)))
 
 		if _is_node_valid(projectile):
 			_release_satellite(projectile, Vector2.RIGHT)
@@ -456,7 +481,7 @@ func _count_valid_satellites() -> int:
 	for entry_value in _captured_projectiles.values():
 		var entry := entry_value as Dictionary
 
-		var projectile := instance_from_id(entry.get("projectile_id", -1)) as Node2D
+		var projectile := _node2d_from_instance_id(int(entry.get("projectile_id", -1)))
 
 		if _is_node_valid(projectile):
 			count += 1
@@ -596,6 +621,290 @@ func _update_time_fracture_storage(delta: float) -> void:
 			_fling_satellites_with_time_fracture(impulse, stacks)
 
 	_was_time_dilating = is_dilating
+
+
+func _update_barycentric_tether(delta: float) -> void:
+	var stacks := get_stack_count(&"barycentric_tether")
+	if stacks <= 0:
+		return
+
+	_barycentric_elapsed += delta
+	var interval := maxf(barycentric_tick_interval, 0.03)
+	if _barycentric_elapsed < interval:
+		return
+
+	var field_delta := minf(maxf(_barycentric_elapsed, interval), interval * 2.5)
+	_barycentric_elapsed = 0.0
+
+	var definition := PowerupLibrary.get_definition(&"barycentric_tether")
+	var base_radius := 540.0
+	var base_force := 260.0
+	var orbit_bias := 0.36
+	if definition != null:
+		base_radius = maxf(definition.radius, base_radius)
+		base_force = maxf(definition.amount, 1.0)
+		orbit_bias = clampf(definition.secondary_amount, 0.2, 0.78)
+
+	var search_radius := base_radius + 64.0 * float(stacks - 1)
+	var pair_distance_cap := barycentric_max_pair_distance + 42.0 * float(stacks - 1)
+	var pair_limit := maxi(2, barycentric_max_pairs * 2 + 2)
+	var force := base_force * (1.0 + 0.18 * float(stacks - 1))
+	var damage_per_second := barycentric_enemy_damage_per_second * (1.0 + 0.25 * float(stacks - 1))
+	var tick_id := Time.get_ticks_msec()
+
+	_fill_targets_in_radius(
+		[&"enemies", &"wave_enemy", &"bosses"],
+		_player.global_position,
+		search_radius,
+		false,
+		_target_query,
+		pair_limit
+	)
+
+	var pairs := 0
+	var affected := 0
+
+	for target_2d in _target_query:
+		if pairs >= barycentric_max_pairs:
+			break
+		if not _is_node_valid(target_2d) or target_2d == _player:
+			continue
+		if _has_barycentric_tick(target_2d, tick_id):
+			continue
+
+		var partner := _find_barycentric_partner(
+			target_2d,
+			barycentric_min_pair_distance,
+			pair_distance_cap,
+			tick_id
+		)
+		if partner == null:
+			continue
+
+		target_2d.set_meta(&"barycentric_tether_tick", tick_id)
+		partner.set_meta(&"barycentric_tether_tick", tick_id)
+
+		var center := (target_2d.global_position + partner.global_position) * 0.5
+		affected += _apply_barycentric_body(
+			target_2d,
+			center,
+			force,
+			orbit_bias,
+			damage_per_second,
+			field_delta,
+			pair_distance_cap
+		)
+		affected += _apply_barycentric_body(
+			partner,
+			center,
+			force,
+			orbit_bias,
+			damage_per_second,
+			field_delta,
+			pair_distance_cap
+		)
+		pairs += 1
+
+	if pairs <= 0:
+		return
+
+	barycentric_tether_applied.emit({
+		"position": _player.global_position,
+		"radius": search_radius,
+		"pairs": pairs,
+		"affected": affected,
+		"stacks": stacks,
+	})
+
+
+func _find_barycentric_partner(
+	origin: Node2D,
+	min_distance: float,
+	max_distance: float,
+	tick_id: int
+) -> Node2D:
+	var best: Node2D = null
+	var min_distance_squared := min_distance * min_distance
+	var best_distance_squared := max_distance * max_distance
+
+	for candidate in _target_query:
+		if candidate == origin or not _is_node_valid(candidate) or candidate == _player:
+			continue
+		if _has_barycentric_tick(candidate, tick_id):
+			continue
+
+		var distance_squared := candidate.global_position.distance_squared_to(origin.global_position)
+		if distance_squared < min_distance_squared or distance_squared > best_distance_squared:
+			continue
+
+		best = candidate
+		best_distance_squared = distance_squared
+
+	return best
+
+
+func _has_barycentric_tick(body: Node2D, tick_id: int) -> bool:
+	return (
+		_is_node_valid(body)
+		and body.has_meta(&"barycentric_tether_tick")
+		and int(body.get_meta(&"barycentric_tether_tick")) == tick_id
+	)
+
+
+func _apply_barycentric_body(
+	body: Node2D,
+	center: Vector2,
+	force: float,
+	orbit_bias: float,
+	damage_per_second: float,
+	field_delta: float,
+	pair_distance_cap: float
+) -> int:
+	if not _is_node_valid(body):
+		return 0
+
+	var to_center := center - body.global_position
+	var distance_squared := to_center.length_squared()
+	if distance_squared <= 0.001:
+		return 0
+
+	var distance := sqrt(distance_squared)
+	var inward := to_center / distance
+	var tangent := inward.orthogonal()
+	var velocity := _body_velocity(body)
+	if velocity.length_squared() > 1.0:
+		if velocity.dot(tangent) < 0.0:
+			tangent = -tangent
+	elif body.global_position.x > center.x:
+		tangent = -tangent
+
+	var falloff := clampf(1.0 - distance / maxf(pair_distance_cap, 1.0), 0.24, 1.0)
+	var direction := (tangent * orbit_bias + inward * maxf(1.0 - orbit_bias, 0.18)).normalized()
+	CombatStatus.add_velocity(body, direction * force * falloff * field_delta)
+
+	if body.has_method("take_damage"):
+		body.call("take_damage", damage_per_second * falloff * field_delta)
+
+	body.set_meta(&"barycentric_tether_pressure", falloff)
+	return 1
+
+
+func _update_frame_dragging_anchor(delta: float) -> void:
+	var stacks := get_stack_count(&"frame_dragging_anchor")
+	if stacks <= 0:
+		return
+
+	_frame_dragging_elapsed += delta
+	var interval := maxf(frame_dragging_tick_interval, 0.03)
+	if _frame_dragging_elapsed < interval:
+		return
+
+	var field_delta := minf(maxf(_frame_dragging_elapsed, interval), interval * 2.5)
+	_frame_dragging_elapsed = 0.0
+
+	var definition := PowerupLibrary.get_definition(&"frame_dragging_anchor")
+	var radius := 470.0
+	var force := 300.0
+	var spin_bias := 0.42
+	if definition != null:
+		radius = maxf(definition.radius, radius)
+		force = maxf(definition.amount, 1.0)
+		spin_bias = clampf(definition.secondary_amount, 0.24, 0.82)
+
+	radius += 56.0 * float(stacks - 1)
+	force *= 1.0 + 0.2 * float(stacks - 1)
+
+	var center := _player.global_position
+	var player_velocity := _body_velocity(_player)
+	var spin_sign := _frame_dragging_spin_sign(player_velocity)
+	var target_limit := frame_dragging_max_targets + 4 * maxi(stacks - 1, 0)
+
+	_fill_targets_in_radius(
+		[&"enemies", &"wave_enemy", &"bosses", &"enemy_projectiles"],
+		center,
+		radius,
+		false,
+		_target_query,
+		target_limit
+	)
+
+	var affected := 0
+	for target_2d in _target_query:
+		if _apply_frame_dragging_body(
+			target_2d,
+			center,
+			radius,
+			force,
+			spin_bias,
+			spin_sign,
+			field_delta
+		):
+			affected += 1
+
+	if player_velocity.length_squared() > 360000.0:
+		var boost := (
+			player_velocity.normalized()
+			* force
+			* frame_dragging_slingshot_boost
+			* minf(float(stacks), 2.0)
+			* field_delta
+		)
+		CombatStatus.add_velocity(_player, boost)
+
+	if affected <= 0:
+		return
+
+	frame_dragging_anchor_applied.emit({
+		"position": center,
+		"radius": radius,
+		"affected": affected,
+		"stacks": stacks,
+	})
+
+
+func _frame_dragging_spin_sign(player_velocity: Vector2) -> float:
+	if player_velocity.length_squared() <= 1.0:
+		return 1.0
+
+	var facing_tangent := Vector2.RIGHT.rotated(_player.global_rotation).orthogonal()
+	return 1.0 if player_velocity.dot(facing_tangent) >= 0.0 else -1.0
+
+
+func _apply_frame_dragging_body(
+	body: Node2D,
+	center: Vector2,
+	radius: float,
+	force: float,
+	spin_bias: float,
+	spin_sign: float,
+	field_delta: float
+) -> bool:
+	if not _is_node_valid(body) or body == _player:
+		return false
+
+	var offset := body.global_position - center
+	var distance_squared := offset.length_squared()
+	if distance_squared <= 0.001:
+		return false
+
+	var distance := sqrt(distance_squared)
+	var radial := offset / distance
+	var tangent := radial.orthogonal() * spin_sign
+	var inward := -radial
+	var falloff := clampf(1.0 - distance / maxf(radius, 1.0), 0.18, 1.0)
+	var projectile_multiplier := (
+		frame_dragging_projectile_force_multiplier
+		if body.is_in_group("enemy_projectiles")
+		else 1.0
+	)
+	var direction := (tangent * spin_bias + inward * maxf(1.0 - spin_bias, 0.18)).normalized()
+
+	CombatStatus.add_velocity(
+		body,
+		direction * force * projectile_multiplier * falloff * field_delta
+	)
+	body.set_meta(&"frame_dragging_pressure", falloff)
+	return true
 
 
 func _update_momentum_shockwave_law() -> void:
@@ -1030,7 +1339,7 @@ func _fling_satellites_along_slingshot(tangent: Vector2, score: float, combo: in
 
 	for id in _captured_projectiles.keys():
 		var entry := _captured_projectiles[id] as Dictionary
-		var projectile := instance_from_id(entry.get("projectile_id", -1)) as Node2D
+		var projectile := _node2d_from_instance_id(int(entry.get("projectile_id", -1)))
 
 		if not _is_node_valid(projectile):
 			release_ids.append(id)
@@ -1099,6 +1408,8 @@ func _fill_group_nodes(group_name: StringName, out_nodes: Array[Node2D], limit: 
 	for node in get_tree().get_nodes_in_group(group_name):
 		if limit >= 0 and added >= limit:
 			return
+		if node == null or not is_instance_valid(node):
+			continue
 		var node_2d := node as Node2D
 		if not _is_node_valid(node_2d):
 			continue
@@ -1125,6 +1436,8 @@ func _fill_targets_in_radius(
 		for node in get_tree().get_nodes_in_group(group_name):
 			if limit > 0 and out_targets.size() >= limit:
 				return
+			if node == null or not is_instance_valid(node):
+				continue
 			var node_2d := node as Node2D
 			if not _is_node_valid(node_2d):
 				continue
@@ -1241,7 +1554,7 @@ func _valid_debris_anchor(entry: Dictionary) -> Node2D:
 	if not is_instance_id_valid(anchor_id):
 		return null
 
-	var anchor := instance_from_id(anchor_id) as Node2D
+	var anchor := _node2d_from_instance_id(anchor_id)
 
 	if not _is_node_valid(anchor):
 		return null
@@ -1289,7 +1602,7 @@ func _fling_satellites_with_time_fracture(
 
 		var entry := _captured_projectiles[id] as Dictionary
 
-		var projectile := instance_from_id(entry.get("projectile_id", -1)) as Node2D
+		var projectile := _node2d_from_instance_id(int(entry.get("projectile_id", -1)))
 
 		if not _is_node_valid(projectile):
 			release_ids.append(id)
@@ -1449,6 +1762,12 @@ func get_law_fusion_debug_state() -> Dictionary:
 	if get_stack_count(&"apex_vector_core") > 0:
 		active.append("Apex Vector")
 
+	if get_stack_count(&"barycentric_tether") > 0:
+		active.append("Barycentric Tether")
+
+	if get_stack_count(&"frame_dragging_anchor") > 0:
+		active.append("Frame-Dragging Anchor")
+
 	return {
 		"active": active,
 		"satellites": _count_valid_satellites(),
@@ -1512,6 +1831,18 @@ func _circle_points(count: int, radius: float) -> PackedVector2Array:
 		)
 
 	return points
+
+
+func _node2d_from_instance_id(instance_id: int) -> Node2D:
+	if instance_id < 0 or not is_instance_id_valid(instance_id):
+		return null
+	var value: Object = instance_from_id(instance_id)
+	if value == null or not is_instance_valid(value):
+		return null
+	var node_2d := value as Node2D
+	if not _is_node_valid(node_2d):
+		return null
+	return node_2d
 
 
 func _is_node_valid(node: Variant) -> bool:

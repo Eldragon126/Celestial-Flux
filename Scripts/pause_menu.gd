@@ -330,7 +330,7 @@ func _update_modding_menu() -> void:
 	if registry.has_method("get_registry_summary"):
 		var summary_value: Variant = registry.call("get_registry_summary")
 		var summary: Dictionary = summary_value if summary_value is Dictionary else {}
-		mod_summary_label.text = "MANIFESTS %d | ARENAS %d | WAVES %d | UPGRADES %d | RULES %d | FAILED %d" % [
+		mod_summary_label.text = "MODS %d | ARENAS %d | WAVES %d | UPGRADES %d | RULES %d | FAIL %d" % [
 			int(summary.get("manifest_count", 0)),
 			int(summary.get("arenas", 0)),
 			int(summary.get("waves", 0)),
@@ -382,7 +382,7 @@ func _update_multiplayer_menu() -> void:
 	var budget_value: Variant = sync.call("get_readability_budget")
 	var budget: Dictionary = budget_value if budget_value is Dictionary else {}
 	multiplayer_status_label.text = (
-		"SYNC READY | PEERS %d | ENEMY ARROWS %d | PROJECTILE WARNINGS %d"
+		"SYNC READY | P%d | ARROWS %d | WARN %d"
 		% [
 			int(budget.get("peer_count", 1)),
 			int(budget.get("enemy_arrow_limit", 0)),
@@ -406,7 +406,7 @@ func _update_weapon_menu() -> void:
 	var energy := int(round(float(state.get("energy", 0.0))))
 	var max_energy := int(round(float(state.get("max_energy", 1.0))))
 	var cost := int(round(float(state.get("cost_per_second", 0.0))))
-	weapon_status_label.text = "ACTIVE %d/%d | %s | ENERGY %d/%d | DRAW %d/s" % [
+	weapon_status_label.text = "%d/%d | %s | E %d/%d | %d/s" % [
 		index,
 		count,
 		display_name,
@@ -483,7 +483,7 @@ func _apply_menu_scale() -> void:
 	var viewport_size := get_viewport_rect().size
 	var base_size := menu_panel.size
 	if base_size.x <= 1.0 or base_size.y <= 1.0:
-		base_size = Vector2(760.0, 940.0)
+		base_size = Vector2(760.0, 840.0)
 	var fit_scale := minf(
 		viewport_size.x / maxf(base_size.x + 56.0, 1.0),
 		viewport_size.y / maxf(base_size.y + 56.0, 1.0)

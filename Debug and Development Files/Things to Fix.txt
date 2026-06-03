@@ -14,27 +14,39 @@
 
 [x] Enemy bullets wander around right now toward the player slowly, and don't seem like they are affected by gravity at all. There are also way too many bullets at a time. Fixed: increased homing_gravity_blend from 0.002 to 0.008, reduced minimum_homing_scale from 0.15 to 0.08 for better gravity influence, added BulletManager singleton with 50 bullet cap, and updated all bullet-spawning enemies to check the cap before spawning.
 
-[ ] The bosses up until the polymorph boss are super super easy.  Too easy. Polymorph is pretty easy, too.
+[x] The bosses up until the polymorph boss are super super easy. Too easy. Polymorph is pretty easy, too. Fixed: WaveDirector now applies per-boss health floors, pressure scaling, attack timer compression, projectile/contact tuning, and Polymorph-specific pressure scaling across phase movement and bullet speed.
 
-[ ] Some text overlaps with other text in the menus. This shouldn't happen.
+[x] Some text overlaps with other text in the menus. This shouldn't happen. Fixed: pause menu editor visibility is restored, panel scale bounds now fit the reduced height, and long weapon/mod/multiplayer strings are shortened or clipped.
 
-[ ] The gravity beam doesn't seem to warp gravity like I thought it would. I'd like it to do damage as it does, but also to warp enemy gravity so that the enemies naturally drift toward the gravitational beam.
+[x] The gravity beam doesn't seem to warp gravity like I thought it would. I'd like it to do damage as it does, but also to warp enemy gravity so that the enemies naturally drift toward the gravitational beam. Fixed: Gravity Wave Beam now damages while pulling enemies and projectiles toward the beam axis, stamps a short compression zone, and records beam pressure metadata.
 
-[ ] Slingshotting is easy to do but hard to witness because it blows up your computer with harmonic circles, other things, and sound effects. It needs to be the best part of the game still, but in better ways. It needs to be more satisfying.
+[x] Slingshotting is easy to do but hard to witness because it blows up your computer with harmonic circles, other things, and sound effects. It needs to be the best part of the game still, but in better ways. It needs to be more satisfying. Fixed: slingshot feedback now reserves rings/audio for high-quality great/apex events, trims combo pings, lowers particle caps, and keeps momentum reward without stacking harmonic spam.
 
-[ ] The player, after dying, has a couple of seconds to shoot and continue. I like the idea of watching yourself die, but it frustrates players when they die, don't realize they die, and then it takes them to the death screen right after they get into a better situation. This needs to be fixed.
+[x] The player, after dying, has a couple of seconds to shoot and continue. I like the idea of watching yourself die, but it frustrates players when they die, don't realize they die, and then it takes them to the death screen right after they get into a better situation. This needs to be fixed. Fixed: death is now a locked short watch state with movement braking, immediate weapon cease-fire, input blocking, single-shot health death, and a shorter configurable handoff to game over.
 
-[ ] The curvy lines on the player don't look good. Either take them out or adjust them so that they look good around the player instead of just attached on. I believe they come from SpacetimeSwimDirector. I'd rather have an effect like the main player on WINDOWKILL.
+[x] The curvy lines on the player don't look good. Either take them out or adjust them so that they look good around the player instead of just attached on. I believe they come from SpacetimeSwimDirector. I'd rather have an effect like the main player on WINDOWKILL. Fixed: SpacetimeSwimDirector now uses short phase-shell strokes around the player with lower lifetime/counts, throttled beam triggers, and capped glitch slices.
 
-[ ] TOO MUCH (Sort of)
+[x] TOO MUCH (Sort of)
 - `compression`
 - `slipstream`
 - `inversion`
 - `temporal_scar`
 - `harmonic_orbit`
-Or at least, I can't tell what it's doing, and it seems like the harmonic orbits specifically don't ever go away.
+Or at least, I can't tell what it's doing, and it seems like the harmonic orbits specifically don't ever go away. Fixed: resonance zones now cap harder, decay faster, hide distant/low-intensity visuals, require stronger harmonic conditions, shorten manual zones, and reduce audio/VFX density.
 
-[ ] What are the purple blue and red rings around the player? These are confusing and don't seem to have a purpose, and need to be fixed.
+[x] What are the purple blue and red rings around the player? These are confusing and don't seem to have a purpose, and need to be fixed. Fixed: the player orbit telemetry arcs are disabled by default while HUD readouts and arrows keep the same information readable.
 
 
-[ ] When I go in to edit the pause menu I can't see any of the things in the inspector. I can see the node tree, and I can even click on the objects I cant see and it selects them, but I can't see them. This needs to be fixed.
+[x] When I go in to edit the pause menu I can't see any of the things in the inspector. I can see the node tree, and I can even click on the objects I cant see and it selects them, but I can't see them. This needs to be fixed. Fixed: pause_menu.tscn no longer saves the root at alpha 0, so editor selection and scene editing are visible while runtime still fades it out on ready.
+
+[x] There are so many circles the second I boot up that all overlap. This needs to be fixed. Fixed: startup resonance/scar/player telemetry visuals are culled by intensity and player focus, player orbit arcs are off by default, and automatic resonance count/alpha/particles are reduced.
+
+[x] The telemetry bar that shows all the stats (fps, all properties, ext) isn't appearing anymore. Did you delete it? If you did, don't necessarily make another one but it would be nice if it was fixed. Fixed: OrbitalJuiceManager installs DebugBalanceOverlay by default again, with the existing F3 toggle intact.
+
+[x] The gameplay is slightly confusing and doesn't seem like the sharp controlled physics-based rougelike I wanted. Maybe a tutorial would help? Fixed: GameplayTeachingDirector now teaches tangent slingshots, gravity-wave beam intent, time/drag precision, and contextual high-pressure movement prompts.
+
+[x] I keep getting "Tried to cast a freed object" Errors. These can be fixed by checking if the instance is valid before assigning variables. Fixed: RuntimeRegistry, beam queries, resonance/scar visuals, pooled swim/lens/debris objects, powerup projectile instance IDs, gravity source refreshes, and enemy AI scans now validate objects before casting or reusing them.
+
+[ ] There are random purple flashes sometimes. I don't know what to do or how to function with these.
+
+[ ] I don't see any readily available tutorial. A separate playable tutorial scene would be wonderful.

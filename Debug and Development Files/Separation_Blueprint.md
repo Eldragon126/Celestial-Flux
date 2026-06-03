@@ -189,6 +189,19 @@ If it does not create a shareable moment, it is debt.
 
 ---
 
+# PRODUCTION CLARITY PASS - 2026-06-02
+
+The current build moves the hook closer to "watchable impossibility" by cutting visual noise that was masking skill expression.
+
+- Slingshot mastery is now the premium moment: rings and audio are reserved for strong great/apex vectors, while routine orbit assists stay quiet and performant.
+- Gravity Wave Beam now visibly edits enemy motion by pulling targets toward the beam line, making field control inspectable in motion.
+- Resonance and scar fields are capped, player-focused, lower-alpha, and shorter-lived so collapse reads as tactical pressure instead of a screen full of identical circles.
+- Player orbit telemetry rings are disabled by default; the HUD keeps the information in compact readouts and arrows.
+- Death no longer permits postmortem firing or false recovery. It reads as immediate trajectory failure followed by a short collapse watch.
+- Boss pressure is no longer flat. Each authored boss receives wave-scaled health, attack cadence, projectile pressure, and contact threat without becoming a generic HP sponge.
+
+---
+
 # STEAM PAGE STRATEGY
 
 ## Screenshot Rule
@@ -281,8 +294,11 @@ Late-wave spectacle now has explicit technical boundaries:
 - Dynamic gravity debris and tide-pocket gravity sources register with the cache at group-entry time and unregister on exit.
 - `OrbitalVFXDirector` owns pooled particle bursts; gameplay systems emit events instead of duplicating particles.
 - `PowerupInventory` owns pooled law/powerup rings and reusable target buffers for upgrade effects.
+- Barycentric Tether and Frame-Dragging Anchor remain inventory-owned field effects: definitions live in resources, target selection uses capped registry queries, and runtime work stays throttled without scene creation.
 - `production_simulation_runner.gd` owns headless stress validation and reports frame/projectile/VFX budgets without becoming part of gameplay state.
 - Resonance, momentum, boss field, replay, paralysis, readability, death-readout, music-pressure, stress, and sync systems consume registry buffers/counts instead of owning separate scene-tree discovery.
 - Opening prompts and credits now use the Vector Anomaly identity directly, keeping presentation labels separate from retired internal names.
+- Settings persistence lives in the `Settings` autoload and is consumed by pause/HUD/VFX systems instead of each UI surface owning separate config state.
+- Title secret completion is gated behind an explicit secret-mode state, keeping menu presentation separate from hidden encounter cleanup.
 
 The commercial rule remains unchanged: the player should see impossible physics, while the code keeps discovery, pooling, validation, UI, saves, and content manifests separated into inspectable systems.

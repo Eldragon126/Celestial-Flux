@@ -2,6 +2,9 @@ extends Node
 
 signal accessibility_changed(settings: Dictionary)
 
+const SETTINGS_PATH := "user://settings.cfg"
+const SECTION_ACCESSIBILITY := "accessibility"
+
 enum ColorblindMode {
 	OFF,
 	DEUTERANOPIA,
@@ -16,24 +19,59 @@ var reduce_flash: bool = false
 var colorblind_mode: int = ColorblindMode.OFF
 
 
+func _ready() -> void:
+	load_settings()
+
+
 func set_ui_scale(value: float) -> void:
 	ui_scale = clampf(value, 0.75, 1.35)
 	_emit_accessibility_changed()
+	save_settings()
 
 
 func set_screen_shake_scale(value: float) -> void:
 	screen_shake_scale = clampf(value, 0.0, 1.0)
 	_emit_accessibility_changed()
+	save_settings()
 
 
 func set_reduce_flash(value: bool) -> void:
 	reduce_flash = value
 	_emit_accessibility_changed()
+	save_settings()
 
 
 func set_colorblind_mode(value: int) -> void:
 	colorblind_mode = clampi(value, ColorblindMode.OFF, ColorblindMode.TRITANOPIA)
 	_emit_accessibility_changed()
+	save_settings()
+
+
+func load_settings() -> void:
+	var config := ConfigFile.new()
+	var err := config.load(SETTINGS_PATH)
+	if err != OK:
+		_emit_accessibility_changed()
+		return
+
+	ui_scale = clampf(float(config.get_value(SECTION_ACCESSIBILITY, "ui_scale", ui_scale)), 0.75, 1.35)
+	screen_shake_scale = clampf(float(config.get_value(SECTION_ACCESSIBILITY, "screen_shake_scale", screen_shake_scale)), 0.0, 1.0)
+	reduce_flash = bool(config.get_value(SECTION_ACCESSIBILITY, "reduce_flash", reduce_flash))
+	colorblind_mode = clampi(
+		int(config.get_value(SECTION_ACCESSIBILITY, "colorblind_mode", colorblind_mode)),
+		ColorblindMode.OFF,
+		ColorblindMode.TRITANOPIA
+	)
+	_emit_accessibility_changed()
+
+
+func save_settings() -> void:
+	var config := ConfigFile.new()
+	config.set_value(SECTION_ACCESSIBILITY, "ui_scale", ui_scale)
+	config.set_value(SECTION_ACCESSIBILITY, "screen_shake_scale", screen_shake_scale)
+	config.set_value(SECTION_ACCESSIBILITY, "reduce_flash", reduce_flash)
+	config.set_value(SECTION_ACCESSIBILITY, "colorblind_mode", colorblind_mode)
+	config.save(SETTINGS_PATH)
 
 
 func apply_readability_color(color: Color) -> Color:

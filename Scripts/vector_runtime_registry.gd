@@ -78,8 +78,12 @@ func unregister_node(node: Node, group_name: StringName) -> void:
 	ids.erase(id)
 	var list: Array = _groups[group_name]
 	for index in range(list.size() - 1, -1, -1):
-		var candidate := list[index] as Node
-		if candidate == null or not is_instance_valid(candidate) or candidate.get_instance_id() == id:
+		var candidate_value: Variant = list[index]
+		if candidate_value == null or not is_instance_valid(candidate_value):
+			list.remove_at(index)
+			continue
+		var candidate := candidate_value as Node
+		if candidate == null or candidate.is_queued_for_deletion() or candidate.get_instance_id() == id:
 			list.remove_at(index)
 	_groups[group_name] = list
 	_set_count(group_name, list.size())
@@ -99,9 +103,9 @@ func fill_group(group_name: StringName, out_nodes: Array[Node2D], limit: int = -
 	for value in list:
 		if limit >= 0 and out_nodes.size() >= limit:
 			return
-		var node : Node2D
-		if is_instance_valid(value):
-			node = value
+		if value == null or not is_instance_valid(value):
+			continue
+		var node := value as Node2D
 		if _is_valid_node(node):
 			out_nodes.append(node)
 
@@ -126,10 +130,9 @@ func fill_nearest_gravity_sources(
 	for group_name in GRAVITY_GROUPS:
 		var list: Array = _groups.get(group_name, [])
 		for value in list:
-			
-			var source : Node2D
-			if is_instance_valid(value):
-				source = value
+			if value == null or not is_instance_valid(value):
+				continue
+			var source := value as Node2D
 			if not _is_valid_node(source) or source == exclude:
 				continue
 			var id := source.get_instance_id()
@@ -163,10 +166,9 @@ func fill_targets_in_radius(
 		for value in list:
 			if max_count > 0 and out_targets.size() >= max_count:
 				return
-			
-			var body : Node2D
-			if is_instance_valid(value):
-				body = value as Node2D
+			if value == null or not is_instance_valid(value):
+				continue
+			var body := value as Node2D
 			if not _is_valid_node(body):
 				continue
 			if not include_player and body.is_in_group("Player"):
@@ -224,8 +226,10 @@ func _refresh_group(group_name: StringName) -> void:
 	var list: Array = []
 	var ids: Dictionary = {}
 	for value in get_tree().get_nodes_in_group(group_name):
+		if value == null or not is_instance_valid(value):
+			continue
 		var node := value as Node
-		if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+		if node == null or node.is_queued_for_deletion():
 			continue
 		var id := node.get_instance_id()
 		if ids.has(id):

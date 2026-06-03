@@ -42,6 +42,9 @@ const WEAPON_NAMES := {
 @export var gravity_wave_damage_per_second: float = 34.0
 @export var gravity_wave_resonance_interval: float = 0.48
 @export var gravity_wave_projectile_force_multiplier: float = 1.45
+@export var gravity_wave_axis_pull_per_second: float = 1220.0
+@export var gravity_wave_enemy_pull_multiplier: float = 1.25
+@export var gravity_wave_forward_drift: float = 0.18
 
 @export_group("Chronal Refraction Beam")
 @export var chronal_slow_multiplier: float = 0.46
@@ -89,7 +92,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if _is_gameplay_blocked():
+	if _is_gameplay_blocked() or _is_player_dead():
 		_end_beam()
 		return
 
@@ -104,7 +107,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not enable_switch_hotkeys or _is_gameplay_blocked():
+	if not enable_switch_hotkeys or _is_gameplay_blocked() or _is_player_dead():
 		return
 
 	if _input_pressed(event, &"weapon_next", KEY_TAB):
@@ -116,9 +119,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func try_primary_fire() -> bool:
+	if _is_player_dead():
+		return false
 	if not _is_beam_weapon(_active_weapon_id):
 		return false
 	return true
+
+
+func force_cease_fire() -> void:
+	_end_beam()
 
 
 func select_next_weapon() -> void:
@@ -167,7 +176,7 @@ func get_weapon_debug_state() -> Dictionary:
 
 func _fire_selected_beam(delta: float) -> void:
 	_resolve_player()
-	if _player == null or not is_instance_valid(_player):
+	if _player == null or not is_instance_valid(_player) or _is_player_dead():
 		_end_beam()
 		return
 
@@ -224,6 +233,7 @@ func _apply_positron_beam(origin: Vector2, direction: Vector2, hits: Array[Node]
 
 func _apply_gravity_wave_beam(origin: Vector2, direction: Vector2, hits: Array[Node], delta: float) -> void:
 	var force := gravity_wave_force_per_second * delta
+	var axis_pull := gravity_wave_axis_pull_per_second * delta
 	var damage := gravity_wave_damage_per_second * delta
 
 	for target in hits:
@@ -235,15 +245,20 @@ func _apply_gravity_wave_beam(origin: Vector2, direction: Vector2, hits: Array[N
 			continue
 
 		var offset := target_2d.global_position - origin
-		var along := clampf(offset.dot(direction) / maxf(beam_range, 1.0), 0.0, 1.0)
-		var lateral := offset - direction * offset.dot(direction)
-		var lateral_dir := lateral.normalized()
-		if lateral_dir == Vector2.ZERO:
-			lateral_dir = direction.orthogonal()
-		var bend_dir := (direction * 0.66 + lateral_dir * 0.34).normalized()
-		var multiplier := gravity_wave_projectile_force_multiplier if target.is_in_group("enemy_projectiles") else 1.0
+		var along_distance := offset.dot(direction)
+		var along := clampf(along_distance / maxf(beam_range, 1.0), 0.0, 1.0)
+		var axis_point := origin + direction * clampf(along_distance, 0.0, beam_range)
+		var to_axis := axis_point - target_2d.global_position
+		var axis_dir := to_axis.normalized()
+		if axis_dir == Vector2.ZERO:
+			axis_dir = direction.orthogonal()
+		var warp_dir := (axis_dir + direction * gravity_wave_forward_drift).normalized()
+		var hostile_multiplier := gravity_wave_enemy_pull_multiplier if _is_hostile_target(target_2d) else 1.0
+		var projectile_multiplier := gravity_wave_projectile_force_multiplier if target_2d.is_in_group("enemy_projectiles") else 1.0
+		var falloff := lerpf(1.0, 0.48, along)
 
-		CombatStatus.add_velocity(target_2d, bend_dir * force * multiplier * lerpf(1.0, 0.42, along))
+		CombatStatus.add_velocity(target_2d, warp_dir * (force + axis_pull) * hostile_multiplier * projectile_multiplier * falloff)
+		target_2d.set_meta(&"gravity_wave_beam_pressure", clampf(1.0 - along * 0.42, 0.0, 1.0))
 
 		if target.has_method("take_damage") and _is_hostile_target(target):
 			target.call("take_damage", damage)
@@ -311,9 +326,9 @@ func _stamp_gravity_wave_resonance(origin: Vector2, direction: Vector2) -> void:
 		"create_manual_resonance_zone",
 		origin + direction * beam_range * 0.42,
 		260.0,
-		GravityResonanceManager.ZoneType.SLIPSTREAM,
-		0.52,
-		1.5
+		GravityResonanceManager.ZoneType.COMPRESSION,
+		0.48,
+		1.0
 	)
 
 
@@ -389,8 +404,10 @@ func _collect_beam_hits(origin: Vector2, direction: Vector2, width: float) -> Ar
 
 	for result in results:
 		var collider_value: Variant = result.get("collider")
+		if collider_value == null or not is_instance_valid(collider_value):
+			continue
 		var collider := collider_value as Node
-		if collider == null:
+		if collider == null or collider.is_queued_for_deletion():
 			continue
 		if _is_player_owned(collider):
 			continue
@@ -532,6 +549,18 @@ func _is_player_owned(target: Node) -> bool:
 	if _player != null and _player.is_ancestor_of(target):
 		return true
 	return target.is_in_group("Player") or target.is_in_group("player_projectiles")
+
+
+func _is_player_dead() -> bool:
+	if _player == null or not is_instance_valid(_player):
+		return false
+	if _player.has_method("is_death_in_progress"):
+		return bool(_player.call("is_death_in_progress"))
+	if _player.has_method("is_dead"):
+		return bool(_player.call("is_dead"))
+	if _player.has_meta(&"death_in_progress"):
+		return bool(_player.get_meta(&"death_in_progress"))
+	return false
 
 
 func _aim_direction() -> Vector2:

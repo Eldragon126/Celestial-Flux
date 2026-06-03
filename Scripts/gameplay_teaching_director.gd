@@ -12,6 +12,7 @@ class_name GameplayTeachingDirector
 var _player: Node2D = null
 var _resonance_manager: Node = null
 var _time_manager: Node = null
+var _weapon_system: Node = null
 var _elapsed := 0.0
 var _prompt_elapsed := 99.0
 var _death_lesson_time := 0.0
@@ -19,9 +20,10 @@ var _prompt_index := 0
 var _death_mode := false
 var _opening_prompts := [
 	"VECTOR ANOMALY ONLINE",
-	"ORBIT THE WELL",
-	"SLINGSHOT TO SURVIVE",
-	"TIME BENDS UNDER PRESSURE",
+	"THRUST INTO A WELL, THEN TURN SIDEWAYS",
+	"SLINGSHOT: TANGENT, SPEED, DISTANCE",
+	"DRAG TO AIM; TIME BUYS ONE CLEAN ANGLE",
+	"BEAMS BEND THE FIELD BEFORE THEY KILL",
 	"READ THE LAW, THEN BREAK IT",
 ]
 
@@ -52,6 +54,8 @@ func _resolve_references() -> void:
 	if _player == null or not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("Player") as Node2D
 		_connect_player()
+	if _player != null and is_instance_valid(_player):
+		_weapon_system = _player.get_node_or_null("WeaponSystem")
 
 	var scene := get_tree().current_scene
 	if scene == null:
@@ -95,6 +99,17 @@ func _update_context_prompt() -> void:
 	if projectile_count >= max_projectile_warning_count:
 		_prompt_elapsed = 0.0
 		_show_prompt("CHAOS SPIKE: TRUST ORBITS, NOT NOISE", Color(1.0, 0.76, 0.32, 1.0))
+		return
+
+	var slingshot_hint := _slingshot_hint()
+	if not slingshot_hint.is_empty():
+		_prompt_elapsed = 0.0
+		_show_prompt(slingshot_hint, Color(0.34, 1.0, 0.86, 1.0))
+		return
+
+	if _gravity_wave_selected():
+		_prompt_elapsed = 0.0
+		_show_prompt("GRAVITY WAVE: PAINT ENEMIES INTO THE BEAM", Color(0.32, 0.86, 1.0, 1.0))
 		return
 
 	if _time_manager != null and bool(_time_manager.get("is_dilating")):
@@ -179,3 +194,30 @@ func _projectile_count() -> int:
 	count += get_tree().get_nodes_in_group("enemy_projectiles").size()
 	count += get_tree().get_nodes_in_group("player_projectiles").size()
 	return count
+
+
+func _slingshot_hint() -> String:
+	if _player == null or not is_instance_valid(_player) or not _player.has_method("get_slingshot_debug_state"):
+		return ""
+	var value: Variant = _player.call("get_slingshot_debug_state")
+	if typeof(value) != TYPE_DICTIONARY:
+		return ""
+	var state: Dictionary = value
+	var state_name := String(state.get("state", "search")).to_upper()
+	var score := clampf(float(state.get("score", 0.0)), 0.0, 1.0)
+	var speed := float(state.get("tangential_speed", 0.0))
+	if state_name == "APEX" or state_name == "PERFECT" or state_name == "SWEET":
+		return "SLINGSHOT NOW: HOLD THE TANGENT"
+	if score > 0.42 and speed < 520.0:
+		return "SLINGSHOT NEEDS SPEED THROUGH THE CURVE"
+	return ""
+
+
+func _gravity_wave_selected() -> bool:
+	if _weapon_system == null or not is_instance_valid(_weapon_system) or not _weapon_system.has_method("get_weapon_debug_state"):
+		return false
+	var value: Variant = _weapon_system.call("get_weapon_debug_state")
+	if typeof(value) != TYPE_DICTIONARY:
+		return false
+	var state: Dictionary = value
+	return StringName(state.get("weapon_id", &"vector_bolt")) == &"gravity_wave_beam"

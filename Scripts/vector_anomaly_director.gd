@@ -311,7 +311,7 @@ func _connect_time_signals() -> void:
 
 
 func _connect_once(source: Node, signal_name: StringName, callable: Callable) -> void:
-	if source == null or not source.has_signal(signal_name):
+	if source == null or not is_instance_valid(source) or not source.has_signal(signal_name):
 		return
 	if not source.is_connected(signal_name, callable):
 		source.connect(signal_name, callable)
@@ -358,7 +358,9 @@ func _on_player_slingshot_mastery(data: Dictionary) -> void:
 func _on_kinetic_impact_dealt(target: Node, _damage: float, speed: float) -> void:
 	if speed < momentum_drift_min_speed:
 		return
-	var target_2d := target as Node2D
+	var target_2d: Node2D = null
+	if target != null and is_instance_valid(target):
+		target_2d = target as Node2D
 	var direction := Vector2.RIGHT
 	if _player != null and is_instance_valid(_player):
 		direction = _player.velocity.normalized() if _player.velocity.length_squared() > 0.001 else Vector2.RIGHT
@@ -632,9 +634,10 @@ func _update_debris_orbits(delta: float) -> void:
 	var erase_ids: Array[int] = []
 	for id in _debris_orbits.keys():
 		var orbit: Dictionary = _debris_orbits[id]
-		var debris : Node2D
-		if is_instance_valid(orbit.get("debris")):
-			debris = orbit.get("debris") 
+		var debris: Node2D = null
+		var debris_value: Variant = orbit.get("debris")
+		if debris_value != null and is_instance_valid(debris_value):
+			debris = debris_value as Node2D
 		if debris == null or not is_instance_valid(debris) or debris.is_queued_for_deletion():
 			erase_ids.append(id)
 			continue
@@ -642,8 +645,12 @@ func _update_debris_orbits(delta: float) -> void:
 		if not is_instance_id_valid(anchor_id):
 			erase_ids.append(id)
 			continue
-		var anchor := instance_from_id(anchor_id) as Node2D
-		if anchor == null or not is_instance_valid(anchor):
+		var anchor_value: Object = instance_from_id(anchor_id)
+		if anchor_value == null or not is_instance_valid(anchor_value):
+			erase_ids.append(id)
+			continue
+		var anchor := anchor_value as Node2D
+		if anchor == null or anchor.is_queued_for_deletion():
 			erase_ids.append(id)
 			continue
 
@@ -791,8 +798,10 @@ func _collect_targets(center: Vector2, radius: float, limit: int, include_player
 		for node in get_tree().get_nodes_in_group(group_name):
 			if _query_targets.size() >= limit:
 				return _query_targets
+			if node == null or not is_instance_valid(node):
+				continue
 			var body := node as Node2D
-			if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
+			if body == null or body.is_queued_for_deletion():
 				continue
 			if not include_player and body.is_in_group("Player"):
 				continue
@@ -821,8 +830,10 @@ func _refresh_gravity_sources() -> void:
 	var seen := {}
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for node in get_tree().get_nodes_in_group(group_name):
+			if node == null or not is_instance_valid(node):
+				continue
 			var source := node as Node2D
-			if source == null or not is_instance_valid(source) or source.is_queued_for_deletion():
+			if source == null or source.is_queued_for_deletion():
 				continue
 			var id := source.get_instance_id()
 			if seen.has(id):
@@ -857,8 +868,13 @@ func _count_valid_seeded_debris() -> int:
 	var count := 0
 	var erase_ids: Array[int] = []
 	for id in _debris_orbits.keys():
-		var debris := (_debris_orbits[id] as Dictionary).get("debris") as Node
-		if debris != null and is_instance_valid(debris) and not debris.is_queued_for_deletion():
+		var orbit_value: Variant = _debris_orbits[id]
+		var orbit: Dictionary = orbit_value if typeof(orbit_value) == TYPE_DICTIONARY else {}
+		var debris_value: Variant = orbit.get("debris")
+		var debris: Node = null
+		if debris_value != null and is_instance_valid(debris_value):
+			debris = debris_value as Node
+		if debris != null and not debris.is_queued_for_deletion():
 			count += 1
 		else:
 			erase_ids.append(id)
@@ -963,14 +979,20 @@ func _acquire_lens_visual() -> Line2D:
 
 
 func _release_lens_visual(lens: Dictionary) -> void:
-	var visual := lens.get("visual") as Line2D
-	if visual != null and is_instance_valid(visual):
+	var visual_value: Variant = lens.get("visual")
+	if visual_value == null or not is_instance_valid(visual_value):
+		return
+	var visual := visual_value as Line2D
+	if visual != null:
 		visual.visible = false
 
 
 func _update_lens_visual(lens: Dictionary, delta: float) -> void:
-	var visual := lens.get("visual") as Line2D
-	if visual == null or not is_instance_valid(visual):
+	var visual_value: Variant = lens.get("visual")
+	if visual_value == null or not is_instance_valid(visual_value):
+		return
+	var visual := visual_value as Line2D
+	if visual == null or visual.is_queued_for_deletion():
 		return
 	var age := float(lens.get("age", 0.0))
 	var duration := maxf(float(lens.get("duration", 1.0)), 0.001)

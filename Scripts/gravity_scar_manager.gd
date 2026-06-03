@@ -49,17 +49,17 @@ const ANY_SAMPLE_POSITION := Vector2(999999999.0, 999999999.0)
 @export var enabled: bool = true
 
 @export_group("Scar Creation")
-@export var max_active_scars: int = 8
+@export var max_active_scars: int = 5
 @export var base_radius: float = 340.0
 @export var radius_instability_bonus: float = 220.0
-@export var base_duration: float = 44.0
-@export var duration_instability_bonus: float = 38.0
+@export var base_duration: float = 24.0
+@export var duration_instability_bonus: float = 18.0
 @export var residual_intensity: float = 0.16
 @export var residual_decay_rate: float = 0.018
 @export var merge_distance: float = 180.0
 @export var fracture_stamp_cooldown: float = 2.4
-@export var slingshot_stamp_min_score: float = 0.74
-@export var persistent_scar_intensity_threshold: float = 0.82
+@export var slingshot_stamp_min_score: float = 0.86
+@export var persistent_scar_intensity_threshold: float = 0.9
 @export var persistent_scar_min_radius: float = 260.0
 @export var restore_persistent_scars_on_ready: bool = true
 
@@ -82,8 +82,9 @@ const ANY_SAMPLE_POSITION := Vector2(999999999.0, 999999999.0)
 @export var enable_visuals: bool = true
 @export_enum("Off", "Low", "High") var visual_quality: int = VisualQuality.HIGH
 @export var ring_segments: int = 72
-@export var max_particles_per_scar: int = 36
-@export var label_min_intensity: float = 0.18
+@export var max_particles_per_scar: int = 18
+@export var label_min_intensity: float = 0.32
+@export var visual_player_focus_radius: float = 1550.0
 
 var _scars: Array[Dictionary] = []
 var _visuals: Dictionary = {}
@@ -158,7 +159,7 @@ func _resolve_sources() -> void:
 
 
 func _connect_signal(source: Node, signal_name: StringName, callable: Callable) -> void:
-	if source == null or not source.has_signal(signal_name):
+	if source == null or not is_instance_valid(source) or not source.has_signal(signal_name):
 		return
 	if not source.is_connected(signal_name, callable):
 		source.connect(signal_name, callable)
@@ -371,9 +372,10 @@ func _apply_group_fields(groups: Array[StringName], target_limit: int, delta: fl
 
 	if RuntimeRegistry != null:
 		var sample_center := global_position
-		var player_2d := _player as Node2D
-		if player_2d != null and is_instance_valid(player_2d):
-			sample_center = player_2d.global_position
+		if _player != null and is_instance_valid(_player):
+			var player_2d := _player as Node2D
+			if player_2d != null and not player_2d.is_queued_for_deletion():
+				sample_center = player_2d.global_position
 		RuntimeRegistry.fill_targets_in_radius(groups, sample_center, 2600.0, target_limit, true, _scar_target_buffer)
 	else:
 		var seen := {}
@@ -639,11 +641,42 @@ func _sync_visuals(delta: float) -> void:
 	for scar in _scars:
 		var scar_id := int(scar.get("id", 0))
 		active_ids[scar_id] = true
+		if not _scar_in_player_focus(scar):
+			_remove_visual(scar_id)
+			continue
 		_update_visual(scar, delta)
 
 	for visual_id in _visuals.keys():
 		if not active_ids.has(int(visual_id)):
 			_remove_visual(int(visual_id))
+
+
+func _scar_in_player_focus(scar: Dictionary) -> bool:
+	if visual_player_focus_radius <= 0.0:
+		return true
+	if _player == null or not is_instance_valid(_player):
+		return true
+	var player_2d := _player as Node2D
+	if player_2d == null or player_2d.is_queued_for_deletion():
+		return true
+	var center: Vector2 = scar.get("position", Vector2.ZERO)
+	var radius := maxf(float(scar.get("radius", base_radius)), 1.0)
+	var max_distance := visual_player_focus_radius + radius
+	return player_2d.global_position.distance_squared_to(center) <= max_distance * max_distance
+
+
+func _visual_object(visual: Dictionary, key: String) -> Object:
+	var value: Variant = visual.get(key)
+	if value == null or not is_instance_valid(value):
+		return null
+	var object := value as Object
+	if object == null:
+		return null
+	if object is Node:
+		var node := object as Node
+		if node.is_queued_for_deletion():
+			return null
+	return object
 
 
 func _ensure_visual_root() -> void:
@@ -670,24 +703,28 @@ func _update_visual(scar: Dictionary, delta: float) -> void:
 		visual = _make_visual(scar_id, int(scar.get("type", ScarType.CURVATURE)))
 		_visuals[scar_id] = visual
 
-	var root := visual.get("root") as Node2D
-	if root == null or not is_instance_valid(root):
+	var root_value: Variant = visual.get("root")
+	if root_value == null or not is_instance_valid(root_value):
+		_visuals.erase(scar_id)
+		return
+	var root := root_value as Node2D
+	if root == null or root.is_queued_for_deletion():
 		_visuals.erase(scar_id)
 		return
 
-	var core := visual.get("core") as Polygon2D
-	var ring := visual.get("ring") as Line2D
-	var seam := visual.get("seam") as Line2D
-	var label := visual.get("label") as Label
-	var particles := visual.get("particles") as GPUParticles2D
-	var material := visual.get("particle_material") as ParticleProcessMaterial
+	var core := _visual_object(visual, "core") as Polygon2D
+	var ring := _visual_object(visual, "ring") as Line2D
+	var seam := _visual_object(visual, "seam") as Line2D
+	var label := _visual_object(visual, "label") as Label
+	var particles := _visual_object(visual, "particles") as GPUParticles2D
+	var material := _visual_object(visual, "particle_material") as ParticleProcessMaterial
 
 	var position: Vector2 = scar.get("position", Vector2.ZERO)
 	var radius := maxf(float(scar.get("radius", base_radius)), 1.0)
 	var intensity := clampf(float(scar.get("intensity", 0.0)), 0.0, 1.0)
 	var scar_type := int(scar.get("type", ScarType.CURVATURE))
 	var color := _scar_color(scar_type)
-	var alpha := lerpf(0.08, 0.68, intensity)
+	var alpha := lerpf(0.06, 0.46, intensity)
 	var axis: Vector2 = scar.get("axis", Vector2.RIGHT)
 	if axis.length_squared() <= 0.001:
 		axis = Vector2.RIGHT
@@ -815,9 +852,11 @@ func _remove_visual(scar_id: int) -> void:
 	var visual_value: Variant = _visuals.get(scar_id, {})
 	if typeof(visual_value) == TYPE_DICTIONARY:
 		var visual: Dictionary = visual_value
-		var root := visual.get("root") as Node
-		if root != null and is_instance_valid(root):
-			root.queue_free()
+		var root_value: Variant = visual.get("root")
+		if root_value != null and is_instance_valid(root_value):
+			var root := root_value as Node
+			if root != null:
+				root.queue_free()
 	_visuals.erase(scar_id)
 
 

@@ -73,9 +73,9 @@ const ZONE_COLORS = {
 @export var detection_interval: float = 0.18
 @export var resonance_detection_radius: float = 400.0
 @export var minimum_resonance_strength: float = 0.5
-@export var maximum_resonance_zones: int = 3
+@export var maximum_resonance_zones: int = 2
 @export var max_gravity_sources: int = 12
-@export var resonance_decay_rate: float = 2.0
+@export var resonance_decay_rate: float = 2.4
 @export var resonance_buildup_rate: float = 3.0
 
 @export_group("Projectile Warping")
@@ -103,11 +103,16 @@ const ZONE_COLORS = {
 @export_enum("Off", "Low", "High") var resonance_visual_quality: int = VisualQuality.HIGH
 @export var enable_zone_labels: bool = true
 @export var enable_zone_glyphs: bool = true
-@export var max_visual_particles_per_zone: int = 42
+@export var max_visual_particles_per_zone: int = 24
 @export var visual_ring_segments: int = 72
-@export var resonance_visual_alpha_scale: float = 0.62
-@export var maximum_manual_resonance_zones: int = 4
+@export var resonance_visual_alpha_scale: float = 0.48
+@export var maximum_manual_resonance_zones: int = 3
 @export var manual_zone_merge_distance: float = 120.0
+@export var visual_min_intensity: float = 0.26
+@export var visual_player_focus_radius: float = 1450.0
+@export var effect_player_focus_radius: float = 1750.0
+@export var harmonic_orbit_min_strength: float = 0.72
+@export var manual_zone_duration_scale: float = 0.72
 
 @export_group("Debris And Fractures")
 @export var enable_debris_compression: bool = true
@@ -274,7 +279,7 @@ func _classify_zone(source_a: Node2D, source_b: Node2D, _position: Vector2, dist
 
 	if combined_strength >= temporal_threshold:
 		return ZoneType.TEMPORAL_SCAR
-	if mass_delta <= 0.18 and distance <= resonance_detection_radius * 1.35:
+	if combined_strength >= harmonic_orbit_min_strength and mass_delta <= 0.18 and distance <= resonance_detection_radius * 1.35:
 		return ZoneType.HARMONIC_ORBIT
 	if distance <= resonance_detection_radius * 0.85:
 		return ZoneType.COMPRESSION
@@ -378,6 +383,8 @@ func _merge_resonance_zones(potential_zones: Array[Dictionary], delta: float) ->
 func _update_resonance_zones(delta: float) -> void:
 	for zone in _active_resonance_zones:
 		var intensity := float(zone.get("intensity", 0.0))
+		if not bool(zone.get("manual", false)) and not _zone_in_player_focus(zone, effect_player_focus_radius):
+			continue
 
 		if enable_projectile_acceleration and intensity > 0.3:
 			_apply_projectile_acceleration(zone, delta)
@@ -810,11 +817,46 @@ func _sync_zone_visuals(delta: float) -> void:
 	for zone in _active_resonance_zones:
 		var zone_id := int(zone.get("id", 0))
 		active_ids[zone_id] = true
+		if not _should_show_zone_visual(zone):
+			_remove_zone_visual(zone_id)
+			continue
 		_update_zone_visual(zone, delta)
 
 	for visual_id in _zone_visuals.keys():
 		if not active_ids.has(visual_id):
 			_remove_zone_visual(int(visual_id))
+
+func _should_show_zone_visual(zone: Dictionary) -> bool:
+	var intensity := clampf(float(zone.get("intensity", 0.0)), 0.0, 1.0)
+	if intensity < visual_min_intensity:
+		return false
+	if bool(zone.get("manual", false)):
+		return _zone_in_player_focus(zone, visual_player_focus_radius * 1.15)
+	return _zone_in_player_focus(zone, visual_player_focus_radius)
+
+func _zone_in_player_focus(zone: Dictionary, focus_radius: float) -> bool:
+	if focus_radius <= 0.0:
+		return true
+	var player := _player_node()
+	if player == null:
+		return true
+	var center: Vector2 = zone.get("midpoint", Vector2.ZERO)
+	var radius := _zone_radius(zone)
+	var max_distance := focus_radius + radius
+	return player.global_position.distance_squared_to(center) <= max_distance * max_distance
+
+func _visual_object(visual: Dictionary, key: String) -> Object:
+	var value: Variant = visual.get(key)
+	if value == null or not is_instance_valid(value):
+		return null
+	var object := value as Object
+	if object == null:
+		return null
+	if object is Node:
+		var node := object as Node
+		if node.is_queued_for_deletion():
+			return null
+	return object
 
 func _ensure_visual_root() -> void:
 	if _visual_root != null and is_instance_valid(_visual_root):
@@ -839,16 +881,20 @@ func _update_zone_visual(zone: Dictionary, delta: float) -> void:
 		visual = _make_zone_visual(zone_id, _zone_type(zone))
 		_zone_visuals[zone_id] = visual
 
-	var root := visual.get("root") as Node2D
-	var core := visual.get("core") as Polygon2D
-	var ring := visual.get("ring") as Line2D
-	var accent := visual.get("accent") as Line2D
-	var label := visual.get("label") as Label
-	var particles := visual.get("particles") as GPUParticles2D
-	var material := visual.get("particle_material") as ParticleProcessMaterial
+	var root_value: Variant = visual.get("root")
+	if root_value == null or not is_instance_valid(root_value):
+		_zone_visuals.erase(zone_id)
+		return
+	var root := root_value as Node2D
+	var core := _visual_object(visual, "core") as Polygon2D
+	var ring := _visual_object(visual, "ring") as Line2D
+	var accent := _visual_object(visual, "accent") as Line2D
+	var label := _visual_object(visual, "label") as Label
+	var particles := _visual_object(visual, "particles") as GPUParticles2D
+	var material := _visual_object(visual, "particle_material") as ParticleProcessMaterial
 	var glyphs_value = visual.get("glyphs", [])
 	var glyphs: Array = glyphs_value if typeof(glyphs_value) == TYPE_ARRAY else []
-	if root == null or not is_instance_valid(root):
+	if root == null or root.is_queued_for_deletion():
 		_zone_visuals.erase(zone_id)
 		return
 
@@ -883,7 +929,7 @@ func _update_zone_visual(zone: Dictionary, delta: float) -> void:
 		accent.width = lerpf(0.8, 1.8, intensity)
 		accent.default_color = Color(1.0, 1.0, 1.0, life_alpha * 0.24)
 	if label != null:
-		label.visible = enable_zone_labels and intensity > 0.16
+		label.visible = enable_zone_labels and intensity > 0.38
 		label.text = _zone_readable_label(zone_type)
 		label.position = Vector2(-106.0, -radius - 38.0)
 		label.size = Vector2(212.0, 26.0)
@@ -897,8 +943,11 @@ func _update_zone_visual(zone: Dictionary, delta: float) -> void:
 	_track_player_zone_entry(zone)
 
 func _track_player_zone_entry(zone: Dictionary) -> void:
-	var player := get_tree().get_first_node_in_group("Player") as Node2D
-	if player == null:
+	var player_value := get_tree().get_first_node_in_group("Player")
+	if player_value == null or not is_instance_valid(player_value):
+		return
+	var player := player_value as Node2D
+	if player == null or player.is_queued_for_deletion():
 		return
 	var zone_id := int(zone.get("id", 0))
 	if zone_id == 0:
@@ -945,8 +994,11 @@ func _update_zone_glyphs(glyphs: Array, zone_type: int, radius: float, intensity
 	var alpha := lerpf(0.14, 0.62, intensity) * clampf(resonance_visual_alpha_scale, 0.1, 1.0)
 
 	for i in range(glyphs.size()):
-		var glyph := glyphs[i] as Line2D
-		if glyph == null or not is_instance_valid(glyph):
+		var glyph_value: Variant = glyphs[i]
+		if glyph_value == null or not is_instance_valid(glyph_value):
+			continue
+		var glyph := glyph_value as Line2D
+		if glyph == null or glyph.is_queued_for_deletion():
 			continue
 
 		glyph.visible = visible
@@ -1018,9 +1070,11 @@ func _remove_zone_visual(zone_id: int) -> void:
 	var visual_value = _zone_visuals.get(zone_id, {})
 	var visual: Dictionary = visual_value if typeof(visual_value) == TYPE_DICTIONARY else {}
 	if not visual.is_empty():
-		var root := visual.get("root") as Node
-		if root != null and is_instance_valid(root):
-			root.queue_free()
+		var root_value: Variant = visual.get("root")
+		if root_value != null and is_instance_valid(root_value):
+			var root := root_value as Node
+			if root != null:
+				root.queue_free()
 	_zone_visuals.erase(zone_id)
 
 func _clear_zone_visuals() -> void:
@@ -1211,7 +1265,7 @@ func amplify_slingshot_mastery(data: Dictionary) -> int:
 		return 0
 
 	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
-	if score < 0.56:
+	if score < 0.86:
 		return 0
 
 	var position: Vector2 = data.get("position", Vector2.ZERO)
@@ -1234,14 +1288,14 @@ func amplify_slingshot_mastery(data: Dictionary) -> int:
 	var zone_type := ZoneType.SLIPSTREAM
 	if time_stacks > 0:
 		zone_type = ZoneType.TEMPORAL_SCAR
-	elif orbital_stacks > 0 and score >= 0.82:
+	elif orbital_stacks > 0 and score >= 0.94:
 		zone_type = ZoneType.HARMONIC_ORBIT
 	elif singularity_stacks > 0:
 		zone_type = ZoneType.INVERSION
 
 	var zone_position := position + tangent * zone_radius * 0.36
 	var intensity := clampf(0.48 + score * 0.42 + float(combo) * 0.035, 0.05, 1.0)
-	var duration := 0.7 + score * 0.8 + float(combo) * 0.08
+	var duration := 0.48 + score * 0.54 + float(combo) * 0.05
 	var zone_id := create_manual_resonance_zone(zone_position, zone_radius, zone_type, intensity, duration)
 
 	for idx in range(_active_resonance_zones.size()):
@@ -1262,7 +1316,8 @@ func amplify_slingshot_mastery(data: Dictionary) -> int:
 	return zone_id
 
 func create_manual_resonance_zone(position: Vector2, radius: float, zone_type: int = ZoneType.HARMONIC_ORBIT, intensity: float = 0.65, duration: float = 2.0) -> int:
-	var merged_id := _merge_nearby_manual_zone(position, radius, zone_type, intensity, duration)
+	var scaled_duration := maxf(duration * manual_zone_duration_scale, 0.1)
+	var merged_id := _merge_nearby_manual_zone(position, radius, zone_type, intensity, scaled_duration)
 	if merged_id != 0:
 		return merged_id
 
@@ -1277,8 +1332,8 @@ func create_manual_resonance_zone(position: Vector2, radius: float, zone_type: i
 		"combined_strength": maxf(intensity, minimum_resonance_strength),
 		"intensity": clampf(intensity, 0.05, 1.0),
 		"base_intensity": clampf(intensity, 0.05, 1.0),
-		"duration": maxf(duration, 0.1),
-		"remaining": maxf(duration, 0.1),
+		"duration": scaled_duration,
+		"remaining": scaled_duration,
 		"zone_type": clamped_type,
 		"zone_type_name": _zone_type_name(clamped_type),
 		"zone_display_name": _zone_display_name(clamped_type),

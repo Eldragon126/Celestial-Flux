@@ -52,6 +52,7 @@ const BULLET_SCENE = preload("res://Nodes/enemy_bullet.tscn")
 @export var max_health := 2400.0
 @export var contact_damage := 24.0
 @export var bullet_spawn_distance := 155.0
+@export var pressure_scale := 1.0
 
 var current_health := 2400.0
 
@@ -360,8 +361,19 @@ func enter_phase(new_phase: int) -> void:
 
 			fire_timer.wait_time = 0.46
 
+	apply_phase_pressure()
+
 	if aura_polygon != null:
 		aura_polygon.color = Color(body_polygon.color.r, body_polygon.color.g, body_polygon.color.b, 0.16)
+
+func apply_phase_pressure() -> void:
+	var pressure := maxf(pressure_scale, 1.0)
+	var pressure_t := clampf((pressure - 1.0) / 1.4, 0.0, 1.0)
+	engine_force *= lerpf(1.0, 1.32, pressure_t)
+	max_speed *= lerpf(1.0, 1.18, pressure_t)
+	anchor_follow_rate *= lerpf(1.0, 1.16, pressure_t)
+	if fire_timer != null:
+		fire_timer.wait_time = maxf(fire_timer.wait_time / lerpf(1.0, 1.48, pressure_t), 0.24)
 
 # ============================================================================
 # MOVEMENT PATTERNS
@@ -631,6 +643,7 @@ func spawn_bullet(
 	direction = direction.normalized()
 	if direction == Vector2.ZERO:
 		direction = Vector2.RIGHT.rotated(rotation)
+	speed = _scaled_bullet_speed(speed)
 
 	var bullet = BULLET_SCENE.instantiate()
 
@@ -646,6 +659,10 @@ func spawn_bullet(
 		bullet.set("initial_speed", speed)
 
 	get_parent().add_child(bullet)
+
+func _scaled_bullet_speed(speed: float) -> float:
+	var pressure_t := clampf((maxf(pressure_scale, 1.0) - 1.0) / 1.4, 0.0, 1.0)
+	return speed * lerpf(1.0, 1.22, pressure_t)
 
 # ============================================================================
 # DAMAGE

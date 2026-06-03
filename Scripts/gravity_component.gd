@@ -66,8 +66,10 @@ func refresh_sources() -> void:
 			if String(group_name).is_empty():
 				continue
 			for source in get_tree().get_nodes_in_group(group_name):
+				if source == null or not is_instance_valid(source):
+					continue
 				var source_2d := source as Node2D
-				if source_2d == null:
+				if source_2d == null or source_2d.is_queued_for_deletion():
 					continue
 				var id := source_2d.get_instance_id()
 				if seen.has(id):

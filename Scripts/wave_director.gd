@@ -221,21 +221,20 @@ func _spawn_boss_wave() -> void:
 	_last_boss_scene_path = boss_scene.resource_path
 	var boss = boss_scene.instantiate()
 	boss.name = "%sWave%d" % [_boss_node_prefix(boss_scene), _wave]
-	var boss_health := 2100.0 + 520.0 * float(_wave / boss_every_waves)
-	if RunProgress and RunProgress.boss_rush_mode:
-		boss_health *= float(RunProgress.challenge_modifiers.get("boss_health_multiplier", 1.12))
+	var boss_health := _boss_health_for_scene(boss_scene)
 	boss.set("max_health", boss_health)
 
-	var scale_factor := 1.0 + 0.06 * float(_wave / boss_every_waves)
+	var scale_factor := 1.08 + 0.08 * float(_wave / boss_every_waves)
 	if boss.get("projectile_speed") != null:
 		boss.set("projectile_speed", float(boss.get("projectile_speed")) * scale_factor)
 	if boss.get("contact_damage") != null:
-		boss.set("contact_damage", float(boss.get("contact_damage")) * (1.0 + 0.08 * float(_wave / boss_every_waves)))
+		boss.set("contact_damage", float(boss.get("contact_damage")) * (1.08 + 0.1 * float(_wave / boss_every_waves)))
 	if boss.get("move_speed") != null:
-		boss.set("move_speed", float(boss.get("move_speed")) * (1.0 + 0.03 * float(_wave / boss_every_waves)))
+		boss.set("move_speed", float(boss.get("move_speed")) * (1.06 + 0.04 * float(_wave / boss_every_waves)))
 
 	_level_root.add_child(boss)
 	boss.global_position = _spawn_position_for_index(_wave)
+	_apply_boss_pressure_tuning(boss, boss_scene, boss_health)
 	_refresh_player_planet_cache()
 
 	_boss = boss
@@ -492,6 +491,89 @@ func _boss_node_prefix(scene: PackedScene) -> String:
 	if scene == CENTRIFUGE_MARSHAL_SCENE:
 		return "CentrifugeMarshal"
 	return "GravityWarden"
+
+func _boss_pressure_index(scene: PackedScene) -> int:
+	if scene == ACCRETION_CORE_SCENE:
+		return 1
+	if scene == NULL_SERAPH_SCENE:
+		return 2
+	if scene == MAGNETAR_TWINS_SCENE:
+		return 3
+	if scene == RIFT_WEAVER_SCENE:
+		return 4
+	if scene == POLYMORPH_BOSS_SCENE:
+		return 5
+	if scene == CENTRIFUGE_MARSHAL_SCENE:
+		return 6
+	return 0
+
+func _boss_health_for_scene(scene: PackedScene) -> float:
+	var boss_index := _boss_pressure_index(scene)
+	var base_health := 2900.0 + float(boss_index) * 360.0
+	if scene == POLYMORPH_BOSS_SCENE:
+		base_health = 4700.0
+	elif scene == CENTRIFUGE_MARSHAL_SCENE:
+		base_health = 5100.0
+	var wave_pressure := 1.0 + 0.055 * float(maxi(_wave - boss_every_waves, 0))
+	var health := base_health * wave_pressure
+	if RunProgress and RunProgress.boss_rush_mode:
+		health *= float(RunProgress.challenge_modifiers.get("boss_health_multiplier", 1.18))
+	return health
+
+func _apply_boss_pressure_tuning(boss: Node, scene: PackedScene, boss_health: float) -> void:
+	if boss == null or not is_instance_valid(boss):
+		return
+	var pressure := 1.08 + 0.08 * float(_boss_pressure_index(scene)) + 0.018 * float(_wave)
+	if RunProgress and RunProgress.boss_rush_mode:
+		pressure *= 1.08
+
+	if boss.get("pressure_scale") != null:
+		boss.set("pressure_scale", pressure)
+	_scale_node_float(boss, &"projectile_speed", 1.0 + pressure * 0.08)
+	_scale_node_float(boss, &"bullet_speed", 1.0 + pressure * 0.08)
+	_scale_node_float(boss, &"move_speed", 1.0 + pressure * 0.035)
+	_scale_node_float(boss, &"max_speed", 1.0 + pressure * 0.03)
+	_scale_node_float(boss, &"engine_force", 1.0 + pressure * 0.08)
+	_scale_node_float(boss, &"gravity_strength", 1.0 + pressure * 0.1)
+	_scale_node_float(boss, &"lane_force", 1.0 + pressure * 0.08)
+	_scale_node_float(boss, &"contact_damage", 1.0 + pressure * 0.06)
+	_scale_node_float(boss, &"summon_interval", 0.82)
+	_scale_node_float(boss, &"fire_interval", 0.74)
+	_scale_node_float(boss, &"attack_interval", 0.72)
+
+	var health_component := boss.get_node_or_null("HealthComponent") as HealthComponent
+	if health_component != null:
+		health_component.max_health = maxf(health_component.max_health, boss_health)
+		health_component.current_health = health_component.max_health
+		if health_component.has_signal("health_changed"):
+			health_component.health_changed.emit(health_component.current_health, health_component.max_health)
+
+	_scale_timer_wait(_timer_from_property(boss, &"attack_timer"), 0.72)
+	_scale_timer_wait(_timer_from_property(boss, &"fire_timer"), 0.74)
+	_scale_timer_wait(_timer_from_property(boss, &"summon_timer"), 0.82)
+	_scale_timer_wait(boss.get_node_or_null("AttackPatternTimer") as Timer, 0.72)
+	_scale_timer_wait(boss.get_node_or_null("BossFireTimer") as Timer, 0.74)
+	_scale_timer_wait(boss.get_node_or_null("BossSummonTimer") as Timer, 0.82)
+
+func _scale_node_float(node: Node, property_name: StringName, multiplier: float) -> void:
+	var value: Variant = node.get(property_name)
+	if typeof(value) != TYPE_FLOAT and typeof(value) != TYPE_INT:
+		return
+	node.set(property_name, float(value) * multiplier)
+
+func _timer_from_property(node: Node, property_name: StringName) -> Timer:
+	var value: Variant = node.get(property_name)
+	if value == null or not is_instance_valid(value):
+		return null
+	var timer := value as Timer
+	if timer == null or timer.is_queued_for_deletion():
+		return null
+	return timer
+
+func _scale_timer_wait(timer: Timer, multiplier: float) -> void:
+	if timer == null or not is_instance_valid(timer) or timer.is_queued_for_deletion():
+		return
+	timer.wait_time = maxf(timer.wait_time * multiplier, 0.28)
 
 func _on_boss_health_changed(current_health: float, max_health: float) -> void:
 	_boss_bar.max_value = maxf(max_health, 1.0)

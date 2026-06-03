@@ -13,6 +13,8 @@ const VACUUM_COLLAPSE_INJECTOR = preload("res://Scripts/Powerups/vacuum_collapse
 const RELATIVISTIC_RAIL = preload("res://Scripts/Powerups/relativistic_rail.tres")
 const ORBITAL_DEBRIS_SEEDER = preload("res://Scripts/Powerups/orbital_debris_seeder.tres")
 const CHRONAL_REFRACTION_BEAM = preload("res://Scripts/Powerups/chronal_refraction_beam.tres")
+const BARYCENTRIC_TETHER = preload("res://Scripts/Powerups/barycentric_tether.tres")
+const FRAME_DRAGGING_ANCHOR = preload("res://Scripts/Powerups/frame_dragging_anchor.tres")
 
 static func get_all_definitions() -> Array[PowerupDefinition]:
 	return [
@@ -27,6 +29,8 @@ static func get_all_definitions() -> Array[PowerupDefinition]:
 		RELATIVISTIC_RAIL,
 		ORBITAL_DEBRIS_SEEDER,
 		CHRONAL_REFRACTION_BEAM,
+		BARYCENTRIC_TETHER,
+		FRAME_DRAGGING_ANCHOR,
 	]
 
 static func get_definition(powerup_id: StringName) -> PowerupDefinition:

@@ -5,14 +5,15 @@ signal spacetime_swim_triggered(data: Dictionary)
 signal spacetime_glitch_triggered(data: Dictionary)
 
 @export var enabled: bool = true
-@export var swim_lifetime: float = 0.72
-@export var swim_spawn_interval: float = 0.07
-@export var max_swim_ribbons: int = 14
-@export var max_glitch_slices: int = 16
-@export var overlay_alpha_cap: float = 0.16
-@export var ribbon_point_count: int = 12
-@export var ribbon_length: float = 260.0
-@export var ribbon_width: float = 2.6
+@export var swim_lifetime: float = 0.42
+@export var swim_spawn_interval: float = 0.16
+@export var max_swim_ribbons: int = 7
+@export var max_glitch_slices: int = 8
+@export var overlay_alpha_cap: float = 0.10
+@export var ribbon_point_count: int = 9
+@export var ribbon_length: float = 96.0
+@export var ribbon_width: float = 3.0
+@export var phase_shell_radius: float = 54.0
 
 var _player: Node2D = null
 var _time_manager: Node = null
@@ -27,6 +28,7 @@ var _swim_intensity := 0.0
 var _swim_until := 0.0
 var _swim_elapsed := 999.0
 var _time_tear_intensity := 0.0
+var _last_weapon_swim_time := -999.0
 
 
 func _ready() -> void:
@@ -79,7 +81,7 @@ func _connect_sources() -> void:
 
 
 func _connect_once(source: Node, signal_name: StringName, callable: Callable) -> void:
-	if source == null or not source.has_signal(signal_name):
+	if source == null or not is_instance_valid(source) or not source.has_signal(signal_name):
 		return
 	if not source.is_connected(signal_name, callable):
 		source.connect(signal_name, callable)
@@ -107,7 +109,7 @@ func _on_local_time_pocket_entered(target: Node, multiplier: float, _duration: f
 
 func _on_slingshot_mastery_scored(data: Dictionary) -> void:
 	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
-	if score < 0.74:
+	if score < 0.86:
 		return
 	var position: Vector2 = data.get("position", _player_position())
 	var tangent: Vector2 = data.get("tangent", _player_velocity())
@@ -119,6 +121,10 @@ func _on_slingshot_mastery_scored(data: Dictionary) -> void:
 func _on_weapon_fired(weapon_id: StringName, weapon_data: Dictionary) -> void:
 	if weapon_id == &"vector_bolt":
 		return
+	var now := _now_seconds()
+	if now - _last_weapon_swim_time < 0.22:
+		return
+	_last_weapon_swim_time = now
 	var origin: Vector2 = weapon_data.get("origin", _player_position())
 	var direction: Vector2 = weapon_data.get("direction", _player_velocity())
 	_trigger_swim(origin, direction, 0.46, 0.28, Color(1.0, 0.76, 0.32, 1.0), weapon_id == &"positron_beam")
@@ -185,9 +191,11 @@ func _update_swim(delta: float) -> void:
 func _spawn_ribbon(position: Vector2, direction: Vector2, intensity: float, color: Color) -> void:
 	if _ribbons.size() >= max_swim_ribbons:
 		var oldest := _ribbons.pop_front() as Dictionary
-		var old_node := oldest.get("node") as Node
-		if old_node != null and is_instance_valid(old_node):
-			old_node.queue_free()
+		var old_value: Variant = oldest.get("node")
+		if old_value != null and is_instance_valid(old_value):
+			var old_node := old_value as Node
+			if old_node != null:
+				old_node.queue_free()
 	if direction.length_squared() <= 0.001:
 		direction = Vector2.RIGHT
 	direction = direction.normalized()
@@ -195,8 +203,10 @@ func _spawn_ribbon(position: Vector2, direction: Vector2, intensity: float, colo
 	var ribbon := Line2D.new()
 	ribbon.name = "SpacetimeSwimRibbon"
 	ribbon.antialiased = true
+	ribbon.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	ribbon.end_cap_mode = Line2D.LINE_CAP_ROUND
 	ribbon.width = ribbon_width * lerpf(0.72, 1.45, intensity)
-	ribbon.default_color = _safe_color(color, lerpf(0.18, 0.58, intensity))
+	ribbon.default_color = _safe_color(color, lerpf(0.16, 0.46, intensity))
 	ribbon.z_index = 33
 	ribbon.global_position = position
 	ribbon.points = _swim_points(direction, intensity)
@@ -213,9 +223,11 @@ func _spawn_ribbon(position: Vector2, direction: Vector2, intensity: float, colo
 func _spawn_glitch_slice(intensity: float, color: Color) -> void:
 	while _glitch_slices.size() >= max_glitch_slices and not _glitch_slices.is_empty():
 		var oldest := _glitch_slices.pop_front() as Dictionary
-		var old_node := oldest.get("node") as Node
-		if old_node != null and is_instance_valid(old_node):
-			old_node.queue_free()
+		var old_value: Variant = oldest.get("node")
+		if old_value != null and is_instance_valid(old_value):
+			var old_node := old_value as Node
+			if old_node != null:
+				old_node.queue_free()
 
 	var rect := ColorRect.new()
 	rect.name = "SpacetimeGlitchSlice"
@@ -243,8 +255,12 @@ func _spawn_glitch_slice(intensity: float, color: Color) -> void:
 func _update_ribbons(delta: float) -> void:
 	for i in range(_ribbons.size() - 1, -1, -1):
 		var entry := _ribbons[i]
-		var line := entry.get("node") as Line2D
-		if line == null or not is_instance_valid(line):
+		var line_value: Variant = entry.get("node")
+		if line_value == null or not is_instance_valid(line_value):
+			_ribbons.remove_at(i)
+			continue
+		var line := line_value as Line2D
+		if line == null:
 			_ribbons.remove_at(i)
 			continue
 		var age := float(entry.get("age", 0.0)) + delta
@@ -262,8 +278,12 @@ func _update_ribbons(delta: float) -> void:
 func _update_glitch_slices(delta: float) -> void:
 	for i in range(_glitch_slices.size() - 1, -1, -1):
 		var entry := _glitch_slices[i]
-		var rect := entry.get("node") as ColorRect
-		if rect == null or not is_instance_valid(rect):
+		var rect_value: Variant = entry.get("node")
+		if rect_value == null or not is_instance_valid(rect_value):
+			_glitch_slices.remove_at(i)
+			continue
+		var rect := rect_value as ColorRect
+		if rect == null:
 			_glitch_slices.remove_at(i)
 			continue
 		var age := float(entry.get("age", 0.0)) + delta
@@ -320,13 +340,16 @@ func _ensure_screen_nodes() -> void:
 func _swim_points(direction: Vector2, intensity: float) -> PackedVector2Array:
 	var points := PackedVector2Array()
 	var normal := direction.orthogonal()
-	var length := ribbon_length * lerpf(0.75, 1.45, intensity)
-	var amplitude := lerpf(10.0, 36.0, intensity)
-	for i in range(maxi(ribbon_point_count, 3)):
+	var radius := phase_shell_radius * lerpf(0.85, 1.42, intensity)
+	var arc := lerpf(0.85, 1.55, intensity)
+	var rear_offset := -direction * radius * 0.28
+	var shimmer := sin(_now_seconds() * 18.0) * radius * 0.04 * intensity
+	for i in range(maxi(ribbon_point_count, 4)):
 		var t := float(i) / float(maxi(ribbon_point_count - 1, 1))
-		var along := direction * lerpf(-length * 0.18, length, t)
-		var wobble := normal * sin(t * TAU * 1.5 + _now_seconds() * 6.0) * amplitude * (1.0 - t * 0.45)
-		points.append(along + wobble)
+		var angle := lerpf(-arc, arc, t)
+		var point := rear_offset + direction.rotated(angle) * radius
+		point += normal * sin(t * PI) * shimmer
+		points.append(point)
 	return points
 
 

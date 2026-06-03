@@ -262,6 +262,8 @@ func _refresh_gravity_sources() -> void:
 
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for source in get_tree().get_nodes_in_group(group_name):
+			if source == null or not is_instance_valid(source):
+				continue
 
 			if not source is Node2D:
 				continue

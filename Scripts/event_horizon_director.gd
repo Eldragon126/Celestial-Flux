@@ -466,8 +466,10 @@ func _nearest_gravity_source() -> Node2D:
 	var best_distance := INF
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for node in get_tree().get_nodes_in_group(group_name):
+			if node == null or not is_instance_valid(node):
+				continue
 			var source := node as Node2D
-			if source == null or source == _player or not is_instance_valid(source) or source.is_queued_for_deletion():
+			if source == null or source == _player or source.is_queued_for_deletion():
 				continue
 			var distance := source.global_position.distance_squared_to(_player.global_position)
 			if distance < best_distance:

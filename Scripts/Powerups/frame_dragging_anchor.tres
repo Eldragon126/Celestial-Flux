@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PowerupDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/powerup_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+powerup_id = &"frame_dragging_anchor"
+display_name = "Frame-Dragging Anchor"
+effect_type = &"frame_dragging_anchor"
+stack_policy = 0
+max_stacks = 3
+duration = 0.0
+amount = 300.0
+secondary_amount = 0.42
+radius = 470.0
+color = Color(1, 0.72, 0.28, 1)

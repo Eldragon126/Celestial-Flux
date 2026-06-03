@@ -110,8 +110,8 @@ signal flow_state_changed(active: bool, intensity: float)
 @export var slingshot_visuals_enabled: bool = true
 @export var flow_visuals_enabled: bool = true
 @export var mastery_audio_enabled: bool = true
-@export var mastery_particle_cap: int = 18
-@export var great_ring_min_score: float = 0.7
+@export var mastery_particle_cap: int = 10
+@export var great_ring_min_score: float = 0.86
 
 # ========================
 # == INTERNAL STATE ==
@@ -391,8 +391,6 @@ func _on_slingshot(_source, _grav, _impulse, strength, _speed) -> void:
 func _on_slingshot_mastery_scored(data: Dictionary) -> void:
 	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
 	if score < mastery_good_threshold:
-		if slingshot_visuals_enabled:
-			_spawn_slingshot_mastery_visual(data, false)
 		return
 
 	var increment := 1
@@ -582,7 +580,7 @@ func _extend_mastery_combo(reason: StringName, event_position: Vector2) -> void:
 	# Combo extensions use a small local ping; the main mastery signal is reserved for fresh slingshots.
 	# slingshot_mastery_triggered.emit(data) 
 
-	if slingshot_visuals_enabled:
+	if slingshot_visuals_enabled and _mastery_combo >= flow_enter_combo:
 		_spawn_combo_ping(event_position, reason)
 
 func _current_mastery_tier() -> StringName:
@@ -675,7 +673,7 @@ func _should_play_slingshot_audio(data: Dictionary) -> bool:
 	var coordinator := JuiceCoordinator.find_coordinator(get_tree())
 	if coordinator != null:
 		return coordinator.should_play_slingshot_audio(data)
-	return float(data.get("score", 0.0)) >= mastery_good_threshold
+	return float(data.get("score", 0.0)) >= great_ring_min_score
 
 
 func _should_spawn_impact_mastery_flash(_position: Vector2, _damage: float) -> bool:

@@ -8,8 +8,8 @@ const PLAYER_SHOOT_STREAM := preload("res://Assets/Sound Effects/PlayerShoot.wav
 const IMPACT_STREAM := preload("res://Assets/Sound Effects/explosion.wav")
 
 @export var enabled: bool = true
-@export var max_simultaneous_cues: int = 10
-@export var minimum_cue_gap: float = 0.045
+@export var max_simultaneous_cues: int = 6
+@export var minimum_cue_gap: float = 0.09
 @export var bus_name: StringName = &"Player Sound Effects"
 
 @export_group("Volumes")
@@ -82,7 +82,7 @@ func _resolve_sources() -> void:
 
 
 func _connect_signal(source: Node, signal_name: StringName, callable: Callable) -> void:
-	if source == null or not source.has_signal(signal_name):
+	if source == null or not is_instance_valid(source) or not source.has_signal(signal_name):
 		return
 	if not source.is_connected(signal_name, callable):
 		source.connect(signal_name, callable)
@@ -97,6 +97,8 @@ func _on_dilation_ended() -> void:
 
 
 func _on_local_time_pocket_entered(target: Node, multiplier: float, _duration: float) -> void:
+	if target == null or not is_instance_valid(target):
+		return
 	var target_2d := target as Node2D
 	if target_2d == null:
 		return
@@ -148,6 +150,8 @@ func _on_shield_restored(_amount: float, _current_energy: float, _max_capacity: 
 
 
 func _on_resonance_zone_decayed(zone_data: Dictionary) -> void:
+	if not bool(zone_data.get("manual", false)) and float(zone_data.get("intensity", 0.0)) < 0.58:
+		return
 	var position: Vector2 = zone_data.get("midpoint", Vector2.ZERO)
 	_play_positional_cue(PLAYER_SHOOT_STREAM, position, resonance_cue_volume_db - 6.0, 0.52)
 
@@ -179,7 +183,12 @@ func _on_time_tear_intensity_changed(intensity: float) -> void:
 func _play_zone_cue(zone_data: Dictionary, volume_offset: float) -> void:
 	var position: Vector2 = zone_data.get("midpoint", Vector2.ZERO)
 	var intensity := clampf(float(zone_data.get("intensity", 0.35)), 0.0, 1.0)
+	var manual := bool(zone_data.get("manual", false))
+	if intensity < 0.5 and not manual:
+		return
 	var zone_name := StringName(zone_data.get("zone_type_name", &"compression"))
+	if zone_name == &"harmonic_orbit" and intensity < 0.68 and not manual:
+		return
 	var pitch := 0.78
 	match zone_name:
 		&"slipstream":

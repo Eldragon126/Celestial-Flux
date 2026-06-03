@@ -101,6 +101,8 @@ func _refresh_targets() -> void:
 		RuntimeRegistry.fill_group(&"enemies", _enemy_scan_buffer)
 	else:
 		for node in get_tree().get_nodes_in_group("enemies"):
+			if node == null or not is_instance_valid(node):
+				continue
 			var enemy := node as Node2D
 			if enemy == null:
 				continue
@@ -323,8 +325,8 @@ func _apply_tidal_surge(enemy: Node2D, polarity: float) -> void:
 	if not is_instance_valid(enemy): return
 	for body in _nearby_bodies(enemy.global_position, tide_radius):
 		if body == enemy: continue
-		var body_2d = body as Node2D
-		if not is_instance_valid(body_2d): continue
+		if body == null or not is_instance_valid(body) or body.is_queued_for_deletion(): continue
+		var body_2d := body
 		var offset = body_2d.global_position - enemy.global_position
 		var distance := maxf(offset.length(), 0.001)
 		var falloff := 1.0 - clampf(distance / tide_radius, 0.0, 1.0)
@@ -351,7 +353,7 @@ func _nearby_bodies(center: Vector2, radius: float) -> Array[Node2D]:
 	
 	for group_name in FIELD_TARGET_GROUPS:
 		for node in get_tree().get_nodes_in_group(group_name):
-			if not is_instance_valid(node): continue
+			if node == null or not is_instance_valid(node): continue
 			var body_2d := _motion_body(node)
 			if not is_instance_valid(body_2d): continue
 			var id := body_2d.get_instance_id()
@@ -423,7 +425,7 @@ func _refresh_gravity_sources() -> void:
 	var seen := {}
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for node in get_tree().get_nodes_in_group(group_name):
-			if not is_instance_valid(node): continue
+			if node == null or not is_instance_valid(node): continue
 			var s2d := node as Node2D
 			if s2d == null or s2d.is_queued_for_deletion(): continue
 			var id := s2d.get_instance_id()

@@ -6,6 +6,7 @@
 
 - `RuntimeRegistry` is the autoload cache for gravity sources, projectile groups, enemy groups, boss groups, and player targets. Hot systems use it instead of rescanning scene groups during physics ticks.
 - `OrbitalHUD` owns player-facing readouts, gravity arrows, and offscreen threat arrows.
+- `DebugBalanceOverlay` is restored as development telemetry by default and remains toggleable with F3.
 - `GravityResonanceManager` samples gravity-source overlap and emits zone dictionaries for gameplay, VFX, HUD, and audio.
 - `TimeDilationManager` applies player-safe dilation plus localized time pockets through metadata and lightweight signals.
 - `OrbitalVFXDirector` listens to gameplay signals and spawns capped burst particles from inspector-editable templates.
@@ -35,7 +36,7 @@ One-shot detached bursts should use reusable scenes, set their final transform b
 
 `OrbitalVFXDirector` prewarms burst pools per template and reuses those `GPUParticles2D` nodes for time dilation, kinetic impact, resonance, slingshot, and ambient feedback. New burst templates must be added to the pool path rather than duplicated at signal time.
 
-Powerup and law-fusion feedback rings are pooled `Line2D` nodes. Upgrade pickup flashes, slingshot law convergence, Apex Vector releases, and fusion feedback must reuse the inventory ring pools and respect `Settings.flash_alpha()`.
+Powerup and law-fusion feedback rings are pooled `Line2D` nodes. Upgrade pickup flashes, slingshot law convergence, Apex Vector releases, Barycentric/Frame-Dragging pickup feedback, and fusion feedback must reuse the inventory ring pools and respect `Settings.flash_alpha()`.
 
 ## Enemy And Boss Visuals
 
@@ -75,6 +76,18 @@ Current visual readability rules:
 - In-world labels use action language, not system jargon: `PULL IN`, `PUSH OUT`, `FLOW ARC`, `SLOW SHOTS`, and `ORBIT BEND`.
 - Manual slingshot-created resonance zones merge with nearby matching zones and cap their active count to avoid unreadable ring stacks.
 - Resonance visual alpha is intentionally subdued; gameplay meaning should come from shape, direction, and label before brightness.
+- Automatic resonance is capped to the strongest local zones, decays aggressively, and only renders when it is intense enough and close enough to the player to matter.
+- Harmonic orbit fields require stronger source overlap than compression/slipstream fields and slingshot-created harmonic zones only appear on apex-quality orbital play.
+- Mechanic audio ignores low-intensity automatic zone churn so resonance sound is reserved for meaningful field events.
+
+## Weapon Field Rules
+
+`WeaponSystem` owns beam weapons. Gravity Wave Beam is a field-control beam, not just a damage line:
+
+- it applies damage to hostile targets each beam tick
+- it pulls enemies and enemy projectiles toward the beam axis
+- it stamps a short compression resonance zone instead of long-lived slipstream clutter
+- it stops immediately when gameplay is paused or the player enters death flow
 
 ## Time Dilation Architecture
 
@@ -93,6 +106,8 @@ Targets read `local_time_scale` metadata through `CombatStatus` or manager helpe
 `PhaseBoss` provides shared health, phase, and attack timer behavior. Individual bosses own their readable physics mutation. Async telegraphs should always bail if the boss has been queued for deletion before firing the attack.
 
 Projectile attacks should use `enemy_bullet.configure_launch(direction, speed, source)` so source collision exceptions and spawn safety are deterministic.
+
+`WaveDirector` applies production boss pressure after scene `_ready()` so authored boss scripts keep their editable setup while still receiving wave-appropriate difficulty. The tuning scales health floors, attack timers, projectile pressure, contact damage, movement pressure, and Polymorph's phase pressure.
 
 ## Secret Bosses
 
@@ -166,7 +181,7 @@ It listens to wave, boss, arena-law, impossible-event, co-op combo, Rupture, and
 
 These signatures fade and self-clean, so they communicate player mastery without becoming permanent clutter.
 
-`SpacetimeSwimDirector` owns the first explicit swimming-through-spacetime effect. It listens to time dilation, time-tear intensity, local time pockets, slingshot mastery, beam weapons, and event-horizon signals. It adds world ribbons behind the player plus a subtle screen wash and capped glitch slices. Low-performance mode reduces ribbon/slice counts and overlay alpha through `OrbitalJuiceManager`.
+`SpacetimeSwimDirector` owns the first explicit swimming-through-spacetime effect. It listens to time dilation, time-tear intensity, local time pockets, slingshot mastery, beam weapons, and event-horizon signals. It now renders compact phase-shell strokes around the player rather than long attached curves, with throttled beam triggers, lower lifetime, lower counts, subtle screen wash, and capped glitch slices. Low-performance mode reduces ribbon/slice counts and overlay alpha through `OrbitalJuiceManager`.
 
 ## Spacetime Tears
 
@@ -183,6 +198,12 @@ Enemies that emerge from tears are registered through `WaveDirector.register_ext
 - recent mastery: slightly shorter recovery
 
 `DeathFairnessDirector` samples readable context and updates `RunProgress.last_death_message` after the player emits a death lesson. The game-over scene then shows both the lesson and the concrete run readout.
+
+Player death flow is intentionally short and locked. `player.gd`, `HealthComponent`, and `WeaponSystem` stop repeat death signals, held fire, beam fire, input, and movement acceleration as soon as death begins, while preserving a brief collapse watch before game over.
+
+## Freed Object Safety
+
+Hot systems that cache scene nodes must validate before casting. `RuntimeRegistry`, resonance/scar visual dictionaries, beam hit queries, powerup projectile instance IDs, pooled swim/lens/debris effects, enemy AI scans, and gravity source refreshes now check `is_instance_valid()` before assigning typed nodes.
 
 ## Multiplayer Sync Foundation
 
@@ -252,6 +273,14 @@ The runner is a progress/performance validator, not a live-state save or determi
 
 `Apex Vector Core` is the first dedicated slingshot-defining powerup. It boosts mastery slingshot capacity and turns repeated high-grade slingshots into an Apex Vector release: nearby enemies and hostile projectiles are flung along the player's tangent, enemies take modest damage, and a harmonic-orbit resonance zone is created for follow-up play.
 
+## Launch Upgrade Fields
+
+`Barycentric Tether` and `Frame-Dragging Anchor` complete the Version 1.0 launch matrix as data-driven `PowerupDefinition` resources registered through `PowerupLibrary`.
+
+`Barycentric Tether` runs on a throttled field tick, pairs nearby hostile bodies inside capped registry-backed radius queries, and applies center-of-mass orbital pressure plus light damage through `CombatStatus`. It writes only pressure metadata and emits a lightweight signal payload for reactive systems.
+
+`Frame-Dragging Anchor` runs on a throttled field tick around the player, applies rotational distortion to capped hostile/projectile targets, and grants a small forward slingshot boost only when the player already has high momentum. It uses no per-tick scene creation and reuses the inventory target buffer.
+
 ## Endgame Flow
 
 `RunProgress.on_boss_defeated()` treats the wave 35 capstone boss as authoritative. When `res://Nodes/centrifuge_marshal_boss.tscn` is defeated, the run enters `RUPTURE` even if the wave director has not finished advancing its own wave-cleared state yet.
@@ -266,7 +295,7 @@ Player death stores `RunProgress.last_death_message`, then changes to `res://Nod
 
 ## Accessibility And Challenge Modes
 
-`Settings` now exposes UI scale, screen shake scale, reduced flash, and colorblind readability modes. The pause menu writes these values directly, while HUD colors, HUD scale, camera shake, and mastery flash alpha read from the same singleton.
+`Settings` now exposes UI scale, screen shake scale, reduced flash, and colorblind readability modes. The pause menu writes these values directly, while HUD colors, HUD scale, camera shake, and mastery flash alpha read from the same singleton. Values persist through `user://settings.cfg` and reload when the autoload enters the tree.
 
 `RunProgress.begin_boss_rush()` starts a boss-only challenge profile. `WaveDirector` treats every boss-rush wave as a boss wave, cycles the authored boss list deterministically, reduces rest windows, and applies the boss health modifier from `challenge_modifiers`.
 
@@ -295,7 +324,7 @@ Production behavior:
 - Transient anomaly rings are pooled and reused instead of created and freed per event.
 - Vacuum collapse, relativistic impact, time-debt zones, orbital debris, orbital memory, and resonance cascades all resolve on fixed intervals.
 - Dynamic gravity debris and compression/inversion tide pockets register directly with the runtime cache when they enter gravity groups and unregister on exit.
-- `PowerupInventory` uses reusable query buffers for orbital projectile capture, singularity death hooks, debris bending, Apex Vector targeting, and slingshot time-lens pulses.
+- `PowerupInventory` uses reusable query buffers for orbital projectile capture, singularity death hooks, debris bending, Apex Vector targeting, Barycentric Tether pairing, Frame-Dragging Anchor distortion, and slingshot time-lens pulses.
 - `GravityResonanceManager` uses registry-backed nearest-source and radius queries for resonance detection, projectile acceleration, and body field effects.
 - `MomentumCombatComponent` uses capped target buffers for near-miss mastery and kinetic shockwaves.
 - Event Horizon Warden, Gravity Maw, Gravimetric Echo Drone, and Resonance Paralytic Construct use bounded registry queries for collapse, absorption, replay, and paralysis fields.

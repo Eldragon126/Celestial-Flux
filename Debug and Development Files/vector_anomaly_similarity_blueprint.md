@@ -152,9 +152,24 @@ The current architecture preserves genre readability while scaling the unusual p
 
 - Wave pacing, boss anchors, death flow, and run anchors stay familiar.
 - Gravity, projectiles, enemies, bosses, and debris are cached through `RuntimeRegistry` so late-wave spectacle does not turn into frame instability.
-- Upgrade effects remain behavioral: micro-lensing, vacuum collapse, orbital debris, chronal refraction, relativistic rail, and Apex Vector create new movement/combat decisions rather than flat stat inflation.
+- Upgrade effects remain behavioral: micro-lensing, vacuum collapse, orbital debris, chronal refraction, relativistic rail, Barycentric Tether, Frame-Dragging Anchor, and Apex Vector create new movement/combat decisions rather than flat stat inflation.
 - VFX communicates state through pooled rings, pooled burst particles, HUD arrows, local time-pocket signals, and resonance colors.
 - Failure readouts remain immediate and diagnostic instead of lore-heavy.
 - The headless production simulation runner validates stress budgets so the familiar wave/run structure does not collapse into unreadable performance failure.
 - Resonance, momentum, boss pressure fields, enemy readability, death diagnostics, adaptive music, stress reporting, and sync scaffolding use capped cached queries so readability does not degrade as physics density rises.
 - Opening and credit labels use Vector Anomaly terms, keeping the player's first and final textual beats aligned with the commercial identity.
+
+## 2026-06-02 Readability Corrections
+
+- Boss difficulty now escalates through authored pressure rather than flat pacing drift: players still recognize boss anchors, but each anchor demands stronger movement mastery.
+- Gravity Wave Beam now behaves like a familiar beam weapon with an unfamiliar physics payload: damage remains legible while enemy drift reveals the gravity manipulation.
+- Slingshot mastery no longer floods the screen on routine success. Great/apex timing gets the big feedback, making high-skill motion easier to understand and easier to clip.
+- Player-adjacent colored telemetry rings are disabled by default. Core state stays in compact HUD readouts so the player's body language remains readable.
+- Death is immediate to understand: no post-death shooting, no false comeback, no delayed surprise transition.
+- Tutorial prompts now teach the genre handshake first: thrust, tangent, speed, distance, time precision, and beam field control.
+
+## 2026-06-02 Launch Matrix Completion
+
+- Barycentric Tether uses a familiar crowd-control shape while changing the substance: enemies are linked by an artificial center of mass and forced into binary orbital motion.
+- Frame-Dragging Anchor uses a familiar aura-field shape while changing the substance: hostile bodies and projectiles are rotationally dragged around the player instead of simply slowed or damaged.
+- Settings now persist across launches, so readability options behave like a finished game menu rather than temporary debug switches.

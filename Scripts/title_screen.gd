@@ -1,11 +1,18 @@
 extends Control
 
+const SECRET_ENEMY_GROUPS: Array[StringName] = [&"wave_enemy", &"enemies", &"ParametricEnemies"]
+
 @export var version_string: String = "v1.0.4.6"
+@export var secret_completion_check_interval: float = 0.25
 
 @onready var audio_player: AudioStreamPlayer = $AudioStreamPlayer
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 @onready var _starfield_backdrop: ColorRect = get_node_or_null("StarfieldBackdrop") as ColorRect
 @onready var _version_label: Label = get_node_or_null("VersionLabel") as Label
+
+var _secret_mode_active := false
+var _secret_completion_announced := false
+var _secret_completion_elapsed := 0.0
 
 
 func _ready() -> void:
@@ -19,14 +26,19 @@ func _ready() -> void:
 	_update_button_visibility()
 	_update_version_label()
 
+
 func _physics_process(delta: float) -> void:
-	if get_tree().get_first_node_in_group("wave_enemy") == null:
-		if get_tree().get_first_node_in_group("enemies") == null:
-			if get_tree().get_first_node_in_group("ParametricEnemies") == null:
-				$AudioStreamPlayer.stop()
-				$SecretCompleted.play()
-				$CenterContainer/Label.text = "SECRET COMPLETED"
-				
+	if not _secret_mode_active or _secret_completion_announced:
+		return
+
+	_secret_completion_elapsed += delta
+	if _secret_completion_elapsed < secret_completion_check_interval:
+		return
+	_secret_completion_elapsed = 0.0
+
+	if _secret_enemy_groups_empty():
+		_announce_secret_completed()
+
 
 func _on_audio_stream_player_finished() -> void:
 	if animation_player:
@@ -85,12 +97,38 @@ func _update_version_label() -> void:
 
 
 func _on_secret_button_pressed() -> void:
-	if get_tree().get_first_node_in_group("Player") == null:
-		var player = preload("res://Nodes/player.tscn")
-		var p = player.instantiate()
-		p.global_position = $CenterContainer/Label.global_position
-		get_tree().current_scene.call_deferred("add_child", p)
-		RunProgress.begin_new_run(false)
-	
+	if get_tree().get_first_node_in_group("Player") != null:
+		_secret_mode_active = true
+		return
 
-	
+	var player := preload("res://Nodes/player.tscn")
+	var instance := player.instantiate() as Node2D
+	if instance == null:
+		return
+
+	instance.global_position = $CenterContainer/Label.global_position
+	get_tree().current_scene.call_deferred("add_child", instance)
+	RunProgress.begin_new_run(false)
+	_secret_mode_active = true
+	_secret_completion_announced = false
+	_secret_completion_elapsed = 0.0
+
+
+func _secret_enemy_groups_empty() -> bool:
+	for group_name in SECRET_ENEMY_GROUPS:
+		if get_tree().get_first_node_in_group(group_name) != null:
+			return false
+	return true
+
+
+func _announce_secret_completed() -> void:
+	_secret_completion_announced = true
+	_secret_mode_active = false
+	if audio_player != null:
+		audio_player.stop()
+	var secret_player := get_node_or_null("SecretCompleted") as AudioStreamPlayer
+	if secret_player != null and not secret_player.playing:
+		secret_player.play()
+	var title_label := get_node_or_null("CenterContainer/Label") as Label
+	if title_label != null:
+		title_label.text = "SECRET COMPLETED"
