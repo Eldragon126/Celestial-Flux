@@ -1,5 +1,5 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1780593485
+::res://::1780597049
 .agentrules.txt::TextFile::-1::1779912668::0::1::::<><><>0<>0<><>::
 default_bus_layout.tres::AudioBusLayout::6536144205823831777::1779223367::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1780079831::0::1::::<><><>0<>0<><>::
@@ -25,7 +25,7 @@ Radial2D.svg::CompressedTexture2D::5294797171325615259::1779223366::1779223366::
 THIRDPARTY.txt::TextFile::-1::1779223366::0::1::::<><><>0<>0<><>::
 water_shader.gdshader::Shader::5244640210084459761::1779223367::0::1::::<><><>0<>0<><>::
 water_shader.tres::ShaderMaterial::6495341302912672044::1779223367::0::1::::<><><>0<>0<><>::res://addons/godot-rapier2d/water_shader.gdshader
-::res://addons/godot-rapier2d/bin/::1780593482
+::res://addons/godot-rapier2d/bin/::1780597046
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.arm64.framework/::1779223367
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.x86_64.framework/::1779223367
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.macos.framework/::1779223367
@@ -130,10 +130,10 @@ mesh.gd::GDScript::23401110114785126::1779223367::0::1::::SS2D_Mesh<>Resource<><
 point.gd::GDScript::3935060174271840904::1779223367::0::1::::SS2D_Point<>Resource<><>0<>1<><>::
 point_array.gd::GDScript::3431357405438835698::1779223367::0::1::::SS2D_Point_Array<>Resource<><>0<>1<><>::
 quad.gd::GDScript::490629576136135773::1779223367::0::1::::SS2D_Quad<>RefCounted<><>0<>1<><>::
-shape.gd::GDScript::7656950416412984953::1779223367::0::1::::SS2D_Shape<>Node2D<><>0<>1<><>::
-shape_anchor.gd::GDScript::5950286973456441137::1779223367::0::1::::SS2D_Shape_Anchor<>Node2D<><>0<>1<><>::
-shape_closed.gd::GDScript::6970773578356395946::1779223367::0::1::::SS2D_Shape_Closed<>SS2D_Shape<><>0<>1<><>::
-shape_open.gd::GDScript::1658298886214954802::1779223367::0::1::::SS2D_Shape_Open<>SS2D_Shape<><>0<>1<><>::
+shape.gd::GDScript::7656950416412984953::1779223367::0::1::::SS2D_Shape<>Node2D<>res://addons/rmsmartshape/assets/closed_shape.png<>0<>1<><>::
+shape_anchor.gd::GDScript::5950286973456441137::1779223367::0::1::::SS2D_Shape_Anchor<>Node2D<>res://addons/rmsmartshape/assets/Anchor.svg<>0<>1<><>::
+shape_closed.gd::GDScript::6970773578356395946::1779223367::0::1::::SS2D_Shape_Closed<>SS2D_Shape<>res://addons/rmsmartshape/assets/closed_shape.png<>0<>1<><>::
+shape_open.gd::GDScript::1658298886214954802::1779223367::0::1::::SS2D_Shape_Open<>SS2D_Shape<>res://addons/rmsmartshape/assets/open_shape.png<>0<>1<><>::
 ::res://addons/rmsmartshape/tools/::1779223367
 collision_tool.gd::GDScript::2407771562857444705::1779223367::0::1::::SS2D_CollisionEditorTool<>SS2D_EditorTool<><>0<>0<><>::
 editor_tool.gd::GDScript::3749886262550850869::1779223367::0::1::::SS2D_EditorTool<>RefCounted<><>0<>0<><>::
@@ -220,32 +220,43 @@ SfDistantGalaxySymbolsItalic-EXv9.ttf::FontFile::1516899757451917325::1779223732
 ::res://Assets/Fonts/sf-distant-galaxy-font/misc/::1779223732
 ::res://Assets/Graphics/::1779387429
 BaseEnemyIconForGame.png::CompressedTexture2D::5912239405152103642::1779387427::1779387429::1::::<><><>0<>0<>9d8e97ae7103798c8650eba706722509<>res://.godot/imported/BaseEnemyIconForGame.png-d60ddf6f3db3dc561faa6c815d4625d6.ctex::
-::res://Assets/Songs/::1780593489
+::res://Assets/Songs/::1780596094
+A New Planet.mp3::AudioStreamMP3::6927406375817783018::1780595037::1780597052::1::::<><><>0<>0<>7b3c4d530eb98cf07dc1b4e3781d4339<>res://.godot/imported/A New Planet.mp3-a345497354d6064fd1a783145f8f6446.mp3str::
 A New Thread Ambience.mp3::AudioStreamMP3::3072115801758430353::1780591825::1780593488::1::::<><><>0<>0<>56dd8e7d4cfd28a8547f3e7a010b4c57<>res://.godot/imported/A New Thread Ambience.mp3-195617cc21cec300a8bc59a14e49b346.mp3str::
 A New Thread.mp3::AudioStreamMP3::8497624015251437761::1780591564::1780593489::1::::<><><>0<>0<>e0113ea5ed49abdf53f11ab43caa79e4<>res://.godot/imported/A New Thread.mp3-e733c78814b0567d1b8cc603b2934c66.mp3str::
+ACasualSong.mp3::AudioStreamMP3::3530247731970274640::1780596076::1780597052::1::::<><><>0<>0<>1b8f054ab4d67abee348736e60b53d41<>res://.godot/imported/ACasualSong.mp3-4494a2c0a199fbfb0f1aa16e9b9774da.mp3str::
 Approaching Abyss.mp3::AudioStreamMP3::3290457347143646532::1780591532::1780593489::1::::<><><>0<>0<>15e5a2b0e2d442f1d7e44c11e2021cdc<>res://.godot/imported/Approaching Abyss.mp3-5d7fe27120f428c7fd3762339578902a.mp3str::
 Boogie World.mp3::AudioStreamMP3::2046949611816458265::1780591619::1780593489::1::::<><><>0<>0<>5d5e1894397db4034a4ed939d81a76b5<>res://.godot/imported/Boogie World.mp3-c23d63fc6a7996d449f8f877b3acd5cd.mp3str::
 Continuum.mp3::AudioStreamMP3::7445835591352646525::1780591577::1780593489::1::::<><><>0<>0<>8a6215f27875f8bfb8a7c002facde9da<>res://.godot/imported/Continuum.mp3-c3697d66030c25813a9a9303f44bed44.mp3str::
 Cosmic Bass.wav::AudioStreamWAV::323963802199306733::1779223366::1779223366::1::::<><><>0<>0<>d3bcd246d83a0ab7f2ba6210562a95d3<>res://.godot/imported/Cosmic Bass.wav-9c81ef9d9bf58e28b37fe202e117c44d.sample::
 Cosmic Journey Background.mp3::AudioStreamMP3::4636816322834567064::1780591771::1780593489::1::::<><><>0<>0<>e102b52846605ca893527e45f145b0b1<>res://.godot/imported/Cosmic Journey Background.mp3-1da096a3ea95bc0584fecc28ba0871c7.mp3str::
 Cosmic Journey Epic.mp3::AudioStreamMP3::7515052087951070634::1780591809::1780593489::1::::<><><>0<>0<>0747609c390f61ca19256b2d89cbb8ee<>res://.godot/imported/Cosmic Journey Epic.mp3-879fb4a62c7cc6cb8f02077ffad27475.mp3str::
+Crash Landing.mp3::AudioStreamMP3::7226735054393786623::1780595241::1780597052::1::::<><><>0<>0<>8d87e6726e0f89e1767e02ce1c6559c0<>res://.godot/imported/Crash Landing.mp3-ab1e3774006fec949c9c18ac774896a9.mp3str::
 Dawn on A New Planet.mp3::AudioStreamMP3::7880574577382950222::1780591666::1780593489::1::::<><><>0<>0<>0a799510061ef82a1b6d94b3ab60af58<>res://.godot/imported/Dawn on A New Planet.mp3-8c53dfe6edee5f7fb4addd1e94e1a679.mp3str::
+Fragments of a Forgotten Futur.mp3::AudioStreamMP3::5229367976777555378::1780596004::1780597052::1::::<><><>0<>0<>a975c4900ae8d22e1b47068c93b757a1<>res://.godot/imported/Fragments of a Forgotten Futur.mp3-053afa6c57fa307652ee58184e36c85e.mp3str::
 Gravity Bloom.mp3::AudioStreamMP3::4186434197873512966::1780591848::1780593489::1::::<><><>0<>0<>c6512e9b2daa781e73bdb5407fecbe4d<>res://.godot/imported/Gravity Bloom.mp3-c0420ecd488a79648aed1e57bf59861c.mp3str::
 Green Flame Ultra.mp3::AudioStreamMP3::6544922092252037969::1779223366::1779223366::1::::<><><>0<>0<>b524064e560fcfbea19be00d37c5ca34<>res://.godot/imported/Green Flame Ultra.mp3-805d00ce0787aff5c1dbf37ebb682137.mp3str::
 Interesting Song (1).mp3::AudioStreamMP3::1695898233387449723::1779223366::1779223366::1::::<><><>0<>0<>0a6f3f167f91ac415009c517d5ceb9f1<>res://.godot/imported/Interesting Song (1).mp3-be467e7b230360815f5e5eb9bf6eac4c.mp3str::
 Neon Starlight.mp3::AudioStreamMP3::7097758452772958532::1779223366::1779223366::1::::<><><>0<>0<>ea37b11d5ff1d39fe53d68d838b50791<>res://.godot/imported/Neon Starlight.mp3-1dbd7564f010881dc803f5ea6feea065.mp3str::
 Orbital Drift.mp3::AudioStreamMP3::5798734185627453951::1779223366::1779223366::1::::<><><>0<>0<>7f8d787cf60e09feb1305e8cdf3c6f25<>res://.godot/imported/Orbital Drift.mp3-623459e3b490439e18066d52bf9e2fed.mp3str::
 Orbital Fun.wav::AudioStreamWAV::5702188325686277591::1779223366::1779223366::1::::<><><>0<>0<>a938ea834d8eeefbc5c707fb19169583<>res://.godot/imported/Orbital Fun.wav-e610e0f80db9b4fcbeb0619d9e219d5c.sample::
+oTHER wORLDS.mp3::AudioStreamMP3::4772331464895333987::1780594801::1780597052::1::::<><><>0<>0<>a865d275c3d9f34c3285c026bf106806<>res://.godot/imported/oTHER wORLDS.mp3-7d838f3523894cd5fac84a6814427492.mp3str::
 Quantum Break.mp3::AudioStreamMP3::7892153874650538280::1780591718::1780593489::1::::<><><>0<>0<>24392421097b4ce8efd90b0cadf6baac<>res://.godot/imported/Quantum Break.mp3-fe03f979b1dbe436f420542ffacfa0d6.mp3str::
 Resonance.mp3::AudioStreamMP3::4147161788329679697::1779223366::1779223366::1::::<><><>0<>0<>6e79dffb4133bab5a275c37301aba703<>res://.godot/imported/Resonance.mp3-554ebc62712c0b4109f94bcd39077281.mp3str::
+Solar Rays.mp3::AudioStreamMP3::1879548056109474428::1780595014::1780597052::1::::<><><>0<>0<>7c0beb078cf50d085259159074afb1c5<>res://.godot/imported/Solar Rays.mp3-452f40c1ab1215bf2ff2881e0946d475.mp3str::
+Spine Chilling Christmas.mp3::AudioStreamMP3::4825945792212914317::1780595260::1780597052::1::::<><><>0<>0<>024f43d1001bf338a1b0187420913e2f<>res://.godot/imported/Spine Chilling Christmas.mp3-4b9447d6dc1133f8de361f4135e2dfff.mp3str::
 The 4th Dimension.mp3::AudioStreamMP3::4472961279410413652::1780591605::1780593489::1::::<><><>0<>0<>94fed82bc809abdbbdcc8825166e4df3<>res://.godot/imported/The 4th Dimension.mp3-20aed19ce46b1af912c9cb74e48dcb0c.mp3str::
 The Abyss Intro.wav::AudioStreamWAV::2187263912102146407::1779223366::1779223366::1::::<><><>0<>0<>8d6d2fae0b1936cd3696f794ffe64a2e<>res://.godot/imported/The Abyss Intro.wav-a0ffe60d2c430a86c4fca27280595f16.sample::
 The Abyss.wav::AudioStreamWAV::7479122242740707145::1779223366::1779223366::1::::<><><>0<>0<>c0a8dc23bec5a81576ebcc3f83080878<>res://.godot/imported/The Abyss.wav-be073fd6e6d26119ccb080916834da9b.sample::
 The Arrival.mp3::AudioStreamMP3::4152876535795113649::1779223366::1780593489::1::::<><><>0<>0<>8d301e421fbbfdcda6ca2adeb3d2b90b<>res://.godot/imported/The Arrival.mp3-38796caa9d9fcd2859a1c2a0e511ebee.mp3str::
 The Long Drift.mp3::AudioStreamMP3::7728835909477076334::1779223366::1779223489::1::::<><><>0<>0<>427c89bb504a9cdabdbab98cf020ae3f<>res://.godot/imported/The Long Drift.mp3-b17b73d9bdac4cfc590c31b190d21ea1.mp3str::
 The Neural Drift Threshold.mp3::AudioStreamMP3::7644277458495359410::1780591744::1780593489::1::::<><><>0<>0<>2a7669b13f8e24d735f9ca67d234ce6b<>res://.godot/imported/The Neural Drift Threshold.mp3-81835df63ff57ab6ed240ad8ca2684eb.mp3str::
+The Tomb of Galaxies.mp3::AudioStreamMP3::2287524781128841765::1780595965::1780597052::1::::<><><>0<>0<>11287fe472c60b731eb66ac47551b208<>res://.godot/imported/The Tomb of Galaxies.mp3-653e876aca69926701e771e629e5228d.mp3str::
 The Town.mp3::AudioStreamMP3::4166842732483362886::1780591763::1780593489::1::::<><><>0<>0<>31e8b13c91d2e6de9308471ff4a749cd<>res://.godot/imported/The Town.mp3-13208fed55b737e731280f15045bbab0.mp3str::
 The Universe Says Hello.mp3::AudioStreamMP3::4754408799335143535::1780591788::1780593489::1::::<><><>0<>0<>c84489b6136966bae3b18df549654356<>res://.godot/imported/The Universe Says Hello.mp3-c45ff2524ee88db7597ea97d282c3902.mp3str::
+Through Time.mp3::AudioStreamMP3::3994870159143010057::1780594830::1780597052::1::::<><><>0<>0<>e4d26a4633a0dc13149875933cdbfbcd<>res://.godot/imported/Through Time.mp3-371cbdae649cccf00f2cab1c0b324d5a.mp3str::
+Title Screen Ambience.mp3::AudioStreamMP3::8142961975288100007::1780595932::1780597052::1::::<><><>0<>0<>9e559d091d0c8f63a1277078ba9d7504<>res://.godot/imported/Title Screen Ambience.mp3-dfdd81c7cf6ba4d3336587c8704fbb86.mp3str::
+Title Screen New.mp3::AudioStreamMP3::351864034523462372::1780595887::1780597052::1::::<><><>0<>0<>346b0d637fdba7e61b07bde4d2b20781<>res://.godot/imported/Title Screen New.mp3-cbd67851f2ed8f676675eec3b0f5d35c.mp3str::
 Twangy Space.mp3::AudioStreamMP3::4660492354967527197::1780591418::1780593489::1::::<><><>0<>0<>45e0e7ea96abdba31cfd43f1241cdb1c<>res://.godot/imported/Twangy Space.mp3-a4b53927dedbcd2c2e2259f43140a066.mp3str::
 Whispers in the Void.mp3::AudioStreamMP3::3608305324537977308::1779223366::1779223366::1::::<><><>0<>0<>8d3d14b61e19dd08b11b011665f3adab<>res://.godot/imported/Whispers in the Void.mp3-32e794bf42bde1d89598e776537345bc.mp3str::
 [Err -42] invalid thread change.mp3::AudioStreamMP3::5908626644802616290::1779223366::1779223366::1::::<><><>0<>0<>9a6204e710d40bf4687fbf058109edb8<>res://.godot/imported/[Err -42] invalid thread change.mp3-2657091b07328bf50eb1ae66bf14b31b.mp3str::
@@ -401,7 +412,7 @@ Wormholes_A_swirling_#2-1780527060728.mp3::AudioStreamMP3::3118151235832264411::
 Wormholes_Repeating__#1-1780527086988.mp3::AudioStreamMP3::2619277572919249788::1780527091::1780528585::1::::<><><>0<>0<>65c8c940ff8d589f542d54dd91cf0afa<>res://.godot/imported/Wormholes_Repeating__#1-1780527086988.mp3-9dfba54fb6df41132d47c37405842838.mp3str::
 Wormholes_Repeating__#3-1780527086980.mp3::AudioStreamMP3::2187940156496376836::1780527095::1780528585::1::::<><><>0<>0<>86c7e901ddb86b407bf9b05088ee0b78<>res://.godot/imported/Wormholes_Repeating__#3-1780527086980.mp3-9e792d11b9791e98e77e6ceebc0e2562.mp3str::
 Wormholes_Repeating__#4-1780527086985.mp3::AudioStreamMP3::4808368478909437809::1780527096::1780528585::1::::<><><>0<>0<>6f558ce125f017b65b6e5d8b6eeb8adc<>res://.godot/imported/Wormholes_Repeating__#4-1780527086985.mp3-bbfd9ae17fd2226068e2783422045895.mp3str::
-::res://Debug and Development Files/::1780593627
+::res://Debug and Development Files/::1780593630
 ASSET_AND_AUDIO_PRODUCTION_LIST.md::TextFile::-1::1780421723::0::1::::<><><>0<>0<><>::
 BRAND_AND_MARKETING_PLAN.md::TextFile::-1::1780011005::0::1::::<><><>0<>0<><>::
 Bullets end up randomly doing this. WAY too much I can't even tell what's going on..png::CompressedTexture2D::271043534564010417::1780530841::1780532182::1::::<><><>0<>0<>5e7b802859ad034b7a9e7dac60d54f1c<>res://.godot/imported/Bullets end up randomly doing this. WAY too much I can't even tell what's going on..png-014191c4b3ddecda9d015285eabdac38.ctex::
@@ -429,7 +440,7 @@ SelfDirectedLearningProjectPlan.md::TextFile::-1::1780072262::0::1::::<><><>0<>0
 Separation_Blueprint.md::TextFile::-1::1780526869::0::1::::<><><>0<>0<><>::
 StillHavingPerformanceIssues631016.png::CompressedTexture2D::5789857514197837384::1780530266::1780530268::1::::<><><>0<>0<>e0fc4fe1883898ee47a08f5b01ccf2a3<>res://.godot/imported/StillHavingPerformanceIssues631016.png-3e6c114ef867ca526519523016b81c01.ctex::
 SuperChaoticExampleTHISISINWAVE1WHYYY.png::CompressedTexture2D::1880388934098513013::1780440679::1780440939::1::::<><><>0<>0<>b9a2ce5e00bc901162708f39701b37de<>res://.godot/imported/SuperChaoticExampleTHISISINWAVE1WHYYY.png-a83a4eb7920d9ca5370ee84d1a61c84b.ctex::
-Things to Fix.txt::TextFile::-1::1780592204::0::1::::<><><>0<>0<><>::
+Things to Fix.txt::TextFile::-1::1780596685::0::1::::<><><>0<>0<><>::
 This is the very start of the game. There are way too many and this shouldn't be happening..png::CompressedTexture2D::7471778296977724511::1780431602::1780431607::1::::<><><>0<>0<>db39b12d43484f4ebb5487b4f1b78418<>res://.godot/imported/This is the very start of the game. There are way too many and this shouldn't be happening..png-befb15fb43ad6f24f81e60d254ab3e82.ctex::
 Vectorfall Future.txt::TextFile::-1::1780421765::0::1::::<><><>0<>0<><>::
 vector_anomaly_performance_audit_markdown.md::TextFile::-1::1780333240::0::1::::<><><>0<>0<><>::
