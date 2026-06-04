@@ -1,5 +1,5 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1780533370
+::res://::1780593485
 .agentrules.txt::TextFile::-1::1779912668::0::1::::<><><>0<>0<><>::
 default_bus_layout.tres::AudioBusLayout::6536144205823831777::1779223367::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1780079831::0::1::::<><><>0<>0<><>::
@@ -25,7 +25,7 @@ Radial2D.svg::CompressedTexture2D::5294797171325615259::1779223366::1779223366::
 THIRDPARTY.txt::TextFile::-1::1779223366::0::1::::<><><>0<>0<><>::
 water_shader.gdshader::Shader::5244640210084459761::1779223367::0::1::::<><><>0<>0<><>::
 water_shader.tres::ShaderMaterial::6495341302912672044::1779223367::0::1::::<><><>0<>0<><>::res://addons/godot-rapier2d/water_shader.gdshader
-::res://addons/godot-rapier2d/bin/::1780533366
+::res://addons/godot-rapier2d/bin/::1780593482
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.arm64.framework/::1779223367
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.x86_64.framework/::1779223367
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.macos.framework/::1779223367
@@ -130,10 +130,10 @@ mesh.gd::GDScript::23401110114785126::1779223367::0::1::::SS2D_Mesh<>Resource<><
 point.gd::GDScript::3935060174271840904::1779223367::0::1::::SS2D_Point<>Resource<><>0<>1<><>::
 point_array.gd::GDScript::3431357405438835698::1779223367::0::1::::SS2D_Point_Array<>Resource<><>0<>1<><>::
 quad.gd::GDScript::490629576136135773::1779223367::0::1::::SS2D_Quad<>RefCounted<><>0<>1<><>::
-shape.gd::GDScript::7656950416412984953::1779223367::0::1::::SS2D_Shape<>Node2D<>res://addons/rmsmartshape/assets/closed_shape.png<>0<>1<><>::
-shape_anchor.gd::GDScript::5950286973456441137::1779223367::0::1::::SS2D_Shape_Anchor<>Node2D<>res://addons/rmsmartshape/assets/Anchor.svg<>0<>1<><>::
-shape_closed.gd::GDScript::6970773578356395946::1779223367::0::1::::SS2D_Shape_Closed<>SS2D_Shape<>res://addons/rmsmartshape/assets/closed_shape.png<>0<>1<><>::
-shape_open.gd::GDScript::1658298886214954802::1779223367::0::1::::SS2D_Shape_Open<>SS2D_Shape<>res://addons/rmsmartshape/assets/open_shape.png<>0<>1<><>::
+shape.gd::GDScript::7656950416412984953::1779223367::0::1::::SS2D_Shape<>Node2D<><>0<>1<><>::
+shape_anchor.gd::GDScript::5950286973456441137::1779223367::0::1::::SS2D_Shape_Anchor<>Node2D<><>0<>1<><>::
+shape_closed.gd::GDScript::6970773578356395946::1779223367::0::1::::SS2D_Shape_Closed<>SS2D_Shape<><>0<>1<><>::
+shape_open.gd::GDScript::1658298886214954802::1779223367::0::1::::SS2D_Shape_Open<>SS2D_Shape<><>0<>1<><>::
 ::res://addons/rmsmartshape/tools/::1779223367
 collision_tool.gd::GDScript::2407771562857444705::1779223367::0::1::::SS2D_CollisionEditorTool<>SS2D_EditorTool<><>0<>0<><>::
 editor_tool.gd::GDScript::3749886262550850869::1779223367::0::1::::SS2D_EditorTool<>RefCounted<><>0<>0<><>::
@@ -220,41 +220,48 @@ SfDistantGalaxySymbolsItalic-EXv9.ttf::FontFile::1516899757451917325::1779223732
 ::res://Assets/Fonts/sf-distant-galaxy-font/misc/::1779223732
 ::res://Assets/Graphics/::1779387429
 BaseEnemyIconForGame.png::CompressedTexture2D::5912239405152103642::1779387427::1779387429::1::::<><><>0<>0<>9d8e97ae7103798c8650eba706722509<>res://.godot/imported/BaseEnemyIconForGame.png-d60ddf6f3db3dc561faa6c815d4625d6.ctex::
-::res://Assets/Songs/::1780374572
-A New Thread.mp3::AudioStreamMP3::8497624015251437761::1779223366::1779223366::1::::<><><>0<>0<>e0113ea5ed49abdf53f11ab43caa79e4<>res://.godot/imported/A New Thread.mp3-e733c78814b0567d1b8cc603b2934c66.mp3str::
+::res://Assets/Songs/::1780593489
+A New Thread Ambience.mp3::AudioStreamMP3::3072115801758430353::1780591825::1780593488::1::::<><><>0<>0<>56dd8e7d4cfd28a8547f3e7a010b4c57<>res://.godot/imported/A New Thread Ambience.mp3-195617cc21cec300a8bc59a14e49b346.mp3str::
+A New Thread.mp3::AudioStreamMP3::8497624015251437761::1780591564::1780593489::1::::<><><>0<>0<>e0113ea5ed49abdf53f11ab43caa79e4<>res://.godot/imported/A New Thread.mp3-e733c78814b0567d1b8cc603b2934c66.mp3str::
+Approaching Abyss.mp3::AudioStreamMP3::3290457347143646532::1780591532::1780593489::1::::<><><>0<>0<>15e5a2b0e2d442f1d7e44c11e2021cdc<>res://.godot/imported/Approaching Abyss.mp3-5d7fe27120f428c7fd3762339578902a.mp3str::
+Boogie World.mp3::AudioStreamMP3::2046949611816458265::1780591619::1780593489::1::::<><><>0<>0<>5d5e1894397db4034a4ed939d81a76b5<>res://.godot/imported/Boogie World.mp3-c23d63fc6a7996d449f8f877b3acd5cd.mp3str::
+Continuum.mp3::AudioStreamMP3::7445835591352646525::1780591577::1780593489::1::::<><><>0<>0<>8a6215f27875f8bfb8a7c002facde9da<>res://.godot/imported/Continuum.mp3-c3697d66030c25813a9a9303f44bed44.mp3str::
 Cosmic Bass.wav::AudioStreamWAV::323963802199306733::1779223366::1779223366::1::::<><><>0<>0<>d3bcd246d83a0ab7f2ba6210562a95d3<>res://.godot/imported/Cosmic Bass.wav-9c81ef9d9bf58e28b37fe202e117c44d.sample::
-Cosmic Journey Epic.mp3::AudioStreamMP3::7515052087951070634::1779223366::1779223366::1::::<><><>0<>0<>0747609c390f61ca19256b2d89cbb8ee<>res://.godot/imported/Cosmic Journey Epic.mp3-879fb4a62c7cc6cb8f02077ffad27475.mp3str::
+Cosmic Journey Background.mp3::AudioStreamMP3::4636816322834567064::1780591771::1780593489::1::::<><><>0<>0<>e102b52846605ca893527e45f145b0b1<>res://.godot/imported/Cosmic Journey Background.mp3-1da096a3ea95bc0584fecc28ba0871c7.mp3str::
+Cosmic Journey Epic.mp3::AudioStreamMP3::7515052087951070634::1780591809::1780593489::1::::<><><>0<>0<>0747609c390f61ca19256b2d89cbb8ee<>res://.godot/imported/Cosmic Journey Epic.mp3-879fb4a62c7cc6cb8f02077ffad27475.mp3str::
+Dawn on A New Planet.mp3::AudioStreamMP3::7880574577382950222::1780591666::1780593489::1::::<><><>0<>0<>0a799510061ef82a1b6d94b3ab60af58<>res://.godot/imported/Dawn on A New Planet.mp3-8c53dfe6edee5f7fb4addd1e94e1a679.mp3str::
+Gravity Bloom.mp3::AudioStreamMP3::4186434197873512966::1780591848::1780593489::1::::<><><>0<>0<>c6512e9b2daa781e73bdb5407fecbe4d<>res://.godot/imported/Gravity Bloom.mp3-c0420ecd488a79648aed1e57bf59861c.mp3str::
 Green Flame Ultra.mp3::AudioStreamMP3::6544922092252037969::1779223366::1779223366::1::::<><><>0<>0<>b524064e560fcfbea19be00d37c5ca34<>res://.godot/imported/Green Flame Ultra.mp3-805d00ce0787aff5c1dbf37ebb682137.mp3str::
 Interesting Song (1).mp3::AudioStreamMP3::1695898233387449723::1779223366::1779223366::1::::<><><>0<>0<>0a6f3f167f91ac415009c517d5ceb9f1<>res://.godot/imported/Interesting Song (1).mp3-be467e7b230360815f5e5eb9bf6eac4c.mp3str::
 Neon Starlight.mp3::AudioStreamMP3::7097758452772958532::1779223366::1779223366::1::::<><><>0<>0<>ea37b11d5ff1d39fe53d68d838b50791<>res://.godot/imported/Neon Starlight.mp3-1dbd7564f010881dc803f5ea6feea065.mp3str::
 Orbital Drift.mp3::AudioStreamMP3::5798734185627453951::1779223366::1779223366::1::::<><><>0<>0<>7f8d787cf60e09feb1305e8cdf3c6f25<>res://.godot/imported/Orbital Drift.mp3-623459e3b490439e18066d52bf9e2fed.mp3str::
 Orbital Fun.wav::AudioStreamWAV::5702188325686277591::1779223366::1779223366::1::::<><><>0<>0<>a938ea834d8eeefbc5c707fb19169583<>res://.godot/imported/Orbital Fun.wav-e610e0f80db9b4fcbeb0619d9e219d5c.sample::
+Quantum Break.mp3::AudioStreamMP3::7892153874650538280::1780591718::1780593489::1::::<><><>0<>0<>24392421097b4ce8efd90b0cadf6baac<>res://.godot/imported/Quantum Break.mp3-fe03f979b1dbe436f420542ffacfa0d6.mp3str::
 Resonance.mp3::AudioStreamMP3::4147161788329679697::1779223366::1779223366::1::::<><><>0<>0<>6e79dffb4133bab5a275c37301aba703<>res://.godot/imported/Resonance.mp3-554ebc62712c0b4109f94bcd39077281.mp3str::
+The 4th Dimension.mp3::AudioStreamMP3::4472961279410413652::1780591605::1780593489::1::::<><><>0<>0<>94fed82bc809abdbbdcc8825166e4df3<>res://.godot/imported/The 4th Dimension.mp3-20aed19ce46b1af912c9cb74e48dcb0c.mp3str::
 The Abyss Intro.wav::AudioStreamWAV::2187263912102146407::1779223366::1779223366::1::::<><><>0<>0<>8d6d2fae0b1936cd3696f794ffe64a2e<>res://.godot/imported/The Abyss Intro.wav-a0ffe60d2c430a86c4fca27280595f16.sample::
 The Abyss.wav::AudioStreamWAV::7479122242740707145::1779223366::1779223366::1::::<><><>0<>0<>c0a8dc23bec5a81576ebcc3f83080878<>res://.godot/imported/The Abyss.wav-be073fd6e6d26119ccb080916834da9b.sample::
-The Arrival (1).mp3::AudioStreamMP3::4152876535795113649::1779223366::1779223366::1::::<><><>0<>0<>aa24ede5db1f5112091e0354c14575a0<>res://.godot/imported/The Arrival (1).mp3-2b9815d282a75945d88b0a88de1a4205.mp3str::
+The Arrival.mp3::AudioStreamMP3::4152876535795113649::1779223366::1780593489::1::::<><><>0<>0<>8d301e421fbbfdcda6ca2adeb3d2b90b<>res://.godot/imported/The Arrival.mp3-38796caa9d9fcd2859a1c2a0e511ebee.mp3str::
 The Long Drift.mp3::AudioStreamMP3::7728835909477076334::1779223366::1779223489::1::::<><><>0<>0<>427c89bb504a9cdabdbab98cf020ae3f<>res://.godot/imported/The Long Drift.mp3-b17b73d9bdac4cfc590c31b190d21ea1.mp3str::
-The Town.mp3::AudioStreamMP3::4166842732483362886::1779223366::1779223366::1::::<><><>0<>0<>31e8b13c91d2e6de9308471ff4a749cd<>res://.godot/imported/The Town.mp3-13208fed55b737e731280f15045bbab0.mp3str::
-The Universe Says Hello.mp3::AudioStreamMP3::4754408799335143535::1779223366::1779223366::1::::<><><>0<>0<>c84489b6136966bae3b18df549654356<>res://.godot/imported/The Universe Says Hello.mp3-c45ff2524ee88db7597ea97d282c3902.mp3str::
+The Neural Drift Threshold.mp3::AudioStreamMP3::7644277458495359410::1780591744::1780593489::1::::<><><>0<>0<>2a7669b13f8e24d735f9ca67d234ce6b<>res://.godot/imported/The Neural Drift Threshold.mp3-81835df63ff57ab6ed240ad8ca2684eb.mp3str::
+The Town.mp3::AudioStreamMP3::4166842732483362886::1780591763::1780593489::1::::<><><>0<>0<>31e8b13c91d2e6de9308471ff4a749cd<>res://.godot/imported/The Town.mp3-13208fed55b737e731280f15045bbab0.mp3str::
+The Universe Says Hello.mp3::AudioStreamMP3::4754408799335143535::1780591788::1780593489::1::::<><><>0<>0<>c84489b6136966bae3b18df549654356<>res://.godot/imported/The Universe Says Hello.mp3-c45ff2524ee88db7597ea97d282c3902.mp3str::
+Twangy Space.mp3::AudioStreamMP3::4660492354967527197::1780591418::1780593489::1::::<><><>0<>0<>45e0e7ea96abdba31cfd43f1241cdb1c<>res://.godot/imported/Twangy Space.mp3-a4b53927dedbcd2c2e2259f43140a066.mp3str::
 Whispers in the Void.mp3::AudioStreamMP3::3608305324537977308::1779223366::1779223366::1::::<><><>0<>0<>8d3d14b61e19dd08b11b011665f3adab<>res://.godot/imported/Whispers in the Void.mp3-32e794bf42bde1d89598e776537345bc.mp3str::
 [Err -42] invalid thread change.mp3::AudioStreamMP3::5908626644802616290::1779223366::1779223366::1::::<><><>0<>0<>9a6204e710d40bf4687fbf058109edb8<>res://.godot/imported/[Err -42] invalid thread change.mp3-2657091b07328bf50eb1ae66bf14b31b.mp3str::
 [Err -502] RUPTURE.mp3::AudioStreamMP3::1276690354223216142::1780372558::1780374572::1::::<><><>0<>0<>16082747ae0497ec2fbb4b8b4ccd8a62<>res://.godot/imported/[Err -502] RUPTURE.mp3-6f08590bd19ba68a8dac20b4a9ba4c39.mp3str::
-::res://Assets/Sound Effects/::1780528585
+::res://Assets/Sound Effects/::1780593489
 A_brief_surge_of_acc_#1-1780448604241.mp3::AudioStreamMP3::5565907458566466471::1780448606::1780528585::1::::<><><>0<>0<>5d5518c33052901822d43d542ab525e5<>res://.godot/imported/A_brief_surge_of_acc_#1-1780448604241.mp3-e1b9f231405a9e2a74745e40163a3380.mp3str::
 A_brief_surge_of_acc_#2-1780448604242.mp3::AudioStreamMP3::7142957006358410010::1780448609::1780528585::1::::<><><>0<>0<>b1fb81ca0e676df8bb02cb1fe3830cfe<>res://.godot/imported/A_brief_surge_of_acc_#2-1780448604242.mp3-2abcb54e51f02928a1093d8bb6dec8f2.mp3str::
-A_brief_surge_of_acc_#3-1780448604242.mp3::AudioStreamMP3::7256508321406752570::1780448610::1780528585::1::::<><><>0<>0<>b94c239fa6f168c79a34a5754f7c1087<>res://.godot/imported/A_brief_surge_of_acc_#3-1780448604242.mp3-aa4c197f08d44aa4d29229c76e6a863e.mp3str::
-A_brief_surge_of_acc_#4-1780448612003.mp3::AudioStreamMP3::5653884520193725782::1780448613::1780528585::1::::<><><>0<>0<>06b2617ac3ea23b3a9374057f2d61d27<>res://.godot/imported/A_brief_surge_of_acc_#4-1780448612003.mp3-df327503a6fb4f6295a92ad90cd0f906.mp3str::
 A_deep_sub-bass_dron_#1-1780448533112.mp3::AudioStreamMP3::2464926217249625276::1780448538::1780528585::1::::<><><>0<>0<>054014854cbe07952f03210a3cffd945<>res://.godot/imported/A_deep_sub-bass_dron_#1-1780448533112.mp3-b6f6d29ee97aaf2b960a290ff2c90ebb.mp3str::
 A_deep_sub-bass_dron_#2-1780448533113.mp3::AudioStreamMP3::7532458153062567984::1780448537::1780528585::1::::<><><>0<>0<>86ebc7fc4385352bee8841ba2f48beb6<>res://.godot/imported/A_deep_sub-bass_dron_#2-1780448533113.mp3-d8fc43848ee8809b8d48b67d60543171.mp3str::
 A_deep_sub-bass_dron_#3-1780448533114.mp3::AudioStreamMP3::923297448204686708::1780448536::1780528585::1::::<><><>0<>0<>125019f4faf87e2bb973f49096008751<>res://.godot/imported/A_deep_sub-bass_dron_#3-1780448533114.mp3-c8260724115083782e03e0d15a09d4f6.mp3str::
 A_deep_sub-bass_dron_#4-1780448533114.mp3::AudioStreamMP3::7358614207904845884::1780448534::1780528585::1::::<><><>0<>0<>6403d37ac3201c4a7d076bfba6444154<>res://.godot/imported/A_deep_sub-bass_dron_#4-1780448533114.mp3-7177f7423ac95e54a3f8e572c9a2f7a7.mp3str::
 Boss_Attack_Release__#1-1780527308517.mp3::AudioStreamMP3::6430564659366261772::1780527309::1780528585::1::::<><><>0<>0<>d1ac4b3283dc021850f302d9ee19e724<>res://.godot/imported/Boss_Attack_Release__#1-1780527308517.mp3-0754d809f9e2205f9569f281024e9e24.mp3str::
 Boss_Attack_Release__#2-1780527308518.mp3::AudioStreamMP3::6631985844313064953::1780527311::1780528585::1::::<><><>0<>0<>42f95bb110f7b09407e7f7cea0d25471<>res://.godot/imported/Boss_Attack_Release__#2-1780527308518.mp3-e912d07c4d6c2d2c7dc43259edb9fdc2.mp3str::
-Boss_Attack_Release__#3-1780527308518.mp3::AudioStreamMP3::703828684531834134::1780527312::1780528585::1::::<><><>0<>0<>b5ecbbd226b1dc0093f7ba1f1981c214<>res://.godot/imported/Boss_Attack_Release__#3-1780527308518.mp3-bc3af9ae816a041be7503572de1b52ef.mp3str::
 Boss_Attack_Release__#4-1780527308519.mp3::AudioStreamMP3::7040731086344352891::1780527315::1780528585::1::::<><><>0<>0<>7b8e267f0f4adb9097310ffade72494d<>res://.godot/imported/Boss_Attack_Release__#4-1780527308519.mp3-542520857cc19a74d343c896c5072826.mp3str::
 Boss_Telegraph_A_hig_#1-1780527284636.mp3::AudioStreamMP3::2260009366196338894::1780527286::1780528585::1::::<><><>0<>0<>d04adc5e357d614ee549a8d89ac25fa4<>res://.godot/imported/Boss_Telegraph_A_hig_#1-1780527284636.mp3-f666e894b44365fe79084d6e2a619fa4.mp3str::
 Boss_Telegraph_A_hig_#2-1780527284637.mp3::AudioStreamMP3::2373594249846372478::1780527288::1780528585::1::::<><><>0<>0<>492355e38b064a6670cc1e7ed03598f8<>res://.godot/imported/Boss_Telegraph_A_hig_#2-1780527284637.mp3-fb3f1aa7bbed98857d81e045a7750ed2.mp3str::
-Boss_Telegraph_A_hig_#3-1780527284637.mp3::AudioStreamMP3::6861765837376662074::1780527290::1780528585::1::::<><><>0<>0<>5f24a9f0ff4e61a29cb5f5b654d1fe77<>res://.godot/imported/Boss_Telegraph_A_hig_#3-1780527284637.mp3-2f95a3d5a83b8ff54e19c96447cd87db.mp3str::
 Boss_Telegraph_A_hig_#4-1780527284638.mp3::AudioStreamMP3::5402120845535718562::1780527291::1780528585::1::::<><><>0<>0<>b4811d6ab1cfadad0a47bf0357c781e8<>res://.godot/imported/Boss_Telegraph_A_hig_#4-1780527284638.mp3-893dc41169e65967e7aad99aab07d5ef.mp3str::
 Collapse_Lanes_Inten_#1-1780527246267.mp3::AudioStreamMP3::282797236987149825::1780527251::1780528585::1::::<><><>0<>0<>21e87048b6a03ab277e3fb5b2717bb89<>res://.godot/imported/Collapse_Lanes_Inten_#1-1780527246267.mp3-f7bdaadcb27ce13813e06e2bc4870b4f.mp3str::
 Collapse_Lanes_Inten_#2-1780527246267.mp3::AudioStreamMP3::1954389863961992805::1780527253::1780528585::1::::<><><>0<>0<>3ed7ebd0349e3ce762f16b0791d5f8ad<>res://.godot/imported/Collapse_Lanes_Inten_#2-1780527246267.mp3-127b2d98849b12356d2b455d80a3b8a3.mp3str::
@@ -270,30 +277,24 @@ Fracture_Boss_Telegr_#4-1780527377819.mp3::AudioStreamMP3::3323894681003658421::
 GravityWavePulsating.wav::AudioStreamWAV::6743450860872667529::1780110623::1780110822::1::::<><><>0<>0<>0f8e71c49d63cc80cd4c840d02ed3b00<>res://.godot/imported/GravityWavePulsating.wav-af702c5a1607271cad513bc1c8c7fdb9.sample::
 Gravity_Scar_Applied_#1-1780449061833.mp3::AudioStreamMP3::7993404501495590750::1780449066::1780528585::1::::<><><>0<>0<>c5786eb79e9475f1a7e3c9f09d414ec6<>res://.godot/imported/Gravity_Scar_Applied_#1-1780449061833.mp3-d7ba7a134b82a4c5baea530485f6498a.mp3str::
 Gravity_Scar_Applied_#2-1780449061912.mp3::AudioStreamMP3::1045907855683463899::1780449069::1780528585::1::::<><><>0<>0<>6a15922cc506deb72176b22d70913277<>res://.godot/imported/Gravity_Scar_Applied_#2-1780449061912.mp3-2241812137b05ccc6ba42ed37180c3ae.mp3str::
-Gravity_Scar_Applied_#3-1780449061830.mp3::AudioStreamMP3::3631026692941065449::1780449071::1780528585::1::::<><><>0<>0<>9e68c98ba12c18ffcdbb5146ad3715f2<>res://.godot/imported/Gravity_Scar_Applied_#3-1780449061830.mp3-ff266ecd6c8848126a827476ee0a4e21.mp3str::
 Gravity_Scar_Applied_#4-1780449061827.mp3::AudioStreamMP3::2557134504634541251::1780449073::1780528585::1::::<><><>0<>0<>2f31610cf77ff5526c6c3f45d82cce79<>res://.godot/imported/Gravity_Scar_Applied_#4-1780449061827.mp3-036cbb87d139bbafb25dfd86e58296a9.mp3str::
 Gravity_Scar_Created_#1-1780449011092.mp3::AudioStreamMP3::8438105593358255016::1780449013::1780528585::1::::<><><>0<>0<>aee1b637c4f748ac5b4f627efe7413e0<>res://.godot/imported/Gravity_Scar_Created_#1-1780449011092.mp3-5e32520784817a8a959a803063836e56.mp3str::
-Gravity_Scar_Created_#2-1780449011089.mp3::AudioStreamMP3::5352932919980344045::1780449015::1780528585::1::::<><><>0<>0<>1d137ccb01710ff212c6d73f52632187<>res://.godot/imported/Gravity_Scar_Created_#2-1780449011089.mp3-f582ad7a68ebac4bac40a0bcbd833c15.mp3str::
 Gravity_Scar_Created_#3-1780449011098.mp3::AudioStreamMP3::4891840950049882487::1780449017::1780528585::1::::<><><>0<>0<>4af40a8b80d61a2dc1c0bdf87d1c78df<>res://.godot/imported/Gravity_Scar_Created_#3-1780449011098.mp3-f13345658ce1b4ade2d6d9e659650d53.mp3str::
 Gravity_Scar_Created_#4-1780449011100.mp3::AudioStreamMP3::2285963071859210694::1780449019::1780528585::1::::<><><>0<>0<>4a6e06a359dc07ece2d815848eb30d44<>res://.godot/imported/Gravity_Scar_Created_#4-1780449011100.mp3-15df413c342e5fb39e8a3a5a2a482c02.mp3str::
 Gravity_Scar_Decayed_#1-1780452037762.mp3::AudioStreamMP3::7852496974820110616::1780452041::1780528585::1::::<><><>0<>0<>287e8f98a37accb949987c6a137506c0<>res://.godot/imported/Gravity_Scar_Decayed_#1-1780452037762.mp3-dd1ef684be300f453ec6a48415f436ba.mp3str::
-Gravity_Scar_Decayed_#2-1780452037800.mp3::AudioStreamMP3::6077534828312336052::1780452044::1780528585::1::::<><><>0<>0<>43ba1bfa91bf9242853e6ce0d6ae073e<>res://.godot/imported/Gravity_Scar_Decayed_#2-1780452037800.mp3-5df224e484dd170aa9fa964af92a3f07.mp3str::
 Gravity_Scar_Decayed_#3-1780452037764.mp3::AudioStreamMP3::2096329716838716461::1780452047::1780528585::1::::<><><>0<>0<>ebb97a71801ab4d02c513aa3e86ae846<>res://.godot/imported/Gravity_Scar_Decayed_#3-1780452037764.mp3-3a73ee587325420b739888b77a6f5b9a.mp3str::
 Gravity_Scar_Decayed_#4-1780452037769.mp3::AudioStreamMP3::6356346366217610999::1780452049::1780528585::1::::<><><>0<>0<>880bcd866bce8bda2aba6ae7202d4bd0<>res://.godot/imported/Gravity_Scar_Decayed_#4-1780452037769.mp3-adf6c4c654fe2d71d7895fbff96228cd.mp3str::
 Gravity_Scar_Intensi_#1-1780449033291.mp3::AudioStreamMP3::4441829646984491403::1780449037::1780528585::1::::<><><>0<>0<>6037276fb01c6e7ab1a252f39591ded2<>res://.godot/imported/Gravity_Scar_Intensi_#1-1780449033291.mp3-fbc6cd5ba15d7c081d1d687de9b759eb.mp3str::
 Gravity_Scar_Intensi_#2-1780449033238.mp3::AudioStreamMP3::742708341077307627::1780449040::1780528585::1::::<><><>0<>0<>9621cf3e71470e4d93042c0b86b87d19<>res://.godot/imported/Gravity_Scar_Intensi_#2-1780449033238.mp3-d061d2ed44e0eb333b8c055a6721a1e7.mp3str::
-Gravity_Scar_Intensi_#3-1780449033294.mp3::AudioStreamMP3::5491144388065152976::1780449042::1780528585::1::::<><><>0<>0<>4d04534433368ad1dcf7feaa1a677134<>res://.godot/imported/Gravity_Scar_Intensi_#3-1780449033294.mp3-322243ba96d0a57e92a70ca0c41a6bcf.mp3str::
 Gravity_Scar_Intensi_#4-1780449033235.mp3::AudioStreamMP3::3091327030614161332::1780449044::1780528585::1::::<><><>0<>0<>4ec4a87adb079f169d686e2327d0199e<>res://.godot/imported/Gravity_Scar_Intensi_#4-1780449033235.mp3-7b1fa7879dcc57f63ccbc98bdb40e71a.mp3str::
 Harmonic_Orbit_Zone__#1-1780448688032.mp3::AudioStreamMP3::8704569726827290913::1780448691::1780528585::1::::<><><>0<>0<>dee5a9d61bd49a8d9b69fe00c3a8a7d7<>res://.godot/imported/Harmonic_Orbit_Zone__#1-1780448688032.mp3-9e5372565e89f6922cc38bfd419fde71.mp3str::
 Harmonic_Orbit_Zone__#1-1780448717302.mp3::AudioStreamMP3::5458224201736983643::1780448726::1780528585::1::::<><><>0<>0<>eb58d820666ffeac174e44e66e744951<>res://.godot/imported/Harmonic_Orbit_Zone__#1-1780448717302.mp3-58df76a1a59444ae237de4feea62a83d.mp3str::
 Harmonic_Orbit_Zone__#2-1780448687999.mp3::AudioStreamMP3::7251617965915540893::1780448694::1780528585::1::::<><><>0<>0<>4953aaf754b30fa445d1c3b608edab4e<>res://.godot/imported/Harmonic_Orbit_Zone__#2-1780448687999.mp3-12f76cc4056db83a66814dacff58654a.mp3str::
 Harmonic_Orbit_Zone__#2-1780448727531.mp3::AudioStreamMP3::5123778053638691749::1780448729::1780528585::1::::<><><>0<>0<>739c7cef4e7a8a101177e86abe0c73fb<>res://.godot/imported/Harmonic_Orbit_Zone__#2-1780448727531.mp3-a007980f755a7281b54afdf16c6a08aa.mp3str::
-Harmonic_Orbit_Zone__#3-1780448695283.mp3::AudioStreamMP3::8265249947629695410::1780448696::1780528585::1::::<><><>0<>0<>56745ed4a49d141e9d6f7ef108c450be<>res://.godot/imported/Harmonic_Orbit_Zone__#3-1780448695283.mp3-7f5010fdaf542f4e36becb9282d151b6.mp3str::
 Harmonic_Orbit_Zone__#3-1780448727403.mp3::AudioStreamMP3::2021147705732214026::1780448731::1780528585::1::::<><><>0<>0<>078f5d32e6892c0dc96b2c609b644dfb<>res://.godot/imported/Harmonic_Orbit_Zone__#3-1780448727403.mp3-09b08ff66226f65cbb88be825a7bbd4c.mp3str::
 Harmonic_Orbit_Zone__#4-1780448697148.mp3::AudioStreamMP3::3701888916085900204::1780448698::1780528585::1::::<><><>0<>0<>8f8fe6f6255617769ad92ca837363d8a<>res://.godot/imported/Harmonic_Orbit_Zone__#4-1780448697148.mp3-e699028730382f1be3ead1bc87b29b8b.mp3str::
 Harmonic_Orbit_Zone__#4-1780448727404.mp3::AudioStreamMP3::2694466936585970038::1780448734::1780528585::1::::<><><>0<>0<>b6d16cd92dc1f585f2925988b4450cd8<>res://.godot/imported/Harmonic_Orbit_Zone__#4-1780448727404.mp3-d4228fcf210d21ddd74027304f153955.mp3str::
 Instability_Changed__#1-1780448988420.mp3::AudioStreamMP3::8137065640797326045::1780448990::1780528585::1::::<><><>0<>0<>232c0ad9ccc5f830b13a336b57e9594c<>res://.godot/imported/Instability_Changed__#1-1780448988420.mp3-073cdc28b9e5721d2f0fe670c8521131.mp3str::
-Instability_Changed__#2-1780448988423.mp3::AudioStreamMP3::4595945590554412535::1780448993::1780528585::1::::<><><>0<>0<>bb3e306773c9b1e1c346d612b4f9963d<>res://.godot/imported/Instability_Changed__#2-1780448988423.mp3-ee38b3b38bdce75a76ee909c29e7c700.mp3str::
 Instability_Changed__#3-1780448988363.mp3::AudioStreamMP3::3595411652230034524::1780448995::1780528585::1::::<><><>0<>0<>204e91b2756a6a223f9f766a5973f8a7<>res://.godot/imported/Instability_Changed__#3-1780448988363.mp3-20d126ca23fd6f5efe81af4d287258cf.mp3str::
 Instability_Changed__#4-1780448988367.mp3::AudioStreamMP3::4794688644077582696::1780448997::1780528585::1::::<><><>0<>0<>0a90847f9256e7ddfbec5fa71db7e123<>res://.godot/imported/Instability_Changed__#4-1780448988367.mp3-059002479c3e1f7bb8994a634804fdba.mp3str::
 Late-Game_Overfolds__#1-1780527144979.mp3::AudioStreamMP3::6250350244973394135::1780527149::1780528585::1::::<><><>0<>0<>afc68d129360a76a1e3a90860c0e940f<>res://.godot/imported/Late-Game_Overfolds__#1-1780527144979.mp3-c51cddd15e22069201e9b01aee86e8f8.mp3str::
@@ -306,11 +307,9 @@ Late-Game_Overfolds__#4-1780527144975.mp3::AudioStreamMP3::2727474006198644505::
 Late-Game_Overfolds__#4-1780527165031.mp3::AudioStreamMP3::5702326166502248830::1780527172::1780528585::1::::<><><>0<>0<>aecaf55c070bc662ac383590ed90b127<>res://.godot/imported/Late-Game_Overfolds__#4-1780527165031.mp3-e6b2ac48095b58014a1367af6234be62.mp3str::
 Local_Time_Pocket_En_#1-1780448945388.mp3::AudioStreamMP3::1850427118730406::1780448948::1780528585::1::::<><><>0<>0<>23f72373973371f5a9e58ee53928d554<>res://.godot/imported/Local_Time_Pocket_En_#1-1780448945388.mp3-51e9d299a5b0992454c9d0f4800163c5.mp3str::
 Local_Time_Pocket_En_#1-1780448947818.mp3::AudioStreamMP3::5551917649435454221::1780448949::1780528585::1::::<><><>0<>0<>26dd1cb5746a8824bc67b781c04fe47f<>res://.godot/imported/Local_Time_Pocket_En_#1-1780448947818.mp3-c7184e2b9ffba0b0cadc63d7eadf048e.mp3str::
-Local_Time_Pocket_En_#2-1780448945330.mp3::AudioStreamMP3::3404515432477105476::1780448951::1780528585::1::::<><><>0<>0<>8c0b7f0ed5956ffba533ce560b512e16<>res://.godot/imported/Local_Time_Pocket_En_#2-1780448945330.mp3-9488fbd2be266e7029ffb06efeea9fb7.mp3str::
 Local_Time_Pocket_En_#3-1780448945385.mp3::AudioStreamMP3::1531508592374479144::1780448953::1780528585::1::::<><><>0<>0<>eb10a0c273905d3bb9061551c9ab4c70<>res://.godot/imported/Local_Time_Pocket_En_#3-1780448945385.mp3-e3129000042f0a428c344b9af6528568.mp3str::
 Local_Time_Pocket_En_#4-1780448945334.mp3::AudioStreamMP3::1802128685043884343::1780448955::1780528585::1::::<><><>0<>0<>8cc3d94561ccb74b23822bd0e7d4f09c<>res://.godot/imported/Local_Time_Pocket_En_#4-1780448945334.mp3-ee528085668cfee36861b352253305d0.mp3str::
 Local_Time_Pocket_Ex_#1-1780448966882.mp3::AudioStreamMP3::6069344637823897819::1780448969::1780528585::1::::<><><>0<>0<>be0c6e2d6001784aba82f1861a1d4788<>res://.godot/imported/Local_Time_Pocket_Ex_#1-1780448966882.mp3-6a0179e6043ba2869c3fbff808de4d56.mp3str::
-Local_Time_Pocket_Ex_#2-1780448966872.mp3::AudioStreamMP3::2092737319343660959::1780448972::1780528585::1::::<><><>0<>0<>c31bda5eb5abf792edaae657345abf7b<>res://.godot/imported/Local_Time_Pocket_Ex_#2-1780448966872.mp3-bd388be37b15b45777fc63af168cb111.mp3str::
 Local_Time_Pocket_Ex_#3-1780448966880.mp3::AudioStreamMP3::6775687628629846071::1780448975::1780528585::1::::<><><>0<>0<>c7fc2a2f7352e039ec497a58554b8d24<>res://.godot/imported/Local_Time_Pocket_Ex_#3-1780448966880.mp3-e93bff1a80a51fe77304e65c6835d671.mp3str::
 Local_Time_Pocket_Ex_#4-1780448966876.mp3::AudioStreamMP3::3635379354007312618::1780448977::1780528585::1::::<><><>0<>0<>76ecad0de1e231a96cde7f5815d6344d<>res://.godot/imported/Local_Time_Pocket_Ex_#4-1780448966876.mp3-a175e9d458a33813f7cbf7eca5ff9530.mp3str::
 Nebula_Shear_Harsh_s_#1-1780527032270.mp3::AudioStreamMP3::934736089299965505::1780527033::1780528585::1::::<><><>0<>0<>4e66aad596ed14b2f146bfd0762c0cb1<>res://.godot/imported/Nebula_Shear_Harsh_s_#1-1780527032270.mp3-5fcab01654b76fa62c747b22cfb5fe17.mp3str::
@@ -318,7 +317,6 @@ Nebula_Shear_Harsh_s_#2-1780527032244.mp3::AudioStreamMP3::8712462458509017636::
 Nebula_Shear_Harsh_s_#3-1780527032273.mp3::AudioStreamMP3::7596568437972021607::1780527037::1780528585::1::::<><><>0<>0<>e85b46b06ef84459a90134893350c6dc<>res://.godot/imported/Nebula_Shear_Harsh_s_#3-1780527032273.mp3-cc6ab5681b8569194cc3f463f1ee44bc.mp3str::
 Nebula_Shear_Harsh_s_#4-1780527032267.mp3::AudioStreamMP3::2853231665334212471::1780527039::1780528585::1::::<><><>0<>0<>897264fe9a30cdda54ca6e2de9c98a28<>res://.godot/imported/Nebula_Shear_Harsh_s_#4-1780527032267.mp3-4693e6bf6c2978eff8efb86e4ae44f16.mp3str::
 Orbital_resonance_zo_#1-1780448336555.mp3::AudioStreamMP3::6820901406261392516::1780448338::1780528585::1::::<><><>0<>0<>3ba86eaf7162ab9e6e14b3fce1890a43<>res://.godot/imported/Orbital_resonance_zo_#1-1780448336555.mp3-4da73e83404cf10459a21b9aaf0fe8f3.mp3str::
-Orbital_resonance_zo_#4-1780448336556.mp3::AudioStreamMP3::5600921740722220787::1780448341::1780528585::1::::<><><>0<>0<>629623b0d12aa1f3154856258286eb91<>res://.godot/imported/Orbital_resonance_zo_#4-1780448336556.mp3-9058395ec14fba956e9d78196e2ba0ba.mp3str::
 Orbit_Boss_Telegraph_#1-1780527401591.mp3::AudioStreamMP3::4125586216150151632::1780527406::1780528585::1::::<><><>0<>0<>5a2ab09dc0634d8753c9f08f3fc3aa0f<>res://.godot/imported/Orbit_Boss_Telegraph_#1-1780527401591.mp3-9c080dfb8a3ebf0e71d53c82531d3237.mp3str::
 Orbit_Boss_Telegraph_#2-1780527401593.mp3::AudioStreamMP3::6978924792571601008::1780527408::1780528585::1::::<><><>0<>0<>0bb28ec4cd8741a44838807e0dfca1e7<>res://.godot/imported/Orbit_Boss_Telegraph_#2-1780527401593.mp3-5d2f3cfa868a5d3f5f8e6671da95903a.mp3str::
 Orbit_Boss_Telegraph_#3-1780527401596.mp3::AudioStreamMP3::8751525178195720170::1780527410::1780528585::1::::<><><>0<>0<>1da51345efe6727c535c8c03ce549591<>res://.godot/imported/Orbit_Boss_Telegraph_#3-1780527401596.mp3-66b5cf2b919426d288f410dc39257aa3.mp3str::
@@ -328,15 +326,12 @@ Overfold_Boss_Telegr_#2-1780527423739.mp3::AudioStreamMP3::6703807010083252784::
 Overfold_Boss_Telegr_#3-1780527423965.mp3::AudioStreamMP3::7633399183348845079::1780527429::1780528585::1::::<><><>0<>0<>5111ce44741dbde4de0e0a77491227e0<>res://.godot/imported/Overfold_Boss_Telegr_#3-1780527423965.mp3-ff43f5e81ab205fc5fcac5c5abdfa987.mp3str::
 Overfold_Boss_Telegr_#4-1780527423814.mp3::AudioStreamMP3::5453853260678054755::1780527431::1780528585::1::::<><><>0<>0<>86f26753a858afdf44d003eea70054dc<>res://.godot/imported/Overfold_Boss_Telegr_#4-1780527423814.mp3-58d5d56575b0621dad0601f62e8c0ad7.mp3str::
 Pause_Close_A_quick__#1-1780527471571.mp3::AudioStreamMP3::2327269288695336072::1780527472::1780528585::1::::<><><>0<>0<>591920db180751d3bb0c14be8963a861<>res://.godot/imported/Pause_Close_A_quick__#1-1780527471571.mp3-65a94c77fb9f2d5607b3f00ae9a891f3.mp3str::
-Pause_Close_A_quick__#2-1780527471572.mp3::AudioStreamMP3::8837391755743115178::1780527474::1780528585::1::::<><><>0<>0<>3500ebab6e0ff9dc3e835ff19a45731a<>res://.godot/imported/Pause_Close_A_quick__#2-1780527471572.mp3-70112858856d87b87d7610a3815ba93e.mp3str::
 Pause_Close_A_quick__#3-1780527471572.mp3::AudioStreamMP3::4223236867146954615::1780527476::1780528585::1::::<><><>0<>0<>08de589122b1dd9915aebf9ab1721629<>res://.godot/imported/Pause_Close_A_quick__#3-1780527471572.mp3-bf6700f4ac17e8d89203c9f603284ae3.mp3str::
 Pause_Close_A_quick__#4-1780527471573.mp3::AudioStreamMP3::3314186633683051875::1780527478::1780528585::1::::<><><>0<>0<>93955fbe675daba09d0f28d21838acde<>res://.godot/imported/Pause_Close_A_quick__#4-1780527471573.mp3-e925c652524706a4674c205f3cd4d696.mp3str::
 Pause_Open_A_soft_do_#1-1780527451652.mp3::AudioStreamMP3::7182548551030534312::1780527457::1780528585::1::::<><><>0<>0<>b2bf03864ceb142abaade4ec79e771f1<>res://.godot/imported/Pause_Open_A_soft_do_#1-1780527451652.mp3-2182da53e6cb34ac9c3ab3a8ef10b773.mp3str::
-Pause_Open_A_soft_do_#2-1780527451652.mp3::AudioStreamMP3::574914522136523833::1780527455::1780528585::1::::<><><>0<>0<>6bf7a095d408af933177a7fdd63c6b31<>res://.godot/imported/Pause_Open_A_soft_do_#2-1780527451652.mp3-56119738f1bcc01abc606ef6757654a5.mp3str::
 Pause_Open_A_soft_do_#3-1780527451653.mp3::AudioStreamMP3::3286707957394345631::1780527454::1780528585::1::::<><><>0<>0<>db55d6837c76b97ea93582032cbaba93<>res://.godot/imported/Pause_Open_A_soft_do_#3-1780527451653.mp3-0c840bd55b8dfa3e37f2841a32b9367e.mp3str::
 Pause_Open_A_soft_do_#4-1780527451653.mp3::AudioStreamMP3::6760733210625702748::1780527453::1780528585::1::::<><><>0<>0<>f11efc181ad70f93dc9ed07f8c665473<>res://.godot/imported/Pause_Open_A_soft_do_#4-1780527451653.mp3-0d8dca316f7dbc2cf1deefef5368cac7.mp3str::
 PlayerShoot.wav::AudioStreamWAV::3937957135400889693::1779223366::1779223366::1::::<><><>0<>0<>87e6c27c675f25d58b0e9d98c3198cc7<>res://.godot/imported/PlayerShoot.wav-d6e7ce771edf0d947f3de7506bd78a65.sample::
-Powerful_kinetic_imp_#3-1780448296106.mp3::AudioStreamMP3::7224330168170883525::1780448298::1780528585::1::::<><><>0<>0<>9a53b68ea26936e7eaa64363ef8709dd<>res://.godot/imported/Powerful_kinetic_imp_#3-1780448296106.mp3-946ab1a0cddb443eaa3e8c1e735fd26a.mp3str::
 Rare_Events_A_distin_#1-1780527115200.mp3::AudioStreamMP3::33810422152876877::1780527116::1780528585::1::::<><><>0<>0<>4418474669144371ef715ed867b327a3<>res://.godot/imported/Rare_Events_A_distin_#1-1780527115200.mp3-c194f25fb12ba9982bf0af7c51cefa03.mp3str::
 Rare_Events_A_distin_#2-1780527115206.mp3::AudioStreamMP3::2508331854447776008::1780527118::1780528585::1::::<><><>0<>0<>bf14f906f98e5352cd3fbd57d1be69cc<>res://.godot/imported/Rare_Events_A_distin_#2-1780527115206.mp3-33642964dc9229907b7fb75f21d6b23d.mp3str::
 Rare_Events_A_distin_#3-1780527115270.mp3::AudioStreamMP3::488250177975576504::1780527120::1780528585::1::::<><><>0<>0<>bcfb7f85f89c54c1e5b51fa91e7e131a<>res://.godot/imported/Rare_Events_A_distin_#3-1780527115270.mp3-bda131d57481ce9957c8c0034673225a.mp3str::
@@ -346,20 +341,40 @@ Resonance_Boss_Teleg_#2-1780527361736.mp3::AudioStreamMP3::587471825566177831::1
 Resonance_Boss_Teleg_#3-1780527361737.mp3::AudioStreamMP3::4349319215964471234::1780527365::1780528585::1::::<><><>0<>0<>10a79dd73b8d75338ee77f44439424d7<>res://.godot/imported/Resonance_Boss_Teleg_#3-1780527361737.mp3-8f9d10f36b705c6ba410b2cba02c75b9.mp3str::
 Resonance_Boss_Teleg_#4-1780527361737.mp3::AudioStreamMP3::5838590280411337765::1780527367::1780528585::1::::<><><>0<>0<>fce258b16b92b8c27b556aa1438ec1c9<>res://.godot/imported/Resonance_Boss_Teleg_#4-1780527361737.mp3-04df1bab651459ff8fda3b1ebabed8e6.mp3str::
 Resonance_zone_decay_#2-1780448397415.mp3::AudioStreamMP3::2138599368797026276::1780448401::1780528585::1::::<><><>0<>0<>c833c639dc449a3946c0a11dc278c32e<>res://.godot/imported/Resonance_zone_decay_#2-1780448397415.mp3-e6801ef989f73e412a9906dc9a17a3bf.mp3str::
-Resonance_zone_decay_#4-1780448397416.mp3::AudioStreamMP3::4716905352476714404::1780448399::1780528585::1::::<><><>0<>0<>a0b1efef73f450c2b78d459f5b4ff198<>res://.godot/imported/Resonance_zone_decay_#4-1780448397416.mp3-aad6e2475ee342376c953b67bb918212.mp3str::
 Resonance_zone_inten_#1-1780448372928.mp3::AudioStreamMP3::6481175250613268424::1780448375::1780528585::1::::<><><>0<>0<>dde04a0fea2ce6ae3a388e98e2b01750<>res://.godot/imported/Resonance_zone_inten_#1-1780448372928.mp3-9b3dfeebe4112258a35814b7e08a90bc.mp3str::
-Resonance_zone_inten_#4-1780448370767.mp3::AudioStreamMP3::6197120290272004287::1780448373::1780528585::1::::<><><>0<>0<>510b6bedb0b9cf4c4c19f0c351893eb1<>res://.godot/imported/Resonance_zone_inten_#4-1780448370767.mp3-1d7b27f7da4da269184620133abed775.mp3str::
 Settings_Changed_A_s_#1-1780527532918.mp3::AudioStreamMP3::7155507611863531302::1780527537::1780528585::1::::<><><>0<>0<>a34338bed54c34388d1305fdfaa8a223<>res://.godot/imported/Settings_Changed_A_s_#1-1780527532918.mp3-6071a898700c2ec051599ad2799d0c7b.mp3str::
-Settings_Changed_A_s_#2-1780527532919.mp3::AudioStreamMP3::8354805280778512738::1780527536::1780528585::1::::<><><>0<>0<>92a2b79b77284157ed63669ec736e78f<>res://.godot/imported/Settings_Changed_A_s_#2-1780527532919.mp3-b687cd57a215fce398bdbebc2ee312c8.mp3str::
 Settings_Changed_A_s_#3-1780527532919.mp3::AudioStreamMP3::2393624944545448587::1780527534::1780528585::1::::<><><>0<>0<>b723b9712c3da84d92c54f4a4bb75ae2<>res://.godot/imported/Settings_Changed_A_s_#3-1780527532919.mp3-46c59779a6c2695e4af64dbe88900bae.mp3str::
 Settings_Changed_A_s_#4-1780527530605.mp3::AudioStreamMP3::3030954987607756604::1780527533::1780528585::1::::<><><>0<>0<>5975bf2746d5eeea84ad31a4a945d2c4<>res://.godot/imported/Settings_Changed_A_s_#4-1780527530605.mp3-4ecbc23a4f205b146ac042766cb83458.mp3str::
+sfx_boss_attack_release.mp3::AudioStreamMP3::703828684531834134::1780527312::1780593489::1::::<><><>0<>0<>5103a78df995199f2c15d928399f6a9f<>res://.godot/imported/sfx_boss_attack_release.mp3-a90ef4684b8436c6c054e4499f4b9043.mp3str::
+sfx_boss_telegraph_high.mp3::AudioStreamMP3::6861765837376662074::1780527290::1780593489::1::::<><><>0<>0<>f40eb28c506b437ea188516b449cef72<>res://.godot/imported/sfx_boss_telegraph_high.mp3-6005df36409dfd3704e960cf5bef3cd5.mp3str::
+sfx_gravity_scar_applied.mp3::AudioStreamMP3::3631026692941065449::1780449071::1780593489::1::::<><><>0<>0<>2de51131b5243eead812713a21667479<>res://.godot/imported/sfx_gravity_scar_applied.mp3-1313c9d68bd877fd1c6ebc67f6d3e7f4.mp3str::
+sfx_gravity_scar_created.mp3::AudioStreamMP3::5352932919980344045::1780449015::1780593489::1::::<><><>0<>0<>8de3d37e8fc7bbfb1dcda2b7a6b60ffc<>res://.godot/imported/sfx_gravity_scar_created.mp3-5467a9e6130d39f3f34d50b465d98e63.mp3str::
+sfx_gravity_scar_decay.mp3::AudioStreamMP3::6077534828312336052::1780452044::1780593488::1::::<><><>0<>0<>46b01542efedacb750898104150433a7<>res://.godot/imported/sfx_gravity_scar_decay.mp3-63e0c0f829e8084ff335fa85e603bad9.mp3str::
+sfx_gravity_scar_intensify.mp3::AudioStreamMP3::5491144388065152976::1780449042::1780593488::1::::<><><>0<>0<>da39332a379b5afb3b2ef7af28c29668<>res://.godot/imported/sfx_gravity_scar_intensify.mp3-588140ac42b753770a56b1b0f974159a.mp3str::
+sfx_instability_changed.mp3::AudioStreamMP3::4595945590554412535::1780448993::1780593488::1::::<><><>0<>0<>d51a103c733c7bc20405468aacb88a91<>res://.godot/imported/sfx_instability_changed.mp3-47caada67e6c60dc16ef50a53642851b.mp3str::
+sfx_kinetic_impact_heavy.mp3::AudioStreamMP3::7224330168170883525::1780448298::1780593488::1::::<><><>0<>0<>20354a4865c809a94bf602eeaad4e3b6<>res://.godot/imported/sfx_kinetic_impact_heavy.mp3-c49d31b8eb7b3d2593fa62baa27c6d80.mp3str::
+sfx_resonance_created.mp3::AudioStreamMP3::5600921740722220787::1780448341::1780593488::1::::<><><>0<>0<>78cb5fe4b1d2fbff7e7f39cd516965c8<>res://.godot/imported/sfx_resonance_created.mp3-b0c1bd2f0cb648caa659a5cada1f150e.mp3str::
+sfx_resonance_decay.mp3::AudioStreamMP3::4716905352476714404::1780448399::1780593488::1::::<><><>0<>0<>d292a64cf710666b0bdab547fa2dd51f<>res://.godot/imported/sfx_resonance_decay.mp3-9d479d601377da35aa9938e07215b4a2.mp3str::
+sfx_resonance_harmonic_orbit.mp3::AudioStreamMP3::8265249947629695410::1780448696::1780593488::1::::<><><>0<>0<>efb65fefb17018136be069361f478296<>res://.godot/imported/sfx_resonance_harmonic_orbit.mp3-00ad041cc4c0420db4f6b02c2eecdd1e.mp3str::
+sfx_resonance_intensify.mp3::AudioStreamMP3::6197120290272004287::1780448373::1780593488::1::::<><><>0<>0<>79313fdcf3d89bc8ec67a9d78dcab42b<>res://.godot/imported/sfx_resonance_intensify.mp3-7ef6c0a86f28418b0287ac6058587d41.mp3str::
+sfx_resonance_slipstream.mp3::AudioStreamMP3::3337676063503244483::1780448671::1780593488::1::::<><><>0<>0<>ac908df7ce735e61f0d5cf38ad897997<>res://.godot/imported/sfx_resonance_slipstream.mp3-99751783c0da1c71d7af98d42628f158.mp3str::
+sfx_slingshot_apex.mp3::AudioStreamMP3::5653884520193725782::1780448613::1780593488::1::::<><><>0<>0<>e06cc01af1b31576429dc38a568b5769<>res://.godot/imported/sfx_slingshot_apex.mp3-b1dda325c23096a632e14b93189ebaa4.mp3str::
+sfx_slingshot_great.mp3::AudioStreamMP3::7256508321406752570::1780448610::1780593488::1::::<><><>0<>0<>ab9ee1daab6d117ad84a41e8700bdc91<>res://.godot/imported/sfx_slingshot_great.mp3-135aafdd778a74b3cc0099b2fd992c8d.mp3str::
+sfx_time_dilation_end.mp3::AudioStreamMP3::3324324778655045250::1780448927::1780593488::1::::<><><>0<>0<>79678989521f9b60ab464943a3ae83cf<>res://.godot/imported/sfx_time_dilation_end.mp3-b69a83918b7156045454cb2eec06c10b.mp3str::
+sfx_time_dilation_start.mp3::AudioStreamMP3::2305563890629800835::1780448906::1780593488::1::::<><><>0<>0<>2ccd3eeca2549c104617d7d1646ae6f8<>res://.godot/imported/sfx_time_dilation_start.mp3-f6deb5c68cee29a2a338684c7667e3e5.mp3str::
+sfx_time_pocket_enter.mp3::AudioStreamMP3::3404515432477105476::1780448951::1780593488::1::::<><><>0<>0<>84d30ec9e59de9c89c9845380ae5a62b<>res://.godot/imported/sfx_time_pocket_enter.mp3-d9123ad33e17409339de7223ffc21a23.mp3str::
+sfx_time_pocket_exit.mp3::AudioStreamMP3::2092737319343660959::1780448972::1780593488::1::::<><><>0<>0<>7e76629ef585bcb36baafdc8b23e5bcf<>res://.godot/imported/sfx_time_pocket_exit.mp3-b0861ecdcd335e206db4a9f84dbf3cc4.mp3str::
+sfx_ui_pause_close.mp3::AudioStreamMP3::8837391755743115178::1780527474::1780593488::1::::<><><>0<>0<>0ca0dabd156659d5dc007ddc62e3c5f4<>res://.godot/imported/sfx_ui_pause_close.mp3-c4e232c11ff94071d27593e437cbaf86.mp3str::
+sfx_ui_pause_open.mp3::AudioStreamMP3::574914522136523833::1780527455::1780593488::1::::<><><>0<>0<>230cdd463869c0beb793ffb9d0479b64<>res://.godot/imported/sfx_ui_pause_open.mp3-651bab7e371c980899f8a65d0bc9e12e.mp3str::
+sfx_ui_settings_changed.mp3::AudioStreamMP3::8354805280778512738::1780527536::1780593488::1::::<><><>0<>0<>1654f103263e045a9723f9439829540e<>res://.godot/imported/sfx_ui_settings_changed.mp3-28c3f3566ed44309041f96c0e6b2aace.mp3str::
+sfx_wormhole_loop_pulse.mp3::AudioStreamMP3::2409967448169055014::1780527093::1780593488::1::::<><><>0<>0<>931f3a4d40ecfc417ad98eca17e68a38<>res://.godot/imported/sfx_wormhole_loop_pulse.mp3-53dfb3e14ee7bddea439b713ac5e9fa1.mp3str::
+sfx_wormhole_swirl.mp3::AudioStreamMP3::4977611776421493305::1780527067::1780593488::1::::<><><>0<>0<>840065791a96fd981f122891fca8395a<>res://.godot/imported/sfx_wormhole_swirl.mp3-c6cdba432c91639befabc6b311343517.mp3str::
 Singularity_Boss_Tel_#1-1780527332749.mp3::AudioStreamMP3::4537044148072281098::1780527337::1780528585::1::::<><><>0<>0<>bc22cb86aa11f6ef9c430e8c9fd782a9<>res://.godot/imported/Singularity_Boss_Tel_#1-1780527332749.mp3-1d5812ba731af722d93e8c339c11832d.mp3str::
 Singularity_Boss_Tel_#2-1780527339477.mp3::AudioStreamMP3::4988417683669278816::1780527341::1780528585::1::::<><><>0<>0<>9a46f7cb005836e47e4364de52c29a22<>res://.godot/imported/Singularity_Boss_Tel_#2-1780527339477.mp3-5e84b40e727d942681b17b98f7845815.mp3str::
 Singularity_Boss_Tel_#3-1780527341622.mp3::AudioStreamMP3::9159698981762101350::1780527342::1780528585::1::::<><><>0<>0<>7c41e207bba9d9772e6ea004e0b8e677<>res://.godot/imported/Singularity_Boss_Tel_#3-1780527341622.mp3-0969cef7abd5b1de3c3a686ca9adbfde.mp3str::
 Singularity_Boss_Tel_#4-1780527341623.mp3::AudioStreamMP3::8338541474180576187::1780527344::1780528585::1::::<><><>0<>0<>d78cfdc9c9bff5d3e7f644f93f9544f8<>res://.godot/imported/Singularity_Boss_Tel_#4-1780527341623.mp3-3d87a540a4cfddcf819ceeb82d6f6409.mp3str::
 Slipstream_Zone_A_sm_#1-1780448664118.mp3::AudioStreamMP3::2108982011137017207::1780448666::1780528585::1::::<><><>0<>0<>cf2e65fb7bfcdd639f363e847f714a94<>res://.godot/imported/Slipstream_Zone_A_sm_#1-1780448664118.mp3-823ed4e62dbd2b6012b9cc7be499f1e9.mp3str::
 Slipstream_Zone_A_sm_#2-1780448664114.mp3::AudioStreamMP3::6069092753495043383::1780448669::1780528585::1::::<><><>0<>0<>faa3b570206bc5abfd3ea8d95ea4974b<>res://.godot/imported/Slipstream_Zone_A_sm_#2-1780448664114.mp3-0adb726483110d6e27cefc4e7828cf39.mp3str::
-Slipstream_Zone_A_sm_#3-1780448664438.mp3::AudioStreamMP3::3337676063503244483::1780448671::1780528585::1::::<><><>0<>0<>9b36ed73e7c4e0ec653c653304c1d1be<>res://.godot/imported/Slipstream_Zone_A_sm_#3-1780448664438.mp3-5de16c563115123119ce670492fa79e4.mp3str::
 Slipstream_Zone_A_sm_#4-1780448664121.mp3::AudioStreamMP3::5941794944308021630::1780448672::1780528585::1::::<><><>0<>0<>bdb21a00524d0e881d7cc5be7850e680<>res://.godot/imported/Slipstream_Zone_A_sm_#4-1780448664121.mp3-4b44a50f43c248331400e6d8bf86638e.mp3str::
 Swimming-through-spa_#3-1780448088261.mp3::AudioStreamMP3::5624943067282700563::1780448102::1780528585::1::::<><><>0<>0<>efccc86313659618acfeec2e6fc47420<>res://.godot/imported/Swimming-through-spa_#3-1780448088261.mp3-d80c0cebe167bf28dbf26ab3bb9b15f6.mp3str::
 Swimming-through-spa_#3-1780448124756.mp3::AudioStreamMP3::9121500120606993124::1780448125::1780528585::1::::<><><>0<>0<>82f879a91b4254196dd1d9c2ba6c8d57<>res://.godot/imported/Swimming-through-spa_#3-1780448124756.mp3-19530d1a647560a1255401618ce414a0.mp3str::
@@ -371,11 +386,9 @@ Tide_Pockets_Large,__#4-1780526969330.mp3::AudioStreamMP3::6331539225471315623::
 Time_dilation_break__#1-1780448174136.mp3::AudioStreamMP3::5417393716390979746::1780448180::1780528585::1::::<><><>0<>0<>934c2846e09847677241350e15282d39<>res://.godot/imported/Time_dilation_break__#1-1780448174136.mp3-80ec0dcb3e4b88329d6125892f081911.mp3str::
 Time_dilation_break__#4-1780448174138.mp3::AudioStreamMP3::4656668386109095752::1780448176::1780528585::1::::<><><>0<>0<>ebc01e93890ef055405c16baabb51527<>res://.godot/imported/Time_dilation_break__#4-1780448174138.mp3-ed3c7174d4f24354f1f9d873f44320e4.mp3str::
 Time_Dilation_Ended__#1-1780448923275.mp3::AudioStreamMP3::3873474760015719125::1780448925::1780528585::1::::<><><>0<>0<>32905f7aaf94966b66a1f7b322aa5fbd<>res://.godot/imported/Time_Dilation_Ended__#1-1780448923275.mp3-29dcd7050930aecb2b480b60e29c5aca.mp3str::
-Time_Dilation_Ended__#2-1780448923254.mp3::AudioStreamMP3::3324324778655045250::1780448927::1780528585::1::::<><><>0<>0<>aa593e0fbb7d51fa7014bf9ce10d2b33<>res://.godot/imported/Time_Dilation_Ended__#2-1780448923254.mp3-468ae89c56f437fd22fa46a335ba5b0c.mp3str::
 Time_Dilation_Ended__#3-1780448928046.mp3::AudioStreamMP3::6003901931443702034::1780448929::1780528585::1::::<><><>0<>0<>a652587589dacd4560c90a4b9e1f2d9c<>res://.godot/imported/Time_Dilation_Ended__#3-1780448928046.mp3-8550ff46cfa17a08fa165df15d8b6153.mp3str::
 Time_Dilation_Ended__#4-1780448929451.mp3::AudioStreamMP3::91175398400538939::1780448931::1780528585::1::::<><><>0<>0<>474a6675ca071b8bc71d573bc14152ce<>res://.godot/imported/Time_Dilation_Ended__#4-1780448929451.mp3-9b5dc0d6afb93f73c4641be644125087.mp3str::
 Time_Dilation_Starte_#1-1780448902052.mp3::AudioStreamMP3::6235087626351107411::1780448904::1780528585::1::::<><><>0<>0<>395036394545ba46d5171ef660b6da03<>res://.godot/imported/Time_Dilation_Starte_#1-1780448902052.mp3-356d4f56da0c99b677bede2aa4174338.mp3str::
-Time_Dilation_Starte_#2-1780448902047.mp3::AudioStreamMP3::2305563890629800835::1780448906::1780528585::1::::<><><>0<>0<>2ab1ca9b1c46f42e4227e725d98079b3<>res://.godot/imported/Time_Dilation_Starte_#2-1780448902047.mp3-5893b0a6c6ac5cd06c2468df6024fdcf.mp3str::
 Time_Dilation_Starte_#3-1780448902050.mp3::AudioStreamMP3::4708174027677109465::1780448908::1780528585::1::::<><><>0<>0<>c0d4f139915db6058337f83a24cfecb9<>res://.godot/imported/Time_Dilation_Starte_#3-1780448902050.mp3-2e135345b6545c1bc251734cba6c4c98.mp3str::
 Time_Dilation_Starte_#4-1780448902043.mp3::AudioStreamMP3::8193164977303154408::1780448909::1780528585::1::::<><><>0<>0<>013a0e2bf9c99bca8bbf9dcf9c6ee467<>res://.godot/imported/Time_Dilation_Starte_#4-1780448902043.mp3-719ea0dda8dc11f744ead8a301050b8f.mp3str::
 VECTOR_ANOMALY_PRODUCTION_ROADMAP_v2_DropInReplacement.md::TextFile::-1::1780447587::0::1::::<><><>0<>0<><>::
@@ -385,12 +398,10 @@ Volatile_Moons_Unsta_#3-1780527010889.mp3::AudioStreamMP3::7903371431618432599::
 Volatile_Moons_Unsta_#4-1780527010896.mp3::AudioStreamMP3::7842233413333579776::1780527020::1780528585::1::::<><><>0<>0<>70e8d7544a89f4f131b6ad241881bb41<>res://.godot/imported/Volatile_Moons_Unsta_#4-1780527010896.mp3-83cc5fbe71ec9c6c20fd6341156ef3fe.mp3str::
 Wormholes_A_swirling_#1-1780527060727.mp3::AudioStreamMP3::8726380122344661062::1780527063::1780528585::1::::<><><>0<>0<>fde6bff72bbcc7bc222a5f7eaedd52c9<>res://.godot/imported/Wormholes_A_swirling_#1-1780527060727.mp3-5b11b92976f5dde1c25cf08763a058a9.mp3str::
 Wormholes_A_swirling_#2-1780527060728.mp3::AudioStreamMP3::3118151235832264411::1780527065::1780528585::1::::<><><>0<>0<>a9c14c34517d54155bb8f28f064a188d<>res://.godot/imported/Wormholes_A_swirling_#2-1780527060728.mp3-d83e176c775af7eee2fac2fc91c8e56b.mp3str::
-Wormholes_A_swirling_#3-1780527060729.mp3::AudioStreamMP3::4977611776421493305::1780527067::1780528585::1::::<><><>0<>0<>7eaf296bbd9236467e36793cfdfb5547<>res://.godot/imported/Wormholes_A_swirling_#3-1780527060729.mp3-1d613b94b9d5ac55159a0f7d6bbc04f7.mp3str::
 Wormholes_Repeating__#1-1780527086988.mp3::AudioStreamMP3::2619277572919249788::1780527091::1780528585::1::::<><><>0<>0<>65c8c940ff8d589f542d54dd91cf0afa<>res://.godot/imported/Wormholes_Repeating__#1-1780527086988.mp3-9dfba54fb6df41132d47c37405842838.mp3str::
-Wormholes_Repeating__#2-1780527086960.mp3::AudioStreamMP3::2409967448169055014::1780527093::1780528585::1::::<><><>0<>0<>cb542607a3b955e613c8b0f89e3e339a<>res://.godot/imported/Wormholes_Repeating__#2-1780527086960.mp3-63996475cac0a2bd5c0dd37841cb6fa6.mp3str::
 Wormholes_Repeating__#3-1780527086980.mp3::AudioStreamMP3::2187940156496376836::1780527095::1780528585::1::::<><><>0<>0<>86c7e901ddb86b407bf9b05088ee0b78<>res://.godot/imported/Wormholes_Repeating__#3-1780527086980.mp3-9e792d11b9791e98e77e6ceebc0e2562.mp3str::
 Wormholes_Repeating__#4-1780527086985.mp3::AudioStreamMP3::4808368478909437809::1780527096::1780528585::1::::<><><>0<>0<>6f558ce125f017b65b6e5d8b6eeb8adc<>res://.godot/imported/Wormholes_Repeating__#4-1780527086985.mp3-bbfd9ae17fd2226068e2783422045895.mp3str::
-::res://Debug and Development Files/::1780532182
+::res://Debug and Development Files/::1780593627
 ASSET_AND_AUDIO_PRODUCTION_LIST.md::TextFile::-1::1780421723::0::1::::<><><>0<>0<><>::
 BRAND_AND_MARKETING_PLAN.md::TextFile::-1::1780011005::0::1::::<><><>0<>0<><>::
 Bullets end up randomly doing this. WAY too much I can't even tell what's going on..png::CompressedTexture2D::271043534564010417::1780530841::1780532182::1::::<><><>0<>0<>5e7b802859ad034b7a9e7dac60d54f1c<>res://.godot/imported/Bullets end up randomly doing this. WAY too much I can't even tell what's going on..png-014191c4b3ddecda9d015285eabdac38.ctex::
@@ -418,16 +429,17 @@ SelfDirectedLearningProjectPlan.md::TextFile::-1::1780072262::0::1::::<><><>0<>0
 Separation_Blueprint.md::TextFile::-1::1780526869::0::1::::<><><>0<>0<><>::
 StillHavingPerformanceIssues631016.png::CompressedTexture2D::5789857514197837384::1780530266::1780530268::1::::<><><>0<>0<>e0fc4fe1883898ee47a08f5b01ccf2a3<>res://.godot/imported/StillHavingPerformanceIssues631016.png-3e6c114ef867ca526519523016b81c01.ctex::
 SuperChaoticExampleTHISISINWAVE1WHYYY.png::CompressedTexture2D::1880388934098513013::1780440679::1780440939::1::::<><><>0<>0<>b9a2ce5e00bc901162708f39701b37de<>res://.godot/imported/SuperChaoticExampleTHISISINWAVE1WHYYY.png-a83a4eb7920d9ca5370ee84d1a61c84b.ctex::
-Things to Fix.txt::TextFile::-1::1780532851::0::1::::<><><>0<>0<><>::
+Things to Fix.txt::TextFile::-1::1780592204::0::1::::<><><>0<>0<><>::
 This is the very start of the game. There are way too many and this shouldn't be happening..png::CompressedTexture2D::7471778296977724511::1780431602::1780431607::1::::<><><>0<>0<>db39b12d43484f4ebb5487b4f1b78418<>res://.godot/imported/This is the very start of the game. There are way too many and this shouldn't be happening..png-befb15fb43ad6f24f81e60d254ab3e82.ctex::
 Vectorfall Future.txt::TextFile::-1::1780421765::0::1::::<><><>0<>0<><>::
 vector_anomaly_performance_audit_markdown.md::TextFile::-1::1780333240::0::1::::<><><>0<>0<><>::
-VECTOR_ANOMALY_PRODUCTION_ROADMAP.md::TextFile::-1::1780526944::0::1::::<><><>0<>0<><>::
+VECTOR_ANOMALY_PRODUCTION_ROADMAP.md::TextFile::-1::1780592269::0::1::::<><><>0<>0<><>::
 vector_anomaly_similarity_blueprint.md::TextFile::-1::1780526887::0::1::::<><><>0<>0<><>::
 VisualProfilerData.png::CompressedTexture2D::3434074635256424111::1780186352::1780186354::1::::<><><>0<>0<>f16ab45a501e1ff8b5eaf393097865e0<>res://.godot/imported/VisualProfilerData.png-c7e67726bf55b15c96ec43af4332aec7.ctex::
 WeAreCooked.png::CompressedTexture2D::1603122299174007240::1780453335::1780453642::1::::<><><>0<>0<>53ee3492f1174d31ade3de09e4a1e36e<>res://.godot/imported/WeAreCooked.png-f80f5a1877cf5a4e45a2ddd34df30269.ctex::
 What even is this.png::CompressedTexture2D::2162812024728855942::1780530982::1780532182::1::::<><><>0<>0<>ef543b501eec82d072618615fd38c08b<>res://.godot/imported/What even is this.png-f3281019d33265dcb6414ac50a02de8e.ctex::
 What is this and why is it dropping my FPS so much I need to know what this is to continue.png::CompressedTexture2D::5678540507260963175::1780176369::1780176380::1::::<><><>0<>0<>3d63865f598f6da15e51258927dfa37d<>res://.godot/imported/What is this and why is it dropping my FPS so much I need to know what this is to continue.png-dbaf3a58a72340d3267e9a7c96261b30.ctex::
+WhatHappensWhenIEnterABlackHole.png::CompressedTexture2D::2339387502040925361::1780593628::1780593630::1::::<><><>0<>0<>6472b69439f1b47aae325c189d449a50<>res://.godot/imported/WhatHappensWhenIEnterABlackHole.png-38cad8345c9f08b241b27b9b01f64640.ctex::
 ::res://examples/::1779223367
 collisions.tscn::PackedScene::4212835744329476512::1779223367::0::1::::<><><>0<>0<><>::uid://dhdc4b8yddyej::::res://addons/rmsmartshape/shapes/shape.gd<>uid://bwcf4pjgprn0k::::res://addons/rmsmartshape/shapes/point.gd<>uid://bo5f7qe27jfje::::res://addons/rmsmartshape/shapes/point_array.gd<>uid://llobjh5hvry::::res://addons/rmsmartshape/shapes/mesh.gd<>uid://8l501jrnaqt8::::res://icon.png<>uid://0lhxan4cqrc1::::res://addons/rmsmartshape/materials/edge_material_metadata.gd<>uid://nc5bfedvnpgm::::res://addons/rmsmartshape/materials/shape_material.gd<>uid://d0xjijisx1woh::::res://addons/rmsmartshape/materials/edge_material.gd<>uid://d218yx0d1ilsn::::res://addons/rmsmartshape/normal_range.gd
 ::res://examples/edge_shader/::1779223367
@@ -448,7 +460,7 @@ tex_metal_taper_corner_right.png::CompressedTexture2D::5010548700008117401::1779
 ::res://Mods/::1780000683
 ::res://Mods/example_vector_laws/::1780418293
 vector_anomaly_mod.json::JSON::-1::1780418293::0::1::::<><><>0<>0<><>::
-::res://Nodes/::1780532882
+::res://Nodes/::1780593508
 accretion_core_boss.tscn::PackedScene::-1::1779472405::0::1::::<><><>0<>0<><>::res://Scripts/Bosses/accretion_core_boss.gd
 adaptive_music_state_director.tscn::PackedScene::-1::1779814697::0::1::::<><><>0<>0<><>::res://Scripts/adaptive_music_state_director.gd
 arena_destabilization_manager.tscn::PackedScene::445768193153712680::1779223366::0::1::::<><><>0<>0<><>::uid://bldsjmtcko3dx::::res://Scripts/arena_destabilization_manager.gd
@@ -456,7 +468,7 @@ arena_instability_director.tscn::PackedScene::-1::1780523602::0::1::::<><><>0<>0
 arena_rule_director.tscn::PackedScene::-1::1779814685::0::1::::<><><>0<>0<><>::res://Scripts/arena_rule_director.gd
 base_enemy.tscn::PackedScene::4326747738925883807::1780176012::0::1::::<><><>0<>0<><>::uid://qcu4ivo8kkyo::::res://Scripts/base_enemy.gd<>uid://0was6kja082a::::res://icon.svg<>uid://cg2u575obenyk::::res://Scripts/base_enemy_gpu_particles.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd
 base_shooter_enemy.tscn::PackedScene::7022499863564439837::1780176409::0::1::::<><><>0<>0<><>::uid://p3fa0lx4jpnk::::res://Scripts/base_shooter_enemy.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd
-black_hole.tscn::PackedScene::922935165722440768::1779223366::0::1::::<><><>0<>0<><>::uid://35eechylswi3::::res://Scripts/black_hole.gd
+black_hole.tscn::PackedScene::922935165722440768::1780590932::0::1::::<><><>0<>0<><>::uid://35eechylswi3::::res://Scripts/black_hole.gd
 boss_v_player.tscn::PackedScene::7945192654685178317::1779469119::0::1::::<><><>0<>0<><>::uid://bar4e30caja5p::::res://Nodes/player.tscn<>uid://cqdqshk4xbg5q::::res://Nodes/planet_1.tscn
 celestial_body_director.tscn::PackedScene::2063063648351486751::1780528777::0::1::::<><><>0<>0<><>::uid://dtokotuljw5b7::::res://Scripts/celestial_body_director.gd
 centrifuge_marshal_boss.tscn::PackedScene::6419538181024368276::1779473551::0::1::::<><><>0<>0<><>::uid://bdcq8qrb1no4a::::res://Scripts/Bosses/centrifuge_marshal_boss.gd
@@ -487,11 +499,13 @@ gravity_resonance_manager.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<
 gravity_scar_manager.tscn::PackedScene::-1::1779485101::0::1::::<><><>0<>0<><>::res://Scripts/gravity_scar_manager.gd
 gravity_tide_pocket.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/gravity_tide_pocket.gd
 gravity_warden_boss.tscn::PackedScene::-1::1779467293::0::1::::<><><>0<>0<><>::res://Scripts/gravity_warden_boss.gd
+gravity_wave_maker.tscn::PackedScene::8242201092160642434::1780593508::0::1::::<><><>0<>0<><>::uid://b6rj4vv8bflbn::::res://Scripts/gravity_wave_maker.gd
 health_component.tscn::PackedScene::8480792746789018729::1779223366::0::1::::<><><>0<>0<><>::uid://cgo7omjjvv108::::res://Scripts/health_component.gd
 juice_coordinator.tscn::PackedScene::-1::1779466955::0::1::::<><><>0<>0<><>::res://Scripts/juice_coordinator.gd
 late_game_instability_director.tscn::PackedScene::-1::1779814689::0::1::::<><><>0<>0<><>::res://Scripts/late_game_instability_director.gd
 leech_parasite.tscn::PackedScene::6633186853221851768::1779473091::0::1::::<><><>0<>0<><>::uid://bk7r3yxfn4aep::::res://Scripts/leech_parasite.gd
 magnetar_twins_boss.tscn::PackedScene::-1::1779472422::0::1::::<><><>0<>0<><>::res://Scripts/Bosses/magnetar_twins_boss.gd
+mass_point.tscn::PackedScene::3105762539098871575::1780533935::0::1::::<><><>0<>0<><>::uid://n8m6nr7co18o::::res://Scripts/mass_point.gd<>uid://0was6kja082a::::res://icon.svg
 mechanic_audio_director.tscn::PackedScene::-1::1779384125::0::1::::<><><>0<>0<><>::res://Scripts/mechanic_audio_director.gd
 mod_content_registry.tscn::PackedScene::-1::1779814106::0::1::::<><><>0<>0<><>::res://Scripts/mod_content_registry.gd
 momentum_combat_component.tscn::PackedScene::3380575738748913029::1779662488::0::1::::<><><>0<>0<><>::uid://chh48hfsnblto::::res://Scripts/momentum_combat_component.gd
@@ -555,21 +569,21 @@ title_screen.tscn::PackedScene::9204183084617661237::1780526600::0::1::::<><><>0
 unstable_moon.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/unstable_moon.gd
 vector_anomaly_director.tscn::PackedScene::-1::1780418480::0::1::::<><><>0<>0<><>::res://Scripts/vector_anomaly_director.gd
 visual_escalation_director.tscn::PackedScene::-1::1779467049::0::1::::<><><>0<>0<><>::res://Scripts/visual_escalation_director.gd
-wave_director.tscn::PackedScene::3312400407711081787::1780532349::0::1::::<><><>0<>0<><>::uid://c8e8diy2a8r37::::res://Scripts/wave_director.gd<>uid://des7byr0l3ccn::::res://Assets/Songs/The Abyss.wav<>uid://6fr6geqn3di2::::res://Assets/Songs/The Abyss Intro.wav<>uid://yfrgwyxwmq2f::::res://Assets/Songs/Interesting Song (1).mp3<>uid://eu6vv1vgucjt::::res://Assets/Songs/Cosmic Bass.wav<>uid://brn5i5kudbi5i::::res://Assets/Songs/Whispers in the Void.mp3<>uid://b0c6fb7kpwh7v::::res://Assets/Songs/Resonance.mp3<>uid://b0fxjf5jygstt::::res://Assets/Songs/The Arrival (1).mp3<>uid://cqgghnrykol0u::::res://Assets/Songs/[Err -42] invalid thread change.mp3
+wave_director.tscn::PackedScene::3312400407711081787::1780592982::0::1::::<><><>0<>0<><>::uid://c8e8diy2a8r37::::res://Scripts/wave_director.gd<>uid://des7byr0l3ccn::::res://Assets/Songs/The Abyss.wav<>uid://6fr6geqn3di2::::res://Assets/Songs/The Abyss Intro.wav<>uid://yfrgwyxwmq2f::::res://Assets/Songs/Interesting Song (1).mp3<>uid://eu6vv1vgucjt::::res://Assets/Songs/Cosmic Bass.wav<>uid://brn5i5kudbi5i::::res://Assets/Songs/Whispers in the Void.mp3<>uid://b0c6fb7kpwh7v::::res://Assets/Songs/Resonance.mp3<>uid://b0fxjf5jygstt::::res://Assets/Songs/The Arrival.mp3<>uid://cqgghnrykol0u::::res://Assets/Songs/[Err -42] invalid thread change.mp3
 weapon_system.tscn::PackedScene::-1::1780002278::0::1::::<><><>0<>0<><>::res://Scripts/weapon_system.gd
 wormhole_pair.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/wormhole_pair.gd
-::res://Nodes/ParametricEquationEnemies/::1780177734
+::res://Nodes/ParametricEquationEnemies/::1780551974
 parametric_enemy_1.tscn::PackedScene::7209996890795316889::1780079650::0::1::::<><><>0<>0<><>::uid://bveb1b5k8o8hp::::res://Scripts/ParametricEquationScripts/parametric_enemy_1.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd<>uid://baqf8o2ugmdvj::::res://Scripts/gravity_component.gd
 parametric_enemy_2.tscn::PackedScene::5333932135970595572::1780079652::0::1::::<><><>0<>0<><>::uid://bwsalobcwxpw7::::res://Scripts/ParametricEquationScripts/parametric_enemy_2.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd<>uid://baqf8o2ugmdvj::::res://Scripts/gravity_component.gd
 parametric_enemy_3.tscn::PackedScene::3275652881941728816::1779484370::0::1::::<><><>0<>0<><>::uid://covdf2sq84ag4::::res://Scripts/ParametricEquationScripts/parametric_enemy_3.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd<>uid://baqf8o2ugmdvj::::res://Scripts/gravity_component.gd
 parametric_enemy_4.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/ParametricEquationScripts/parametric_enemy_2.gd<>res://Scripts/health_component.gd<>res://Scripts/gravity_component.gd
 parametric_enemy_5.tscn::PackedScene::6649719353525753475::1779223366::0::1::::<><><>0<>0<><>::uid://bwsalobcwxpw7::::res://Scripts/ParametricEquationScripts/parametric_enemy_2.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd<>uid://baqf8o2ugmdvj::::res://Scripts/gravity_component.gd
-parametric_testing_center.tscn::PackedScene::1380952387068365029::1780177639::0::1::::<><><>0<>0<><>::uid://dlsujt2aetdca::::res://Nodes/pulsating_gravity_spawner.tscn<>uid://bar4e30caja5p::::res://Nodes/player.tscn
+parametric_testing_center.tscn::PackedScene::1380952387068365029::1780551974::0::1::::<><><>0<>0<><>::uid://dlsujt2aetdca::::res://Nodes/pulsating_gravity_spawner.tscn<>uid://bar4e30caja5p::::res://Nodes/player.tscn<>uid://bkippqjufq7ah::::res://Nodes/mass_point.tscn
 polymorph_boss.tscn::PackedScene::4922909907427867519::1779472477::0::1::::<><><>0<>0<><>::uid://bdc2mc1aldsf6::::res://Scripts/ParametricEquationScripts/polymorph_boss.gd
 SDL Log.txt::TextFile::-1::1779223366::0::1::::<><><>0<>0<><>::
 ::res://Nodes/resonance_zones/::1779467036
 resonance_zone_visual.tscn::PackedScene::-1::1779467036::0::1::::<><><>0<>0<><>::res://Scripts/resonance_zone_visual.gd
-::res://Scripts/::1780529946
+::res://Scripts/::1780593508
 _godot_check.gd::GDScript::7637899577734680835::1779223366::0::1::::<>SceneTree<><>0<>0<><>::
 _godot_check_all.gd::GDScript::8017831429787697617::1780421344::0::1::::<>SceneTree<><>0<>0<><>::
 adaptive_music_state_director.gd::GDScript::919395632423091337::1780426258::0::1::::AdaptiveMusicStateDirector<>Node<><>0<>0<><>::
@@ -580,7 +594,7 @@ Audio Effects List for Future.txt::TextFile::-1::1779488673::0::1::::<><><>0<>0<
 base_enemy.gd::GDScript::1128416834903503302::1780438527::0::1::::<>CharacterBody2D<><>0<>0<><>::
 base_enemy_gpu_particles.gd::GDScript::5250982269975428958::1779472692::0::1::::<>GPUParticles2D<><>0<>0<><>::
 base_shooter_enemy.gd::GDScript::1110940147808734008::1780438534::0::1::::<>CharacterBody2D<><>0<>0<><>::
-black_hole.gd::GDScript::2027469082599599748::1780077779::0::1::::<>StaticBody2D<><>0<>0<><>::
+black_hole.gd::GDScript::2027469082599599748::1780590918::0::1::::<>StaticBody2D<><>0<>0<><>::
 bullet_manager.gd::GDScript::3239790965678721620::1780418067::0::1::::<>Node<><>0<>0<><>::
 celestial_body_director.gd::GDScript::8522384569153545690::1780528745::0::1::::CelestialBodyDirector<>Node2D<><>0<>0<><>::
 chaos_wisp.gd::GDScript::6793672170144001610::1780438615::0::1::::<>CharacterBody2D<><>0<>0<><>::
@@ -589,7 +603,7 @@ combat_status.gd::GDScript::2323240057078602998::1780077259::0::1::::CombatStatu
 coop_combo_director.gd::GDScript::2883468828909214421::1779814922::0::1::::CoopComboDirector<>Node<><>0<>0<><>::
 credits_sequence.gd::GDScript::5785892574684377828::1780426486::0::1::::<>Control<><>0<>0<><>::
 death_fairness_director.gd::GDScript::8156679336554011325::1780426258::0::1::::DeathFairnessDirector<>Node<><>0<>0<><>::
-debug_balance_overlay.gd::GDScript::7986086328498046171::1780438635::0::1::::<>CanvasLayer<><>0<>0<><>::
+debug_balance_overlay.gd::GDScript::7986086328498046171::1780591802::0::1::::<>CanvasLayer<><>0<>0<><>::
 destruct_sound.gd::GDScript::3828144415349801563::1779223366::0::1::::<>AudioStreamPlayer2D<><>0<>0<><>::
 dynamic_celestial_body.gd::GDScript::2343121582517533464::1780523836::0::1::::DynamicCelestialBody<>Area2D<><>0<>0<><>::
 enemy_bullet.gd::GDScript::6736837624158374058::1780512685::0::1::::<>RigidBody2D<><>0<>0<><>::
@@ -609,16 +623,18 @@ gravity_debris.gd::GDScript::3462119300209532465::1780506696::0::1::::GravityDeb
 gravity_harasser.gd::GDScript::5408031024417288255::1779472850::0::1::::<>CharacterBody2D<><>0<>0<><>::
 gravity_leech.gd::GDScript::1162668937304884682::1780438593::0::1::::<>CharacterBody2D<><>0<>0<><>::
 gravity_maw_boss.gd::GDScript::3295833977332972474::1780426647::0::1::::GravityMawBoss<>PhaseBoss<><>0<>0<><>::
-gravity_resonance_manager.gd::GDScript::2482221750751723031::1780526472::0::1::::GravityResonanceManager<>Node<><>0<>0<><>::
-gravity_scar_manager.gd::GDScript::6815623346093802510::1780526478::0::1::::GravityScarManager<>Node2D<><>0<>0<><>::
+gravity_resonance_manager.gd::GDScript::2482221750751723031::1780591352::0::1::::GravityResonanceManager<>Node<><>0<>0<><>::
+gravity_scar_manager.gd::GDScript::6815623346093802510::1780593037::0::1::::GravityScarManager<>Node2D<><>0<>0<><>::
 gravity_tide_pocket.gd::GDScript::2947306916609543236::1780505314::0::1::::GravityTidePocket<>Area2D<><>0<>0<><>::
 gravity_visualization_component.gd::GDScript::3649777332500917176::1779223366::0::1::::GravityVisualizationComponent<>Node2D<><>0<>0<><>::
 gravity_warden_boss.gd::GDScript::1058240661974076909::1779912669::0::1::::<>CharacterBody2D<><>0<>0<><>::
+gravity_wave_maker.gd::GDScript::4597968636181421683::1780534130::0::1::::<>Node2D<><>0<>0<><>::
 health_component.gd::GDScript::5224844307275708339::1780437807::0::1::::HealthComponent<>Node<><>0<>0<><>::
 juice_coordinator.gd::GDScript::3201364621626508339::1780438135::0::1::::JuiceCoordinator<>Node<><>0<>0<><>::
 late_game_instability_director.gd::GDScript::4136827732216984536::1779814763::0::1::::LateGameInstabilityDirector<>Node<><>0<>0<><>::
 leech_parasite.gd::GDScript::3155452695646299183::1779472897::0::1::::<>CharacterBody2D<><>0<>0<><>::
-mechanic_audio_director.gd::GDScript::300487813218304018::1780438823::0::1::::MechanicAudioDirector<>Node<><>0<>0<><>::
+mass_point.gd::GDScript::981364107225057576::1780533782::0::1::::<>Node2D<><>0<>0<><>::
+mechanic_audio_director.gd::GDScript::300487813218304018::1780591931::0::1::::MechanicAudioDirector<>Node<><>0<>0<><>::
 mod_content_registry.gd::GDScript::2047825693157031626::1780418306::0::1::::ModContentRegistry<>Node<><>0<>0<><>::
 momentum_combat_component.gd::GDScript::5280434017342672024::1780505979::0::1::::MomentumCombatComponent<>Node2D<><>0<>0<><>::
 multiplayer_sync_foundation.gd::GDScript::4342128311935335283::1780427201::0::1::::MultiplayerSyncFoundation<>Node<><>0<>0<><>::
@@ -626,8 +642,8 @@ music_finale_director.gd::GDScript::2424844132607505912::1779566325::0::1::::<>N
 music_resonance_boss.gd::GDScript::1567290042278042288::1780418237::0::1::::MusicResonanceBoss<>PhaseBoss<><>0<>0<><>::
 nebula_cloud.gd::GDScript::320727597032300482::1779223366::0::1::::<>Area2D<><>0<>0<><>::
 new_circle_shape_2d.tres::CircleShape2D::2769419705516880249::1779223366::0::1::::<><><>0<>0<><>::
-orbital_hud.gd::GDScript::6719581749989024932::1780438808::0::1::::<>CanvasLayer<><>0<>0<><>::
-orbital_juice_manager.gd::GDScript::2970366332364540050::1780523948::0::1::::<>Node2D<><>0<>0<><>::
+orbital_hud.gd::GDScript::6719581749989024932::1780593320::0::1::::<>CanvasLayer<><>0<>0<><>::
+orbital_juice_manager.gd::GDScript::2970366332364540050::1780591776::0::1::::<>Node2D<><>0<>0<><>::
 orbital_juice_test_runner.gd::GDScript::6297667161094760057::1779223366::0::1::::<>SceneTree<><>0<>0<><>::
 orbital_null_harvester.gd::GDScript::8762996394700567496::1780077965::0::1::::OrbitalNullHarvester<>CharacterBody2D<><>0<>0<><>::
 orbital_trajectory_predictor.gd::GDScript::625823564726394738::1779502420::0::1::::OrbitalTrajectoryPredictor<>Node2D<><>0<>0<><>::
@@ -635,21 +651,21 @@ orbital_vfx_director.gd::GDScript::1722151527632984955::1780526419::0::1::::Orbi
 orbiter_drone.gd::GDScript::1529655747903013415::1780438600::0::1::::<>CharacterBody2D<><>0<>0<><>::
 parametric_motion_component.gd::GDScript::8379096402876116259::1780418501::0::1::::ParametricMotionComponent<>Node2D<><>0<>0<><>::
 particle_focus_culler.gd::GDScript::5845911365967279023::1780524803::0::1::::ParticleFocusCuller<>Node<><>0<>0<><>::
-pause_menu.gd::GDScript::6366961530430168320::1780456386::0::1::::<>Control<><>0<>0<><>::
-pause_menu.gdshader::Shader::6359819644958804231::1780528718::0::1::::<><><>0<>0<><>::
-performance_budget_director.gd::GDScript::8213096334148852219::1779820429::0::1::::PerformanceBudgetDirector<>Node<><>0<>0<><>::
+pause_menu.gd::GDScript::6366961530430168320::1780591705::0::1::::<>Control<><>0<>0<><>::
+pause_menu.gdshader::Shader::6359819644958804231::1780593508::0::1::::<><><>0<>0<><>::
+performance_budget_director.gd::GDScript::8213096334148852219::1780590877::0::1::::PerformanceBudgetDirector<>Node<><>0<>0<><>::
 phase_boss.gd::GDScript::6184636123117585420::1780418236::0::1::::PhaseBoss<>CharacterBody2D<><>0<>0<><>::
 phase_slip_swarm.gd::GDScript::3527471486184736943::1780077924::0::1::::PhaseSlipSwarm<>CharacterBody2D<><>0<>0<><>::
 physics_aware_enemy_director.gd::GDScript::4919423037199566154::1780438501::0::1::::PhysicsAwareEnemyDirector<>Node<><>0<>0<><>::
-physics_drop.gd::GDScript::6564770331211235020::1780523455::0::1::::PhysicsDrop<>Area2D<><>0<>0<><>::
+physics_drop.gd::GDScript::6564770331211235020::1780590994::0::1::::PhysicsDrop<>Area2D<><>0<>0<><>::
 physics_drop_system.gd::GDScript::8423181302644099560::1780528764::0::1::::PhysicsDropSystem<>Node<><>0<>0<><>::
 planet_1.gd::GDScript::5041419185777251057::1780505381::0::1::::<>StaticBody2D<><>0<>0<><>::
-planet_1.gdshader::Shader::4381545973256523815::1780528718::0::1::::<><><>0<>0<><>::
+planet_1.gdshader::Shader::4381545973256523815::1780593508::0::1::::<><><>0<>0<><>::
 planet_atmosphere_dust.gd::GDScript::7609698741783299846::1779223366::0::1::::<>Node2D<><>0<>0<><>::
 playable_tutorial_director.gd::GDScript::5035035054781794395::1780529002::0::1::::PlayableTutorialDirector<>Node2D<><>0<>0<><>::
-player.gd::GDScript::5424910629918329491::1780528794::0::1::::<>CharacterBody2D<><>0<>0<><>::
-player.gdshader::Shader::6169009076136816292::1780528718::0::1::::<><><>0<>0<><>::
-playershield.gdshader::Shader::880010420938775349::1780528718::0::1::::<><><>0<>0<><>::
+player.gd::GDScript::5424910629918329491::1780590955::0::1::::<>CharacterBody2D<><>0<>0<><>::
+player.gdshader::Shader::6169009076136816292::1780593508::0::1::::<><><>0<>0<><>::
+playershield.gdshader::Shader::880010420938775349::1780593508::0::1::::<><><>0<>0<><>::
 player_damage_camera_shake.gd::GDScript::234362575886560579::1780523957::0::1::::<>Node<><>0<>0<><>::
 player_engine_hum.gd::GDScript::5069761183290189784::1779223366::0::1::::<>AudioStreamPlayer2D<><>0<>0<><>::
 player_hull.gdshader::Shader::1751693809725717146::1779467023::0::1::::<><><>0<>0<><>::
@@ -658,9 +674,9 @@ player_thruster_trails.gd::GDScript::754987955090132629::1779467098::0::1::::<>N
 player_visual_state.gd::GDScript::2143756463789444484::1779223366::0::1::::<>Node<><>0<>0<><>::
 powerup_definition.gd::GDScript::3177939519918041432::1779223366::0::1::::PowerupDefinition<>Resource<><>0<>0<><>::
 powerup_fusion_test_runner.gd::GDScript::400675793415150926::1779223366::0::1::::<>SceneTree<><>0<>0<><>::
-powerup_inventory.gd::GDScript::3890460173974284305::1780526699::0::1::::PowerupInventory<>Node<><>0<>0<><>::
+powerup_inventory.gd::GDScript::3890460173974284305::1780593014::0::1::::PowerupInventory<>Node<><>0<>0<><>::
 powerup_library.gd::GDScript::5597053758471478865::1780506799::0::1::::PowerupLibrary<>Object<><>0<>0<><>::
-powerup_pickup.gd::GDScript::4579941966172858626::1780507209::0::1::::PowerupPickup<>Area2D<><>0<>0<><>::
+powerup_pickup.gd::GDScript::4579941966172858626::1780590974::0::1::::PowerupPickup<>Area2D<><>0<>0<><>::
 production_simulation_runner.gd::GDScript::2925912824436529054::1780421840::0::1::::<>SceneTree<><>0<>0<><>::
 projectile.gd::GDScript::2704767779697364289::1780529946::0::1::::<>RigidBody2D<><>0<>0<><>::
 projectile_collision_spark_listener.gd::GDScript::5639759509116826782::1779472194::0::1::::<>Node<><>0<>0<><>::
@@ -669,7 +685,7 @@ projectile_predictor_component.gd::GDScript::1986586609270956613::1780528815::0:
 projectile_spark_watcher.gd::GDScript::1072538300314269489::1779223366::0::1::::<>Node<><>0<>0<><>::
 pulsating_gravity_field.gd::GDScript::4728322971080852437::1780179054::0::1::::<>StaticBody2D<><>0<>0<><>::
 pulsating_gravity_spawner.gd::GDScript::1179013384961146559::1780178592::0::1::::<>StaticBody2D<><>0<>0<><>::
-reality_collapse_director.gd::GDScript::222718262106926824::1780528778::0::1::::RealityCollapseDirector<>Node2D<><>0<>0<><>::
+reality_collapse_director.gd::GDScript::222718262106926824::1780591393::0::1::::RealityCollapseDirector<>Node2D<><>0<>0<><>::
 recovery_opportunity_director.gd::GDScript::6560032864988438048::1780525139::0::1::::RecoveryOpportunityDirector<>Node2D<><>0<>0<><>::
 resonance_paralytic_construct.gd::GDScript::5745857980682740074::1780426462::0::1::::ResonanceParalyticConstruct<>CharacterBody2D<><>0<>0<><>::
 resonance_zone_visual.gd::GDScript::3733312596977156171::1779467508::0::1::::ResonanceZoneVisual<>Node2D<><>0<>0<><>::
@@ -683,25 +699,25 @@ rupture_director.gd::GDScript::6798971582394627091::1779566568::0::1::::<>Node<>
 secret_boss_director.gd::GDScript::4071963840278410730::1780009558::0::1::::SecretBossDirector<>Node<><>0<>0<><>::
 secret_law_boss.gd::GDScript::2275619901518672992::1779912668::0::1::::SecretLawBoss<>PhaseBoss<><>0<>0<><>::
 seeker_fragment.gd::GDScript::7529549165284706513::1780438608::0::1::::<>RigidBody2D<><>0<>0<><>::
-settings.gd::GDScript::5016561756566462238::1780526409::0::1::::<>Node<><>0<>0<><>::
+settings.gd::GDScript::5016561756566462238::1780590833::0::1::::<>Node<><>0<>0<><>::
 shielder_support.gd::GDScript::3824832890250223367::1780079005::0::1::::<>CharacterBody2D<><>0<>0<><>::
 shield_breaker_unit.gd::GDScript::7462952044244857618::1779472925::0::1::::<>CharacterBody2D<><>0<>0<><>::
 skill_signature_director.gd::GDScript::2635357481461020670::1780009558::0::1::::SkillSignatureDirector<>Node2D<><>0<>0<><>::
 sniper_turret.gd::GDScript::8563286196848860194::1779912635::0::1::::<>StaticBody2D<><>0<>0<><>::
-spacetime_swim_director.gd::GDScript::2280776331422050987::1780526450::0::1::::SpacetimeSwimDirector<>Node2D<><>0<>0<><>::
-spacetime_tear_director.gd::GDScript::7720219517265331566::1780526484::0::1::::SpacetimeTearDirector<>Node2D<><>0<>0<><>::
+spacetime_swim_director.gd::GDScript::2280776331422050987::1780593024::0::1::::SpacetimeSwimDirector<>Node2D<><>0<>0<><>::
+spacetime_tear_director.gd::GDScript::7720219517265331566::1780591320::0::1::::SpacetimeTearDirector<>Node2D<><>0<>0<><>::
 splitting_asteroid_bot.gd::GDScript::7146883491967441158::1779472997::0::1::::<>CharacterBody2D<><>0<>0<><>::
-stress_test_director.gd::GDScript::5471086307788581306::1780426524::0::1::::StressTestDirector<>Node2D<><>0<>0<><>::
+stress_test_director.gd::GDScript::5471086307788581306::1780591818::0::1::::StressTestDirector<>Node2D<><>0<>0<><>::
 the_abyss.gd::GDScript::4336177276432400783::1780421275::0::1::::<>Node2D<><>0<>0<><>::
 time_dilation_manager.gd::GDScript::7923692202955274316::1780526462::0::1::::TimeDilationManager<>Node<><>0<>0<><>::
 title_screen.gd::GDScript::7657214362730325003::1780526580::0::1::::<>Control<><>0<>0<><>::
 unstable_moon.gd::GDScript::2075570130685602570::1779912650::0::1::::<>StaticBody2D<><>0<>0<><>::
-vector_anomaly_director.gd::GDScript::593592381794617284::1780505646::0::1::::VectorAnomalyDirector<>Node2D<><>0<>0<><>::
+vector_anomaly_director.gd::GDScript::593592381794617284::1780591384::0::1::::VectorAnomalyDirector<>Node2D<><>0<>0<><>::
 vector_runtime_registry.gd::GDScript::746752899681950620::1780438390::0::1::::VectorRuntimeRegistry<>Node<><>0<>0<><>::
 visual_escalation_director.gd::GDScript::7404743603896140314::1780526434::0::1::::VisualEscalationDirector<>Node<><>0<>0<><>::
-wave_director.gd::GDScript::7099340195090699140::1780526367::0::1::::<>Node2D<><>0<>0<><>::
+wave_director.gd::GDScript::7099340195090699140::1780593508::0::1::::<>Node2D<><>0<>0<><>::
 weapon_system.gd::GDScript::6364723658512625332::1780526172::0::1::::WeaponSystem<>Node2D<><>0<>0<><>::
-wormhole_pair.gd::GDScript::1177768064709425769::1780526397::0::1::::<>Node2D<><>0<>0<><>::
+wormhole_pair.gd::GDScript::1177768064709425769::1780591863::0::1::::<>Node2D<><>0<>0<><>::
 ::res://Scripts/Bosses/::1780528718
 accretion_core_boss.gd::GDScript::3282685072245656280::1779912693::0::1::::<>PhaseBoss<><>0<>0<><>::
 centrifuge_marshal_boss.gd::GDScript::2602147239914428410::1779912695::0::1::::<>PhaseBoss<><>0<>0<><>::

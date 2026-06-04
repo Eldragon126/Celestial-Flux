@@ -18,6 +18,7 @@ var _arena_destabilization_manager: Node
 var _powerup_inventory: Node
 var _momentum_component: Node
 var _weapon_system: Node
+var _score_tracker: Node
 var _hud_root: Control
 var _speed_label: Label
 var _speed_bar: ProgressBar
@@ -32,6 +33,11 @@ var _slingshot_bar: ProgressBar
 var _combo_label: Label
 var _weapon_label: Label
 var _weapon_bar: ProgressBar
+var _score_panel: PanelContainer
+var _score_label: Label
+var _score_detail_label: Label
+var _anomaly_label: Label
+var _challenge_label: Label
 var _powerup_notice_label: Label
 var _critical_vignette: ColorRect
 var _vignette_material: ShaderMaterial
@@ -49,6 +55,9 @@ var _boss_targets: Array[Node2D] = []
 var _powerup_notice_time := 0.0
 var _powerup_notice_color := Color(0.72, 1.0, 0.96, 1.0)
 var _threat_refresh_elapsed := 999.0
+var _score_pulse_time := 0.0
+var _challenge_code := "--"
+var _last_score_snapshot: Dictionary = {}
 
 # Cache the current intensity to avoid repeated get_shader_parameter calls
 var _current_vignette_intensity: float = 0.0
@@ -80,6 +89,7 @@ func _process(delta: float) -> void:
 	_update_chaos_lens()
 	_update_slingshot_lens()
 	_update_weapon_lens()
+	_update_score_panel(delta)
 	_update_powerup_notice(delta)
 	_update_health_vignette(delta)
 	_update_orbit_telemetry(delta)
@@ -101,6 +111,7 @@ func _build_hud() -> void:
 	
 	_build_vignette()
 	_build_readout_panel()
+	_build_score_panel()
 	_build_powerup_notice()
 	_build_nav_arrows()
 	_build_orbit_telemetry()
@@ -134,94 +145,186 @@ func _build_vignette() -> void:
 
 func _build_readout_panel() -> void:
 	var panel = PanelContainer.new()
+	panel.name = "VectorReadoutPanel"
 	panel.offset_left = 18.0
-	panel.offset_top = 96.0
-	panel.custom_minimum_size = Vector2(314.0, 302.0)
+	panel.offset_top = 82.0
+	panel.custom_minimum_size = Vector2(330.0, 336.0)
 	_hud_root.add_child(panel)
 	
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.02, 0.025, 0.04, 0.68)
-	style.border_color = Color(0.1, 0.95, 0.85, 0.48)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override(
+		"panel",
+		_make_hud_panel_style(Color(0.006, 0.012, 0.02, 0.82), Color(0.18, 0.88, 0.72, 0.58))
+	)
 	
 	var rows = VBoxContainer.new()
-	rows.add_theme_constant_override("separation", 8)
+	rows.add_theme_constant_override("separation", 7)
 	panel.add_child(rows)
+
+	var header := Label.new()
+	header.text = "VECTOR SUITE"
+	header.add_theme_font_size_override("font_size", 14)
+	header.modulate = _readability_color(Color(0.58, 1.0, 0.92, 1.0))
+	rows.add_child(header)
 	
 	_speed_label = Label.new()
 	_speed_label.text = "SPD 0000"
+	_style_hud_label(_speed_label, 12)
 	rows.add_child(_speed_label)
 	
 	_speed_bar = ProgressBar.new()
 	_speed_bar.show_percentage = false
 	_speed_bar.custom_minimum_size = Vector2(228, 14)
+	_style_progress_bar(_speed_bar, Color(0.2, 0.86, 1.0, 0.9))
 	rows.add_child(_speed_bar)
 	
 	_g_label = Label.new()
 	_g_label.text = "G 000"
+	_style_hud_label(_g_label, 12)
 	rows.add_child(_g_label)
 	
 	_g_bar = ProgressBar.new()
 	_g_bar.show_percentage = false
 	_g_bar.max_value = g_warning_level
 	_g_bar.custom_minimum_size = Vector2(228, 14)
+	_style_progress_bar(_g_bar, Color(1.0, 0.58, 0.18, 0.9))
 	rows.add_child(_g_bar)
 
 	_field_label = Label.new()
 	_field_label.text = "FIELD CLEAR"
 	_field_label.clip_text = true
-	_field_label.add_theme_font_size_override("font_size", 12)
+	_style_hud_label(_field_label, 12)
 	rows.add_child(_field_label)
 
 	_time_label = Label.new()
 	_time_label.text = "TIME READY"
 	_time_label.clip_text = true
-	_time_label.add_theme_font_size_override("font_size", 12)
+	_style_hud_label(_time_label, 12)
 	rows.add_child(_time_label)
 
 	_horizon_label = Label.new()
 	_horizon_label.text = "HORIZON QUIET"
 	_horizon_label.clip_text = true
-	_horizon_label.add_theme_font_size_override("font_size", 12)
+	_style_hud_label(_horizon_label, 12)
 	rows.add_child(_horizon_label)
 
 	_chaos_label = Label.new()
 	_chaos_label.text = "CHAOS T0 CALIBRATION"
 	_chaos_label.clip_text = true
-	_chaos_label.add_theme_font_size_override("font_size", 12)
+	_style_hud_label(_chaos_label, 12)
 	rows.add_child(_chaos_label)
 
 	_slingshot_label = Label.new()
 	_slingshot_label.text = "SLING SEARCH"
 	_slingshot_label.clip_text = true
-	_slingshot_label.add_theme_font_size_override("font_size", 12)
+	_style_hud_label(_slingshot_label, 12)
 	rows.add_child(_slingshot_label)
 
 	_slingshot_bar = ProgressBar.new()
 	_slingshot_bar.show_percentage = false
 	_slingshot_bar.max_value = 1.0
 	_slingshot_bar.custom_minimum_size = Vector2(228, 12)
+	_style_progress_bar(_slingshot_bar, Color(0.34, 1.0, 0.82, 0.9))
 	rows.add_child(_slingshot_bar)
 
 	_combo_label = Label.new()
 	_combo_label.text = "VECTOR CHAIN --"
 	_combo_label.clip_text = true
-	_combo_label.add_theme_font_size_override("font_size", 12)
+	_style_hud_label(_combo_label, 12)
 	rows.add_child(_combo_label)
 
 	_weapon_label = Label.new()
 	_weapon_label.text = "WEAPON VECTOR BOLT"
 	_weapon_label.clip_text = true
-	_weapon_label.add_theme_font_size_override("font_size", 12)
+	_style_hud_label(_weapon_label, 12)
 	rows.add_child(_weapon_label)
 
 	_weapon_bar = ProgressBar.new()
 	_weapon_bar.show_percentage = false
 	_weapon_bar.max_value = 1.0
 	_weapon_bar.custom_minimum_size = Vector2(228, 12)
+	_style_progress_bar(_weapon_bar, Color(1.0, 0.72, 0.24, 0.92))
 	rows.add_child(_weapon_bar)
+
+func _build_score_panel() -> void:
+	_score_panel = PanelContainer.new()
+	_score_panel.name = "RunScorePanel"
+	_score_panel.anchor_left = 1.0
+	_score_panel.anchor_right = 1.0
+	_score_panel.offset_left = -382.0
+	_score_panel.offset_right = -18.0
+	_score_panel.offset_top = 20.0
+	_score_panel.offset_bottom = 146.0
+	_score_panel.custom_minimum_size = Vector2(364.0, 126.0)
+	_score_panel.add_theme_stylebox_override(
+		"panel",
+		_make_hud_panel_style(Color(0.012, 0.014, 0.024, 0.84), Color(1.0, 0.76, 0.28, 0.62))
+	)
+	_hud_root.add_child(_score_panel)
+
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 5)
+	_score_panel.add_child(rows)
+
+	var header := Label.new()
+	header.text = "RUN SCORE"
+	header.add_theme_font_size_override("font_size", 12)
+	header.modulate = _readability_color(Color(1.0, 0.78, 0.3, 1.0))
+	rows.add_child(header)
+
+	_score_label = Label.new()
+	_score_label.text = "000000"
+	_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_score_label.add_theme_font_size_override("font_size", 28)
+	_score_label.modulate = _readability_color(Color(1.0, 0.96, 0.72, 1.0))
+	rows.add_child(_score_label)
+
+	_score_detail_label = Label.new()
+	_score_detail_label.text = "W0  B0  ANOM 0"
+	_style_hud_label(_score_detail_label, 12)
+	rows.add_child(_score_detail_label)
+
+	_anomaly_label = Label.new()
+	_anomaly_label.text = "LAST ANOMALY --"
+	_anomaly_label.clip_text = true
+	_style_hud_label(_anomaly_label, 11)
+	rows.add_child(_anomaly_label)
+
+	_challenge_label = Label.new()
+	_challenge_label.text = "CODE --"
+	_challenge_label.clip_text = true
+	_style_hud_label(_challenge_label, 10)
+	rows.add_child(_challenge_label)
+
+func _make_hud_panel_style(bg: Color, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_color = border
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(6)
+	style.set_content_margin(SIDE_LEFT, 14.0)
+	style.set_content_margin(SIDE_TOP, 12.0)
+	style.set_content_margin(SIDE_RIGHT, 14.0)
+	style.set_content_margin(SIDE_BOTTOM, 12.0)
+	return style
+
+func _style_hud_label(label: Label, font_size: int) -> void:
+	if label == null:
+		return
+	label.add_theme_font_size_override("font_size", font_size)
+	label.modulate = _readability_color(Color(0.76, 0.94, 0.95, 1.0))
+
+func _style_progress_bar(bar: ProgressBar, fill_color: Color) -> void:
+	if bar == null:
+		return
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.02, 0.032, 0.046, 0.82)
+	bg.set_corner_radius_all(3)
+	bar.add_theme_stylebox_override("background", bg)
+
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = fill_color
+	fill.set_corner_radius_all(3)
+	bar.add_theme_stylebox_override("fill", fill)
 
 func _build_powerup_notice() -> void:
 	_powerup_notice_label = Label.new()
@@ -399,6 +502,30 @@ func _resolve_rule_systems() -> void:
 
 	if _arena_destabilization_manager == null or not is_instance_valid(_arena_destabilization_manager):
 		_arena_destabilization_manager = root.find_child("ArenaDestabilizationManager", true, false)
+
+	if _score_tracker == null or not is_instance_valid(_score_tracker):
+		_score_tracker = get_tree().get_first_node_in_group("run_score_tracker")
+		if _score_tracker == null:
+			_score_tracker = root.find_child("RunScoreTracker", true, false)
+		if _score_tracker != null:
+			if _score_tracker.has_signal("score_changed"):
+				var score_callable := Callable(self, "_on_score_changed")
+				if not _score_tracker.is_connected("score_changed", score_callable):
+					_score_tracker.connect("score_changed", score_callable)
+			if _score_tracker.has_signal("challenge_code_changed"):
+				var code_callable := Callable(self, "_on_challenge_code_changed")
+				if not _score_tracker.is_connected("challenge_code_changed", code_callable):
+					_score_tracker.connect("challenge_code_changed", code_callable)
+			if _score_tracker.has_signal("physics_anomaly_achieved"):
+				var anomaly_callable := Callable(self, "_on_physics_anomaly_achieved")
+				if not _score_tracker.is_connected("physics_anomaly_achieved", anomaly_callable):
+					_score_tracker.connect("physics_anomaly_achieved", anomaly_callable)
+			if _score_tracker.has_method("get_score_snapshot"):
+				var snapshot_value: Variant = _score_tracker.call("get_score_snapshot")
+				if typeof(snapshot_value) == TYPE_DICTIONARY:
+					_apply_score_snapshot(int(snapshot_value.get("score", 0)), snapshot_value)
+			if _score_tracker.has_method("get_challenge_code"):
+				_on_challenge_code_changed(String(_score_tracker.call("get_challenge_code")))
 
 	if _player != null and is_instance_valid(_player):
 		var inventory := _player.get_node_or_null("PowerupInventory")
@@ -629,6 +756,73 @@ func _update_weapon_lens() -> void:
 	_weapon_label.modulate = _readability_color(color)
 	_weapon_bar.value = energy_percent
 
+func _update_score_panel(delta: float) -> void:
+	if _score_label == null:
+		return
+
+	if _score_tracker != null and is_instance_valid(_score_tracker) and _score_tracker.has_method("get_score_snapshot"):
+		var snapshot_value: Variant = _score_tracker.call("get_score_snapshot")
+		if typeof(snapshot_value) == TYPE_DICTIONARY:
+			_apply_score_snapshot(int(snapshot_value.get("score", 0)), snapshot_value)
+	elif RunProgress != null:
+		var flags_value: Variant = RunProgress.get("arena_flags")
+		if typeof(flags_value) == TYPE_DICTIONARY:
+			var flags: Dictionary = flags_value
+			var snapshot_value: Variant = flags.get("score_snapshot", {})
+			if typeof(snapshot_value) == TYPE_DICTIONARY:
+				_apply_score_snapshot(int(snapshot_value.get("score", 0)), snapshot_value)
+			var code_value := String(flags.get("challenge_code", _challenge_code))
+			if code_value != _challenge_code and not code_value.is_empty():
+				_on_challenge_code_changed(code_value)
+
+	_score_pulse_time = maxf(_score_pulse_time - delta, 0.0)
+	var glow := 0.0
+	if _score_pulse_time > 0.0:
+		glow = clampf(_score_pulse_time / 0.72, 0.0, 1.0)
+	_score_label.modulate = _readability_color(Color(1.0, 0.94, 0.68, 1.0).lerp(Color(0.38, 1.0, 0.86, 1.0), glow))
+	if _score_panel != null:
+		_score_panel.modulate = Color(1.0, 1.0, 1.0, 0.9 + glow * 0.1)
+
+func _on_score_changed(score: int, snapshot: Dictionary) -> void:
+	_apply_score_snapshot(score, snapshot)
+	_score_pulse_time = 0.34
+
+func _on_challenge_code_changed(code: String) -> void:
+	_challenge_code = code if not code.is_empty() else "--"
+	if _challenge_label != null:
+		_challenge_label.text = "CODE %s" % _challenge_code
+
+func _on_physics_anomaly_achieved(type: String, kinetic_factor: float, score_value: int, snapshot: Dictionary) -> void:
+	var label := _readable_anomaly_name(type)
+	if _anomaly_label != null:
+		_anomaly_label.text = "LAST %s  x%.2f  +%d" % [label, kinetic_factor, score_value]
+		_anomaly_label.modulate = _readability_color(Color(0.38, 1.0, 0.86, 1.0))
+	_apply_score_snapshot(int(snapshot.get("score", 0)), snapshot)
+	_score_pulse_time = 0.72
+
+func _apply_score_snapshot(score: int, snapshot: Dictionary) -> void:
+	_last_score_snapshot = snapshot.duplicate(true)
+	if _score_label != null:
+		_score_label.text = "%06d" % maxi(score, 0)
+	if _score_detail_label != null:
+		_score_detail_label.text = "W%d  B%d  ANOM %d" % [
+			int(snapshot.get("waves_cleared", snapshot.get("wave", 0))),
+			int(snapshot.get("bosses_defeated", 0)) + int(snapshot.get("secret_bosses_defeated", 0)),
+			int(snapshot.get("physics_anomaly_total", 0)),
+		]
+	if _anomaly_label != null:
+		var last_value: Variant = snapshot.get("last_physics_anomaly", {})
+		if typeof(last_value) == TYPE_DICTIONARY:
+			var last: Dictionary = last_value
+			if not last.is_empty():
+				_anomaly_label.text = "LAST %s  +%d" % [
+					_readable_anomaly_name(String(last.get("type", "--"))),
+					int(last.get("score", 0)),
+				]
+
+func _readable_anomaly_name(type: String) -> String:
+	var words := type.replace("_", " ").strip_edges().to_upper()
+	return words if not words.is_empty() else "--"
 
 func _update_orbit_telemetry(delta: float) -> void:
 	if not enable_player_orbit_telemetry:

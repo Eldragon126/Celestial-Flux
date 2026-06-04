@@ -2,6 +2,8 @@ extends Node2D
 
 # Celestial hazard/utility: a paired teleporter with polygon rings and particles.
 
+signal wormhole_teleport(position: Vector2, destination: Vector2, body: Node)
+
 @export var endpoint_radius: float = 82.0
 @export var cooldown_seconds: float = 0.85
 @export var endpoint_planet_clearance_margin: float = 126.0
@@ -15,6 +17,7 @@ var _pending_exit_global: Vector2 = Vector2(280.0, 0.0)
 
 
 func _ready() -> void:
+	add_to_group("wormhole_pair")
 	_entry = _build_endpoint("EntryWormhole", Color(0.0, 0.92, 1.0, 0.78))
 	_exit = _build_endpoint("ExitWormhole", Color(1.0, 0.32, 0.92, 0.78))
 	_entry.body_entered.connect(_on_entry_body_entered)
@@ -108,7 +111,9 @@ func _teleport_body(body: Node, destination: Node2D) -> void:
 	if offset == Vector2.ZERO:
 		offset = Vector2.RIGHT
 
-	body_2d.global_position = destination.global_position + offset * (endpoint_radius + 42.0)
+	var arrival_position := destination.global_position + offset * (endpoint_radius + 42.0)
+	body_2d.global_position = arrival_position
+	wormhole_teleport.emit(arrival_position, destination.global_position, body)
 
 	var velocity_value: Variant = body_2d.get("velocity")
 	if velocity_value is Vector2:

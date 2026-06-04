@@ -58,7 +58,7 @@ const ANY_SAMPLE_POSITION := Vector2(999999999.0, 999999999.0)
 @export var residual_decay_rate: float = 0.018
 @export var merge_distance: float = 180.0
 @export var fracture_stamp_cooldown: float = 2.4
-@export var slingshot_stamp_min_score: float = 0.86
+@export var slingshot_stamp_min_score: float = 0.92
 @export var persistent_scar_intensity_threshold: float = 0.9
 @export var persistent_scar_min_radius: float = 260.0
 @export var restore_persistent_scars_on_ready: bool = true
@@ -222,10 +222,10 @@ func _on_slingshot_resonance_amplified(zone_data: Dictionary) -> void:
 	var position: Vector2 = zone_data.get("midpoint", Vector2.ZERO)
 	create_gravity_scar(
 		position,
-		maxf(float(zone_data.get("radius", base_radius)), base_radius * 0.72),
+		maxf(float(zone_data.get("radius", base_radius)) * 0.56, base_radius * 0.52),
 		ScarType.HARMONIC_FRACTURE,
-		clampf(0.38 + score * 0.52, 0.2, 1.0),
-		base_duration * lerpf(0.62, 1.3, score),
+		clampf(0.24 + score * 0.36, 0.18, 0.72),
+		base_duration * lerpf(0.42, 0.82, score),
 		&"slingshot_resonance"
 	)
 
@@ -242,10 +242,10 @@ func _on_player_slingshot_mastery(data: Dictionary) -> void:
 
 	var scar_id := create_gravity_scar(
 		position + tangent.normalized() * base_radius * 0.34,
-		base_radius * lerpf(0.56, 0.94, score),
+		base_radius * lerpf(0.42, 0.68, score),
 		ScarType.VELOCITY_SHEAR if score < 0.9 else ScarType.HARMONIC_FRACTURE,
-		clampf(0.28 + score * 0.48, 0.18, 0.92),
-		base_duration * lerpf(0.38, 0.88, score),
+		clampf(0.22 + score * 0.36, 0.16, 0.64),
+		base_duration * lerpf(0.32, 0.64, score),
 		&"mastered_vector"
 	)
 

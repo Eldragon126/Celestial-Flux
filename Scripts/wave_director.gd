@@ -42,6 +42,38 @@ const PHASE_SLIP_SWARM_SCENE = preload("res://Nodes/phase_slip_swarm.tscn")
 const ORBITAL_NULL_HARVESTER_SCENE = preload("res://Nodes/orbital_null_harvester.tscn")
 const RESONANCE_PARALYTIC_CONSTRUCT_SCENE = preload("res://Nodes/resonance_paralytic_construct.tscn")
 
+const SONG_A_NEW_THREAD_AMBIENCE = preload("res://Assets/Songs/A New Thread Ambience.mp3")
+const SONG_A_NEW_THREAD = preload("res://Assets/Songs/A New Thread.mp3")
+const SONG_APPROACHING_ABYSS = preload("res://Assets/Songs/Approaching Abyss.mp3")
+const SONG_BOOGIE_WORLD = preload("res://Assets/Songs/Boogie World.mp3")
+const SONG_CONTINUUM = preload("res://Assets/Songs/Continuum.mp3")
+const SONG_COSMIC_BASS = preload("res://Assets/Songs/Cosmic Bass.wav")
+const SONG_COSMIC_JOURNEY_BACKGROUND = preload("res://Assets/Songs/Cosmic Journey Background.mp3")
+const SONG_COSMIC_JOURNEY_EPIC = preload("res://Assets/Songs/Cosmic Journey Epic.mp3")
+const SONG_DAWN_ON_A_NEW_PLANET = preload("res://Assets/Songs/Dawn on A New Planet.mp3")
+const SONG_GRAVITY_BLOOM = preload("res://Assets/Songs/Gravity Bloom.mp3")
+const SONG_GREEN_FLAME_ULTRA = preload("res://Assets/Songs/Green Flame Ultra.mp3")
+const SONG_INTERESTING = preload("res://Assets/Songs/Interesting Song (1).mp3")
+const SONG_NEON_STARLIGHT = preload("res://Assets/Songs/Neon Starlight.mp3")
+const SONG_ORBITAL_DRIFT = preload("res://Assets/Songs/Orbital Drift.mp3")
+const SONG_ORBITAL_FUN = preload("res://Assets/Songs/Orbital Fun.wav")
+const SONG_QUANTUM_BREAK = preload("res://Assets/Songs/Quantum Break.mp3")
+const SONG_RESONANCE = preload("res://Assets/Songs/Resonance.mp3")
+const SONG_THE_4TH_DIMENSION = preload("res://Assets/Songs/The 4th Dimension.mp3")
+const SONG_THE_ABYSS = preload("res://Assets/Songs/The Abyss.wav")
+const SONG_THE_ABYSS_INTRO = preload("res://Assets/Songs/The Abyss Intro.wav")
+const SONG_THE_ARRIVAL = preload("res://Assets/Songs/The Arrival.mp3")
+const SONG_THE_LONG_DRIFT = preload("res://Assets/Songs/The Long Drift.mp3")
+const SONG_THE_NEURAL_DRIFT_THRESHOLD = preload("res://Assets/Songs/The Neural Drift Threshold.mp3")
+const SONG_THE_TOWN = preload("res://Assets/Songs/The Town.mp3")
+const SONG_THE_UNIVERSE_SAYS_HELLO = preload("res://Assets/Songs/The Universe Says Hello.mp3")
+const SONG_TWANGY_SPACE = preload("res://Assets/Songs/Twangy Space.mp3")
+const SONG_WHISPERS_IN_THE_VOID = preload("res://Assets/Songs/Whispers in the Void.mp3")
+const SONG_ERR_INVALID_THREAD_CHANGE = preload("res://Assets/Songs/[Err -42] invalid thread change.mp3")
+const SONG_ERR_RUPTURE = preload("res://Assets/Songs/[Err -502] RUPTURE.mp3")
+
+enum MusicMode { NONE, WAVE, BOSS, INTERMISSION }
+
 @export var first_wave_delay = 2.0
 @export var rest_between_waves = 4.0
 @export var spawn_delay = 0.48
@@ -49,6 +81,9 @@ const RESONANCE_PARALYTIC_CONSTRUCT_SCENE = preload("res://Nodes/resonance_paral
 @export var max_spawn_radius = 1540.0
 @export var boss_every_waves = 5
 @export var max_regular_enemies = 10
+@export var wave_soft_timeout: float = 145.0
+@export var external_enemies_block_wave: bool = false
+@export var clear_external_enemies_on_wave_clear: bool = true
 @export var recovery_wave_interval: int = 4
 @export var recovery_spawn_multiplier: float = 0.55
 @export var recovery_rest_bonus: float = 2.5
@@ -60,6 +95,12 @@ const RESONANCE_PARALYTIC_CONSTRUCT_SCENE = preload("res://Nodes/resonance_paral
 @export var energy_drop_elite_bonus_wave: int = 6
 @export var energy_drop_spread_radius: float = 48.0
 
+@export_group("Music")
+@export var music_enabled: bool = true
+@export var wave_music_volume_db: float = -0.5
+@export var boss_music_volume_db: float = 0.0
+@export var intermission_music_volume_db: float = -4.0
+
 @export_group("Spawn Safety")
 @export var far_planet_count: int = 3
 @export var far_planet_min_radius: float = 2850.0
@@ -68,6 +109,16 @@ const RESONANCE_PARALYTIC_CONSTRUCT_SCENE = preload("res://Nodes/resonance_paral
 @export var stationary_enemy_planet_clearance: float = 260.0
 @export var wormhole_planet_clearance: float = 260.0
 @export var spawn_position_attempts: int = 18
+@export var enable_permanent_wormhole_pair: bool = false
+
+@export_group("Interwave Galaxy Gates")
+@export var enable_interwave_galaxy_gates: bool = true
+@export var interwave_gate_start_wave: int = 2
+@export var interwave_gate_interval: int = 2
+@export var interwave_gate_near_radius: float = 520.0
+@export var interwave_gate_far_min_radius: float = 3400.0
+@export var interwave_gate_far_max_radius: float = 4600.0
+@export var interwave_gate_planet_count: int = 2
 
 var _player: Node2D = null
 var _level_root: Node = null
@@ -91,22 +142,57 @@ var _status_elapsed: float = 999.0
 var _last_status_wave: int = -1
 var _last_status_threats: int = -1
 var _physics_drop_system: Node = null
+var _wave_elapsed: float = 0.0
+var _external_enemy_ids: Dictionary = {}
+var _interwave_gate: Node = null
+var _music_mode: int = MusicMode.NONE
+var _active_music_stream: AudioStream = null
+var _pause_menu: Node = null
+var _music_blocked_by_pause: bool = false
+var _wave_music_tracks: Array[AudioStream] = [
+	SONG_THE_ABYSS,
+	SONG_ORBITAL_DRIFT,
+	SONG_COSMIC_BASS,
+	SONG_WHISPERS_IN_THE_VOID,
+	SONG_INTERESTING,
+	SONG_THE_LONG_DRIFT,
+	SONG_GRAVITY_BLOOM,
+	SONG_CONTINUUM,
+	SONG_APPROACHING_ABYSS,
+	SONG_THE_ABYSS_INTRO,
+	SONG_COSMIC_JOURNEY_BACKGROUND,
+	SONG_ORBITAL_FUN,
+	SONG_THE_4TH_DIMENSION,
+	SONG_THE_ARRIVAL,
+]
+var _intermission_music_tracks: Array[AudioStream] = [
+	SONG_A_NEW_THREAD_AMBIENCE,
+	SONG_DAWN_ON_A_NEW_PLANET,
+	SONG_THE_UNIVERSE_SAYS_HELLO,
+	SONG_THE_TOWN,
+	SONG_TWANGY_SPACE,
+	SONG_BOOGIE_WORLD,
+	SONG_A_NEW_THREAD,
+]
 
 func _ready() -> void:
 	_rng.randomize()
 	_level_root = get_tree().current_scene
 	_build_ui()
+	_stop_all_music()
+	call_deferred("_connect_pause_menu")
 	call_deferred("_start_director")
-	$WaveMusic.play()
-	$BossWaveMusic.stream_paused = true
-	$"WaveMusic/Volume Intro".play("Volume Intro")
 
 func _process(delta: float) -> void:
 	_cleanup_tracking()
+	if _pause_menu == null or not is_instance_valid(_pause_menu):
+		_connect_pause_menu()
 	_update_status(delta)
 
 	if not _wave_running or _spawning:
 		return
+
+	_wave_elapsed += delta
 
 	if _boss != null:
 		if not is_instance_valid(_boss):
@@ -116,8 +202,55 @@ func _process(delta: float) -> void:
 			_update_boss_bar()
 		return
 
-	if _active_enemies.is_empty():
+	if wave_soft_timeout > 0.0 and _wave_elapsed >= wave_soft_timeout:
+		_clear_remaining_wave_enemies()
 		_complete_wave()
+		return
+
+	if _primary_enemy_count() <= 0 and (not external_enemies_block_wave or _external_enemy_count() <= 0):
+		_complete_wave()
+
+func _primary_enemy_count() -> int:
+	var count := 0
+	for enemy in _active_enemies:
+		if enemy == null or not is_instance_valid(enemy) or enemy.is_queued_for_deletion():
+			continue
+		if _is_external_wave_enemy(enemy):
+			continue
+		count += 1
+	return count
+
+func _external_enemy_count() -> int:
+	var count := 0
+	for enemy_id in _external_enemy_ids.keys():
+		var id := int(enemy_id)
+		if not is_instance_id_valid(id):
+			continue
+		var enemy_value := instance_from_id(id)
+		if enemy_value == null or not is_instance_valid(enemy_value):
+			continue
+		var enemy := enemy_value as Node
+		if enemy != null and not enemy.is_queued_for_deletion():
+			count += 1
+	return count
+
+func _is_external_wave_enemy(enemy: Node) -> bool:
+	if enemy == null or not is_instance_valid(enemy):
+		return false
+	return bool(enemy.get_meta(&"external_wave_enemy", false))
+
+func _clear_external_wave_enemies() -> void:
+	for enemy_id in _external_enemy_ids.keys():
+		var id := int(enemy_id)
+		if not is_instance_id_valid(id):
+			continue
+		var enemy_value := instance_from_id(id)
+		if enemy_value == null or not is_instance_valid(enemy_value):
+			continue
+		var enemy := enemy_value as Node
+		if enemy != null and not enemy.is_queued_for_deletion():
+			enemy.queue_free()
+	_external_enemy_ids.clear()
 
 func _start_director() -> void:
 	_player = get_tree().get_first_node_in_group("Player") as Node2D
@@ -160,9 +293,7 @@ func register_secret_boss(boss: Node, display_name: String) -> void:
 	_boss_label.text = display_name
 	_banner_label.text = "SECRET BOSS: %s" % display_name
 
-	$BossWaveMusic.play()
-	$WaveMusic.stream_paused = true
-	$"BossWaveMusic/Volume Intro".play("Volume Intro")
+	_play_secret_boss_music(display_name)
 
 	var health_callable := Callable(self, "_on_boss_health_changed")
 	if boss.has_signal("boss_health_changed") and not boss.is_connected("boss_health_changed", health_callable):
@@ -177,7 +308,9 @@ func register_external_enemy(enemy: Node) -> void:
 		return
 	if not enemy.is_in_group("wave_enemy"):
 		enemy.add_to_group("wave_enemy")
-	if not _active_enemies.has(enemy):
+	enemy.set_meta(&"external_wave_enemy", true)
+	_external_enemy_ids[enemy.get_instance_id()] = true
+	if external_enemies_block_wave and not _active_enemies.has(enemy):
 		_active_enemies.append(enemy)
 	_track_enemy_rewards(enemy)
 
@@ -189,6 +322,8 @@ func _begin_next_wave() -> void:
 		return
 
 	_wave += 1
+	_wave_elapsed = 0.0
+	_clear_interwave_galaxy_gate()
 	if RunProgress:
 		RunProgress.sync_phase_from_wave(_wave)
 	_wave_running = true
@@ -206,6 +341,7 @@ func _begin_next_wave() -> void:
 func _spawn_regular_wave() -> void:
 	regular_wave.emit()
 	_banner_label.text = "WAVE %d" % _wave
+	_play_wave_music_for_wave(_wave)
 	_seed_wave_hazards()
 
 	var roster = _build_wave_roster()
@@ -229,14 +365,12 @@ func _spawn_regular_wave() -> void:
 		await get_tree().create_timer(delay).timeout
 
 func _spawn_boss_wave() -> void:
-	$BossWaveMusic.play()
-	$WaveMusic.stream_paused = true
-	$"BossWaveMusic/Volume Intro".play("Volume Intro")
 	boss_wave.emit()
 	_banner_label.text = "BOSS WAVE %d" % _wave
 	_seed_wave_hazards()
 
 	var boss_scene = _choose_boss_scene()
+	_play_boss_music_for_scene(boss_scene)
 	_last_boss_scene_path = boss_scene.resource_path
 	var boss = boss_scene.instantiate()
 	boss.name = "%sWave%d" % [_boss_node_prefix(boss_scene), _wave]
@@ -340,17 +474,19 @@ func _spawn_enemy(scene: PackedScene, node_name: String) -> Node:
 	return enemy
 
 func _tune_enemy_for_wave(enemy: Node) -> void:
-	var difficulty = 1.0 + float(max(_wave - 1, 0)) * 0.07
+	var difficulty = 1.0 + float(max(_wave - 1, 0)) * 0.085
 
 	if enemy.get("max_health") != null:
 		enemy.set("max_health", float(enemy.get("max_health")) * difficulty)
 	if enemy.get("max_speed") != null:
 		enemy.set("max_speed", float(enemy.get("max_speed")) * minf(1.0 + float(_wave) * 0.025, 1.45))
 	if enemy.get("fire_interval") != null:
-		var fire_interval := maxf(float(enemy.get("fire_interval")) - float(_wave) * 0.045, 0.7)
+		var fire_interval := maxf(float(enemy.get("fire_interval")) - float(_wave) * 0.045, 0.62)
 		if _wave >= 2 and _wave <= 4:
 			fire_interval *= early_wave_fire_rate_bonus
 		enemy.set("fire_interval", fire_interval)
+	if enemy.get("contact_damage") != null:
+		enemy.set("contact_damage", float(enemy.get("contact_damage")) * minf(1.0 + float(_wave) * 0.04, 1.6))
 
 	var health = enemy.get_node_or_null("HealthComponent")
 	if health != null:
@@ -419,11 +555,76 @@ func _spawn_battlefield_features() -> void:
 	_spawn_hazard_once(NEBULA_SCENE, "PermanentNebulaNorth", origin + Vector2(-740.0, -520.0))
 	_spawn_hazard_once(NEBULA_SCENE, "PermanentNebulaSouth", origin + Vector2(920.0, 680.0))
 
-	var wormhole = _spawn_hazard_once(WORMHOLE_PAIR_SCENE, "PermanentWormholePair", Vector2.ZERO)
-	if wormhole != null and wormhole.has_method("set_endpoint_positions"):
-		var entry_position := _safe_orbital_position(origin, 1240.0, 1460.0, 17, wormhole_planet_clearance)
-		var exit_position := _safe_orbital_position(origin, 1300.0, 1560.0, 29, wormhole_planet_clearance)
-		wormhole.set_endpoint_positions(entry_position, exit_position)
+	if enable_permanent_wormhole_pair:
+		var wormhole = _spawn_hazard_once(WORMHOLE_PAIR_SCENE, "PermanentWormholePair", Vector2.ZERO)
+		if wormhole != null and wormhole.has_method("set_endpoint_positions"):
+			var entry_position := _safe_orbital_position(origin, 1240.0, 1460.0, 17, wormhole_planet_clearance)
+			var exit_position := _safe_orbital_position(origin, 1300.0, 1560.0, 29, wormhole_planet_clearance)
+			wormhole.set_endpoint_positions(entry_position, exit_position)
+
+func _spawn_interwave_galaxy_gate(_rest_duration: float) -> void:
+	_clear_interwave_galaxy_gate()
+	if not enable_interwave_galaxy_gates:
+		return
+	if _level_root == null or _player == null or not is_instance_valid(_player):
+		return
+	if _wave < interwave_gate_start_wave:
+		return
+	if interwave_gate_interval > 0 and _wave % interwave_gate_interval != 0:
+		return
+
+	var origin := _player.global_position
+	var entry_position := _safe_orbital_position(
+		origin,
+		interwave_gate_near_radius * 0.82,
+		interwave_gate_near_radius * 1.18,
+		_wave * 19 + 5,
+		wormhole_planet_clearance
+	)
+	var exit_position := _safe_orbital_position(
+		origin,
+		interwave_gate_far_min_radius,
+		interwave_gate_far_max_radius,
+		_wave * 31 + 11,
+		wormhole_planet_clearance + 180.0
+	)
+
+	var gate := WORMHOLE_PAIR_SCENE.instantiate()
+	gate.name = "InterwaveGalaxyGate%d" % _wave
+	gate.set_meta(&"interwave_only", true)
+	_level_root.add_child(gate)
+	if gate.has_method("set_endpoint_positions"):
+		gate.call("set_endpoint_positions", entry_position, exit_position)
+	_interwave_gate = gate
+	_active_hazards.append(gate)
+	_seed_galaxy_arrival_field(exit_position)
+	_refresh_player_planet_cache()
+	_banner_label.text = "WAVE %d CLEARED - GALAXY GATE OPEN" % _wave
+
+
+func _clear_interwave_galaxy_gate() -> void:
+	if _interwave_gate == null:
+		return
+	if is_instance_valid(_interwave_gate) and not _interwave_gate.is_queued_for_deletion():
+		_interwave_gate.queue_free()
+	_interwave_gate = null
+
+
+func _seed_galaxy_arrival_field(center: Vector2) -> void:
+	_spawn_hazard_once(
+		NEBULA_SCENE,
+		"Galaxy%dArrivalNebula" % _wave,
+		center + Vector2(420.0, -360.0).rotated(float(_wave) * 0.37)
+	)
+	for i in range(maxi(interwave_gate_planet_count, 0)):
+		var position := _safe_orbital_position(
+			center,
+			620.0 + float(i) * 260.0,
+			980.0 + float(i) * 360.0,
+			_wave * 43 + i * 13,
+			far_planet_clearance
+		)
+		_spawn_hazard_once(PLANET_SCENE, "Galaxy%dPlanet%d" % [_wave, i], position)
 
 func _seed_wave_hazards() -> void:
 	if _wave % 2 == 0:
@@ -543,13 +744,18 @@ func _node_radius(node: Node2D) -> float:
 
 func _complete_wave() -> void:
 	_wave_running = false
+	_wave_elapsed = 0.0
+	if clear_external_enemies_on_wave_clear:
+		_clear_external_wave_enemies()
 	_banner_label.text = "WAVE %d CLEARED" % _wave
 	_boss_panel.visible = false
 	wave_cleared.emit(_wave)
+	_play_intermission_music_for_wave(_wave)
 
 	if _waves_halted or not _waves_enabled():
 		if RunProgress and RunProgress.boss_rush_mode and RunProgress.run_finished:
 			_banner_label.text = "BOSS RUSH CLEARED"
+		_stop_all_music()
 		return
 
 	var extra_rest := 0.0
@@ -558,7 +764,9 @@ func _complete_wave() -> void:
 	var rest = rest_between_waves + extra_rest
 	if RunProgress and RunProgress.boss_rush_mode:
 		rest *= float(RunProgress.challenge_modifiers.get("wave_rest_multiplier", 0.6))
+	_spawn_interwave_galaxy_gate(rest)
 	await get_tree().create_timer(rest).timeout
+	_clear_interwave_galaxy_gate()
 	_begin_next_wave()
 
 func _cleanup_tracking() -> void:
@@ -571,6 +779,22 @@ func _cleanup_tracking() -> void:
 		var hazard := _active_hazards[hazard_index]
 		if hazard == null or not is_instance_valid(hazard) or hazard.is_queued_for_deletion():
 			_active_hazards.remove_at(hazard_index)
+
+	var stale_external_ids: Array = []
+	for enemy_id in _external_enemy_ids.keys():
+		var id := int(enemy_id)
+		if not is_instance_id_valid(id):
+			stale_external_ids.append(enemy_id)
+			continue
+		var enemy_value := instance_from_id(id)
+		if enemy_value == null or not is_instance_valid(enemy_value):
+			stale_external_ids.append(enemy_id)
+			continue
+		var enemy := enemy_value as Node
+		if enemy == null or enemy.is_queued_for_deletion():
+			stale_external_ids.append(enemy_id)
+	for enemy_id in stale_external_ids:
+		_external_enemy_ids.erase(enemy_id)
 
 func _is_boss_wave() -> bool:
 	if RunProgress and RunProgress.boss_rush_mode:
@@ -768,17 +992,11 @@ func _on_boss_defeated() -> void:
 	_clear_remaining_wave_enemies()
 	_boss = null
 	_complete_wave()
-	$WaveMusic.play()
-	$BossWaveMusic.stream_paused = true
-	$"WaveMusic/Volume Intro".play("Volume Intro")
 
 func _on_secret_boss_defeated() -> void:
 	_clear_remaining_wave_enemies()
 	_boss = null
 	_complete_wave()
-	$WaveMusic.play()
-	$BossWaveMusic.stream_paused = true
-	$"WaveMusic/Volume Intro".play("Volume Intro")
 
 func _update_boss_bar() -> void:
 	if _boss != null and _boss.has_method("get_health_ratio"):
@@ -806,15 +1024,22 @@ func _build_ui() -> void:
 	_banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_banner_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_banner_label.text = "INITIALIZING WAVES"
+	_banner_label.add_theme_font_size_override("font_size", 16)
+	_banner_label.modulate = Color(0.74, 1.0, 0.96, 1.0)
 	banner_panel.add_child(_banner_label)
 
 	_status_label = Label.new()
 	_status_label.name = "WaveStatusLabel"
-	_status_label.offset_left = 18.0
-	_status_label.offset_top = 200.0
-	_status_label.offset_right = 278.0
-	_status_label.offset_bottom = 226.0
+	_status_label.anchor_left = 0.5
+	_status_label.anchor_right = 0.5
+	_status_label.offset_left = -150.0
+	_status_label.offset_top = 68.0
+	_status_label.offset_right = 150.0
+	_status_label.offset_bottom = 92.0
+	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_status_label.text = "Wave 0 | Threats 0"
+	_status_label.add_theme_font_size_override("font_size", 12)
+	_status_label.modulate = Color(0.56, 0.86, 0.9, 0.92)
 	_canvas.add_child(_status_label)
 
 	_boss_panel = PanelContainer.new()
@@ -840,6 +1065,8 @@ func _build_ui() -> void:
 	_boss_label.name = "BossNameLabel"
 	_boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_boss_label.text = "BOSS"
+	_boss_label.add_theme_font_size_override("font_size", 14)
+	_boss_label.modulate = Color(1.0, 0.76, 0.56, 1.0)
 	boss_rows.add_child(_boss_label)
 
 	_boss_bar = ProgressBar.new()
@@ -848,6 +1075,7 @@ func _build_ui() -> void:
 	_boss_bar.max_value = 100.0
 	_boss_bar.value = 100.0
 	_boss_bar.custom_minimum_size = Vector2(600.0, 16.0)
+	_style_wave_progress_bar(_boss_bar, Color(1.0, 0.18, 0.08, 0.94))
 	boss_rows.add_child(_boss_bar)
 
 func _make_panel_style(bg: Color, border: Color) -> StyleBoxFlat:
@@ -864,11 +1092,25 @@ func _make_panel_style(bg: Color, border: Color) -> StyleBoxFlat:
 	style.corner_radius_bottom_right = 6
 	return style
 
+func _style_wave_progress_bar(bar: ProgressBar, fill_color: Color) -> void:
+	if bar == null:
+		return
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.03, 0.012, 0.018, 0.88)
+	bg.set_corner_radius_all(4)
+	bar.add_theme_stylebox_override("background", bg)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = fill_color
+	fill.set_corner_radius_all(4)
+	bar.add_theme_stylebox_override("fill", fill)
+
 func _update_status(delta: float) -> void:
 	if _status_label == null:
 		return
 	_status_elapsed += delta
-	var threat_count := _active_enemies.size()
+	var threat_count := _primary_enemy_count()
+	if external_enemies_block_wave:
+		threat_count += _external_enemy_count()
 	if (
 		_status_elapsed < maxf(status_update_interval, 0.05)
 		and _last_status_wave == _wave
@@ -885,9 +1127,132 @@ func _clear_remaining_wave_enemies() -> void:
 		if enemy != _boss and enemy != null and is_instance_valid(enemy):
 			enemy.queue_free()
 	_active_enemies.clear()
+	_external_enemy_ids.clear()
+
+func _connect_pause_menu() -> void:
+	if _pause_menu != null and is_instance_valid(_pause_menu):
+		return
+	_pause_menu = get_tree().get_first_node_in_group("PauseMenu")
+	if _pause_menu == null:
+		var root := get_tree().current_scene
+		if root != null:
+			_pause_menu = root.find_child("PauseMenu", true, false)
+	if _pause_menu == null or not _pause_menu.has_signal("pause_state_changed"):
+		return
+	var callable := Callable(self, "_on_pause_state_changed")
+	if not _pause_menu.is_connected("pause_state_changed", callable):
+		_pause_menu.connect("pause_state_changed", callable)
+
+func _on_pause_state_changed(blocked: bool) -> void:
+	_music_blocked_by_pause = blocked
+	if blocked:
+		$WaveMusic.stream_paused = true
+		$BossWaveMusic.stream_paused = true
+		return
+	_resume_current_music_mode()
+
+func _play_wave_music_for_wave(wave: int) -> void:
+	if _wave_music_tracks.is_empty():
+		return
+	var index := wrapi(maxi(wave - 1, 0), 0, _wave_music_tracks.size())
+	_set_music_mode(MusicMode.WAVE, _wave_music_tracks[index], wave_music_volume_db)
+
+func _play_intermission_music_for_wave(wave: int) -> void:
+	if _intermission_music_tracks.is_empty() or _waves_halted:
+		return
+	var index := wrapi(maxi(wave - 1, 0), 0, _intermission_music_tracks.size())
+	_set_music_mode(MusicMode.INTERMISSION, _intermission_music_tracks[index], intermission_music_volume_db)
+
+func _play_boss_music_for_scene(scene: PackedScene) -> void:
+	_set_music_mode(MusicMode.BOSS, _boss_music_for_scene(scene), boss_music_volume_db)
+
+func _play_secret_boss_music(display_name: String) -> void:
+	var hash = abs(display_name.hash())
+	var stream := SONG_THE_ARRIVAL if hash % 2 == 0 else SONG_THE_4TH_DIMENSION
+	_set_music_mode(MusicMode.BOSS, stream, boss_music_volume_db)
+
+func _boss_music_for_scene(scene: PackedScene) -> AudioStream:
+	if scene == ACCRETION_CORE_SCENE:
+		return SONG_COSMIC_JOURNEY_EPIC
+	if scene == NULL_SERAPH_SCENE:
+		return SONG_ERR_INVALID_THREAD_CHANGE
+	if scene == MAGNETAR_TWINS_SCENE:
+		return SONG_GREEN_FLAME_ULTRA
+	if scene == RIFT_WEAVER_SCENE:
+		return SONG_QUANTUM_BREAK
+	if scene == POLYMORPH_BOSS_SCENE:
+		return SONG_ERR_RUPTURE
+	if scene == CENTRIFUGE_MARSHAL_SCENE:
+		return SONG_NEON_STARLIGHT
+	if scene == EXTRADIMENSIONAL_BREACHER_SCENE:
+		return SONG_THE_NEURAL_DRIFT_THRESHOLD
+	return SONG_RESONANCE
+
+func _set_music_mode(mode: int, stream: AudioStream, volume_db: float) -> void:
+	if not music_enabled or stream == null:
+		_stop_all_music()
+		return
+	_music_mode = mode
+	_active_music_stream = stream
+	var active_player := _music_player_for_mode(mode)
+	var inactive_player := $WaveMusic if active_player == $BossWaveMusic else $BossWaveMusic
+	inactive_player.stop()
+	inactive_player.stream_paused = false
+	if active_player.stream != stream:
+		active_player.stop()
+		active_player.stream = stream
+	active_player.volume_db = volume_db
+	if _music_blocked_by_pause:
+		active_player.stream_paused = true
+		return
+	active_player.stream_paused = false
+	active_player.play()
+	_play_music_intro_for_player(active_player)
+
+func _resume_current_music_mode() -> void:
+	if not music_enabled or _active_music_stream == null or _music_mode == MusicMode.NONE:
+		_stop_all_music()
+		return
+	var active_player := _music_player_for_mode(_music_mode)
+	var inactive_player := $WaveMusic if active_player == $BossWaveMusic else $BossWaveMusic
+	inactive_player.stop()
+	inactive_player.stream_paused = false
+	if active_player.stream != _active_music_stream:
+		active_player.stream = _active_music_stream
+	if active_player.playing:
+		active_player.stream_paused = false
+	else:
+		active_player.stream_paused = false
+		active_player.play()
+		_play_music_intro_for_player(active_player)
+
+func _music_player_for_mode(mode: int) -> AudioStreamPlayer:
+	return $BossWaveMusic if mode == MusicMode.BOSS else $WaveMusic
+
+func _play_music_intro_for_player(player: AudioStreamPlayer) -> void:
+	if player == null:
+		return
+	var intro := player.get_node_or_null("Volume Intro") as AnimationPlayer
+	if intro != null and intro.has_animation("Volume Intro"):
+		intro.stop()
+		intro.play("Volume Intro")
+
+func _stop_all_music() -> void:
+	_music_mode = MusicMode.NONE
+	_active_music_stream = null
+	$WaveMusic.stop()
+	$WaveMusic.stream_paused = false
+	$BossWaveMusic.stop()
+	$BossWaveMusic.stream_paused = false
 
 func _on_wave_music_finished() -> void:
-	$WaveMusic.play()
+	if _music_blocked_by_pause:
+		return
+	if _music_mode == MusicMode.WAVE or _music_mode == MusicMode.INTERMISSION:
+		$WaveMusic.play()
 
 func _on_boss_wave_music_finished() -> void:
-	$BossWaveMusic.play()
+	if _music_blocked_by_pause:
+		return
+	if _music_mode == MusicMode.BOSS:
+		$BossWaveMusic.play()

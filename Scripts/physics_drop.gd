@@ -36,6 +36,8 @@ const TYPE_NAMES := {
 @export var gravity_constant: float = 145.0
 @export var max_gravity_sources: int = 4
 @export var visual_radius: float = 34.0
+@export var planet_clearance: float = 84.0
+@export var planet_pushout_attempts: int = 3
 
 var powerup_definition: PowerupDefinition = null
 
@@ -56,9 +58,11 @@ func _ready() -> void:
 	monitorable = false
 	body_entered.connect(_on_body_entered)
 	_cache_player()
+	_push_out_of_planets()
 	_build_collision()
 	_build_visuals()
 	_apply_gravity_group_state()
+	call_deferred("_push_out_of_planets")
 
 
 func _exit_tree() -> void:
@@ -145,6 +149,7 @@ func _update_motion(delta: float) -> void:
 	_velocity = (_velocity + acceleration * delta).limit_length(max_speed)
 	_velocity = _velocity.move_toward(Vector2.ZERO, 42.0 * delta)
 	global_position += _velocity * delta
+	_push_out_of_planets()
 
 
 func _gravity_acceleration() -> Vector2:
@@ -418,3 +423,47 @@ func _find_scene_node(node_name: String) -> Node:
 
 func _now_seconds() -> float:
 	return Time.get_ticks_msec() * 0.001
+
+
+func _push_out_of_planets() -> void:
+	if not is_inside_tree():
+		return
+	for _attempt in range(maxi(planet_pushout_attempts, 1)):
+		var moved := false
+		for node in get_tree().get_nodes_in_group(&"planets"):
+			var planet := node as Node2D
+			if planet == null or planet == self or not is_instance_valid(planet) or planet.is_queued_for_deletion():
+				continue
+			var min_distance := _planet_radius(planet) + pickup_radius + planet_clearance
+			var offset := global_position - planet.global_position
+			var distance := offset.length()
+			if distance >= min_distance:
+				continue
+			if distance <= 0.001:
+				offset = _fallback_push_direction(planet)
+			var target_position := planet.global_position + offset.normalized() * min_distance
+			global_position = target_position
+			_velocity = _velocity.slide(offset.normalized())
+			moved = true
+		if not moved:
+			return
+
+
+func _planet_radius(planet: Node2D) -> float:
+	var radius_value: Variant = planet.get("radius")
+	if radius_value is float or radius_value is int:
+		return float(radius_value) * maxf(planet.scale.x, planet.scale.y)
+	var collision := planet.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		return (collision.shape as CircleShape2D).radius * maxf(planet.scale.x, planet.scale.y)
+	return 96.0 * maxf(planet.scale.x, planet.scale.y)
+
+
+func _fallback_push_direction(planet: Node2D) -> Vector2:
+	_cache_player()
+	if _player != null and is_instance_valid(_player):
+		var from_player := global_position - _player.global_position
+		if from_player.length_squared() > 0.001:
+			return from_player.normalized()
+	var seed := float(planet.get_instance_id() % 997) * 0.017
+	return Vector2.RIGHT.rotated(seed)

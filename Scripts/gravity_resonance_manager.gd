@@ -108,7 +108,7 @@ const ZONE_COLORS = {
 @export var max_visual_particles_per_zone: int = 24
 @export var visual_ring_segments: int = 72
 @export var resonance_visual_alpha_scale: float = 0.48
-@export var visual_radius_cap: float = 360.0
+@export var visual_radius_cap: float = 420.0
 @export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.055
 @export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.24
 @export_range(0.0, 1.0, 0.01) var visual_glyph_alpha_cap: float = 0.2
@@ -292,15 +292,15 @@ func _classify_zone(source_a: Node2D, source_b: Node2D, _position: Vector2, dist
 	return ZoneType.SLIPSTREAM
 
 func _zone_radius_for_distance(distance: float, zone_type: int, combined_strength: float) -> float:
-	var base_radius := clampf(distance * 0.42, resonance_detection_radius * 0.22, resonance_detection_radius * 0.74)
+	var base_radius := clampf(distance * 0.48, resonance_detection_radius * 0.28, resonance_detection_radius * 0.92)
 	var strength_swell := clampf((combined_strength - minimum_resonance_strength) * 0.08, 0.0, 0.22)
 	base_radius *= 1.0 + strength_swell
 
 	match zone_type:
 		ZoneType.COMPRESSION:
-			base_radius *= 0.88
+			base_radius *= 0.92
 		ZoneType.SLIPSTREAM:
-			base_radius *= 1.16
+			base_radius *= 1.24
 		ZoneType.TEMPORAL_SCAR:
 			base_radius *= 1.08
 		ZoneType.HARMONIC_ORBIT:
@@ -1344,9 +1344,9 @@ func amplify_slingshot_mastery(data: Dictionary) -> int:
 	var time_stacks := int(data.get("time_stacks", 0))
 	var source_radius := float(data.get("radius", resonance_detection_radius * 0.62))
 	var zone_radius := clampf(
-		source_radius * (0.42 + score * 0.2 + float(combo) * 0.025),
-		92.0,
-		resonance_detection_radius * 0.95
+		source_radius * (0.48 + score * 0.24 + float(combo) * 0.025),
+		120.0,
+		resonance_detection_radius * 1.05
 	)
 
 	var zone_type := ZoneType.SLIPSTREAM

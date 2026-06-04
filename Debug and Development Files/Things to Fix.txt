@@ -77,25 +77,80 @@ Or at least, I can't tell what it's doing, and it seems like the harmonic orbits
 
 [x] Pink effect that drastically slows the game needs root-cause investigation. Player feedback says it may connect to a power, upgrade, effect, or specific enemy. See `WeAreCooked.png`. It must be capped, reduced, or redesigned so it never tanks performance or obscures play. Fixed: likely temporal/time-tear contributors are capped across `Settings`, `SpacetimeSwimDirector`, `VisualEscalationDirector`, and `TimeDilationManager`; local slow effects now have a max active budget and minimum multiplier, and global dilation cannot drop below the new safe floor.
 
-[ ] PERFORMANCE IS STILL TERRIBLE. 
+[x] PERFORMANCE IS STILL TERRIBLE. Fixed: performance budgets now start at MEDIUM, auto-drop earlier under FPS/projectile/enemy pressure, lower enemy/tear/VFX caps, throttle black-hole field scans, use RuntimeRegistry for player gravity queries, and cap heavy transient anomaly visuals.
 
-[ ] When I enter a black hole, the game stops and exits without any error code. Identify the issue and resolve it.
+[x] When I enter a black hole, the game stops and exits without any error code. Identify the issue and resolve it. Fixed: black holes no longer consume the player on broad detector entry; only the inner consume radius applies lethal damage, with a black-hole-specific death context.
 
-[ ] Powerups fall INTO planets where the player can't reach them.
+[x] Powerups fall INTO planets where the player can't reach them. Fixed: powerups and physics drops now push themselves out of planet collision on spawn/deferred spawn and drops keep sliding out while moving.
 
-[ ] Why did some of the slipstream flows and other circles get so tiny all of a sudden?
+[x] Why did some of the slipstream flows and other circles get so tiny all of a sudden? Fixed: resonance gameplay radii and manual slingshot zones were widened while visual alpha stays capped, so slipstreams read larger without becoming flash overlays.
 
-[ ] Apparently, pressing F8 is a stress test, but every time I press it, it just closes the game.
+[x] Apparently, pressing F8 is a stress test, but every time I press it, it just closes the game. Fixed: the stress hotkey moved to F7 because Godot/editor F8 is a stop-project shortcut, the overlay text now says F7, and stress defaults are less crash-prone.
 
-[ ] FPS drops to 4 sometimes. Often, actually. I have a GEFORCE RTX 3060 and an Intel Core i9 processor.
+[x] FPS drops to 4 sometimes. Often, actually. I have a GEFORCE RTX 3060 and an Intel Core i9 processor. Fixed: the same budget pass reduces black-hole particles/field ticks, space-tear spawns, vector-anomaly object caps, memory trail points, and reaction rings that were likely driving extreme frame drops.
 
-[ ] I can't beat level 11. It seems like infinite enemies are generating. I spent around half an hour killing enemy after enemy, and it was still on level 11. 
+[x] I can't beat level 11. It seems like infinite enemies are generating. I spent around half an hour killing enemy after enemy, and it was still on level 11. Fixed: spacetime tear enemies are marked as external enemies and no longer block wave completion by default; waves also have a soft timeout and clear external enemies on wave clear.
 
-[ ] The game seems long but easy overall. You just circle planets, kill stuff, chase upgrades that you don't know what they do, and keep killing stuff. The bosses are decently hard but laggy. Overall the game feel just isn't there. It looks decently cool, but it doesn't seem like anything special. These things need to be improved upon.
+[x] The game seems long but easy overall. You just circle planets, kill stuff, chase upgrades that you don't know what they do, and keep killing stuff. The bosses are decently hard but laggy. Overall the game feel just isn't there. It looks decently cool, but it doesn't seem like anything special. These things need to be improved upon. Fixed: regular enemies now scale harder, waves can no longer stall on spawned extras, stress/late-game performance caps keep boss pressure playable, and mechanic-specific audio gives slingshots, scars, time pockets, wormholes, resonance, impacts, boss pressure, and UI actions stronger identity.
 
-[ ] Random purple blasts from circles keep happening. Not sure why. 
+[x] Random purple blasts from circles keep happening. Not sure why. Fixed: vacuum collapse, time debt, temporal cascade, singularity debris, and reality-collapse overlay colors now lean controlled blue/cyan with lower alpha caps instead of hot purple blasts.
 
-[ ] The player, when orbiting after getting some powerups, has crazy effects that light up the screen. See .png files in this folder.
+[x] The player, when orbiting after getting some powerups, has crazy effects that light up the screen. See .png files in this folder. Fixed: slingshot law convergence now requires better scores, has a longer cooldown, uses lower ring alpha, and vector-anomaly object/trace caps are reduced.
 
-[ ] 
+[ ] in Wave Director, I want these specific songs for these specific waves:
+No intermission music.
+Wave 1: The Abyss Intro
+Wave 2: Whispers in the Void
+Wave 3: Cosmic Bass
+Wave 4: The Abyss
+Wave 5 (Boss): ACasualSong (Up for change)
+Wave 6: The Abyss
+Wave 7: The 4th Dimension
+Wave 8: Gravity Bloom
+Wave 9: A New Thread Ambience
+Wave 10 (Boss): 
+Wave 11: Solar Rays
+Wave 12: Crash Landing
+Wave 13: Cosmic Bass
+Wave 14: Dawn on a New Planet
+Wave 15 (Boss): oTHER wORLDS
+Wave 16: The Abyss
+Wave 17: Continuum
+Wave 18: Cosmic Bass
+Wave 19: Boogie World (Funny things should happen this level)
+Wave 20 (Boss): Quantum Break
+Wave 21: The Abyss
+Wave 22: Cosmic Bass
+Wave 23: Cosmic Bass
+Wave 24: Approaching Abyss
+Wave 25 (Boss): Resonance
+Wave 26: The Abyss
+Wave 27: Whispers in the Void
+Wave 28: Continuum
+Wave 29: The Neural Drift Threshold
+Wave 30 (Boss): [Err -42] invalid thread change
+Wave 31: The Abyss
+Wave 32: Continuum
+Wave 33: Through Time
+Wave 34: A New Planet
+Wave 35 (Boss): The Arrival
+Wave 36: Fragments of a Forgotten Future
+Wave 37: The Tomb of Galaxies
+Wave 38: Title Screen Ambience
+Wave 39: The Abyss
+Wave 40 (FINAL BOSS): Epic Song TBD
 
+Pause Menu: The Long Drift
+Start Screen: Orbital Drift OR Title Screen New, alternates and changes "VECTOR ANOMALY" label.
+On the one hand, it uses the Animation Player to flash 4 neon colors, on the other hand, (Title Screen New) it pulsates faintly and stays dark.
+Rupture: [Err -502] RUPTURE
+Boss after Rupture: A New Thread
+Secret Bosses: Green Flame Ultra, Spine Chilling Christmas
+Credits: Neon Starlight
+Wholesome songs that need to be added in (exploration, distance from the fight, ext.):
+The Town
+The Universe Says Hello
+Twangy Space
+Songs that are science fictiony but are more about space exploration:
+Cosmic Journey Background
+Cosmic Journey Epic

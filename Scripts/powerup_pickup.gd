@@ -6,6 +6,8 @@ class_name PowerupPickup
 @export var drift_spin: float = 2.4
 @export var particle_focus_radius: float = 1500.0
 @export var particle_focus_refresh_interval: float = 0.2
+@export var planet_clearance: float = 92.0
+@export var planet_pushout_attempts: int = 4
 
 var _core: Polygon2D = null
 var _ring: Polygon2D = null
@@ -19,9 +21,11 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	_particle_focus_radius_sq = particle_focus_radius * particle_focus_radius
 	_cache_player()
+	_push_out_of_planets()
 	_build_collision()
 	_build_visuals()
 	_update_particle_focus(true)
+	call_deferred("_push_out_of_planets")
 
 func _process(delta: float) -> void:
 	rotation += drift_spin * delta
@@ -132,3 +136,45 @@ func _update_particle_focus(_force: bool) -> void:
 		in_focus = global_position.distance_squared_to(_player.global_position) <= _particle_focus_radius_sq
 	_particles.visible = in_focus
 	_particles.emitting = in_focus
+
+
+func _push_out_of_planets() -> void:
+	if not is_inside_tree():
+		return
+	for _attempt in range(maxi(planet_pushout_attempts, 1)):
+		var moved := false
+		for node in get_tree().get_nodes_in_group(&"planets"):
+			var planet := node as Node2D
+			if planet == null or planet == self or not is_instance_valid(planet) or planet.is_queued_for_deletion():
+				continue
+			var min_distance := _planet_radius(planet) + pickup_radius + planet_clearance
+			var offset := global_position - planet.global_position
+			var distance := offset.length()
+			if distance >= min_distance:
+				continue
+			if distance <= 0.001:
+				offset = _fallback_push_direction(planet)
+			global_position = planet.global_position + offset.normalized() * min_distance
+			moved = true
+		if not moved:
+			return
+
+
+func _planet_radius(planet: Node2D) -> float:
+	var radius_value: Variant = planet.get("radius")
+	if radius_value is float or radius_value is int:
+		return float(radius_value) * maxf(planet.scale.x, planet.scale.y)
+	var collision := planet.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		return (collision.shape as CircleShape2D).radius * maxf(planet.scale.x, planet.scale.y)
+	return 96.0 * maxf(planet.scale.x, planet.scale.y)
+
+
+func _fallback_push_direction(planet: Node2D) -> Vector2:
+	_cache_player()
+	if _player != null and is_instance_valid(_player):
+		var away_from_player := global_position - _player.global_position
+		if away_from_player.length_squared() > 0.001:
+			return away_from_player.normalized()
+	var seed := float(planet.get_instance_id() % 997) * 0.017
+	return Vector2.RIGHT.rotated(seed)

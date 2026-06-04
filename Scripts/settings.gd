@@ -4,10 +4,10 @@ signal accessibility_changed(settings: Dictionary)
 
 const SETTINGS_PATH := "user://settings.cfg"
 const SECTION_ACCESSIBILITY := "accessibility"
-const WORLD_ALPHA_CAP: float = 0.34
-const WORLD_FILL_ALPHA_CAP: float = 0.06
-const WORLD_LIGHT_ALPHA_CAP: float = 0.22
-const WORLD_EFFECT_RADIUS_CAP: float = 320.0
+const WORLD_ALPHA_CAP: float = 0.28
+const WORLD_FILL_ALPHA_CAP: float = 0.045
+const WORLD_LIGHT_ALPHA_CAP: float = 0.16
+const WORLD_EFFECT_RADIUS_CAP: float = 420.0
 const REDUCED_FLASH_ALPHA_SCALE: float = 0.45
 
 enum ColorblindMode {
@@ -124,7 +124,7 @@ func world_light_alpha(alpha: float) -> float:
 
 
 func world_effect_radius(radius: float, hard_cap: float = WORLD_EFFECT_RADIUS_CAP) -> float:
-	return clampf(radius, 0.0, maxf(hard_cap, 1.0))
+	return clampf(radius, 0.0, clampf(hard_cap, 1.0, WORLD_EFFECT_RADIUS_CAP))
 
 
 func export_accessibility_settings() -> Dictionary:

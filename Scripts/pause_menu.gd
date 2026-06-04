@@ -3,6 +3,10 @@ extends Control
 
 signal pause_state_changed(blocked: bool)
 
+const UI_PAUSE_OPEN_STREAM := preload("res://Assets/Sound Effects/sfx_ui_pause_open.mp3")
+const UI_PAUSE_CLOSE_STREAM := preload("res://Assets/Sound Effects/sfx_ui_pause_close.mp3")
+const UI_SETTINGS_CHANGED_STREAM := preload("res://Assets/Sound Effects/sfx_ui_settings_changed.mp3")
+
 @export_group("Visual Fade")
 @export var fade_in_duration: float = 1.55
 @export var fade_out_duration: float = 0.22
@@ -49,6 +53,8 @@ var pre_pause_time_scale: float = 1.0
 var _seed_copy_feedback_time: float = 0.0
 var _mod_reload_feedback_time: float = 0.0
 var _menu_base_scale := Vector2.ONE
+var _ui_audio_player: AudioStreamPlayer = null
+var _next_settings_sound_time := 0.0
 
 
 func _ready() -> void:
@@ -59,6 +65,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	music_player.process_mode = Node.PROCESS_MODE_ALWAYS
 	music_player.volume_db = -80.0
+	_setup_ui_audio()
 	_connect_buttons()
 	_setup_accessibility_controls()
 	_apply_menu_scale()
@@ -108,6 +115,7 @@ func _enter_pause() -> void:
 	active = true
 	is_transitioning = true
 	visible = true
+	_play_ui_sound(UI_PAUSE_OPEN_STREAM, -8.0, 0.96)
 	_update_modding_menu()
 	_update_multiplayer_menu()
 	_update_weapon_menu()
@@ -142,6 +150,7 @@ func _on_enter_tween_finished() -> void:
 func _exit_pause() -> void:
 	active = false
 	is_transitioning = true
+	_play_ui_sound(UI_PAUSE_CLOSE_STREAM, -10.0, 1.04)
 	_emit_pause_state()
 
 	get_tree().paused = false
@@ -205,6 +214,31 @@ func _kill_tweens() -> void:
 	if music_tween:
 		music_tween.kill()
 		music_tween = null
+
+
+func _setup_ui_audio() -> void:
+	_ui_audio_player = AudioStreamPlayer.new()
+	_ui_audio_player.name = "PauseUiCue"
+	_ui_audio_player.process_mode = Node.PROCESS_MODE_ALWAYS
+	_ui_audio_player.bus = &"Player Sound Effects"
+	add_child(_ui_audio_player)
+
+
+func _play_ui_sound(stream: AudioStream, volume_db: float = -12.0, pitch: float = 1.0) -> void:
+	if _ui_audio_player == null or stream == null:
+		return
+	_ui_audio_player.stream = stream
+	_ui_audio_player.volume_db = volume_db
+	_ui_audio_player.pitch_scale = pitch
+	_ui_audio_player.play()
+
+
+func _play_settings_sound() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _next_settings_sound_time:
+		return
+	_next_settings_sound_time = now + 0.12
+	_play_ui_sound(UI_SETTINGS_CHANGED_STREAM, -13.0, 1.0)
 
 
 func _connect_buttons() -> void:
@@ -276,6 +310,7 @@ func _on_copy_seed_pressed() -> void:
 	if RunProgress == null:
 		return
 	DisplayServer.clipboard_set(RunProgress.get_run_seed_code())
+	_play_settings_sound()
 	if copy_seed_button != null:
 		copy_seed_button.text = "COPIED"
 		_seed_copy_feedback_time = 1.0
@@ -285,6 +320,7 @@ func _on_reload_mods_pressed() -> void:
 	var registry := _get_mod_registry()
 	if registry != null and registry.has_method("reload_registry"):
 		registry.call("reload_registry")
+	_play_settings_sound()
 	_mod_reload_feedback_time = 1.0
 	if reload_mods_button != null:
 		reload_mods_button.text = "RELOADED"
@@ -295,6 +331,7 @@ func _on_weapon_previous_pressed() -> void:
 	var weapon_system := _get_weapon_system()
 	if weapon_system != null and weapon_system.has_method("select_previous_weapon"):
 		weapon_system.call("select_previous_weapon")
+		_play_settings_sound()
 	_update_weapon_menu()
 
 
@@ -302,6 +339,7 @@ func _on_weapon_next_pressed() -> void:
 	var weapon_system := _get_weapon_system()
 	if weapon_system != null and weapon_system.has_method("select_next_weapon"):
 		weapon_system.call("select_next_weapon")
+		_play_settings_sound()
 	_update_weapon_menu()
 
 
@@ -446,21 +484,25 @@ func _get_weapon_system() -> Node:
 
 func _on_ui_scale_changed(value: float) -> void:
 	Settings.set_ui_scale(value)
+	_play_settings_sound()
 	_apply_menu_scale()
 
 
 func _on_shake_changed(value: float) -> void:
 	Settings.set_screen_shake_scale(value)
+	_play_settings_sound()
 
 
 func _on_reduce_flash_toggled(enabled: bool) -> void:
 	Settings.set_reduce_flash(enabled)
+	_play_settings_sound()
 
 
 func _on_color_mode_selected(index: int) -> void:
 	if color_mode_option == null:
 		return
 	Settings.set_colorblind_mode(color_mode_option.get_item_id(index))
+	_play_settings_sound()
 
 
 func _force_unpause() -> void:

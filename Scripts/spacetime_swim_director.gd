@@ -111,13 +111,20 @@ func _on_local_time_pocket_entered(target: Node, multiplier: float, _duration: f
 
 func _on_slingshot_mastery_scored(data: Dictionary) -> void:
 	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
-	if score < 0.86:
+	if score < 0.92:
 		return
 	var position: Vector2 = data.get("position", _player_position())
 	var tangent: Vector2 = data.get("tangent", _player_velocity())
 	if tangent.length_squared() <= 0.001:
 		tangent = Vector2.RIGHT
-	_trigger_swim(position, tangent, score, 0.54 + score * 0.32, Color(0.32, 1.0, 0.86, 1.0), score >= 0.94)
+	_trigger_swim(
+		position,
+		tangent,
+		minf(score * 0.62, 0.64),
+		0.34 + score * 0.18,
+		Color(0.28, 0.84, 0.78, 1.0),
+		score >= 0.98
+	)
 
 
 func _on_weapon_fired(weapon_id: StringName, weapon_data: Dictionary) -> void:
@@ -192,7 +199,7 @@ func _update_swim(delta: float) -> void:
 	if _swim_elapsed < maxf(swim_spawn_interval, 0.02):
 		return
 	_swim_elapsed = 0.0
-	_spawn_ribbon(_player.global_position, _player_velocity(), _swim_intensity, Color(0.36, 1.0, 0.9, 1.0))
+	_spawn_ribbon(_player.global_position, _player_velocity(), _swim_intensity, Color(0.28, 0.84, 0.78, 1.0))
 
 
 func _spawn_ribbon(position: Vector2, direction: Vector2, intensity: float, color: Color) -> void:

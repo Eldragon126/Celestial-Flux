@@ -33,8 +33,9 @@ signal frame_dragging_anchor_applied(data: Dictionary)
 @export_group("Pickup Readability")
 @export var powerup_visuals_enabled: bool = true
 @export var powerup_burst_radius: float = 180.0
-@export var powerup_visual_radius_cap: float = 360.0
-@export_range(0.0, 0.42, 0.01) var powerup_ring_alpha_cap: float = 0.26
+@export var powerup_visual_radius_cap: float = 300.0
+@export var fusion_ring_radius_cap: float = 280.0
+@export_range(0.0, 0.42, 0.01) var powerup_ring_alpha_cap: float = 0.13
 @export_range(0.0, 0.42, 0.01) var powerup_echo_alpha_cap: float = 0.16
 
 @export_group("Law Fusion")
@@ -48,7 +49,8 @@ signal frame_dragging_anchor_applied(data: Dictionary)
 @export var fusion_debris_satellite_capture_duration: float = 0.72
 @export var fusion_visuals_enabled: bool = true
 @export var slingshot_convergence_radius: float = 430.0
-@export var slingshot_convergence_cooldown: float = 0.32
+@export var slingshot_convergence_cooldown: float = 0.76
+@export var slingshot_convergence_visual_score_threshold: float = 0.9
 @export var slingshot_time_lens_multiplier: float = 0.46
 
 @export_group("Apex Vector Core")
@@ -572,7 +574,7 @@ func _on_tracked_enemy_died(enemy: Node) -> void:
 		singularity_debris_mass * (1.0 + 0.2 * float(stacks - 1)),
 		singularity_debris_radius + 18.0 * float(stacks - 1),
 		singularity_debris_lifetime,
-		Color(0.78, 0.32, 1.0, 1.0)
+		Color(0.36, 0.82, 1.0, 1.0)
 	)
 
 	debris.particle_cap = singularity_debris_particle_cap
@@ -1080,7 +1082,7 @@ func _on_slingshot_mastery_triggered(data: Dictionary) -> void:
 		return
 
 	var score := clampf(float(data.get("score", 0.0)), 0.0, 1.0)
-	if score < 0.58:
+	if score < 0.76:
 		return
 
 	_next_slingshot_convergence_time = now + slingshot_convergence_cooldown
@@ -1139,11 +1141,12 @@ func _on_slingshot_mastery_triggered(data: Dictionary) -> void:
 		}
 	)
 
-	_spawn_fusion_ring(
-		position,
-		radius,
-		Color(0.28, 1.0, 0.84, 0.82)
-	)
+	if score >= slingshot_convergence_visual_score_threshold:
+		_spawn_fusion_ring(
+			position,
+			radius * 0.72,
+			Color(0.24, 0.86, 0.78, 0.38)
+		)
 
 
 func _on_player_slingshot_mastery_scored(data: Dictionary) -> void:
@@ -1201,7 +1204,7 @@ func _release_apex_vector(data: Dictionary, stacks: int) -> void:
 	}
 	_emit_law_fusion(&"apex_vector_core", payload)
 	apex_vector_released.emit(payload)
-	_spawn_fusion_ring(position, radius, Color(0.36, 1.0, 0.84, 0.74))
+	_spawn_fusion_ring(position, radius * 0.76, Color(0.3, 0.88, 0.78, 0.38))
 
 
 func _affect_apex_vector_targets(
@@ -1660,7 +1663,7 @@ func _fling_satellites_with_time_fracture(
 	_spawn_fusion_ring(
 		_player.global_position,
 		180.0 + 28.0 * float(released),
-		Color(0.35, 0.86, 1.0, 0.76)
+		Color(0.3, 0.72, 0.95, 0.34)
 	)
 
 
@@ -1695,10 +1698,11 @@ func _spawn_fusion_ring(
 	ring.scale = Vector2.ONE * 18.0
 	ring.modulate = Color.WHITE
 	ring.visible = true
+	var visual_radius := _visual_radius(minf(radius, fusion_ring_radius_cap))
 
 	var tween := ring.create_tween()
 
-	tween.tween_property(ring, "scale", Vector2.ONE * _visual_radius(radius), 0.24)
+	tween.tween_property(ring, "scale", Vector2.ONE * visual_radius, 0.24)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.26)
 	tween.tween_callback(Callable(self, "_release_ring").bind(ring))
 

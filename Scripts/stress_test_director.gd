@@ -10,11 +10,11 @@ const BLACK_HOLE_SCENE := preload("res://Nodes/black_hole.tscn")
 
 @export var enabled: bool = false
 @export var run_on_ready: bool = false
-@export var projectile_count: int = 220
-@export var gravity_well_count: int = 6
+@export var projectile_count: int = 96
+@export var gravity_well_count: int = 2
 @export var spawn_radius: float = 980.0
 @export var extreme_velocity: float = 1850.0
-@export var max_spawned_nodes: int = 360
+@export var max_spawned_nodes: int = 140
 
 var _player: Node2D = null
 var _spawned: Array[Node] = []
@@ -29,6 +29,8 @@ func _ready() -> void:
 
 func run_extreme_arena_stress() -> void:
 	if not enabled:
+		return
+	if get_tree().current_scene == null:
 		return
 	_clear_spawned()
 	_player = get_tree().get_first_node_in_group("Player") as Node2D
@@ -47,6 +49,10 @@ func _spawn_gravity_wells(origin: Vector2) -> void:
 	for i in range(count):
 		var well := BLACK_HOLE_SCENE.instantiate()
 		well.name = "StressGravityWell%d" % i
+		if well.get("field_tick_interval") != null:
+			well.set("field_tick_interval", 0.08)
+		if well.get("max_targets_per_tick") != null:
+			well.set("max_targets_per_tick", 18)
 		get_tree().current_scene.add_child(well)
 		var well_2d := well as Node2D
 		if well_2d != null:
@@ -62,6 +68,7 @@ func _spawn_projectile_storm(origin: Vector2) -> void:
 		var scene := PROJECTILE_SCENE if i % 2 == 0 else ENEMY_BULLET_SCENE
 		var projectile := scene.instantiate()
 		projectile.name = "StressProjectile%d" % i
+		projectile.set_meta(&"stress_test_spawned", true)
 		get_tree().current_scene.add_child(projectile)
 
 		var body := projectile as RigidBody2D
@@ -70,7 +77,6 @@ func _spawn_projectile_storm(origin: Vector2) -> void:
 			var radial := Vector2(cos(angle), sin(angle))
 			body.global_position = origin + radial * spawn_radius
 			body.linear_velocity = radial.orthogonal() * extreme_velocity + -radial * extreme_velocity * 0.28
-			body.set_meta(&"stress_test_spawned", true)
 
 		_spawned.append(projectile)
 

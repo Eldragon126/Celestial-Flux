@@ -119,6 +119,7 @@ var _last_damage_time: float = -999.0
 var _damage_invulnerable_until: float = -999.0
 var _invulnerability_flash_elapsed: float = 0.0
 var _death_in_progress: bool = false
+var _gravity_source_query: Array[Node2D] = []
 # ========================
 # == NODE REFERENCES ==
 # ========================
@@ -917,6 +918,17 @@ func _refresh_gravity_sources(force: bool) -> void:
 
 	_gravity_refresh_elapsed = 0.0
 
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_nearest_gravity_sources(
+			global_position,
+			_gravity_source_query,
+			max_gravity_sources,
+			gravity_pull_radius,
+			self
+		)
+		planets = _gravity_source_query
+		return
+
 	var seen := {}
 	var sources: Array[Node2D] = []
 
@@ -1008,6 +1020,8 @@ func _go_to_game_over() -> void:
 	get_tree().change_scene_to_file("res://Nodes/game_over_scene.tscn")
 
 func _build_death_lesson() -> String:
+	if StringName(get_meta(&"last_death_context", &"")) == &"black_hole":
+		return "DEATH VECTOR: the event horizon ate your exit angle. Graze wide, then slingshot out before the core."
 	var speed := velocity.length()
 	var gravity := calculate_gravity()
 	if gravity.length() > gravity_constant * 1.7:

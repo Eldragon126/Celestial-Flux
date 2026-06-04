@@ -25,7 +25,7 @@ const PLAYER_TARGET_GROUPS: Array[StringName] = [&"Projectiles", &"player_projec
 @export var micro_lens_duration: float = 2.6
 @export var micro_lens_forward_offset: float = 150.0
 @export var micro_lens_drift_speed: float = 130.0
-@export var max_active_micro_lenses: int = 6
+@export var max_active_micro_lenses: int = 4
 
 @export_group("Vacuum Collapse Injector")
 @export var collapse_radius: float = 360.0
@@ -45,12 +45,12 @@ const PLAYER_TARGET_GROUPS: Array[StringName] = [&"Projectiles", &"player_projec
 @export var debris_seed_mass: float = 68000.0
 @export var debris_seed_lifetime: float = 8.0
 @export var debris_orbit_speed: float = 1.45
-@export var max_seeded_debris: int = 10
+@export var max_seeded_debris: int = 6
 
 @export_group("Orbital Memory")
 @export var memory_sample_interval: float = 0.08
 @export var memory_min_distance: float = 54.0
-@export var memory_max_points: int = 96
+@export var memory_max_points: int = 72
 @export var memory_influence_radius: float = 120.0
 @export var memory_curve_strength: float = 180.0
 @export var memory_visual_alpha: float = 0.36
@@ -60,7 +60,7 @@ const PLAYER_TARGET_GROUPS: Array[StringName] = [&"Projectiles", &"player_projec
 @export var time_debt_duration: float = 3.2
 @export var time_debt_slow_scale: float = 0.54
 @export var time_debt_repay_scale: float = 1.28
-@export var max_time_debt_zones: int = 4
+@export var max_time_debt_zones: int = 3
 
 @export_group("Momentum Conservation Drift")
 @export var momentum_drift_min_speed: float = 1050.0
@@ -77,9 +77,9 @@ const PLAYER_TARGET_GROUPS: Array[StringName] = [&"Projectiles", &"player_projec
 @export var cascade_damage: float = 16.0
 
 @export_group("Visual Caps")
-@export var anomaly_visual_radius_cap: float = 360.0
-@export_range(0.0, 0.42, 0.01) var anomaly_ring_alpha_cap: float = 0.26
-@export_range(0.0, 0.42, 0.01) var anomaly_trace_alpha_cap: float = 0.18
+@export var anomaly_visual_radius_cap: float = 420.0
+@export_range(0.0, 0.42, 0.01) var anomaly_ring_alpha_cap: float = 0.18
+@export_range(0.0, 0.42, 0.01) var anomaly_trace_alpha_cap: float = 0.12
 
 var _player: CharacterBody2D = null
 var _inventory: Node = null
@@ -188,7 +188,7 @@ func trigger_vacuum_collapse(position: Vector2, stacks: int, source: Node = null
 
 	_stamp_resonance(center, radius * 0.72, GravityResonanceManager.ZoneType.COMPRESSION, 0.74, 1.6)
 	_stamp_scar(center, radius * 0.82, GravityScarManager.ScarType.TEMPORAL_RIP, 0.66, 36.0, &"vacuum_collapse")
-	_spawn_transient_ring(center, radius, Color(0.72, 0.36, 1.0, 0.58), 0.28, 3.4)
+	_spawn_transient_ring(center, radius, Color(0.46, 0.72, 1.0, 0.34), 0.28, 3.4)
 
 	var payload := {
 		"position": center,
@@ -545,8 +545,8 @@ func _create_time_debt_zone(slow_position: Vector2, repay_position: Vector2, rad
 		"source": source_label,
 	}
 	_time_debt_zones.append(zone)
-	_spawn_transient_ring(slow_position, radius, Color(0.72, 0.36, 1.0, 0.34), 0.24, 2.2)
-	_spawn_transient_ring(repay_position, radius, Color(0.16, 0.92, 1.0, 0.34), 0.24, 2.2)
+	_spawn_transient_ring(slow_position, radius, Color(0.48, 0.68, 1.0, 0.24), 0.24, 2.2)
+	_spawn_transient_ring(repay_position, radius, Color(0.16, 0.92, 1.0, 0.26), 0.24, 2.2)
 	time_debt_zone_created.emit(zone.duplicate(true))
 
 
@@ -958,7 +958,7 @@ func _cascade_color(type_name: StringName) -> Color:
 		&"inversion":
 			return Color(1.0, 0.28, 0.16, 0.62)
 		&"temporal_scar":
-			return Color(0.74, 0.32, 1.0, 0.6)
+			return Color(0.56, 0.64, 1.0, 0.38)
 		&"harmonic_orbit":
 			return Color(0.96, 0.82, 0.22, 0.58)
 	return Color(0.26, 0.72, 1.0, 0.58)

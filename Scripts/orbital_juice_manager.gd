@@ -120,7 +120,7 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var showcase_alongside_wave_game = false
 @export var enable_dev_hotkeys = false
 @export var dev_showcase_key: int = KEY_F6
-@export var dev_stress_key: int = KEY_F8
+@export var dev_stress_key: int = KEY_F7
 @export var dev_clear_stress_key: int = KEY_F9
 @export var near_miss_time_charge_multiplier: float = 0.14
 @export_group("Quality")

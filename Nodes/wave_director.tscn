@@ -7,7 +7,7 @@
 [ext_resource type="AudioStream" uid="uid://eu6vv1vgucjt" path="res://Assets/Songs/Cosmic Bass.wav" id="5_0riij"]
 [ext_resource type="AudioStream" uid="uid://brn5i5kudbi5i" path="res://Assets/Songs/Whispers in the Void.mp3" id="6_jhh73"]
 [ext_resource type="AudioStream" uid="uid://b0c6fb7kpwh7v" path="res://Assets/Songs/Resonance.mp3" id="7_5tvm2"]
-[ext_resource type="AudioStream" uid="uid://b0fxjf5jygstt" path="res://Assets/Songs/The Arrival (1).mp3" id="8_871jo"]
+[ext_resource type="AudioStream" uid="uid://b0fxjf5jygstt" path="res://Assets/Songs/The Arrival.mp3" id="8_871jo"]
 [ext_resource type="AudioStream" uid="uid://cqgghnrykol0u" path="res://Assets/Songs/[Err -42] invalid thread change.mp3" id="9_vpyrl"]
 
 [sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_wmx4x"]

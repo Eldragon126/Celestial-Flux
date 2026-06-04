@@ -472,12 +472,12 @@ func _format_vfx_state() -> String:
 
 func _format_stress_state() -> String:
 	if not _is_valid_node(_juice_manager) or not _juice_manager.has_method("get_juice_debug_state"):
-		return "F6 showcase F8 stress F9 clear"
+		return "F6 showcase F7 stress F9 clear"
 
 	var juice_state: Dictionary = _juice_manager.call("get_juice_debug_state")
 	var stress: Dictionary = juice_state.get("stress", {})
 	if stress.is_empty():
-		return "idle (F8 run)"
+		return "idle (F7 run)"
 
 	var spawned := int(stress.get("spawned", 0))
 	var projectiles := int(stress.get("projectile_count", 0))

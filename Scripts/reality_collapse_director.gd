@@ -11,7 +11,7 @@ signal physics_constants_shifted(data: Dictionary)
 @export var sample_interval: float = 0.18
 @export var breach_interval: float = 9.0
 @export var min_breach_interval: float = 4.2
-@export var overlay_alpha_cap: float = 0.12
+@export var overlay_alpha_cap: float = 0.055
 @export var max_active_breaches: int = 4
 @export var gravity_constant_swing: float = 0.08
 @export var drag_swing: float = 0.035
@@ -377,7 +377,14 @@ func _update_overlay() -> void:
 func _set_overlay_alpha(alpha: float) -> void:
 	if _overlay == null:
 		return
-	_overlay.color = Color(0.45, 0.08, 0.62, Settings.flash_alpha(alpha) if Settings != null else alpha)
+	var capped_alpha := alpha
+	if Settings != null and Settings.has_method("world_fill_alpha"):
+		capped_alpha = Settings.world_fill_alpha(alpha)
+	elif Settings != null and Settings.has_method("flash_alpha"):
+		capped_alpha = minf(Settings.flash_alpha(alpha), overlay_alpha_cap)
+	else:
+		capped_alpha = minf(alpha, overlay_alpha_cap)
+	_overlay.color = Color(0.18, 0.2, 0.38, capped_alpha)
 
 
 func _set_notice(text: String, color: Color) -> void:
