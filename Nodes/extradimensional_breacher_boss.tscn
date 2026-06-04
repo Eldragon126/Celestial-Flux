@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://bw2vp2bohafp6"]
 
-[ext_resource type="Script" path="res://Scripts/Bosses/extradimensional_breacher_boss.gd" id="1_breacher"]
+[ext_resource type="Script" uid="uid://qum8r21iu82q" path="res://Scripts/Bosses/extradimensional_breacher_boss.gd" id="1_breacher"]
 
-[node name="ExtradimensionalBreacherBoss" type="CharacterBody2D" groups=["Objects_With_Gravity", "bosses", "enemies", "planets", "wave_enemy"]]
+[node name="ExtradimensionalBreacherBoss" type="CharacterBody2D" unique_id=1047344331 groups=["Objects_With_Gravity", "bosses", "enemies", "planets", "wave_enemy"]]
 script = ExtResource("1_breacher")

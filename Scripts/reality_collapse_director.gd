@@ -239,7 +239,7 @@ func _update_breaches(delta: float) -> void:
 func _remove_oldest_breach() -> void:
 	if _active_breaches.is_empty():
 		return
-	var entry := _active_breaches.pop_front()
+	var entry = _active_breaches.pop_front()
 	var root := entry.get("root") as Node
 	if root != null and is_instance_valid(root):
 		root.queue_free()

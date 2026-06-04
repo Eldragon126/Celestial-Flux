@@ -76,3 +76,26 @@ Or at least, I can't tell what it's doing, and it seems like the harmonic orbits
 [x] Investigate why bullets sometimes orbit the player. Determine whether this comes from orbital projectile capture, frame-dragging, gravity source sampling, projectile inheritance, or an unintended self-gravity interaction. Decide whether to keep it as an intentional upgrade behavior with clear visuals or remove it from baseline shooting. Fixed: baseline player bullets now ignore player/player-projectile gravity sources and nearby non-planet self-gravity. Intentional orbital capture from Orbital Tether is marked with `intentional_orbital_capture` metadata and the `orbital_satellite_projectiles` group, then cleared on release.
 
 [x] Pink effect that drastically slows the game needs root-cause investigation. Player feedback says it may connect to a power, upgrade, effect, or specific enemy. See `WeAreCooked.png`. It must be capped, reduced, or redesigned so it never tanks performance or obscures play. Fixed: likely temporal/time-tear contributors are capped across `Settings`, `SpacetimeSwimDirector`, `VisualEscalationDirector`, and `TimeDilationManager`; local slow effects now have a max active budget and minimum multiplier, and global dilation cannot drop below the new safe floor.
+
+[ ] PERFORMANCE IS STILL TERRIBLE. 
+
+[ ] When I enter a black hole, the game stops and exits without any error code. Identify the issue and resolve it.
+
+[ ] Powerups fall INTO planets where the player can't reach them.
+
+[ ] Why did some of the slipstream flows and other circles get so tiny all of a sudden?
+
+[ ] Apparently, pressing F8 is a stress test, but every time I press it, it just closes the game.
+
+[ ] FPS drops to 4 sometimes. Often, actually. I have a GEFORCE RTX 3060 and an Intel Core i9 processor.
+
+[ ] I can't beat level 11. It seems like infinite enemies are generating. I spent around half an hour killing enemy after enemy, and it was still on level 11. 
+
+[ ] The game seems long but easy overall. You just circle planets, kill stuff, chase upgrades that you don't know what they do, and keep killing stuff. The bosses are decently hard but laggy. Overall the game feel just isn't there. It looks decently cool, but it doesn't seem like anything special. These things need to be improved upon.
+
+[ ] Random purple blasts from circles keep happening. Not sure why. 
+
+[ ] The player, when orbiting after getting some powerups, has crazy effects that light up the screen. See .png files in this folder.
+
+[ ] 
+

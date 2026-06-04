@@ -66,9 +66,9 @@ func _simulate_path() -> void:
 func _calculate_gravity(pos: Vector2) -> Vector2:
 	var total = Vector2.ZERO
 	
-	var gravity_constant := _projectile.get("gravity_constant")
-	var min_dist := _projectile.get("min_grav_dist")
-	var pull_radius := _projectile.get("gravity_pull_radius")
+	var gravity_constant = _projectile.get("gravity_constant")
+	var min_dist = _projectile.get("min_grav_dist")
+	var pull_radius = _projectile.get("gravity_pull_radius")
 	var constant_value := float(gravity_constant) if gravity_constant is float or gravity_constant is int else 200.0
 	var min_dist_value := float(min_dist) if min_dist is float or min_dist is int else 50.0
 	var radius_value := float(pull_radius) if pull_radius is float or pull_radius is int else 2000.0

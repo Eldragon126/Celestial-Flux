@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dpot33bourpdy"]
+
+[ext_resource type="Script" uid="uid://b6rj4vv8bflbn" path="res://Scripts/gravity_wave_maker.gd" id="1_qwsgf"]
+
+[node name="Gravity Wave Maker" type="Node2D" unique_id=1314623969]
+script = ExtResource("1_qwsgf")

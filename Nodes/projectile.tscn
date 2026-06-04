@@ -7,7 +7,7 @@ friction = 0.5
 bounce = 0.5
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_dgwo2"]
-radius = 8.5
+radius = 12.0415945
 
 [sub_resource type="Gradient" id="Gradient_5y2at"]
 offsets = PackedFloat32Array(0.01459854, 1)
@@ -37,17 +37,17 @@ shape = SubResource("CircleShape2D_dgwo2")
 
 [node name="PointLight2D" type="PointLight2D" parent="." unique_id=1741619624]
 energy = 2.65
-texture_scale = 0.72
 texture = SubResource("GradientTexture2D_2xblw")
+texture_scale = 0.72
 
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=1539769750]
 position = Vector2(43, 24)
 color = Color(0.42, 1, 0.92, 1)
-polygon = PackedVector2Array(-58, -24, -43, -14, -31, -24, -43, -34)
+polygon = PackedVector2Array(-55, -24, -43, -12, -31, -24, -43, -36)
 uv = PackedVector2Array(-89.76105, -18.890343, -43.38037, 27.039673, 16.760986, -21.552338, -36.281677, -86.56702)
 
 [node name="Timer" type="Timer" parent="." unique_id=856762356]
-wait_time = 40.0
+wait_time = 5.0
 one_shot = true
 autostart = true
 

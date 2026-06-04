@@ -204,7 +204,7 @@ func _attack_outside_space_breach(center: Vector2) -> void:
 			direction.rotated(-0.22 + float(i) * 0.22) * 460.0,
 			direction.rotated(-0.1 + float(i) * 0.14) * 680.0,
 		])
-	root.add_child(limb)
+		root.add_child(limb) # THIS LINE WAS INDENTED
 	_active_constructs.append(root)
 	get_tree().create_timer(3.6).timeout.connect(Callable(self, "_queue_free_if_valid").bind(root))
 	_apply_breach_slam(center, direction)
@@ -239,7 +239,7 @@ func _apply_boundary_gravity(delta: float) -> void:
 		var distance := maxf(offset.length(), 80.0)
 		var radial := offset / distance
 		var tangent := radial.orthogonal() * (1.0 if current_phase % 2 == 1 else -1.0)
-		var force := (radial * 0.42 + tangent * 0.58).normalized() * mass * 0.0012 / distance
+		var force = (radial * 0.42 + tangent * 0.58).normalized() * mass * 0.0012 / distance
 		if target.is_in_group("bosses"):
 			continue
 		CombatStatus.add_velocity(target, force * delta * (0.7 + float(current_phase) * 0.2))

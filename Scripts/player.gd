@@ -532,9 +532,9 @@ func _apply_drag_precision_control(
 	var target_direction := Vector2.ZERO
 
 	if in_slingshot_band and is_instance_valid(closest_planet):
-		var radial := global_position - closest_planet.global_position
+		var radial = global_position - closest_planet.global_position
 		if radial.length_squared() > 0.001:
-			var tangent := radial.normalized().orthogonal()
+			var tangent = radial.normalized().orthogonal()
 			if tangent.dot(old_velocity) < 0.0:
 				tangent = -tangent
 			target_direction = tangent

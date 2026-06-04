@@ -211,6 +211,6 @@ func _cleanup_drops() -> void:
 func _trim_to_budget() -> void:
 	_cleanup_drops()
 	while _active_drops.size() > max_active_drops:
-		var oldest := _active_drops.pop_front()
+		var oldest = _active_drops.pop_front()
 		if oldest != null and is_instance_valid(oldest):
 			oldest.queue_free()

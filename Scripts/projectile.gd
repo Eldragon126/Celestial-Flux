@@ -17,33 +17,28 @@ extends RigidBody2D
 
 @export_group("Projectile Readability")
 @export var windowkill_visual_scale: float = 1.18
-@export var vector_trail_length: float = 142.0
-@export var vector_trail_width: float = 6.2
 @export var vector_trail_alpha: float = 0.54
-@export var vector_core_color: Color = Color(0.42, 1.0, 0.92, 1.0)
+@export var vector_core_color: Color = Color(0.0, 0.85, 1.0, 0.75) # Cyan
+@export var vector_trail_fade_color: Color = Color(1.0, 0.35, 0.1, 0.95) # Danger Orange
 
 @export_group("Vector Anomaly Upgrade Responses")
 @export var relativistic_rail_acceleration: float = 640.0
 @export var relativistic_rail_speed_cap: float = 2850.0
 @export var relativistic_rail_warp_threshold: float = 1550.0
-@export var relativistic_trail_max_length: float = 360.0
 
 # ========================
 # == STATE VARIABLES ==
 # ========================
 var planets: Array[Node2D] = []
-var _rail_points := PackedVector2Array([Vector2.ZERO, Vector2.ZERO])
-var _vector_trail_points := PackedVector2Array([Vector2.ZERO, Vector2.ZERO])
 var _has_launched: bool = false
-var _rail_trail: Line2D = null
-var _vector_trail: Line2D = null
+var _rail_trail: CPUParticles2D = null
+var _vector_trail: CPUParticles2D = null
 var _rail_heat: float = 0.0
 
 # ========================
 # == LIFECYCLE ==
 # ========================
 func _ready() -> void:
-	# RigidBody2D Setup for high-speed detection
 	can_sleep = false
 	gravity_scale = 0.0
 	contact_monitor = true
@@ -71,7 +66,6 @@ func _physics_process(delta: float) -> void:
 	if has_meta(&"orbital_satellite_owner"):
 		return
 	
-	# Iterate backwards to safely handle potential deletions
 	for i in range(planets.size() - 1, -1, -1):
 		var planet = planets[i]
 		
@@ -82,7 +76,6 @@ func _physics_process(delta: float) -> void:
 		var offset = planet.global_position - global_position
 		var distance = offset.length()
 		
-		# Only apply gravity within a reasonable range
 		if _should_ignore_gravity_source(planet):
 			continue
 
@@ -102,20 +95,16 @@ func _physics_process(delta: float) -> void:
 		if Engine.time_scale > 1.0 or Engine.time_scale < 0.97 and Engine.time_scale != 0.0:
 			var time_scale_compensation = 1.0 / (Engine.time_scale * Engine.time_scale)
 			apply_force(total_grav_accel * time_scale_compensation * 0.08)
-			#less gravity when time dilation to compensate for bullets dropping faster. Compensation doesn't work by the way.
 		else:
 			apply_force(total_grav_accel)
 
 	if linear_velocity.length_squared() > 64.0:
 		global_rotation = linear_velocity.angle()
 			
-
 # ========================
 # == INTEGRATE FORCES ==
 # ========================
 func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
-	# FIX: If the global engine timescale is completely paused, freeze the 
-	# simulation velocities completely so the bullet locks perfectly in place.
 	if Engine.time_scale == 0.0:
 		state.linear_velocity = Vector2.ZERO
 		state.angular_velocity = 0.0
@@ -129,16 +118,11 @@ func launch(direction: Vector2 = Vector2.RIGHT) -> void:
 	_has_launched = true
 	
 	global_rotation = direction.angle()
-	
-	# Deferring velocity application ensures the combat component 
-	# has finished modifying initial_speed before we move.
 	call_deferred("_apply_launch_velocity", direction)
 
 func _apply_launch_velocity(direction: Vector2) -> void:
 	if not is_instance_valid(self) or is_queued_for_deletion():
 		return
-	
-	# initial_speed here includes the bonus from MomentumCombatComponent
 	linear_velocity = direction.normalized() * initial_speed
 	
 	if debug_logging:
@@ -151,33 +135,27 @@ func _on_body_entered(body: Node) -> void:
 	if is_queued_for_deletion():
 		return
 	
-	# 1. Ignore the player so we don't shoot ourselves
 	if body.is_in_group("Player"):
 		return
 
 	_trigger_upgrade_impacts(body)
 	
-	# 2. Check for damageable targets (Enemies)
 	if body.has_method("take_damage"):
 		body.take_damage(_roll_damage())
-		queue_free()
+		_destroy_projectile()
 		return
 	elif body.is_in_group("obstacle") or body.is_in_group("Projectiles"):
-		#Trying the is_in_group("Projectiles") for now. May take out later.
-		queue_free()
+		_destroy_projectile()
 		return
 	
-	# 3. Hit terrain or obstacles
 	if body.is_in_group("planets") or body.is_in_group("obstacles") or body is StaticBody2D:
-		queue_free()
+		_destroy_projectile()
 
 func _roll_damage() -> float:
-	# Retrieve metadata injected by MomentumCombatComponent
 	var multiplier: float = 1.0
 	if has_meta(&"momentum_damage_multiplier"):
 		multiplier = get_meta(&"momentum_damage_multiplier")
 	
-	# Clamp the multiplier to your defined cap (minimum 1.0 for safety)
 	multiplier = clampf(multiplier, 1.0, momentum_damage_cap)
 	
 	var base_damage = randf_range(damage_min, damage_max)
@@ -188,12 +166,30 @@ func _roll_damage() -> float:
 		
 	return final_damage
 
+func _destroy_projectile() -> void:
+	# Unparent particles so they gracefully fade out instead of instantly disappearing
+	var parent = get_parent()
+	if parent != null:
+		if is_instance_valid(_vector_trail):
+			_vector_trail.emitting = false
+			_vector_trail.reparent(parent)
+			get_tree().create_timer(_vector_trail.lifetime).timeout.connect(_vector_trail.queue_free)
+		
+		if is_instance_valid(_rail_trail):
+			_rail_trail.emitting = false
+			_rail_trail.reparent(parent)
+			get_tree().create_timer(_rail_trail.lifetime).timeout.connect(_rail_trail.queue_free)
+			
+	queue_free()
 
 func _exit_tree() -> void:
 	if RuntimeRegistry != null:
 		RuntimeRegistry.unregister_node(self, &"Projectiles")
 		RuntimeRegistry.unregister_node(self, &"player_projectiles")
 
+# ========================
+# == VISUALS & PARTICLES ==
+# ========================
 func _apply_relativistic_rail(delta: float) -> void:
 	if not has_meta(&"relativistic_rail_stacks"):
 		_update_rail_trail(false, delta)
@@ -220,27 +216,41 @@ func _update_rail_trail(active: bool, delta: float, ratio: float = 0.0) -> void:
 	_rail_heat = lerpf(_rail_heat, ratio if active else 0.0, clampf(delta * 8.0, 0.0, 1.0))
 	if _rail_heat <= 0.02 and _rail_trail == null:
 		return
+		
 	if _rail_trail == null:
-		_rail_trail = Line2D.new()
-		_rail_trail.name = "RelativisticRailTrail"
-		_rail_trail.antialiased = true
-		_rail_trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
-		_rail_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
+		_rail_trail = CPUParticles2D.new()
+		_rail_trail.name = "RelativisticRailParticles"
 		_rail_trail.z_index = -1
+		
+		var mat = CanvasItemMaterial.new()
+		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		_rail_trail.material = mat
+		
+		_rail_trail.local_coords = false # Leaves a trail in global space
+		_rail_trail.amount = 150
+		_rail_trail.lifetime = 0.6
+		_rail_trail.gravity = Vector2.ZERO
+		_rail_trail.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+		_rail_trail.emission_sphere_radius = 4.0
+		
+		var ramp = Gradient.new()
+		ramp.add_point(0.0, Color(0.86, 1.0, 1.0, 1.0)) # Bright white/blue core
+		ramp.add_point(0.5, Color(0.42, 0.72, 1.0, 0.8))
+		ramp.add_point(1.0, Color(0.0, 0.2, 1.0, 0.0))
+		_rail_trail.color_ramp = ramp
+		
 		add_child(_rail_trail)
 
-	var length := lerpf(42.0, relativistic_trail_max_length, _rail_heat)
-	_rail_points[0] = Vector2(-length, 0.0)
-	_rail_points[1] = Vector2.ZERO
-	_rail_trail.points = _rail_points
-	_rail_trail.width = lerpf(2.0, 9.0, _rail_heat)
-	_rail_trail.default_color = Color(
-		lerpf(0.42, 0.72, _rail_heat),
-		lerpf(0.86, 1.0, _rail_heat),
-		1.0,
-		lerpf(0.0, 0.68, _rail_heat)
-	)
-	_rail_trail.visible = _rail_heat > 0.03
+	if _rail_heat > 0.03:
+		_rail_trail.emitting = true
+		_rail_trail.scale_amount_min = lerpf(2.0, 6.0, _rail_heat)
+		_rail_trail.scale_amount_max = lerpf(4.0, 9.0, _rail_heat)
+		_rail_trail.initial_velocity_min = lerpf(5.0, 30.0, _rail_heat)
+		_rail_trail.initial_velocity_max = lerpf(15.0, 60.0, _rail_heat)
+		_rail_trail.direction = -linear_velocity.normalized()
+		_rail_trail.spread = lerpf(15.0, 45.0, _rail_heat)
+	else:
+		_rail_trail.emitting = false
 
 
 func _configure_windowkill_visuals() -> void:
@@ -260,12 +270,37 @@ func _configure_windowkill_visuals() -> void:
 func _ensure_vector_trail() -> void:
 	if _vector_trail != null:
 		return
-	_vector_trail = Line2D.new()
-	_vector_trail.name = "VectorBoltTrail"
-	_vector_trail.antialiased = true
-	_vector_trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	_vector_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
+		
+	_vector_trail = CPUParticles2D.new()
+	_vector_trail.name = "VectorBoltParticles"
 	_vector_trail.z_index = -2
+	
+	var mat = CanvasItemMaterial.new()
+	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	_vector_trail.material = mat
+	
+	_vector_trail.local_coords = false # Leaves a trail in global space
+	_vector_trail.amount = 120
+	_vector_trail.lifetime = 0.45
+	_vector_trail.gravity = Vector2.ZERO
+	
+	_vector_trail.spread = 180.0
+	_vector_trail.initial_velocity_min = 2.0
+	_vector_trail.initial_velocity_max = 12.0
+	_vector_trail.scale_amount_min = 2.0
+	_vector_trail.scale_amount_max = 5.5
+	
+	var alpha := vector_trail_alpha
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		alpha = Settings.world_visual_alpha(alpha, 0.34)
+		
+	# Mimics the visualizer fade: Main color fading into the danger color, then to transparent
+	var ramp = Gradient.new()
+	ramp.add_point(0.0, Color(vector_core_color.r, vector_core_color.g, vector_core_color.b, alpha))
+	ramp.add_point(0.65, Color(vector_trail_fade_color.r, vector_trail_fade_color.g, vector_trail_fade_color.b, alpha * 0.8))
+	ramp.add_point(1.0, Color(vector_trail_fade_color.r, vector_trail_fade_color.g, vector_trail_fade_color.b, 0.0))
+	_vector_trail.color_ramp = ramp
+	
 	add_child(_vector_trail)
 
 
@@ -275,17 +310,7 @@ func _update_vector_trail(_delta: float) -> void:
 		return
 
 	var speed := linear_velocity.length()
-	var speed_ratio := clampf(speed / maxf(initial_speed, 1.0), 0.35, 1.55)
-	var length := vector_trail_length * lerpf(0.72, 1.36, clampf((speed_ratio - 0.35) / 1.2, 0.0, 1.0))
-	_vector_trail_points[0] = Vector2(-length, 0.0)
-	_vector_trail_points[1] = Vector2.ZERO
-	_vector_trail.points = _vector_trail_points
-	_vector_trail.width = vector_trail_width * lerpf(0.8, 1.18, clampf(speed_ratio, 0.0, 1.0))
-	var alpha := vector_trail_alpha
-	if Settings != null and Settings.has_method("world_visual_alpha"):
-		alpha = Settings.world_visual_alpha(alpha, 0.34)
-	_vector_trail.default_color = Color(vector_core_color.r, vector_core_color.g, vector_core_color.b, alpha)
-	_vector_trail.visible = speed > 24.0
+	_vector_trail.emitting = speed > 24.0
 
 
 func _trigger_upgrade_impacts(body: Node) -> void:
@@ -357,7 +382,7 @@ func _refresh_gravity_sources() -> void:
 			planets.append(source_2d)
 
 func _on_timer_timeout() -> void:
-	queue_free()
+	_destroy_projectile()
 
 
 func _filter_ignored_gravity_sources() -> void:

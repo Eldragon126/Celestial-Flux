@@ -1,3 +1,4 @@
+Sprite2D
 AudioStreamPlayer
 Button
 WorldEnvironment
@@ -12,4 +13,3 @@ Camera2D
 VBoxContainer
 CenterContainer
 CanvasLayer
-ColorRect

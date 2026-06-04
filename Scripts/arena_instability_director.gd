@@ -193,7 +193,7 @@ func _create_resonance_cluster(event: Dictionary) -> void:
 	var radius := float(event.get("radius", 500.0))
 	for i in range(3):
 		var angle := TAU * float(i) / 3.0 + float(event.get("sequence", 0)) * 0.31
-		var zone_type := [GravityResonanceManager.ZoneType.COMPRESSION, GravityResonanceManager.ZoneType.SLIPSTREAM, GravityResonanceManager.ZoneType.HARMONIC_ORBIT][i]
+		var zone_type = [GravityResonanceManager.ZoneType.COMPRESSION, GravityResonanceManager.ZoneType.SLIPSTREAM, GravityResonanceManager.ZoneType.HARMONIC_ORBIT][i]
 		_create_manual_zone(center + Vector2.RIGHT.rotated(angle) * radius * 0.32, radius * 0.52, zone_type, 0.58 + _instability() * 0.26, float(event.get("duration", 4.0)))
 
 

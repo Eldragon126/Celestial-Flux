@@ -309,7 +309,7 @@ func _orbit_axis() -> Vector2:
 func _remove_oldest_body() -> void:
 	if _bodies.is_empty():
 		return
-	var body := _bodies.pop_front()
+	var body = _bodies.pop_front()
 	if body != null and is_instance_valid(body):
 		body.queue_free()
 

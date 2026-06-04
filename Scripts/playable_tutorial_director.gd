@@ -45,8 +45,9 @@ func _process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("Menu"):
-		get_tree().change_scene_to_file(TITLE_SCENE)
+		# FIX: Handle the input BEFORE changing the scene to ensure the viewport is still valid.
 		get_viewport().set_input_as_handled()
+		get_tree().change_scene_to_file(TITLE_SCENE)
 
 
 func _resolve_player() -> void:
