@@ -718,15 +718,22 @@ func _handle_shoot_input() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	if Input.is_action_just_pressed("shoot"):
 		shoot()
-		_next_held_projectile_time = now + maxf(projectile_hold_fire_interval, 0.03)
+		_next_held_projectile_time = now + _current_weapon_fire_interval()
 		return
 
 	if Input.is_action_pressed("shoot") and now >= _next_held_projectile_time:
 		shoot()
-		_next_held_projectile_time = now + maxf(projectile_hold_fire_interval, 0.03)
+		_next_held_projectile_time = now + _current_weapon_fire_interval()
 
 	if Input.is_action_just_released("shoot"):
 		_next_held_projectile_time = 0.0
+
+
+func _current_weapon_fire_interval() -> float:
+	var weapon_system := get_node_or_null("WeaponSystem")
+	if weapon_system != null and weapon_system.has_method("get_current_fire_interval"):
+		return maxf(float(weapon_system.call("get_current_fire_interval")), 0.03)
+	return maxf(projectile_hold_fire_interval, 0.03)
 
 
 func _sync_pause_menu_state(pause_menu: Node) -> void:

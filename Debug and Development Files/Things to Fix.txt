@@ -158,3 +158,10 @@ Cosmic Journey Epic
 Fixed: WaveDirector now uses explicit wave/boss music maps, stops music during intermission/rest, adds the requested title alternation, routes Rupture/finale/secret boss music, and gives Wave 19 a small Boogie World hazard flourish.
 
 [x] The tutorial doesn't work currently. I can load it, but I can't accomplish what it is telling me to do. This needs to be fixed. Fixed: tutorial labels resolve correctly, objectives are signal-aware, slingshot/tangent progress is more forgiving, beam practice tells the player to use Tab, and completion now triggers through realistic escape velocity.
+
+[ ] The planets are drawn at different lengths and gravities during multiplayer. Make planets update based on the run seed deterministically rather than randomly. (update the planet .gd file)
+[ ] Waves need to last a little longer so that the song can play out, but not too long that the player loses interest.
+[ ] The game crashes when I enter a black hole again, but it doesn't give me any errors telling me what is wrong.
+[ ] As soon as the Chronal Refraction Beam runs out of energy, the game crashes and doesn't give me any errors.
+[ ] Energy needs to be turned from a label to a large bar, same with health and other relevant data.
+[ ] 

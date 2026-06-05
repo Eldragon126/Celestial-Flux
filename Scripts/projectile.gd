@@ -33,6 +33,20 @@ extends RigidBody2D
 @export var relativistic_rail_speed_cap: float = 2850.0
 @export var relativistic_rail_warp_threshold: float = 1550.0
 
+@export_group("Weapon Payload")
+@export var weapon_id: StringName = &"vector_bolt"
+@export var weapon_axis_impulse: float = 0.0
+@export var weapon_temporal_slow_multiplier: float = 1.0
+@export var weapon_temporal_slow_duration: float = 0.0
+@export var weapon_pierce_count: int = 0
+@export var weapon_resonance_zone_type: int = -1
+@export var weapon_resonance_radius: float = 0.0
+@export var weapon_resonance_intensity: float = 0.0
+@export var weapon_curve_force: float = 0.0
+@export var weapon_curve_side: float = 0.0
+@export var weapon_curve_frequency: float = 7.0
+@export var weapon_planet_damage: float = 0.0
+
 # ========================
 # == STATE VARIABLES ==
 # ========================
@@ -45,6 +59,9 @@ var _visual_player: Node2D = null
 var _visual_budget_elapsed: float = 999.0
 var _visual_pressure: int = 0
 var _visual_in_focus: bool = true
+var _weapon_payload: Dictionary = {}
+var _pierced_body_ids: Dictionary = {}
+var _weapon_phase_offset: float = 0.0
 
 # ========================
 # == LIFECYCLE ==
