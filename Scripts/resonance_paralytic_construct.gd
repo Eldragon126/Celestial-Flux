@@ -30,7 +30,7 @@ func _ready() -> void:
 	add_to_group("enemies")
 	if RuntimeRegistry != null:
 		RuntimeRegistry.register_node(self, &"enemies")
-	_player = get_tree().get_first_node_in_group("Player") as Node2D
+	_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_build_body()
 	_build_health()
 	set_process(true)
@@ -54,7 +54,7 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	var scaled_delta := delta * CombatStatus.get_time_scale(self)
 	if _player == null or not is_instance_valid(_player):
-		_player = get_tree().get_first_node_in_group("Player") as Node2D
+		_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 		return
 	var to_player := _player.global_position - global_position
 	if to_player.length() > field_radius * 0.82:

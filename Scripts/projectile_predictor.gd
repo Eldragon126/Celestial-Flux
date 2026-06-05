@@ -4,13 +4,17 @@ class_name ProjectileAimPredictor
 # ============================================================
 # VISUAL SETTINGS
 # ============================================================
-@export var prediction_steps: int = 140
-@export var substeps: int = 3
-@export var line_width: float = 3.0
-@export var ghost_count: int = 4
-@export var ghost_amplitude: float = 18.0
+@export var prediction_steps: int = 88
+@export var substeps: int = 2
+@export var line_width: float = 2.0
+@export var ghost_count: int = 2
+@export var ghost_amplitude: float = 10.0
 @export var ghost_frequency: float = 2.2
 @export var ghost_speed: float = 6.0
+@export var prediction_recalculate_interval: float = 0.055
+@export var draw_stride: int = 2
+@export var max_draw_segments: int = 72
+@export var pressure_hide_threshold: int = 112
 
 @export var prediction_color: Color = Color(0.0, 0.85, 1.0, 0.75)
 @export var danger_color: Color = Color(1.0, 0.35, 0.1, 0.95)
@@ -26,7 +30,7 @@ class_name ProjectileAimPredictor
 @export var max_gravity_sources: int = 4
 @export var spawn_offset: float = 70.0
 @export var projectile_mass: float = 0.25
-@export var gravity_source_refresh_interval: float = 0.08
+@export var gravity_source_refresh_interval: float = 0.12
 
 @export var friction: float = 0.5
 @export var bounce: float = 0.5
@@ -43,6 +47,8 @@ var _gravity_sources: Array[Node2D] = []
 var _dt: float
 var _time := 0.0
 var _gravity_refresh_elapsed: float = 999.0
+var _simulate_elapsed: float = 999.0
+var _projectile_pressure: int = 0
 
 func _ready() -> void:
 	top_level = true
@@ -57,13 +63,21 @@ func _physics_process(delta: float) -> void:
 	
 	var unscaled_delta = delta / maxf(Engine.time_scale, 0.001)
 	_time += unscaled_delta
+	_simulate_elapsed += unscaled_delta
 	
 	_gravity_refresh_elapsed += unscaled_delta
 	if _gravity_refresh_elapsed >= maxf(gravity_source_refresh_interval, 0.02):
 		_gravity_refresh_elapsed = 0.0
 		_update_gravity_sources()
-	_simulate()
-	queue_redraw()   # Always try to redraw
+	if _simulate_elapsed < maxf(prediction_recalculate_interval, 0.02):
+		return
+	_simulate_elapsed = 0.0
+	_projectile_pressure = _projectile_pressure_count()
+	if _projectile_pressure >= pressure_hide_threshold:
+		_points.clear()
+	else:
+		_simulate()
+	queue_redraw()
 
 
 func _update_gravity_sources() -> void:
@@ -142,10 +156,11 @@ func _simulate() -> void:
 			vel += accel * step_dt
 			pos += vel * step_dt
 
-		# Collision
-		for p in get_tree().get_nodes_in_group("planets"):
-			var planet := p as Node2D
+		# Collision uses the same cached nearest sources as gravity so the
+		# predictor cannot scan every planet on every simulated step.
+		for planet in _gravity_sources:
 			if planet == null or not is_instance_valid(planet): continue
+			if not planet.is_in_group("planets"): continue
 			var delta_vec := pos - planet.global_position
 			var dist := delta_vec.length()
 			if dist < collision_radius and dist > 0.001:
@@ -178,16 +193,22 @@ func _predicted_launch_speed(direction: Vector2) -> float:
 func _draw() -> void:
 	if _points.size() < 2:
 		return
+	if _projectile_pressure >= pressure_hide_threshold:
+		return
 	
 	# ONLY draw when time is normal (not paused and not in dilation)
 	if not is_equal_approx(Engine.time_scale, 1.0):
 		return
 
 	# Ghost pulsing fields
+	var stride := maxi(draw_stride, 1)
 	for g in range(ghost_count):
 		var phase := float(g) / float(ghost_count) * PI * 2.0
-		for i in range(1, _points.size()):
-			var p0 := _points[i - 1]
+		var drawn := 0
+		for i in range(stride, _points.size(), stride):
+			if drawn >= max_draw_segments:
+				break
+			var p0 := _points[i - stride]
 			var p1 := _points[i]
 			var dir := (p1 - p0).normalized()
 			var normal := Vector2(-dir.y, dir.x)
@@ -200,12 +221,16 @@ func _draw() -> void:
 			var a := to_local(p0 + offset)
 			var b := to_local(p1 + offset)
 			
-			var fade := ghost_color.a * (2.0 - float(i) / float(_points.size()))
+			var fade := _safe_visual_alpha(ghost_color.a * (1.0 - float(i) / float(_points.size())) * 0.72, 0.16)
 			draw_line(a, b, Color(ghost_color.r, ghost_color.g, ghost_color.b, fade), line_width * 0.7)
+			drawn += 1
 
 	# Main line
-	for i in range(1, _points.size()):
-		var a := to_local(_points[i - 1])
+	var drawn_main := 0
+	for i in range(stride, _points.size(), stride):
+		if drawn_main >= max_draw_segments:
+			break
+		var a := to_local(_points[i - stride])
 		var b := to_local(_points[i])
 		var t := float(i) / float(_points.size())
 		
@@ -213,6 +238,21 @@ func _draw() -> void:
 		if i > _points.size() - 20:
 			col = danger_color
 		
-		draw_line(a, b, Color(col.r, col.g, col.b, (1.0 - t) * col.a), line_width)
+		draw_line(a, b, Color(col.r, col.g, col.b, _safe_visual_alpha((1.0 - t) * col.a, 0.24)), line_width)
+		drawn_main += 1
 
-	draw_circle(to_local(_points[0]), 8.5, Color(0.42, 1.0, 0.92, 0.72))
+	draw_circle(to_local(_points[0]), 7.0, Color(0.42, 1.0, 0.92, _safe_visual_alpha(0.5, 0.18)))
+
+
+func _projectile_pressure_count() -> int:
+	if RuntimeRegistry != null:
+		return RuntimeRegistry.get_count(&"Projectiles")
+	return get_tree().get_nodes_in_group("Projectiles").size()
+
+
+func _safe_visual_alpha(alpha: float, cap: float) -> float:
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		return Settings.world_visual_alpha(alpha, cap)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return minf(Settings.flash_alpha(alpha), cap)
+	return minf(alpha, cap)

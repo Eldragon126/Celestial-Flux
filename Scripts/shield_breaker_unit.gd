@@ -16,7 +16,7 @@ var _pulse_ring: Polygon2D
 
 func _ready() -> void:
 	add_to_group("enemies")
-	_player = get_tree().get_first_node_in_group("Player") as Node2D
+	_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_build_body()
 	_build_health()
 	_build_timer()
@@ -24,7 +24,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	var scaled_delta = delta * CombatStatus.get_time_scale(self)
 	if _player == null or not is_instance_valid(_player):
-		_player = get_tree().get_first_node_in_group("Player") as Node2D
+		_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 		return
 
 	var shielded = _player.has_method("is_shield_active") and bool(_player.call("is_shield_active"))

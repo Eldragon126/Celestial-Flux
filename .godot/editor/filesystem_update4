@@ -1,8 +1,0 @@
-res://Nodes/wave_director.tscn
-res://Scripts/playershield.gdshader
-res://Scripts/pause_menu.gdshader
-res://Scripts/planet_1.gdshader
-res://Scripts/player.gdshader
-res://Scripts/Bosses/accretion_core_boss.gd
-res://Scripts/title_screen.gd
-res://Nodes/title_screen.tscn

@@ -22,7 +22,7 @@ var _rng := RandomNumberGenerator.new()
 func _ready() -> void:
 	add_to_group("enemies")
 	_rng.randomize()
-	_player = get_tree().get_first_node_in_group("Player") as Node2D
+	_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_build_body()
 	_build_health()
 	set_physics_process(true)
@@ -37,7 +37,7 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	var scaled_delta := delta * CombatStatus.get_time_scale(self)
 	if _player == null or not is_instance_valid(_player):
-		_player = get_tree().get_first_node_in_group("Player") as Node2D
+		_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 		return
 	var player_velocity := _body_velocity(_player)
 	var predicted := _player.global_position + player_velocity * 0.22

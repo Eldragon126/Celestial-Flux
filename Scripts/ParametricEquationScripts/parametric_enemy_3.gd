@@ -36,7 +36,7 @@ func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("ParametricEnemies")
 	_rng.randomize()
-	player = get_tree().get_first_node_in_group("Player")
+	player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_pulse_cooldown = _rng.randf_range(pulse_cooldown_min, pulse_cooldown_max)
 	
 func _physics_process(delta: float) -> void:
@@ -49,7 +49,7 @@ func _physics_process(delta: float) -> void:
 	apply_force(equation(scaled_delta) * time_scale)
 
 	if player == null or not is_instance_valid(player):
-		player = get_tree().get_first_node_in_group("Player")
+		player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 
 	if player != null:
 		var to_player := player.global_position - global_position

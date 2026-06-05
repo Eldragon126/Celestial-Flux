@@ -1,0 +1,753 @@
+extends Node
+class_name NetworkSessionManager
+
+signal session_status_changed(status: Dictionary)
+signal peer_roster_changed(roster: Array)
+signal network_run_started(config: Dictionary)
+signal session_error(message: String)
+
+enum SessionMode {
+	OFFLINE,
+	LAN_HOST,
+	LAN_CLIENT,
+	STEAM_HOST,
+	STEAM_CLIENT,
+}
+
+const DEFAULT_PORT := 28942
+const DEFAULT_MAX_PEERS := 4
+const RUN_SCENE_PATH := "res://Nodes/the_abyss.tscn"
+const PLAYER_SCENE := preload("res://Nodes/player.tscn")
+const PROJECTILE_FALLBACK_SCENE_PATH := "res://Nodes/projectile.tscn"
+const PLAYER_COLORS: Array[Color] = [
+	Color(0.08, 0.88, 1.0, 1.0),
+	Color(1.0, 0.28, 0.58, 1.0),
+	Color(0.72, 1.0, 0.28, 1.0),
+	Color(1.0, 0.76, 0.18, 1.0),
+]
+
+var mode: SessionMode = SessionMode.OFFLINE
+var local_player_name: String = "VECTOR"
+var local_peer_id: int = 1
+var listen_port: int = DEFAULT_PORT
+var max_peer_count: int = DEFAULT_MAX_PEERS
+var host_address: String = ""
+
+var _peer: MultiplayerPeer = null
+var _peer_records: Dictionary = {}
+var _player_nodes_by_peer: Dictionary = {}
+var _run_config: Dictionary = {}
+var _run_in_progress := false
+var _base_spawn_position := Vector2(135.0, 227.0)
+var _last_error := ""
+var _status_label := "OFFLINE"
+
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_connect_multiplayer_signals()
+	_reset_roster()
+	_publish_status()
+
+
+func host_and_play(player_name: String, port: int = DEFAULT_PORT, peer_limit: int = DEFAULT_MAX_PEERS) -> int:
+	var err := start_lan_host(player_name, port, peer_limit)
+	if err != OK:
+		return err
+	_begin_host_run()
+	return OK
+
+
+func restart_hosted_run() -> int:
+	if not is_network_active() or not multiplayer.is_server():
+		_fail_session("ONLY THE HOST CAN RESTART NETWORK RUN")
+		return ERR_UNAUTHORIZED
+	_begin_host_run()
+	return OK
+
+
+func start_lan_host(player_name: String, port: int = DEFAULT_PORT, peer_limit: int = DEFAULT_MAX_PEERS) -> int:
+	leave_session(false)
+	local_player_name = _normalize_player_name(player_name)
+	listen_port = clampi(port, 1, 65535)
+	max_peer_count = clampi(peer_limit, 1, 16)
+	host_address = get_lan_address_hint()
+
+	var enet := ENetMultiplayerPeer.new()
+	var client_capacity := maxi(max_peer_count - 1, 1)
+	var err := enet.create_server(listen_port, client_capacity)
+	if err != OK:
+		_fail_session("LAN HOST FAILED: %s" % error_string(err))
+		return err
+
+	_peer = enet
+	multiplayer.multiplayer_peer = _peer
+	mode = SessionMode.LAN_HOST
+	local_peer_id = _effective_local_peer_id()
+	_status_label = "LAN HOST ONLINE"
+	_last_error = ""
+	_reset_roster()
+	_upsert_peer_record(local_peer_id, local_player_name)
+	_publish_roster()
+	_publish_status()
+	return OK
+
+
+func join_lan_game(address: String, port: int = DEFAULT_PORT, player_name: String = "VECTOR") -> int:
+	leave_session(false)
+	local_player_name = _normalize_player_name(player_name)
+	host_address = address.strip_edges()
+	listen_port = clampi(port, 1, 65535)
+
+	if host_address.is_empty():
+		_fail_session("JOIN FAILED: no host address")
+		return ERR_INVALID_PARAMETER
+
+	var enet := ENetMultiplayerPeer.new()
+	var err := enet.create_client(host_address, listen_port)
+	if err != OK:
+		_fail_session("JOIN FAILED: %s" % error_string(err))
+		return err
+
+	_peer = enet
+	multiplayer.multiplayer_peer = _peer
+	mode = SessionMode.LAN_CLIENT
+	local_peer_id = _effective_local_peer_id()
+	_status_label = "JOINING LAN HOST"
+	_last_error = ""
+	_peer_records.clear()
+	_publish_status()
+	return OK
+
+
+func leave_session(publish: bool = true) -> void:
+	if _peer != null:
+		_peer.close()
+	_peer = null
+	multiplayer.multiplayer_peer = null
+	mode = SessionMode.OFFLINE
+	local_peer_id = 1
+	host_address = ""
+	_run_in_progress = false
+	_run_config.clear()
+	_player_nodes_by_peer.clear()
+	_status_label = "OFFLINE"
+	_reset_roster()
+	if publish:
+		_publish_roster()
+		_publish_status()
+
+
+func is_network_active() -> bool:
+	return mode != SessionMode.OFFLINE and _peer != null
+
+
+func is_lan_host() -> bool:
+	return mode == SessionMode.LAN_HOST and multiplayer.is_server()
+
+
+func is_local_peer(peer_id: int) -> bool:
+	return int(peer_id) == _effective_local_peer_id()
+
+
+func get_status_snapshot() -> Dictionary:
+	return {
+		"active": is_network_active(),
+		"mode": mode,
+		"mode_label": _mode_label(),
+		"status": _status_label,
+		"error": _last_error,
+		"local_peer_id": _effective_local_peer_id(),
+		"peer_count": _sorted_peer_records().size(),
+		"port": listen_port,
+		"address": host_address,
+		"lan_hint": get_lan_address_hint(),
+		"run_in_progress": _run_in_progress,
+		"steam_available": is_steam_multiplayer_available(),
+		"steam_message": get_steam_support_message(),
+	}
+
+
+func get_roster_snapshot() -> Array:
+	return _roster_array()
+
+
+func get_lan_address_hint() -> String:
+	var addresses := IP.get_local_addresses()
+	for address in addresses:
+		if not address.contains("."):
+			continue
+		if address.begins_with("127.") or address.begins_with("169.254."):
+			continue
+		return address
+	return "127.0.0.1"
+
+
+func is_steam_multiplayer_available() -> bool:
+	return ClassDB.class_exists("SteamMultiplayerPeer") or Engine.has_singleton("Steam")
+
+
+func get_steam_support_message() -> String:
+	if is_steam_multiplayer_available():
+		return "STEAM TRANSPORT DETECTED"
+	return "STEAM NEEDS GODOTSTEAM MULTIPLAYERPEER"
+
+
+func host_steam_lobby(_player_name: String) -> int:
+	_fail_session("STEAM HOSTING NEEDS GODOTSTEAM MULTIPLAYERPEER")
+	return ERR_UNAVAILABLE
+
+
+func configure_arena_players(level_root: Node) -> void:
+	if level_root == null:
+		return
+	local_peer_id = _effective_local_peer_id()
+
+	var records := _sorted_peer_records()
+	if records.is_empty():
+		_reset_roster()
+		records = _sorted_peer_records()
+
+	var existing_player := _first_scene_player(level_root)
+	if existing_player != null:
+		_base_spawn_position = existing_player.global_position
+
+	_player_nodes_by_peer.clear()
+	var used_ids := {}
+	for index in range(records.size()):
+		var record: Dictionary = records[index]
+		var peer_id := int(record.get("peer_id", 1))
+		var player := _ensure_player_for_peer(level_root, peer_id, existing_player if index == 0 else null)
+		if player == null:
+			continue
+		used_ids[player.get_instance_id()] = true
+		_configure_player_node(player, record, index)
+
+	for node in level_root.get_tree().get_nodes_in_group("Player"):
+		var player_2d := node as Node2D
+		if player_2d == null or used_ids.has(player_2d.get_instance_id()):
+			continue
+		var peer_value: Variant = player_2d.get("network_peer_id")
+		var peer_id := int(peer_value) if typeof(peer_value) == TYPE_INT else 0
+		if peer_id > 0 and not _peer_records.has(peer_id):
+			player_2d.queue_free()
+
+	_configure_sync_foundation(level_root)
+	_publish_status()
+
+
+func refresh_runtime_multiplayer_bindings(level_root: Node) -> void:
+	if level_root == null:
+		return
+	for node in level_root.get_tree().get_nodes_in_group("Player"):
+		var player := node as Node
+		if player != null:
+			_connect_player_network_signals(player)
+	_configure_sync_foundation(level_root)
+
+
+func submit_player_state(player: Node) -> void:
+	if not is_network_active() or player == null:
+		return
+	if not bool(player.get("network_is_local")):
+		return
+	var peer_id := int(player.get("network_peer_id"))
+	if peer_id != _effective_local_peer_id():
+		return
+	if not player.has_method("export_network_state"):
+		return
+	var state: Dictionary = player.call("export_network_state")
+	if multiplayer.is_server():
+		_rpc_peer_state.rpc(peer_id, state)
+	else:
+		_rpc_submit_client_state.rpc_id(1, state)
+
+
+func broadcast_projectile_spawn(projectile: Node, direction: Vector2, owner: Node) -> void:
+	if not is_network_active() or projectile == null or owner == null:
+		return
+	if not bool(owner.get("network_is_local")):
+		return
+	var owner_peer_id := int(owner.get("network_peer_id"))
+	if owner_peer_id != _effective_local_peer_id():
+		return
+	var path := projectile.scene_file_path
+	if path.is_empty():
+		path = PROJECTILE_FALLBACK_SCENE_PATH
+	var projectile_2d := projectile as Node2D
+	if projectile_2d == null:
+		return
+	var data := {
+		"owner_peer_id": owner_peer_id,
+		"scene_path": path,
+		"position": projectile_2d.global_position,
+		"rotation": projectile_2d.global_rotation,
+		"direction": direction,
+	}
+	if multiplayer.is_server():
+		_rpc_remote_projectile_spawn.rpc(data)
+	else:
+		_rpc_client_projectile_spawn.rpc_id(1, data)
+
+
+func broadcast_vector_event(data: Dictionary, owner: Node) -> void:
+	if not is_network_active() or owner == null:
+		return
+	if not bool(owner.get("network_is_local")):
+		return
+	var owner_peer_id := int(owner.get("network_peer_id"))
+	var event_data := _sanitize_vector_event(data)
+	event_data["owner_peer_id"] = owner_peer_id
+	if multiplayer.is_server():
+		_rpc_remote_vector_event.rpc(event_data)
+	else:
+		_rpc_client_vector_event.rpc_id(1, event_data)
+
+
+func _connect_multiplayer_signals() -> void:
+	if not multiplayer.peer_connected.is_connected(_on_peer_connected):
+		multiplayer.peer_connected.connect(_on_peer_connected)
+	if not multiplayer.peer_disconnected.is_connected(_on_peer_disconnected):
+		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
+	if not multiplayer.connected_to_server.is_connected(_on_connected_to_server):
+		multiplayer.connected_to_server.connect(_on_connected_to_server)
+	if not multiplayer.connection_failed.is_connected(_on_connection_failed):
+		multiplayer.connection_failed.connect(_on_connection_failed)
+	if not multiplayer.server_disconnected.is_connected(_on_server_disconnected):
+		multiplayer.server_disconnected.connect(_on_server_disconnected)
+
+
+func _begin_host_run() -> void:
+	if RunProgress == null:
+		_fail_session("RUN START FAILED: RunProgress missing")
+		return
+	RunProgress.begin_new_run(false)
+	_run_config = {
+		"scene_path": RUN_SCENE_PATH,
+		"seed": int(RunProgress.run_seed),
+		"challenge_mode": false,
+		"boss_rush_mode": false,
+		"phase": int(RunProgress.phase),
+	}
+	_run_in_progress = true
+	_status_label = "RUN HOSTING"
+	_rpc_begin_network_run.rpc(_run_config)
+	network_run_started.emit(_run_config.duplicate(true))
+	_publish_status()
+	get_tree().change_scene_to_file(RUN_SCENE_PATH)
+
+
+func _apply_run_config(config: Dictionary) -> void:
+	if RunProgress == null:
+		return
+	RunProgress.begin_new_run(bool(config.get("challenge_mode", false)))
+	RunProgress.run_seed = int(config.get("seed", RunProgress.run_seed))
+	RunProgress.challenge_mode = bool(config.get("challenge_mode", false))
+	RunProgress.boss_rush_mode = bool(config.get("boss_rush_mode", false))
+	RunProgress.phase = int(config.get("phase", RunProgress.Phase.PHYSICS_WAVES)) as RunProgress.Phase
+	RunProgress.wave_index = 0
+	RunProgress.bosses_defeated = 0
+	RunProgress.run_finished = false
+	RunProgress.clear_anchor()
+
+
+func _change_to_network_run_scene(scene_path: String) -> void:
+	if scene_path.is_empty():
+		scene_path = RUN_SCENE_PATH
+	get_tree().change_scene_to_file(scene_path)
+
+
+func _on_peer_connected(peer_id: int) -> void:
+	if not multiplayer.is_server():
+		return
+	_upsert_peer_record(peer_id, "PEER %d" % peer_id)
+	_publish_roster()
+	_publish_roster_to_clients()
+	_sync_players_to_current_scene()
+
+
+func _on_peer_disconnected(peer_id: int) -> void:
+	_peer_records.erase(peer_id)
+	_remove_player_for_peer(peer_id)
+	_publish_roster()
+	if multiplayer.is_server():
+		_publish_roster_to_clients()
+	_sync_players_to_current_scene()
+
+
+func _on_connected_to_server() -> void:
+	local_peer_id = _effective_local_peer_id()
+	_status_label = "CONNECTED TO LAN HOST"
+	_upsert_peer_record(local_peer_id, local_player_name)
+	_rpc_register_player.rpc_id(1, _local_profile())
+	_publish_status()
+
+
+func _on_connection_failed() -> void:
+	_fail_session("JOIN FAILED: connection refused or timed out")
+	leave_session()
+
+
+func _on_server_disconnected() -> void:
+	_fail_session("HOST DISCONNECTED")
+	leave_session()
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_register_player(profile: Dictionary) -> void:
+	if not multiplayer.is_server():
+		return
+	var peer_id := multiplayer.get_remote_sender_id()
+	_upsert_peer_record(peer_id, String(profile.get("player_name", "PEER %d" % peer_id)))
+	_publish_roster()
+	_publish_roster_to_clients()
+	_sync_players_to_current_scene()
+	if _run_in_progress:
+		_rpc_begin_network_run.rpc_id(peer_id, _run_config)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _rpc_roster_snapshot(roster: Array) -> void:
+	_peer_records.clear()
+	for value in roster:
+		if value is Dictionary:
+			var record: Dictionary = value
+			_peer_records[int(record.get("peer_id", 1))] = record.duplicate(true)
+	local_peer_id = _effective_local_peer_id()
+	_publish_roster()
+	_sync_players_to_current_scene()
+
+
+@rpc("authority", "call_remote", "reliable")
+func _rpc_begin_network_run(config: Dictionary) -> void:
+	_run_config = config.duplicate(true)
+	_run_in_progress = true
+	_status_label = "RUN CLIENT"
+	_apply_run_config(_run_config)
+	network_run_started.emit(_run_config.duplicate(true))
+	_publish_status()
+	call_deferred("_change_to_network_run_scene", String(_run_config.get("scene_path", RUN_SCENE_PATH)))
+
+
+@rpc("any_peer", "call_remote", "unreliable")
+func _rpc_submit_client_state(state: Dictionary) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	_apply_peer_state(sender, state)
+	_rpc_peer_state.rpc(sender, state)
+
+
+@rpc("authority", "call_remote", "unreliable")
+func _rpc_peer_state(peer_id: int, state: Dictionary) -> void:
+	_apply_peer_state(peer_id, state)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_client_projectile_spawn(data: Dictionary) -> void:
+	if not multiplayer.is_server():
+		return
+	_spawn_projectile_from_network(data)
+	_rpc_remote_projectile_spawn.rpc(data)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _rpc_remote_projectile_spawn(data: Dictionary) -> void:
+	if int(data.get("owner_peer_id", 0)) == _effective_local_peer_id():
+		return
+	_spawn_projectile_from_network(data)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_client_vector_event(data: Dictionary) -> void:
+	if not multiplayer.is_server():
+		return
+	_apply_remote_vector_event(data)
+	_rpc_remote_vector_event.rpc(data)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _rpc_remote_vector_event(data: Dictionary) -> void:
+	if int(data.get("owner_peer_id", 0)) == _effective_local_peer_id():
+		return
+	_apply_remote_vector_event(data)
+
+
+func _publish_roster_to_clients() -> void:
+	if not multiplayer.is_server():
+		return
+	_rpc_roster_snapshot.rpc(_roster_array())
+
+
+func _sync_players_to_current_scene() -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	if scene.scene_file_path != RUN_SCENE_PATH and scene.name != "TheAbyss":
+		return
+	configure_arena_players(scene)
+	refresh_runtime_multiplayer_bindings(scene)
+
+
+func _apply_peer_state(peer_id: int, state: Dictionary) -> void:
+	if peer_id == _effective_local_peer_id():
+		return
+	var player := _player_nodes_by_peer.get(peer_id, null) as Node
+	if player == null or not is_instance_valid(player):
+		_sync_players_to_current_scene()
+		player = _player_nodes_by_peer.get(peer_id, null) as Node
+	if player != null and player.has_method("apply_network_state"):
+		player.call("apply_network_state", state)
+
+
+func _spawn_projectile_from_network(data: Dictionary) -> void:
+	var root := get_tree().current_scene
+	if root == null:
+		return
+	var path := String(data.get("scene_path", PROJECTILE_FALLBACK_SCENE_PATH))
+	var scene := load(path) as PackedScene
+	if scene == null:
+		return
+	var projectile := scene.instantiate()
+	projectile.set_meta(&"network_spawned", true)
+	root.add_child(projectile)
+	var projectile_2d := projectile as Node2D
+	if projectile_2d != null:
+		projectile_2d.global_position = _vector2_from_variant(data.get("position", Vector2.ZERO))
+		projectile_2d.global_rotation = float(data.get("rotation", 0.0))
+	var direction := _vector2_from_variant(data.get("direction", Vector2.RIGHT))
+	if projectile.has_method("launch"):
+		projectile.call_deferred("launch", direction)
+	elif projectile is RigidBody2D:
+		(projectile as RigidBody2D).call_deferred("apply_central_impulse", direction * 900.0)
+
+
+func _apply_remote_vector_event(data: Dictionary) -> void:
+	var root := get_tree().current_scene
+	if root == null:
+		return
+	var coop := root.find_child("CoopComboDirector", true, false)
+	if coop != null and coop.has_method("register_remote_vector_event"):
+		var peer_id := int(data.get("owner_peer_id", 0))
+		coop.call("register_remote_vector_event", StringName("peer_%d" % peer_id), data.duplicate(true))
+
+
+func _ensure_player_for_peer(level_root: Node, peer_id: int, existing_player: Node2D = null) -> Node2D:
+	var found := _find_player_by_peer(level_root, peer_id)
+	if found != null:
+		return found
+	if existing_player != null:
+		return existing_player
+	var player := PLAYER_SCENE.instantiate() as Node2D
+	if player == null:
+		return null
+	player.name = "PlayerPeer%d" % peer_id
+	level_root.add_child(player)
+	return player
+
+
+func _configure_player_node(player: Node2D, record: Dictionary, index: int) -> void:
+	var peer_id := int(record.get("peer_id", 1))
+	player.name = "PlayerPeer%d" % peer_id
+	if not player.is_in_group("Player"):
+		player.add_to_group("Player")
+	if not bool(player.get_meta(&"network_configured", false)):
+		player.global_position = _spawn_position_for_index(index)
+		player.set_meta(&"network_configured", true)
+	_player_nodes_by_peer[peer_id] = player
+	if player.has_method("configure_network_peer"):
+		player.call(
+			"configure_network_peer",
+			peer_id,
+			peer_id == _effective_local_peer_id(),
+			String(record.get("player_name", "PEER %d" % peer_id)),
+			_color_from_record(record, peer_id)
+		)
+	_connect_player_network_signals(player)
+
+
+func _connect_player_network_signals(player: Node) -> void:
+	if player == null or not bool(player.get("network_is_local")):
+		return
+	var projectile_callable := Callable(self, "_on_local_projectile_spawned").bind(player)
+	if player.has_signal("momentum_projectile_spawned") and not player.is_connected("momentum_projectile_spawned", projectile_callable):
+		player.connect("momentum_projectile_spawned", projectile_callable)
+	var vector_callable := Callable(self, "_on_local_vector_event").bind(player)
+	if player.has_signal("slingshot_mastery_scored") and not player.is_connected("slingshot_mastery_scored", vector_callable):
+		player.connect("slingshot_mastery_scored", vector_callable)
+
+
+func _on_local_projectile_spawned(projectile: Node, direction: Vector2, player: Node) -> void:
+	broadcast_projectile_spawn(projectile, direction, player)
+
+
+func _on_local_vector_event(data: Dictionary, player: Node) -> void:
+	broadcast_vector_event(data, player)
+
+
+func _first_scene_player(level_root: Node) -> Node2D:
+	var direct := level_root.get_node_or_null("Player") as Node2D
+	if direct != null:
+		return direct
+	for node in level_root.get_tree().get_nodes_in_group("Player"):
+		var player := node as Node2D
+		if player != null and player.get_parent() == level_root:
+			return player
+	return null
+
+
+func _find_player_by_peer(level_root: Node, peer_id: int) -> Node2D:
+	for node in level_root.get_tree().get_nodes_in_group("Player"):
+		var player := node as Node2D
+		if player == null:
+			continue
+		var value: Variant = player.get("network_peer_id")
+		if typeof(value) == TYPE_INT and int(value) == peer_id:
+			return player
+	return null
+
+
+func _remove_player_for_peer(peer_id: int) -> void:
+	var player := _player_nodes_by_peer.get(peer_id, null) as Node
+	if player != null and is_instance_valid(player) and not player.is_queued_for_deletion():
+		player.queue_free()
+	_player_nodes_by_peer.erase(peer_id)
+
+
+func _spawn_position_for_index(index: int) -> Vector2:
+	if index <= 0:
+		return _base_spawn_position
+	var angle := TAU * float(index - 1) / float(maxi(_sorted_peer_records().size() - 1, 1))
+	return _base_spawn_position + Vector2.RIGHT.rotated(angle) * 155.0
+
+
+func _configure_sync_foundation(level_root: Node) -> void:
+	var sync := level_root.find_child("MultiplayerSyncFoundation", true, false)
+	if sync == null:
+		return
+	if sync.get("local_player_count") != null:
+		sync.set("local_player_count", 1)
+	if sync.has_method("set_remote_peer_count"):
+		sync.call("set_remote_peer_count", maxi(_sorted_peer_records().size() - 1, 0))
+
+
+func _reset_roster() -> void:
+	_peer_records.clear()
+	_upsert_peer_record(_effective_local_peer_id(), local_player_name)
+
+
+func _upsert_peer_record(peer_id: int, player_name: String) -> void:
+	var clean_name := _normalize_player_name(player_name)
+	var existing: Dictionary = _peer_records.get(peer_id, {})
+	_peer_records[peer_id] = {
+		"peer_id": peer_id,
+		"player_name": clean_name,
+		"color": existing.get("color", _color_for_peer(peer_id)),
+	}
+
+
+func _local_profile() -> Dictionary:
+	return {
+		"peer_id": _effective_local_peer_id(),
+		"player_name": local_player_name,
+		"color": _color_for_peer(_effective_local_peer_id()),
+	}
+
+
+func _publish_roster() -> void:
+	peer_roster_changed.emit(_roster_array())
+	_publish_status()
+
+
+func _publish_status() -> void:
+	session_status_changed.emit(get_status_snapshot())
+
+
+func _fail_session(message: String) -> void:
+	_last_error = message
+	_status_label = message
+	session_error.emit(message)
+	_publish_status()
+
+
+func _roster_array() -> Array:
+	var records := _sorted_peer_records()
+	var output: Array = []
+	for record in records:
+		output.append(record.duplicate(true))
+	return output
+
+
+func _sorted_peer_records() -> Array:
+	var records: Array = []
+	for record in _peer_records.values():
+		if record is Dictionary:
+			records.append(record)
+	records.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a.get("peer_id", 0)) < int(b.get("peer_id", 0))
+	)
+	return records
+
+
+func _effective_local_peer_id() -> int:
+	if is_network_active():
+		var id := multiplayer.get_unique_id()
+		if id > 0:
+			return id
+	return 1
+
+
+func _mode_label() -> String:
+	match mode:
+		SessionMode.LAN_HOST:
+			return "LAN HOST"
+		SessionMode.LAN_CLIENT:
+			return "LAN CLIENT"
+		SessionMode.STEAM_HOST:
+			return "STEAM HOST"
+		SessionMode.STEAM_CLIENT:
+			return "STEAM CLIENT"
+		_:
+			return "OFFLINE"
+
+
+func _normalize_player_name(player_name: String) -> String:
+	var clean := player_name.strip_edges()
+	if clean.is_empty():
+		return "VECTOR"
+	if clean.length() > 18:
+		clean = clean.substr(0, 18)
+	return clean
+
+
+func _color_for_peer(peer_id: int) -> Color:
+	var index := absi(peer_id - 1) % PLAYER_COLORS.size()
+	return PLAYER_COLORS[index]
+
+
+func _color_from_record(record: Dictionary, peer_id: int) -> Color:
+	var value: Variant = record.get("color", _color_for_peer(peer_id))
+	if value is Color:
+		return value
+	return _color_for_peer(peer_id)
+
+
+func _sanitize_vector_event(data: Dictionary) -> Dictionary:
+	return {
+		"score": clampf(float(data.get("score", 0.0)), 0.0, 1.0),
+		"grade": String(data.get("grade", "vector")),
+		"position": _vector2_from_variant(data.get("position", Vector2.ZERO)),
+		"gravity": _vector2_from_variant(data.get("gravity", Vector2.ZERO)),
+		"impulse": _vector2_from_variant(data.get("impulse", Vector2.ZERO)),
+		"tangent": _vector2_from_variant(data.get("tangent", Vector2.RIGHT)),
+		"radial_dir": _vector2_from_variant(data.get("radial_dir", Vector2.RIGHT)),
+		"speed_before": float(data.get("speed_before", 0.0)),
+		"speed_after": float(data.get("speed_after", 0.0)),
+		"time": float(data.get("time", Time.get_ticks_msec() / 1000.0)),
+	}
+
+
+func _vector2_from_variant(value: Variant) -> Vector2:
+	if value is Vector2:
+		return value
+	return Vector2.ZERO

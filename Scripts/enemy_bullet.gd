@@ -40,7 +40,7 @@ func _ready() -> void:
 		RuntimeRegistry.register_node(self, &"Projectiles")
 		RuntimeRegistry.register_node(self, &"enemy_projectiles")
 
-	target = get_tree().get_first_node_in_group("Player")
+	target = MultiplayerTargeting.nearest_player(global_position, get_tree())
 
 	_refresh_gravity_sources()
 
@@ -135,6 +135,9 @@ func _physics_process(delta: float) -> void:
 	# =========================
 	# Homing Steering
 	# =========================
+	if is_homing and not is_instance_valid(target):
+		target = MultiplayerTargeting.nearest_player(global_position, get_tree())
+
 	if is_homing and is_instance_valid(target):
 		var homing_offset := (
 			target.global_position - global_position

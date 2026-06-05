@@ -19,7 +19,7 @@ var _rng = RandomNumberGenerator.new()
 func _ready() -> void:
 	add_to_group("enemies")
 	_rng.randomize()
-	_player = get_tree().get_first_node_in_group("Player")
+	_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_build_body()
 	_build_health()
 	scale = Vector2.ONE * pow(0.72, split_generation)
@@ -27,7 +27,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
-		_player = get_tree().get_first_node_in_group("Player")
+		_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 		return
 
 	var desired = (_player.global_position - global_position).normalized() * thrust_power

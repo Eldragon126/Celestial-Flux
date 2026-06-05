@@ -38,13 +38,16 @@ extends Node2D
 # ============================================================
 
 var spawned_planets: Array = []
+var _rng := RandomNumberGenerator.new()
 
 # ============================================================
 # READY
 # ============================================================
 
 func _ready() -> void:
-	randomize()
+	if NetworkSession != null:
+		NetworkSession.configure_arena_players(self)
+	_seed_rng()
 	spawn_planets()
 
 # ============================================================
@@ -76,8 +79,8 @@ func try_spawn_planet(center_position: Vector2) -> bool:
 		# Random orbit ring around player
 		# --------------------------------------------
 
-		var angle := randf_range(0.0, TAU)
-		var distance := randf_range(min_spawn_radius, max_spawn_radius)
+		var angle := _rng.randf_range(0.0, TAU)
+		var distance := _rng.randf_range(min_spawn_radius, max_spawn_radius)
 
 		var spawn_position := center_position + Vector2.RIGHT.rotated(angle) * distance
 
@@ -85,7 +88,7 @@ func try_spawn_planet(center_position: Vector2) -> bool:
 		# Random planet size
 		# --------------------------------------------
 
-		var diameter := randf_range(min_planet_diameter, max_planet_diameter)
+		var diameter := _rng.randf_range(min_planet_diameter, max_planet_diameter)
 		var radius := diameter * 0.5
 
 		# --------------------------------------------
@@ -169,3 +172,10 @@ func is_position_valid(pos: Vector2, radius: float) -> bool:
 				return false
 
 	return true
+
+
+func _seed_rng() -> void:
+	if RunProgress != null and int(RunProgress.run_seed) != 0:
+		_rng.seed = int(RunProgress.run_seed) ^ 0xA8B155
+	else:
+		_rng.randomize()

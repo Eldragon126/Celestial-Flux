@@ -17,14 +17,14 @@ var _charge_particles: GPUParticles2D
 
 func _ready() -> void:
 	add_to_group("enemies")
-	_player = get_tree().get_first_node_in_group("Player")
+	_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_build_body()
 	_build_health()
 	_build_timer()
 
 func _process(_delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
-		_player = get_tree().get_first_node_in_group("Player")
+		_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 		return
 
 	var direction = (_player.global_position - global_position).normalized()
@@ -106,6 +106,8 @@ func _build_timer() -> void:
 	_timer.start()
 
 func _try_fire() -> void:
+	if _player == null or not is_instance_valid(_player):
+		_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	if _player == null or not is_instance_valid(_player):
 		return
 

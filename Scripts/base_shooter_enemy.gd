@@ -17,7 +17,7 @@ var planets: Array[Node2D] = []
 var _gravity_refresh_elapsed = 0.0
 
 func _ready() -> void:
-	Player = get_tree().get_first_node_in_group("Player")
+	Player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_refresh_planets()
 
 func _process(delta: float) -> void:
@@ -49,7 +49,7 @@ func _process(delta: float) -> void:
 
 	# Player tracking
 	if Player == null or not is_instance_valid(Player):
-		Player = get_tree().get_first_node_in_group("Player")
+		Player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	else:
 		var direction_to_player: Vector2 = (Player.global_position - global_position).normalized()
 		var distance_to_player: float = global_position.distance_to(Player.global_position)
@@ -91,7 +91,7 @@ func _on_shoot_animation_animation_started(anim_name: StringName) -> void:
 				projectile.set("initial_speed", force_of_impulse)
 			projectile.global_rotation = dir.angle()
 		else:
-			Player = get_tree().get_first_node_in_group("Player")
+			Player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 
 		projectile.global_position = $ShootGPU.global_position
 

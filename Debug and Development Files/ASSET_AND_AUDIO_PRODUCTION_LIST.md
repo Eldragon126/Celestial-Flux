@@ -12,7 +12,7 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 - Trailer capture scenes for early clean vectors, mid-run resonance, late collapse, Rupture, and the music finale.
 - Boss silhouette polish for Gravity Warden, Accretion Core, Null Vector Seraph, Magnetar Twins, Tidal Rift Weaver, The Polymorph, Centrifuge Marshal, and The Resonance Singularity.
 - Resonance zone glyphs for compression, slipstream, inversion, temporal scar, and harmonic orbit.
-- Edge indicator icons for gravity sources, enemies, bosses, rare events, and future co-op peers.
+- Edge indicator icons for gravity sources, enemies, bosses, rare events, and active co-op peers.
 - Projectile ownership accents for player shots, enemy shots, boss shots, captured satellites, and resonance-bent projectiles.
 
 ## Priority VFX Assets
@@ -30,6 +30,7 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 ## UI And Menu Assets
 
 - Final title-screen background loop.
+- Multiplayer status UI polish for host/join, LAN address/port, peer roster, host-controlled restart, disconnect messages, and future Steam lobby state.
 - Pause menu section accents for settings, modding, multiplayer prep, and future weapons.
 - Game over glitch treatment for death vector readouts.
 - HUD icons for energy, shield, slingshot grade, local field rule, chaos tier, and run arc phase.

@@ -67,7 +67,7 @@ var _hud_phase: float = 0.0
 func _ready() -> void:
 	layer = 40
 	_build_hud()
-	_player = get_tree().get_first_node_in_group("Player") as Node2D
+	_player = MultiplayerTargeting.local_player(get_tree())
 	_apply_accessibility_settings()
 	if Settings != null and Settings.has_signal("accessibility_changed"):
 		var callable := Callable(self, "_on_accessibility_changed")
@@ -77,7 +77,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
-		_player = get_tree().get_first_node_in_group("Player") as Node2D
+		_player = MultiplayerTargeting.local_player(get_tree())
 		return
 	
 	_update_speedometer()

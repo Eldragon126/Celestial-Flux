@@ -157,7 +157,7 @@ metadata/_custom_type_script = "uid://cgo7omjjvv108"
 
 [node name="EnergyComponent" type="Node" parent="." unique_id=51219610]
 script = ExtResource("5_8pukx")
-max_energy = 100000000.0
+max_energy = 600.0
 metadata/_custom_type_script = "uid://dpsx3wfpdu82q"
 
 [node name="BulletBlastSoundEffect" type="AudioStreamPlayer" parent="." unique_id=1794398086]
@@ -167,9 +167,18 @@ bus = &"Player Sound Effects"
 
 [node name="OrbitalTrajectoryPredictor" type="Node2D" parent="." unique_id=1075155317]
 script = ExtResource("7_0bouj")
-prediction_steps = 200
-prediction_color = Color(0, 0.8784314, 1, 0.4862745)
-danger_color = Color(0.9411765, 0, 0.09411765, 0.3882353)
+prediction_steps = 140
+time_step = 0.014
+max_gravity_sources = 4
+draw_stride = 1
+max_draw_segments = 132
+max_branch_count = 3
+branch_step_stride = 1
+prediction_color = Color(0, 0.85, 1, 0.78)
+danger_color = Color(1, 0.35, 0.1, 0.95)
+line_width = 2.35
+glow_width_multiplier = 2.35
+immediate_danger_segments = 25
 metadata/_custom_type_script = "uid://i6fhtodnnkja"
 
 [node name="GravityVisualizationComponent" type="Node2D" parent="." unique_id=2004999560]

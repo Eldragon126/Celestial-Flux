@@ -4,6 +4,8 @@ class_name SpacetimeSwimDirector
 signal spacetime_swim_triggered(data: Dictionary)
 signal spacetime_glitch_triggered(data: Dictionary)
 
+const SPACETIME_FABRIC_SHADER := preload("res://Scripts/spacetime_fabric.gdshader")
+
 @export var enabled: bool = true
 @export var swim_lifetime: float = 0.42
 @export var swim_spawn_interval: float = 0.16
@@ -15,6 +17,12 @@ signal spacetime_glitch_triggered(data: Dictionary)
 @export var ribbon_length: float = 96.0
 @export var ribbon_width: float = 3.0
 @export var phase_shell_radius: float = 54.0
+@export var enable_fabric_shader: bool = true
+@export var fabric_update_interval: float = 0.05
+@export var fabric_intensity_scale: float = 0.76
+@export var fabric_crack_density: float = 7.0
+@export var fabric_line_width: float = 0.006
+@export var fabric_idle_alpha: float = 0.008
 
 var _player: Node2D = null
 var _time_manager: Node = null
@@ -31,6 +39,8 @@ var _swim_elapsed := 999.0
 var _time_tear_intensity := 0.0
 var _last_weapon_swim_time := -999.0
 var _last_glitch_time := -999.0
+var _fabric_material: ShaderMaterial = null
+var _fabric_elapsed: float = 999.0
 
 
 func _ready() -> void:
@@ -42,12 +52,13 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not enabled:
 		_set_overlay_alpha(0.0)
+		_set_fabric_intensity(0.0)
 		return
 	_resolve_player()
 	_update_swim(delta)
 	_update_ribbons(delta)
 	_update_glitch_slices(delta)
-	_update_overlay()
+	_update_overlay(delta)
 
 
 func _bootstrap() -> void:
@@ -312,17 +323,21 @@ func _update_glitch_slices(delta: float) -> void:
 			_glitch_slices.remove_at(i)
 
 
-func _update_overlay() -> void:
-	var target_alpha := minf(overlay_alpha_cap, (_swim_intensity * 0.8 + _time_tear_intensity * 0.45) * overlay_alpha_cap)
+func _update_overlay(delta: float) -> void:
+	var active_alpha := (_swim_intensity * 0.8 + _time_tear_intensity * 0.45) * overlay_alpha_cap
+	var idle_alpha := fabric_idle_alpha if enable_fabric_shader else 0.0
+	var target_alpha := minf(overlay_alpha_cap, maxf(active_alpha, idle_alpha))
 	if Settings != null and Settings.has_method("flash_alpha"):
 		target_alpha = Settings.flash_alpha(target_alpha)
 	_set_overlay_alpha(target_alpha)
+	_update_fabric_shader(delta, target_alpha)
 
 
 func _set_overlay_alpha(alpha: float) -> void:
 	if _overlay == null:
 		return
 	_overlay.color = Color(0.12, 0.48, 0.72, clampf(alpha, 0.0, overlay_alpha_cap))
+	_overlay.visible = alpha > 0.0005
 
 
 func _ensure_screen_nodes() -> void:
@@ -340,6 +355,7 @@ func _ensure_screen_nodes() -> void:
 		_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 		_canvas.add_child(_overlay)
+	_configure_fabric_material()
 	_set_overlay_alpha(0.0)
 
 	_glitch_root = _canvas.get_node_or_null("GlitchRoot") as Control
@@ -349,6 +365,48 @@ func _ensure_screen_nodes() -> void:
 		_glitch_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_glitch_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 		_canvas.add_child(_glitch_root)
+
+
+func _configure_fabric_material() -> void:
+	if _overlay == null:
+		return
+	if not enable_fabric_shader:
+		_overlay.material = null
+		_fabric_material = null
+		return
+	_fabric_material = _overlay.material as ShaderMaterial
+	if _fabric_material == null or _fabric_material.shader != SPACETIME_FABRIC_SHADER:
+		_fabric_material = ShaderMaterial.new()
+		_fabric_material.shader = SPACETIME_FABRIC_SHADER
+		_overlay.material = _fabric_material
+	_fabric_material.set_shader_parameter("crack_density", fabric_crack_density)
+	_fabric_material.set_shader_parameter("line_width", fabric_line_width)
+	_fabric_material.set_shader_parameter("red_bias", 0.14)
+	_set_fabric_intensity(0.0)
+
+
+func _update_fabric_shader(delta: float, target_alpha: float) -> void:
+	if not enable_fabric_shader:
+		_set_fabric_intensity(0.0)
+		return
+	if _fabric_material == null:
+		return
+	_fabric_elapsed += delta
+	var normalized_alpha := clampf(target_alpha / maxf(overlay_alpha_cap, 0.001), 0.0, 1.0)
+	var shader_intensity := normalized_alpha * fabric_intensity_scale
+	if _fabric_elapsed < maxf(fabric_update_interval, 0.02):
+		_set_fabric_intensity(shader_intensity)
+		return
+	_fabric_elapsed = 0.0
+	_fabric_material.set_shader_parameter("real_time", _now_seconds())
+	_fabric_material.set_shader_parameter("crack_density", fabric_crack_density)
+	_fabric_material.set_shader_parameter("line_width", fabric_line_width)
+	_set_fabric_intensity(shader_intensity)
+
+
+func _set_fabric_intensity(value: float) -> void:
+	if _fabric_material != null:
+		_fabric_material.set_shader_parameter("intensity", clampf(value, 0.0, 1.0))
 
 
 func _swim_points(direction: Vector2, intensity: float) -> PackedVector2Array:

@@ -87,6 +87,7 @@ func _process(_delta: float) -> void:
 	if active:
 		_update_seed_label(real_delta)
 		_update_modding_feedback(real_delta)
+		_update_multiplayer_menu()
 		_update_weapon_menu()
 
 
@@ -294,6 +295,12 @@ func _on_resume_pressed() -> void:
 
 
 func _on_restart_pressed() -> void:
+	if NetworkSession != null and NetworkSession.is_network_active():
+		if not multiplayer.is_server():
+			return
+		_force_unpause()
+		NetworkSession.restart_hosted_run()
+		return
 	_force_unpause()
 	RunProgress.begin_new_run(false)
 	get_tree().change_scene_to_file(run_scene_path)
@@ -301,6 +308,8 @@ func _on_restart_pressed() -> void:
 
 func _on_title_pressed() -> void:
 	_force_unpause()
+	if NetworkSession != null and NetworkSession.is_network_active():
+		NetworkSession.leave_session()
 	if RunProgress != null:
 		RunProgress.clear_anchor()
 	get_tree().change_scene_to_file(title_scene_path)
@@ -480,20 +489,33 @@ func _join_lines(lines: Array[String]) -> String:
 func _update_multiplayer_menu() -> void:
 	if multiplayer_status_label == null:
 		return
+	var network_status := _get_network_status()
+	var network_active := bool(network_status.get("active", false))
+	var host_controls := network_active and multiplayer.is_server()
+	_configure_network_pause_buttons(network_active, host_controls)
 	var sync := _get_multiplayer_foundation()
 	if sync == null or not sync.has_method("get_readability_budget"):
-		multiplayer_status_label.text = "SYNC FOUNDATION OFFLINE"
+		multiplayer_status_label.text = "%s | SYNC FOUNDATION OFFLINE" % String(network_status.get("mode_label", "OFFLINE"))
 		return
 	var budget_value: Variant = sync.call("get_readability_budget")
 	var budget: Dictionary = budget_value if budget_value is Dictionary else {}
 	multiplayer_status_label.text = (
-		"SYNC READY | P%d | ARROWS %d | WARN %d"
+		"%s | P%d | ARROWS %d | WARN %d"
 		% [
+			String(network_status.get("mode_label", "OFFLINE")),
 			int(budget.get("peer_count", 1)),
 			int(budget.get("enemy_arrow_limit", 0)),
 			int(budget.get("projectile_warning_limit", 0)),
 		]
 	)
+
+
+func _configure_network_pause_buttons(network_active: bool, host_controls: bool) -> void:
+	if restart_button != null:
+		restart_button.disabled = network_active and not host_controls
+		restart_button.text = "HOST RESTART ONLY" if network_active and not host_controls else "RESTART RUN"
+	if title_button != null:
+		title_button.text = "LEAVE SESSION" if network_active else "ABORT & QUIT TO TITLE"
 
 
 func _update_weapon_menu() -> void:
@@ -537,11 +559,17 @@ func _get_multiplayer_foundation() -> Node:
 	return scene.find_child("MultiplayerSyncFoundation", true, false) if scene != null else null
 
 
+func _get_network_status() -> Dictionary:
+	if NetworkSession != null and NetworkSession.has_method("get_status_snapshot"):
+		return NetworkSession.get_status_snapshot()
+	return {"mode_label": "OFFLINE"}
+
+
 func _get_weapon_system() -> Node:
 	var weapon_system := get_tree().get_first_node_in_group("weapon_system")
 	if weapon_system != null:
 		return weapon_system
-	var player := get_tree().get_first_node_in_group("Player")
+	var player := MultiplayerTargeting.local_player(get_tree())
 	if player != null:
 		return player.get_node_or_null("WeaponSystem")
 	var scene := get_tree().current_scene

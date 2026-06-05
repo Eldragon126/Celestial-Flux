@@ -10,7 +10,7 @@ gradient = SubResource("Gradient_sparks")
 
 [node name="CollisionSparks" type="CPUParticles2D"]
 emitting = false
-amount = 36
+amount = 22
 lifetime = 0.38
 one_shot = true
 explosiveness = 0.86

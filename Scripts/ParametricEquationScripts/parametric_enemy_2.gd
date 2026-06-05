@@ -158,7 +158,7 @@ func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("ParametricEnemies")
 
-	player = get_tree().get_first_node_in_group("Player")
+	player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 
 	anchor_position = global_position
 
@@ -185,7 +185,7 @@ func _physics_process(delta: float) -> void:
 	var center := global_position
 
 	if player == null or not is_instance_valid(player):
-		player = get_tree().get_first_node_in_group("Player")
+		player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 
 	if player != null:
 		center = player.global_position

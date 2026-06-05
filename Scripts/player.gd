@@ -44,7 +44,7 @@ signal damage_ignored_during_invulnerability(amount: float)
 @export var slingshot_factor: float = 1.5
 @export var slingshot_max_impulse: float = 800.0
 @export var slingshot_speed_cap: float = 2500.0
-@export var slingshot_cooldown: float = 0.1
+@export var slingshot_cooldown: float = 0.2
 @export var slingshot_min_tangential_speed: float = 210.0
 @export var slingshot_gravity_boost_scale: float = 2.8
 @export var slingshot_sweet_spot_distance: float = 265.0
@@ -72,6 +72,14 @@ signal damage_ignored_during_invulnerability(amount: float)
 @export_group("Damage Grace")
 @export var post_hit_invulnerability_seconds: float = 0.62
 @export var post_hit_invulnerability_flash_rate: float = 14.0
+
+@export_group("Network")
+@export var network_state_send_interval: float = 0.055
+@export var network_position_lerp_rate: float = 18.0
+@export var network_velocity_lerp_rate: float = 14.0
+@export var network_nameplate_offset: Vector2 = Vector2(0.0, -72.0)
+@export var network_nameplate_font_size: int = 13
+@export var network_nameplate_visible_for_local: bool = true
 
 # ========================
 # == STATE VARIABLES ==
@@ -120,6 +128,16 @@ var _damage_invulnerable_until: float = -999.0
 var _invulnerability_flash_elapsed: float = 0.0
 var _death_in_progress: bool = false
 var _gravity_source_query: Array[Node2D] = []
+var network_peer_id: int = 1
+var network_is_local: bool = true
+var network_display_name: String = "VECTOR"
+var network_color: Color = Color(0.08, 0.88, 1.0, 1.0)
+var _network_send_elapsed: float = 0.0
+var _remote_target_position: Vector2 = Vector2.ZERO
+var _remote_target_velocity: Vector2 = Vector2.ZERO
+var _remote_target_rotation: float = 0.0
+var _remote_state_received: bool = false
+var _network_nameplate: Label = null
 # ========================
 # == NODE REFERENCES ==
 # ========================
@@ -156,6 +174,9 @@ func _ready():
 	#	camera.rotation_degrees = 270
 
 	_camera_base_rotation = camera.rotation
+	_ensure_network_nameplate()
+	_apply_network_locality()
+	_update_network_nameplate()
 
 func _connect_pause_menu_state() -> void:
 	var pause_menu := get_pause_menu()
@@ -175,8 +196,13 @@ func _on_pause_menu_state_changed(blocked: bool) -> void:
 # ========================
 
 func _physics_process(delta: float):
+	if not network_is_local:
+		_apply_remote_network_state(delta)
+		return
+
 	if _death_in_progress:
 		velocity = velocity.move_toward(Vector2.ZERO, 2400.0 * delta)
+		_submit_network_state(delta)
 		return
 
 	# 1. ALWAYS process inputs first so state updates map cleanly to forces
@@ -210,6 +236,7 @@ func _physics_process(delta: float):
 	# Energy reactions
 	apply_gravity_recharge(gravity, delta)
 	update_ui()
+	_submit_network_state(delta)
 
 # ========================
 # == GRAVITY SYSTEM ==
@@ -607,6 +634,8 @@ func _on_dash_timeout():
 # ========================
 
 func shoot():
+	if not network_is_local:
+		return
 	if _death_in_progress:
 		return
 
@@ -741,7 +770,11 @@ func update_ui():
 # ========================
 
 func _process(delta):
+	_update_network_nameplate()
 	_update_hit_invulnerability_visual(delta)
+	if not network_is_local:
+		shield_process()
+		return
 	if _death_in_progress:
 		update_camera(delta)
 		return
@@ -793,6 +826,8 @@ func shield_process():
 		coll.visible = shields_on
 
 func take_damage(amount: float):
+	if not network_is_local:
+		return
 	if _death_in_progress:
 		return
 	if amount <= 0.0:
@@ -844,6 +879,8 @@ func _update_hit_invulnerability_visual(delta: float) -> void:
 		shield_polygon.modulate.a = maxf(pulse, 0.72)
 
 func take_shield_damage(amount: float) -> float:
+	if not network_is_local:
+		return 0.0
 	if is_damage_invulnerable():
 		damage_ignored_during_invulnerability.emit(amount)
 		return 0.0
@@ -962,6 +999,12 @@ func _refresh_gravity_sources(force: bool) -> void:
 
 func _on_health_component_died():
 	if _death_in_progress:
+		return
+
+	if not network_is_local:
+		_death_in_progress = true
+		set_meta(&"death_in_progress", true)
+		_apply_remote_death_visuals()
 		return
 
 	_death_in_progress = true
@@ -1257,6 +1300,216 @@ func get_slingshot_debug_state() -> Dictionary:
 
 func _now_seconds() -> float:
 	return Time.get_ticks_msec() / 1000.0
+
+
+func configure_network_peer(
+	peer_id: int,
+	is_local: bool,
+	display_name: String = "VECTOR",
+	player_color: Color = Color(0.08, 0.88, 1.0, 1.0)
+) -> void:
+	network_peer_id = peer_id
+	network_is_local = is_local
+	network_display_name = display_name
+	network_color = player_color
+	set_meta(&"network_peer_id", network_peer_id)
+	set_meta(&"network_is_local", network_is_local)
+	set_multiplayer_authority(network_peer_id)
+	_apply_network_locality()
+	_update_network_nameplate()
+
+
+func export_network_state() -> Dictionary:
+	var health_value := 0.0
+	var max_health_value := 0.0
+	if health_component != null:
+		health_value = float(health_component.get("current_health"))
+		max_health_value = float(health_component.get("max_health"))
+
+	var energy_value := 0.0
+	var max_energy_value := 0.0
+	if energy_component != null:
+		energy_value = float(energy_component.get("current_energy"))
+		max_energy_value = float(energy_component.get("max_energy"))
+
+	return {
+		"position": global_position,
+		"rotation": rotation,
+		"velocity": velocity,
+		"drag_enabled": DRAG_enabled,
+		"shield_active": shields_on,
+		"health": health_value,
+		"max_health": max_health_value,
+		"energy": energy_value,
+		"max_energy": max_energy_value,
+		"dead": _death_in_progress,
+		"slingshot_grade": String(last_slingshot_grade),
+	}
+
+
+func apply_network_state(state: Dictionary) -> void:
+	if network_is_local:
+		return
+	_remote_target_position = _network_vector2(state.get("position", global_position))
+	_remote_target_velocity = _network_vector2(state.get("velocity", velocity))
+	_remote_target_rotation = float(state.get("rotation", rotation))
+	_remote_state_received = true
+	DRAG_enabled = bool(state.get("drag_enabled", DRAG_enabled))
+	shields_on = bool(state.get("shield_active", shields_on))
+
+	if health_component != null:
+		var max_health_value := float(state.get("max_health", health_component.get("max_health")))
+		health_component.set("max_health", max_health_value)
+		health_component.set("current_health", float(state.get("health", health_component.get("current_health"))))
+	if energy_component != null:
+		energy_component.set("max_energy", float(state.get("max_energy", energy_component.get("max_energy"))))
+		energy_component.set("current_energy", float(state.get("energy", energy_component.get("current_energy"))))
+
+	var remote_dead := bool(state.get("dead", false))
+	if remote_dead and not _death_in_progress:
+		_death_in_progress = true
+		set_meta(&"death_in_progress", true)
+		_apply_remote_death_visuals()
+	elif not remote_dead and _death_in_progress:
+		_death_in_progress = false
+		set_meta(&"death_in_progress", false)
+		_restore_remote_visuals()
+
+
+func _apply_network_locality() -> void:
+	_apply_network_color()
+	if camera != null:
+		camera.enabled = network_is_local
+		if network_is_local:
+			camera.make_current()
+
+	var player_canvas := get_node_or_null("CanvasLayer") as CanvasLayer
+	if player_canvas != null:
+		player_canvas.visible = network_is_local
+		player_canvas.process_mode = Node.PROCESS_MODE_ALWAYS if network_is_local else Node.PROCESS_MODE_DISABLED
+
+	var pause_menu := get_node_or_null("CanvasLayer/PauseMenu")
+	if pause_menu != null and not network_is_local:
+		pause_menu.visible = false
+		pause_menu.remove_from_group("PauseMenu")
+
+	var trajectory := get_node_or_null("OrbitalTrajectoryPredictor") as Node2D
+	if trajectory != null:
+		trajectory.visible = network_is_local
+	var aim_predictor := get_node_or_null("ProjectileAimPredictor") as Node2D
+	if aim_predictor != null:
+		aim_predictor.visible = network_is_local
+	_update_network_nameplate()
+
+
+func _apply_network_color() -> void:
+	if hull_polygon == null:
+		return
+	hull_polygon.color = network_color
+	var shader_material := hull_polygon.material as ShaderMaterial
+	if shader_material == null:
+		return
+	if not shader_material.resource_local_to_scene:
+		shader_material = shader_material.duplicate() as ShaderMaterial
+		shader_material.resource_local_to_scene = true
+		hull_polygon.material = shader_material
+	shader_material.set_shader_parameter("hull_color", network_color)
+
+
+func _ensure_network_nameplate() -> void:
+	if _network_nameplate != null and is_instance_valid(_network_nameplate):
+		return
+	var label := Label.new()
+	label.name = "NetworkNameplate"
+	label.set_as_top_level(true)
+	label.z_index = 80
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.custom_minimum_size = Vector2(150.0, 24.0)
+	label.size = Vector2(150.0, 24.0)
+	label.add_theme_font_size_override("font_size", network_nameplate_font_size)
+	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.82))
+	label.add_theme_constant_override("shadow_offset_x", 1)
+	label.add_theme_constant_override("shadow_offset_y", 1)
+	add_child(label)
+	_network_nameplate = label
+
+
+func _update_network_nameplate() -> void:
+	_ensure_network_nameplate()
+	if _network_nameplate == null or not is_instance_valid(_network_nameplate):
+		return
+	var network_active := NetworkSession != null and NetworkSession.is_network_active()
+	var should_show := network_active and not _death_in_progress and (network_nameplate_visible_for_local or not network_is_local)
+	_network_nameplate.visible = should_show
+	if not should_show:
+		return
+	var display_name := network_display_name.strip_edges()
+	if display_name.is_empty():
+		display_name = "PEER %d" % network_peer_id
+	_network_nameplate.text = display_name
+	_network_nameplate.add_theme_color_override("font_color", network_color)
+	_network_nameplate.add_theme_color_override("font_outline_color", Color(0.0, 0.04, 0.08, 0.92))
+	_network_nameplate.add_theme_constant_override("outline_size", 2)
+	var width := maxf(118.0, float(display_name.length()) * 8.5 + 34.0)
+	_network_nameplate.size = Vector2(width, 24.0)
+	_network_nameplate.global_position = global_position + network_nameplate_offset - _network_nameplate.size * 0.5
+
+
+func _apply_remote_network_state(delta: float) -> void:
+	if not _remote_state_received:
+		return
+	var position_weight := clampf(delta * network_position_lerp_rate, 0.0, 1.0)
+	var velocity_weight := clampf(delta * network_velocity_lerp_rate, 0.0, 1.0)
+	global_position = global_position.lerp(_remote_target_position, position_weight)
+	velocity = velocity.lerp(_remote_target_velocity, velocity_weight)
+	rotation = lerp_angle(rotation, _remote_target_rotation, position_weight)
+
+
+func _submit_network_state(delta: float) -> void:
+	if not network_is_local:
+		return
+	if NetworkSession == null or not NetworkSession.is_network_active():
+		return
+	_network_send_elapsed += delta
+	if _network_send_elapsed < maxf(network_state_send_interval, 0.016):
+		return
+	_network_send_elapsed = 0.0
+	NetworkSession.submit_player_state(self)
+
+
+func _apply_remote_death_visuals() -> void:
+	velocity = Vector2.ZERO
+	var col_shape = get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if col_shape != null:
+		col_shape.set_deferred("disabled", true)
+	if hull_polygon != null:
+		hull_polygon.visible = false
+	if shield_node != null:
+		shield_node.visible = false
+	var particles = get_node_or_null("GPUParticles2D") as GPUParticles2D
+	if particles != null:
+		particles.emitting = false
+	_update_network_nameplate()
+
+
+func _restore_remote_visuals() -> void:
+	var col_shape = get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if col_shape != null:
+		col_shape.set_deferred("disabled", false)
+	if hull_polygon != null:
+		hull_polygon.visible = true
+	var particles = get_node_or_null("GPUParticles2D") as GPUParticles2D
+	if particles != null:
+		particles.emitting = true
+	_update_network_nameplate()
+
+
+func _network_vector2(value: Variant) -> Vector2:
+	if value is Vector2:
+		return value
+	return Vector2.ZERO
 	
 func get_pause_menu() -> Node:
 	# First try direct path (works in player scene)

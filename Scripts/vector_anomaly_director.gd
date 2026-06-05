@@ -32,12 +32,14 @@ const PLAYER_TARGET_GROUPS: Array[StringName] = [&"Projectiles", &"player_projec
 @export var collapse_momentum_retention: float = 0.18
 @export var collapse_inward_force: float = 620.0
 @export var collapse_damage: float = 18.0
+@export var collapse_event_cooldown: float = 0.22
 
 @export_group("Relativistic Rail")
 @export var relativistic_impact_radius: float = 320.0
 @export var relativistic_impact_force: float = 780.0
 @export var relativistic_impact_damage: float = 20.0
 @export var relativistic_time_slow: float = 0.62
+@export var relativistic_impact_cooldown: float = 0.14
 
 @export_group("Orbital Debris Seeder")
 @export var debris_seed_interval: float = 3.4
@@ -80,6 +82,8 @@ const PLAYER_TARGET_GROUPS: Array[StringName] = [&"Projectiles", &"player_projec
 @export var anomaly_visual_radius_cap: float = 420.0
 @export_range(0.0, 0.42, 0.01) var anomaly_ring_alpha_cap: float = 0.18
 @export_range(0.0, 0.42, 0.01) var anomaly_trace_alpha_cap: float = 0.12
+@export var transient_ring_min_interval: float = 0.035
+@export var transient_ring_chaos_skip_threshold: float = 0.72
 
 var _player: CharacterBody2D = null
 var _inventory: Node = null
@@ -96,6 +100,9 @@ var _debris_elapsed := 0.0
 var _cascade_elapsed := 999.0
 var _local_time := 0.0
 var _last_momentum_drift_time := -999.0
+var _last_vacuum_collapse_time := -999.0
+var _last_relativistic_impact_time := -999.0
+var _last_transient_ring_time := -999.0
 var _dilation_start_position := Vector2.ZERO
 
 var _micro_lenses: Array[Dictionary] = []
@@ -168,6 +175,12 @@ func _physics_process(delta: float) -> void:
 
 
 func trigger_vacuum_collapse(position: Vector2, stacks: int, source: Node = null, hit_body: Node = null) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	var effective_cooldown := collapse_event_cooldown / sqrt(float(maxi(stacks, 1)))
+	if now - _last_vacuum_collapse_time < effective_cooldown:
+		return
+	_last_vacuum_collapse_time = now
+
 	var radius := collapse_radius * (1.0 + 0.12 * float(maxi(stacks - 1, 0)))
 	var affected := 0
 	var center := position
@@ -205,6 +218,11 @@ func trigger_relativistic_impact(position: Vector2, velocity: Vector2, stacks: i
 	var speed := velocity.length()
 	if speed < 900.0:
 		return
+	var now := Time.get_ticks_msec() / 1000.0
+	var effective_cooldown := relativistic_impact_cooldown / sqrt(float(maxi(stacks, 1)))
+	if now - _last_relativistic_impact_time < effective_cooldown:
+		return
+	_last_relativistic_impact_time = now
 
 	var direction := velocity.normalized() if speed > 0.001 else Vector2.RIGHT
 	var intensity := clampf(speed / 2600.0, 0.2, 1.0)
@@ -1039,6 +1057,13 @@ func _spawn_transient_ring(center: Vector2, radius: float, color: Color, duratio
 	var root := get_tree().current_scene
 	if root == null:
 		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _last_transient_ring_time < transient_ring_min_interval:
+		return
+	var coordinator := JuiceCoordinator.find_coordinator(get_tree())
+	if coordinator != null and coordinator.get_chaos_intensity(get_tree()) >= transient_ring_chaos_skip_threshold:
+		return
+	_last_transient_ring_time = now
 	var ring := _acquire_transient_ring(root)
 	var visual_radius := _visual_radius(radius)
 	ring.closed = true

@@ -39,7 +39,7 @@ func _bootstrap() -> void:
 
 func _resolve_sources() -> void:
 	var root := get_tree().current_scene
-	_player = get_tree().get_first_node_in_group("Player") as Node2D
+	_player = _get_local_player()
 	if root == null:
 		return
 	_sync_foundation = root.find_child("MultiplayerSyncFoundation", true, false)
@@ -57,6 +57,17 @@ func _connect_once(source: Node, signal_name: StringName, callable: Callable) ->
 		return
 	if not source.is_connected(signal_name, callable):
 		source.connect(signal_name, callable)
+
+
+func _get_local_player() -> Node2D:
+	for node in get_tree().get_nodes_in_group("Player"):
+		var player := node as Node2D
+		if player == null:
+			continue
+		var is_local_value: Variant = player.get("network_is_local")
+		if typeof(is_local_value) != TYPE_BOOL or bool(is_local_value):
+			return player
+	return get_tree().get_first_node_in_group("Player") as Node2D
 
 
 func _on_local_mastery_scored(data: Dictionary) -> void:

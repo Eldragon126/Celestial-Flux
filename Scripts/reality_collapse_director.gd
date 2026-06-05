@@ -5,6 +5,8 @@ signal reality_collapse_level_changed(level: float, data: Dictionary)
 signal reality_breach_opened(breach_id: StringName, data: Dictionary)
 signal physics_constants_shifted(data: Dictionary)
 
+const SPACETIME_FABRIC_SHADER := preload("res://Scripts/spacetime_fabric.gdshader")
+
 @export var enabled: bool = true
 @export var activation_instability: float = 0.68
 @export var minimum_wave: int = 18
@@ -15,6 +17,9 @@ signal physics_constants_shifted(data: Dictionary)
 @export var max_active_breaches: int = 4
 @export var gravity_constant_swing: float = 0.08
 @export var drag_swing: float = 0.035
+@export var enable_fabric_shader: bool = true
+@export var fabric_update_interval: float = 0.06
+@export var fabric_intensity_scale: float = 0.92
 
 var _player: Node2D = null
 var _arena_manager: Node = null
@@ -33,6 +38,8 @@ var _base_drag: float = -1.0
 var _canvas: CanvasLayer = null
 var _overlay: ColorRect = null
 var _notice_label: Label = null
+var _fabric_material: ShaderMaterial = null
+var _fabric_elapsed: float = 999.0
 
 
 func _ready() -> void:
@@ -45,6 +52,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not enabled:
 		_set_overlay_alpha(0.0)
+		_set_fabric_intensity(0.0)
 		_restore_player_constants()
 		return
 	_sample_elapsed += delta
@@ -57,7 +65,7 @@ func _process(delta: float) -> void:
 		_update_collapse_level()
 		_apply_physics_constant_drift()
 		_emit_level_if_changed()
-	_update_overlay()
+	_update_overlay(delta)
 	if _collapse_level > 0.05 and _breach_timer <= 0.0:
 		_breach_timer = _next_breach_interval()
 		_open_reality_breach(_choose_breach())
@@ -353,6 +361,7 @@ func _build_screen_effects() -> void:
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_canvas.add_child(_overlay)
+	_configure_fabric_material()
 	_set_overlay_alpha(0.0)
 
 	_notice_label = Label.new()
@@ -369,9 +378,11 @@ func _build_screen_effects() -> void:
 	_canvas.add_child(_notice_label)
 
 
-func _update_overlay() -> void:
+func _update_overlay(delta: float) -> void:
 	var pulse := 0.68 + 0.32 * sin(_now_seconds() * 5.5)
-	_set_overlay_alpha(_collapse_level * overlay_alpha_cap * pulse)
+	var target_alpha := _collapse_level * overlay_alpha_cap * pulse
+	_set_overlay_alpha(target_alpha)
+	_update_fabric_shader(delta, target_alpha)
 
 
 func _set_overlay_alpha(alpha: float) -> void:
@@ -385,6 +396,44 @@ func _set_overlay_alpha(alpha: float) -> void:
 	else:
 		capped_alpha = minf(alpha, overlay_alpha_cap)
 	_overlay.color = Color(0.18, 0.2, 0.38, capped_alpha)
+	_overlay.visible = capped_alpha > 0.0005
+
+
+func _configure_fabric_material() -> void:
+	if _overlay == null:
+		return
+	if not enable_fabric_shader:
+		_overlay.material = null
+		_fabric_material = null
+		return
+	_fabric_material = ShaderMaterial.new()
+	_fabric_material.shader = SPACETIME_FABRIC_SHADER
+	_overlay.material = _fabric_material
+	_fabric_material.set_shader_parameter("crack_density", 6.2)
+	_fabric_material.set_shader_parameter("line_width", 0.007)
+	_fabric_material.set_shader_parameter("red_bias", 0.74)
+	_fabric_material.set_shader_parameter("triangle_alpha", 0.58)
+	_set_fabric_intensity(0.0)
+
+
+func _update_fabric_shader(delta: float, target_alpha: float) -> void:
+	if not enable_fabric_shader:
+		_set_fabric_intensity(0.0)
+		return
+	if _fabric_material == null:
+		return
+	_fabric_elapsed += delta
+	var normalized_alpha := clampf(target_alpha / maxf(overlay_alpha_cap, 0.001), 0.0, 1.0)
+	var shader_intensity := normalized_alpha * fabric_intensity_scale
+	if _fabric_elapsed >= maxf(fabric_update_interval, 0.02):
+		_fabric_elapsed = 0.0
+		_fabric_material.set_shader_parameter("real_time", _now_seconds())
+	_set_fabric_intensity(shader_intensity)
+
+
+func _set_fabric_intensity(value: float) -> void:
+	if _fabric_material != null:
+		_fabric_material.set_shader_parameter("intensity", clampf(value, 0.0, 1.0))
 
 
 func _set_notice(text: String, color: Color) -> void:

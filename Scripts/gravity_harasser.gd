@@ -17,14 +17,14 @@ func _ready() -> void:
 	add_to_group("planets")
 	add_to_group("Objects_With_Gravity")
 
-	_player = get_tree().get_first_node_in_group("Player")
+	_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 
 	_build_body()
 	_build_health()
 
 func _physics_process(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
-		_player = get_tree().get_first_node_in_group("Player")
+		_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 		return
 
 	var to_player: Vector2 = _player.global_position - global_position

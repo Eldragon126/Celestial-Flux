@@ -177,6 +177,15 @@ The current architecture preserves genre readability while scaling the unusual p
 - The title screen now exposes a playable tutorial scene so players can practice thrust, drag, slingshots, bolts, Gravity Wave, and Chronal Beam without waiting for a run to teach them.
 - Purple/pink temporal overload is capped through reduced flash/radius budgets, lower VFX burst counts, glitch cooldowns, local slow budgets, and a safe global time-scale floor.
 
+## 2026-06-05 Multiplayer And Trajectory Milestone
+
+- LAN host/join support now gives the familiar co-op shape players expect: one player hosts, others join by IP/port, each player controls one ship, and the host owns run start/restart.
+- Multiplayer preserves the genre handshake by keeping solo rules intact. Remote players are readable proxies, enemies target valid players through roster-aware helpers, and shared vector events create co-op payoff without changing basic movement grammar.
+- Peer nameplates and player colors add immediate co-op legibility without adding menu clutter or hiding the arena.
+- Steam support should feel like the same co-op experience with a different transport. Add Steam lobbies/peers behind `NetworkSession`; do not fork gameplay rules for Steam.
+- The orbital trajectory predictor is restored as a readable future-path affordance: orange danger, cyan path, glow, and fade. It supports the familiar “where am I going?” player need while selling the unfamiliar gravity-collapse spectacle.
+- Continued functionality depends on tests and contracts: two-instance LAN smoke validation, late-join reconciliation, disconnect UX, version/mod handshake, and explicit network categories for new abilities.
+
 ## 2026-06-02 Launch Matrix Completion
 
 - Barycentric Tether uses a familiar crowd-control shape while changing the substance: enemies are linked by an artificial center of mass and forced into binary orbital motion.

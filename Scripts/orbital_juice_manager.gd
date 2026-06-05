@@ -160,7 +160,10 @@ func _install_modular_additions() -> void:
 	_installed = true
 
 	var level_root = get_tree().current_scene
-	var player = get_tree().get_first_node_in_group("Player")
+	if NetworkSession != null:
+		NetworkSession.configure_arena_players(level_root)
+	var players := _get_player_nodes()
+	var player := _primary_player_from_list(players)
 
 	_add_child_scene_once(level_root, HUD_SCENE, "OrbitalHUD")
 	if attach_gameplay_teaching:
@@ -215,24 +218,8 @@ func _install_modular_additions() -> void:
 	if enable_reality_collapse:
 		_add_child_scene_once(level_root, REALITY_COLLAPSE_DIRECTOR_SCENE, "RealityCollapseDirector")
 
-	if player != null:
-		if attach_player_juice:
-			_add_child_scene_once(player, THRUSTER_TRAILS_SCENE, "PlayerThrusterTrails")
-			_add_child_scene_once(player, ENGINE_HUM_SCENE, "PlayerEngineHum")
-			_add_child_scene_once(player, PLAYER_VISUAL_STATE_SCENE, "PlayerVisualState")
-
-		if attach_momentum_combat:
-			# Momentum combat stays as a player add-on: it rewards slingshots,
-			# near-misses, and kinetic impacts without rewriting player.gd.
-			_add_child_scene_once(player, MOMENTUM_COMBAT_SCENE, "MomentumCombatComponent")
-			_connect_momentum_to_time_dilation(level_root, player)
-
-		if enable_weapon_system:
-			_add_child_scene_once(player, WEAPON_SYSTEM_SCENE, "WeaponSystem")
-
-		var camera = player.get_node_or_null("Camera2D")
-		if attach_player_juice and camera != null:
-			_add_child_scene_once(camera, CAMERA_SHAKE_SCENE, "DamageCameraShake")
+	for current_player in players:
+		_install_player_additions(level_root, current_player)
 
 	if enable_coop_combos:
 		_add_child_scene_once(level_root, COOP_COMBO_DIRECTOR_SCENE, "CoopComboDirector")
@@ -282,14 +269,18 @@ func _install_modular_additions() -> void:
 		if enable_run_score_tracker:
 			_add_child_scene_once(level_root, RUN_SCORE_TRACKER_SCENE, "RunScoreTracker")
 
-	if spawn_showcase_content and player != null:
-		_spawn_showcase_content(level_root, player.global_position)
-		_refresh_player_planet_cache(player)
+	var player_2d := player as Node2D
+	if spawn_showcase_content and player_2d != null:
+		_spawn_showcase_content(level_root, player_2d.global_position)
+		_refresh_player_planet_cache(player_2d)
 
 	_apply_quality_settings(level_root)
 
 	if run_stress_test_on_ready:
 		call_deferred("run_stress_test_now")
+
+	if NetworkSession != null:
+		NetworkSession.refresh_runtime_multiplayer_bindings(level_root)
 
 func _add_child_scene_once(parent: Node, scene: PackedScene, child_name: String) -> Node:
 	if parent == null:
@@ -301,6 +292,66 @@ func _add_child_scene_once(parent: Node, scene: PackedScene, child_name: String)
 	child.name = child_name
 	parent.add_child(child)
 	return child
+
+
+func _get_player_nodes() -> Array[Node]:
+	var players: Array[Node] = []
+	for node in get_tree().get_nodes_in_group("Player"):
+		var player := node as Node
+		if player != null and is_instance_valid(player) and not player.is_queued_for_deletion():
+			players.append(player)
+	players.sort_custom(func(a: Node, b: Node) -> bool:
+		return _player_peer_id(a) < _player_peer_id(b)
+	)
+	return players
+
+
+func _primary_player_from_list(players: Array[Node]) -> Node:
+	for player in players:
+		if _is_local_player_node(player):
+			return player
+	return players[0] if not players.is_empty() else null
+
+
+func _install_player_additions(level_root: Node, player: Node) -> void:
+	if player == null:
+		return
+	var is_local_player := _is_local_player_node(player)
+	if attach_player_juice:
+		_add_child_scene_once(player, THRUSTER_TRAILS_SCENE, "PlayerThrusterTrails")
+		_add_child_scene_once(player, ENGINE_HUM_SCENE, "PlayerEngineHum")
+		_add_child_scene_once(player, PLAYER_VISUAL_STATE_SCENE, "PlayerVisualState")
+
+	if is_local_player and attach_momentum_combat:
+		# Momentum combat stays local-input-owned; remote vector events arrive
+		# through NetworkSession and CoopComboDirector.
+		_add_child_scene_once(player, MOMENTUM_COMBAT_SCENE, "MomentumCombatComponent")
+		_connect_momentum_to_time_dilation(level_root, player)
+
+	if is_local_player and enable_weapon_system:
+		_add_child_scene_once(player, WEAPON_SYSTEM_SCENE, "WeaponSystem")
+
+	var camera = player.get_node_or_null("Camera2D")
+	if is_local_player and attach_player_juice and camera != null:
+		_add_child_scene_once(camera, CAMERA_SHAKE_SCENE, "DamageCameraShake")
+
+
+func _is_local_player_node(player: Node) -> bool:
+	if player == null:
+		return true
+	var value: Variant = player.get("network_is_local")
+	if typeof(value) == TYPE_BOOL:
+		return bool(value)
+	return true
+
+
+func _player_peer_id(player: Node) -> int:
+	if player == null:
+		return 1
+	var value: Variant = player.get("network_peer_id")
+	if typeof(value) == TYPE_INT:
+		return int(value)
+	return 1
 
 func spawn_showcase_content_now() -> void:
 	var level_root := get_tree().current_scene

@@ -25,7 +25,7 @@ func _ready() -> void:
 	var scale_size = randf_range(0.8, 1.2)
 	scale = Vector2(scale_size, scale_size)
 
-	Player = get_tree().get_first_node_in_group("Player")
+	Player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_refresh_planets()
 
 
@@ -35,7 +35,7 @@ func _process(delta: float) -> void:
 
 	# Refresh player reference if needed
 	if not is_instance_valid(Player):
-		Player = get_tree().get_first_node_in_group("Player")
+		Player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 
 	if planets.is_empty() or _gravity_refresh_elapsed >= gravity_refresh_interval:
 		_refresh_planets()

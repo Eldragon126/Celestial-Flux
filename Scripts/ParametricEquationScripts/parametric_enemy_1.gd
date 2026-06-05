@@ -50,7 +50,7 @@ func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("ParametricEnemies")
 	_rng.randomize()
-	player = get_tree().get_first_node_in_group("Player")
+	player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_dash_cooldown = _rng.randf_range(dash_cooldown_min, dash_cooldown_max)
 
 
@@ -80,7 +80,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	if player == null or not is_instance_valid(player):
-		player = get_tree().get_first_node_in_group("Player")
+		player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 
 	# =========================
 	# THE "ANCHOR" POSITION

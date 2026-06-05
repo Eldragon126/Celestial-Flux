@@ -105,7 +105,11 @@ On death, the game over screen shows a death vector lesson plus a concrete reado
 
 ## Co-op Foundation
 
-Full online co-op is not live yet. The first co-op mechanic foundation exists: shared vector events can combine into a co-op resonance payoff that bends local space and slows nearby threats. Future networking will feed those same deterministic event hooks.
+LAN co-op is now live as the first multiplayer implementation. From the title screen, one player can host and play, while other players join by IP address and port. The host owns the run seed, scene start/restart, and shared run configuration; clients control their own local ship and receive remote player proxies.
+
+Shared vector events can combine into a co-op resonance payoff that bends local space and slows nearby threats. Projectile spawns, player movement state, peer colors, and peer nameplates are network-aware, while solo mechanics remain unchanged.
+
+Steam co-op is still a transport roadmap item. The current session layer is designed so Steam lobby/peer support can be added behind `NetworkSession` without rewriting gameplay logic.
 
 ## Adaptive Music Hooks
 
@@ -134,16 +138,20 @@ The pause menu exposes readability controls:
 - reduced flash
 - colorblind modes for common readability palettes
 
-It also exposes the current run seed, mod registry status, and multiplayer-prep readability budget so debugging and sharing stay inside the game UI instead of requiring console inspection.
+It also exposes the current run seed, mod registry status, active multiplayer status, and co-op readability budget so debugging and sharing stay inside the game UI instead of requiring console inspection.
 
 ## Developer Notes
 
 - Main playable scene: `res://Nodes/the_abyss.tscn`
 - Progress anchor: `RunProgress` autoload, stored at `user://run_anchor.save`
 - Pause must freeze gameplay and keep UI responsive.
+- LAN multiplayer entry point: `NetworkSession` autoload. Keep transport/session behavior there instead of spreading networking through gameplay scripts.
+- Host controls network run start/restart; clients leave cleanly to title if the session ends.
+- Remote players are proxies. They should not process local input, HUD, camera, pause UI, or local trajectory/aim predictors.
+- New player-owned abilities must be categorized as local-only visuals, exported state, reliable network events, or deterministic seed-driven behavior.
 - Save data reconstructs progression only; never serialize live physics state.
 - Use inspector-authored child nodes for important polygons, trails, telegraphs, particles, and hit shapes.
 - Debug hotkeys live on `OrbitalJuiceManager` when `enable_dev_hotkeys` is enabled.
-- Full online co-op is future work. `MultiplayerSyncFoundation` currently provides deterministic snapshot/readability hooks only.
+- `MultiplayerSyncFoundation` provides deterministic snapshot/readability budgets that now support active LAN sessions and future Steam transport work.
 - `ArenaRuleDirector`, `LateGameInstabilityDirector`, `CoopComboDirector`, and `AdaptiveMusicStateDirector` are modular child systems installed by `OrbitalJuiceManager`.
 - `RunTransitionDirector`, `FairPacingDirector`, and `DeathFairnessDirector` add polish, beatable pacing, and fair failure context without owning combat logic.

@@ -93,7 +93,8 @@ The text should make the player feel that the arena is understandable, even when
 - Do not introduce retired project codenames as player-facing labels.
 - Keep debug and production validation labels clinical: `stress harness`, `runtime registry`, `production simulation`, and `budget report`.
 - Development builds may restore visible telemetry for balance work, but it must remain clinical, toggleable, and removable from launch exports.
-- Player orbit telemetry arcs are development-only diagnostic marks from mastery/trajectory systems. They explain orbit quality, tangent direction, and vector memory for tuning; player-facing builds should keep them disabled by default and rely on HUD readouts/arrows instead.
+- Player orbit telemetry arcs are development-only diagnostic marks from mastery systems. They explain orbit quality, tangent direction, and vector memory for tuning; player-facing builds should keep those debug rings disabled by default and rely on HUD readouts/arrows instead.
+- The orbital trajectory predictor is different: it is a player-facing control-vector forecast. Its bright orange/cyan path is acceptable in production because it communicates immediate movement consequence, not hidden debug scoring.
 
 ## Readability Commitments
 

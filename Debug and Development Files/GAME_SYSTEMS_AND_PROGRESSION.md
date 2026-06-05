@@ -215,9 +215,11 @@ These settings live on the existing `Settings` autoload and are exposed in the p
 
 ## Multiplayer Foundation
 
-Full online co-op is not implemented yet. `MultiplayerSyncFoundation` is a passive preparation layer that preserves solo gameplay while defining how future co-op should stay deterministic and readable.
+LAN co-op is implemented as the first active multiplayer layer. `NetworkSession` owns ENet LAN hosting/joining, peer roster records, deterministic run config broadcast, hosted restart, leave-session cleanup, projectile spawn replication, vector event replication, and future Steam transport entry points.
 
-It emits quantized sync snapshots for:
+The implementation preserves solo gameplay by keeping transport logic out of combat systems. Player scripts expose state import/export and event hooks; enemies/projectiles use `MultiplayerTargeting` to select a local or nearest valid player; the host owns run seed and scene flow.
+
+`MultiplayerSyncFoundation` now supports active multiplayer readability instead of acting only as passive preparation. It keeps the future from fighting the physics architecture by emitting quantized sync snapshots for:
 
 - run seed, phase, and wave
 - active gravity sources
@@ -225,9 +227,24 @@ It emits quantized sync snapshots for:
 - bosses
 - hostile projectiles
 
-It also emits peer-based readability budgets so future co-op UI can reduce clutter as players join.
+It also emits peer-based readability budgets so co-op UI can reduce clutter as players join.
 
-`CoopComboDirector` is the first deterministic co-op reward layer. Local or future networked players can register vector events. When two players hit the combo window, the director creates a shared resonance zone, applies a capped local slow to nearby threats, emits `coop_combo_triggered`, and gives `RunScoreTracker` a score event. It does not require online networking to exist yet.
+`CoopComboDirector` is the first deterministic co-op reward layer. Local and remote players can register vector events. When two players hit the combo window, the director creates a shared resonance zone, applies a capped local slow to nearby threats, emits `coop_combo_triggered`, and gives `RunScoreTracker` a score event.
+
+Current multiplayer limits:
+
+- LAN/IP hosting and joining are the supported transport.
+- Steam lobbies/relay are pending a GodotSteam/Steam `MultiplayerPeer` plugin.
+- Late-join state reconciliation is basic and should not be treated as public drop-in support until wave, boss, hazard, health, and energy reconciliation are tested.
+- The game still needs an automated two-instance host/client smoke test before multiplayer is considered release-stable.
+
+Continued functionality roadmap:
+
+- Every new player-owned mechanic must declare its network category: local visual, state export/import, reliable event, or deterministic seed-driven rule.
+- Every new hostile targeting path must use `MultiplayerTargeting` or an equivalent roster-aware helper.
+- Every new scene-flow button must leave or coordinate the network session explicitly.
+- Add version/mod-manifest handshake before public multiplayer testing.
+- Add Steam transport only behind `NetworkSession` so LAN and Steam share the same gameplay contract.
 
 ## Adaptive Music Foundation
 
@@ -248,8 +265,8 @@ This is an initial data-driven foundation. The game still needs runtime selectio
 
 ## Menus And State Flow
 
-- Title Screen: starts standard run, opens the playable tutorial, continues an anchor, starts challenge mode, starts boss rush, and displays version.
-- Pause Menu: freezes gameplay simulation, keeps UI responsive, and offers resume, restart, title abort, accessibility settings, a copyable run seed code, mod registry status/rescan, and multiplayer-prep readability budget. Its scale is centered and viewport-clamped.
+- Title Screen: starts standard run, opens the playable tutorial, continues an anchor, starts challenge mode, starts boss rush, hosts LAN play, joins LAN by IP/port, shows Steam transport status, and displays version.
+- Pause Menu: freezes gameplay simulation, keeps UI responsive, and offers resume, host-controlled restart, leave/title abort, accessibility settings, a copyable run seed code, mod registry status/rescan, active multiplayer status, and readability budget. Its scale is centered and viewport-clamped.
 - Game Over: displays `RunProgress.last_death_message`, clears the progress anchor, and offers retry/title.
 - Credits: separate non-hostile end state after the final boss.
 

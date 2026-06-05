@@ -201,6 +201,7 @@ The current build moves the hook closer to "watchable impossibility" by cutting 
 - Resonance and scar fields are capped, player-focused, lower-alpha, and shorter-lived so collapse reads as tactical pressure instead of a screen full of identical circles.
 - Player orbit telemetry rings are disabled by default; the HUD keeps the information in compact readouts and arrows.
 - Player bolts are larger/faster with matching predictor constants and sharper speed trails. Baseline bullets ignore player self-gravity; orbiting bullets are intentional Orbital Tether capture behavior.
+- Orbital trajectory prediction is restored as a bright, readable world-space future path: orange immediate danger, cyan continuation, glow, and fade. It should sell “watchable impossibility” while remaining useful for movement decisions.
 - The playable tutorial is available from the title screen for movement, slingshot, bolt, Gravity Wave, and Chronal Beam practice.
 - Death no longer permits postmortem firing or false recovery. It reads as immediate trajectory failure followed by a short collapse watch.
 - Player hits now have a short visible invulnerability window so burst stacks are readable instead of instantly fatal.
@@ -306,5 +307,17 @@ Late-wave spectacle now has explicit technical boundaries:
 - Opening prompts and credits now use the Vector Anomaly identity directly, keeping presentation labels separate from retired internal names.
 - Settings persistence lives in the `Settings` autoload and is consumed by pause/HUD/VFX systems instead of each UI surface owning separate config state.
 - Title secret completion is gated behind an explicit secret-mode state, keeping menu presentation separate from hidden encounter cleanup.
+- LAN multiplayer now lives behind `NetworkSession`, keeping host/join transport, roster, run config, projectile/vector events, hosted restart, and leave-session cleanup separate from core gameplay scripts.
+- Multiplayer gameplay compatibility is routed through `MultiplayerTargeting`, player state import/export, and deterministic vector events so enemies, projectiles, HUD, and co-op combo systems do not assume one hardcoded player.
 
 The commercial rule remains unchanged: the player should see impossible physics, while the code keeps discovery, pooling, validation, UI, saves, and content manifests separated into inspectable systems.
+
+## Multiplayer Continuity Roadmap
+
+The LAN milestone should grow through adapters and validation, not gameplay rewrites:
+
+- Keep ENet LAN and future Steam support behind the same `NetworkSession` contract.
+- Add a two-instance smoke test before describing multiplayer as release-stable.
+- Treat late joining as a reconciliation project: wave state, boss state, player health/energy, active hazards, and mod/version compatibility must all agree.
+- Every new player-owned mechanic must declare whether it is local visual state, exported proxy state, reliable event, or deterministic seed-driven behavior.
+- Every new hostile targeting path must use roster-aware helpers so solo, host, and client behavior stay aligned.

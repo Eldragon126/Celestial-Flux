@@ -24,14 +24,14 @@ func _ready() -> void:
 	add_to_group("Objects_With_Gravity")
 	add_to_group("planets")
 
-	player = get_tree().get_first_node_in_group("Player") as Node2D
+	player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_build_health()
 	_build_attack_timer()
 	call_deferred("enter_phase", 1)
 
 func _physics_process(delta: float) -> void:
 	if player == null or not is_instance_valid(player):
-		player = get_tree().get_first_node_in_group("Player") as Node2D
+		player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 		return
 
 	_update_phase_from_health()

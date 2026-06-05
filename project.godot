@@ -26,6 +26,7 @@ Settings="*uid://cdqcblk11uskc"
 RunProgress="*res://Scripts/run_progress.gd"
 BulletManager="*res://Scripts/bullet_manager.gd"
 RuntimeRegistry="*res://Scripts/vector_runtime_registry.gd"
+NetworkSession="*res://Scripts/network_session.gd"
 
 [display]
 

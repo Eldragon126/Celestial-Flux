@@ -198,7 +198,8 @@ Reference: Game Systems, Orbitron Systems, current production clarity pass, laun
 [ ] Secret Bosses (Vector Shade, Chronal Mirror, Gravity Maw) â€” Hidden routes functional, do not break campaign anchors.
 [x] ModContentRegistry + vector_anomaly_mod.json â€” Validation, failed manifest surfacing in pause menu.
 CODEX Progress 2026-06-04: Registry upgraded into a broad data-driven mod catalog with dependencies, load order, namespaced entries, content buckets, locked script packs, and pause-menu warning/status surfacing.
-[ ] Multiplayer Sync Foundation + CoopComboDirector â€” Passive deterministic snapshots + combo hooks ready (no networking yet).
+[x] LAN Multiplayer Session Layer + CoopComboDirector â€” `NetworkSession` supports host/play, join by IP/port, roster-driven player spawning, shared run seed/config, hosted restart, projectile/vector event broadcast, peer nameplates, and deterministic co-op combo hooks.
+CODEX Progress 2026-06-05: First active LAN multiplayer milestone completed. Remaining ship gates: two-instance LAN smoke test, late-join reconciliation, disconnect UX, version/mod handshake, and Steam transport adapter after GodotSteam/Steam MultiplayerPeer availability.
 [ ] ArenaRuleDirector + LateGameInstabilityDirector + SpacetimeTearDirector â€” All seeded profiles and capped impossible events functional.
 [ ] PerformanceBudgetDirector â€” Auto-lowers budgets on FPS drop. Covers late-game instability, co-op, music sampling, transitions.
 V1.0 Ship Gate: All above green + P0/P1/P2 green + headless production runner passes all budgets + full playthrough (standard + boss rush + challenge) stable and readable.
@@ -208,7 +209,7 @@ From original + Orbitron Systems long-term notes. Only after V1.0 green.
 [ ] Chronal Refraction Beam, Momentum Conservation Drift, Orbital Memory, Localized Time Debt, Gravitational Scar Formation (permanent), Resonance Cascade
 [ ] New enemy designs: Gravimetric Echo Drone, Event Horizon Warden, Phase-Slip Swarm, Orbital Null Harvester, Resonance Paralytic Construct
 [ ] Full modding UI + editor tooling
-[ ] Online co-op drop-in
+[ ] Multiplayer continuity upgrade: automated LAN host/client smoke test, late-join world reconciliation, disconnect recovery UX, version/mod handshake, Steam lobby/transport adapter behind `NetworkSession`, then public drop-in co-op polish.
 [ ] Daily challenges + community scoreboards
 [ ] Galaxy expansion (starmap, travel, region modifiers) â€” only after V1.0 metrics prove retention
 ---

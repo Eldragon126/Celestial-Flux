@@ -8,21 +8,25 @@ signal prediction_confidence_changed(confidence: float, instability: float)
 @export_node_path("CharacterBody2D") var player_path: NodePath = ^"../Player"
 
 @export_group("Simulation")
-@export var prediction_steps: int = 176
+@export var prediction_steps: int = 140
 @export var time_step: float = 0.014
 @export var max_prediction_distance: float = 5000.0
-@export var max_gravity_sources: int = 8
+@export var max_gravity_sources: int = 4
 @export var collision_radius: float = 55.0
 @export var stop_speed: float = 8.0
+@export var prediction_recalculate_interval: float = 0.045
+@export var draw_stride: int = 1
+@export var max_draw_segments: int = 132
+@export var pressure_hide_threshold: int = 128
 
 @export_group("Ghost Branches")
 @export var show_prediction_line: bool = true
 @export var branch_min_instability: float = 0.18
-@export var max_branch_count: int = 5
+@export var max_branch_count: int = 3
 @export var branch_angle_degrees: float = 8.5
 @export var branch_velocity_variance: float = 0.12
 @export var branch_gravity_variance: float = 0.16
-@export var branch_step_stride: int = 1
+@export var branch_step_stride: int = 2
 @export var branch_confidence_alpha: float = 0.58
 
 @export_group("Instability")
@@ -35,12 +39,15 @@ signal prediction_confidence_changed(confidence: float, instability: float)
 @export var scar_prediction_weight: float = 1.0
 
 @export_group("Visuals")
-@export var prediction_color: Color = Color(0.0, 0.88, 1.0, 0.72)
-@export var branch_color: Color = Color(0.22, 0.78, 1.0, 0.34)
+@export var prediction_color: Color = Color(0.0, 0.85, 1.0, 0.78)
+@export var branch_color: Color = Color(0.22, 0.78, 1.0, 0.38)
 @export var confidence_color: Color = Color(1.0, 0.92, 0.36, 0.72)
-@export var danger_color: Color = Color(1.0, 0.22, 0.1, 0.95)
-@export var line_width: float = 2.6
-@export var branch_line_width: float = 1.35
+@export var danger_color: Color = Color(1.0, 0.35, 0.1, 0.95)
+@export var line_width: float = 2.35
+@export var glow_width_multiplier: float = 2.35
+@export var glow_alpha_scale: float = 0.32
+@export var immediate_danger_segments: int = 25
+@export var branch_line_width: float = 1.45
 @export var confidence_tick_spacing: int = 18
 
 var _player: CharacterBody2D = null
@@ -56,13 +63,16 @@ var _arena_manager: Node = null
 var _time_manager: Node = null
 
 var _instability_sample_elapsed: float = 999.0
+var _calculation_elapsed: float = 999.0
 var _prediction_instability: float = 0.0
 var _prediction_confidence: float = 1.0
 var _last_emitted_confidence: float = 1.0
 var _local_time: float = 0.0
+var _projectile_pressure: int = 0
 
 
 func _ready() -> void:
+	top_level = true
 	_resolve_player()
 	_resolve_rule_sources()
 	set_process(true)
@@ -81,7 +91,18 @@ func _process(delta: float) -> void:
 		_refresh_gravity_sources()
 		_sample_instability(delta)
 
-	_calculate_trajectory()
+	_calculation_elapsed += delta
+	if _calculation_elapsed < maxf(prediction_recalculate_interval, 0.02):
+		return
+	_calculation_elapsed = 0.0
+
+	_projectile_pressure = _projectile_pressure_count()
+	if _projectile_pressure >= pressure_hide_threshold:
+		_prediction_points = PackedVector2Array()
+		_branch_paths.clear()
+		_predicted_collisions.clear()
+	else:
+		_calculate_trajectory()
 
 	if show_prediction_line:
 		queue_redraw()
@@ -90,7 +111,9 @@ func _process(delta: float) -> void:
 func _resolve_player() -> void:
 	_player = get_node_or_null(player_path) as CharacterBody2D
 	if _player == null:
-		_player = get_tree().get_first_node_in_group("Player") as CharacterBody2D
+		_player = get_parent() as CharacterBody2D
+	if _player == null:
+		_player = MultiplayerTargeting.local_player(get_tree()) as CharacterBody2D
 
 
 func _resolve_rule_sources() -> void:
@@ -433,6 +456,8 @@ func _safe_player_float(property_name: StringName, fallback: float) -> float:
 func _draw() -> void:
 	if not show_prediction_line or _prediction_points.size() < 2:
 		return
+	if _projectile_pressure >= pressure_hide_threshold:
+		return
 
 	_draw_branch_predictions()
 	_draw_primary_prediction()
@@ -444,28 +469,70 @@ func _draw_branch_predictions() -> void:
 	if _branch_paths.is_empty():
 		return
 
+	var stride := maxi(draw_stride, 1)
 	for branch_index in range(_branch_paths.size()):
 		var path := _branch_paths[branch_index]
-		var branch_alpha := branch_color.a * branch_confidence_alpha * (1.0 - _prediction_confidence * 0.42)
-		for i in range(1, path.size()):
+		var branch_alpha := branch_color.a * branch_confidence_alpha * (1.0 - _prediction_confidence * 0.24)
+		var drawn := 0
+		for i in range(stride, path.size(), stride):
+			if drawn >= max_draw_segments:
+				break
 			var t := float(i) / float(maxi(path.size(), 1))
-			var p1 := to_local(_distorted_point(path[i - 1], i - 1, branch_index + 1))
+			var p1 := to_local(_distorted_point(path[i - stride], i - stride, branch_index + 1))
 			var p2 := to_local(_distorted_point(path[i], i, branch_index + 1))
-			var alpha := branch_alpha * (1.0 - t * 0.78)
-			draw_line(p1, p2, Color(branch_color.r, branch_color.g, branch_color.b, alpha), branch_line_width)
+			var alpha := _safe_visual_alpha(branch_alpha * (1.0 - t * 0.72), 0.34)
+			if alpha <= 0.004:
+				continue
+			var glow_alpha := _safe_visual_alpha(alpha * 0.34, 0.18)
+			draw_line(
+				p1,
+				p2,
+				Color(branch_color.r, branch_color.g, branch_color.b, glow_alpha),
+				maxf(branch_line_width * 2.25, branch_line_width + 1.0),
+				true
+			)
+			draw_line(p1, p2, Color(branch_color.r, branch_color.g, branch_color.b, alpha), branch_line_width, true)
+			drawn += 1
 
 
 func _draw_primary_prediction() -> void:
 	var collision_step := _first_collision_step()
-	for i in range(1, _prediction_points.size()):
-		var p1 := to_local(_distorted_point(_prediction_points[i - 1], i - 1, 0))
+	var stride := maxi(draw_stride, 1)
+	var drawn := 0
+	for i in range(stride, _prediction_points.size(), stride):
+		if drawn >= max_draw_segments:
+			break
+		var p1 := to_local(_distorted_point(_prediction_points[i - stride], i - stride, 0))
 		var p2 := to_local(_distorted_point(_prediction_points[i], i, 0))
 		var t := float(i) / float(maxi(_prediction_points.size(), 1))
-		var color := prediction_color
-		if collision_step >= 0 and i >= maxi(collision_step - 20, 0):
-			color = danger_color
-		var alpha := color.a * lerpf(0.28, 1.0, _prediction_confidence) * (1.0 - t * 0.72)
-		draw_line(p1, p2, Color(color.r, color.g, color.b, alpha), line_width)
+		var color := _primary_segment_color(i, collision_step)
+		var alpha := _primary_segment_alpha(color, t)
+		if alpha <= 0.004:
+			continue
+		var glow_alpha := _safe_visual_alpha(alpha * glow_alpha_scale, 0.46)
+		draw_line(
+			p1,
+			p2,
+			Color(color.r, color.g, color.b, glow_alpha),
+			maxf(line_width * glow_width_multiplier, line_width + 1.0),
+			true
+		)
+		draw_line(p1, p2, Color(color.r, color.g, color.b, alpha), line_width, true)
+		drawn += 1
+
+
+func _primary_segment_color(step_index: int, collision_step: int) -> Color:
+	if step_index <= immediate_danger_segments:
+		return danger_color
+	if collision_step >= 0 and step_index >= maxi(collision_step - immediate_danger_segments, 0):
+		return danger_color
+	return prediction_color
+
+
+func _primary_segment_alpha(color: Color, progress: float) -> float:
+	var confidence_alpha := lerpf(0.58, 1.0, _prediction_confidence)
+	var fade_alpha := 1.0 - progress * 0.65
+	return _safe_visual_alpha(color.a * confidence_alpha * fade_alpha, 0.92)
 
 
 func _draw_confidence_ticks() -> void:
@@ -482,20 +549,23 @@ func _draw_confidence_ticks() -> void:
 		var normal := segment.normalized().orthogonal()
 		var width := lerpf(5.0, visual_distortion_pixels * 0.42, _prediction_instability) * (1.0 - t * 0.5)
 		var center := to_local(_distorted_point(current, i, 0))
-		var alpha := confidence_color.a * _prediction_instability * (1.0 - t * 0.65)
+		var alpha := _safe_visual_alpha(confidence_color.a * _prediction_instability * (1.0 - t * 0.65), 0.38)
 		draw_line(
 			center - normal * width,
 			center + normal * width,
 			Color(confidence_color.r, confidence_color.g, confidence_color.b, alpha),
-			maxf(branch_line_width, 1.0)
+			maxf(branch_line_width, 1.0),
+			true
 		)
 
 
 func _draw_player_origin() -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
-	var alpha := lerpf(0.42, 0.9, _prediction_confidence)
-	draw_circle(to_local(_player.global_position), 6.0, Color(0.0, 1.0, 0.6, alpha))
+	var alpha := _safe_visual_alpha(lerpf(0.42, 0.9, _prediction_confidence), 0.68)
+	var origin := to_local(_player.global_position)
+	draw_circle(origin, 10.0, Color(0.0, 1.0, 0.6, alpha * 0.22))
+	draw_circle(origin, 5.5, Color(0.0, 1.0, 0.6, alpha))
 
 
 func _distorted_point(point: Vector2, step: int, branch_index: int) -> Vector2:
@@ -523,3 +593,17 @@ func get_prediction_debug_state() -> Dictionary:
 		"instability": _prediction_instability,
 		"collisions": _predicted_collisions.size(),
 	}
+
+
+func _projectile_pressure_count() -> int:
+	if RuntimeRegistry != null:
+		return RuntimeRegistry.get_count(&"Projectiles")
+	return get_tree().get_nodes_in_group("Projectiles").size()
+
+
+func _safe_visual_alpha(alpha: float, cap: float) -> float:
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		return Settings.world_visual_alpha(alpha, cap)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return minf(Settings.flash_alpha(alpha), cap)
+	return minf(alpha, cap)

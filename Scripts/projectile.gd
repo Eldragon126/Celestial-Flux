@@ -20,6 +20,13 @@ extends RigidBody2D
 @export var vector_trail_alpha: float = 0.54
 @export var vector_core_color: Color = Color(0.0, 0.85, 1.0, 0.75) # Cyan
 @export var vector_trail_fade_color: Color = Color(1.0, 0.35, 0.1, 0.95) # Danger Orange
+@export var vector_trail_particle_cap: int = 28
+@export var rail_trail_particle_cap: int = 36
+@export var visual_pressure_soft_cap: int = 64
+@export var visual_pressure_hard_cap: int = 118
+@export var trail_focus_radius: float = 1640.0
+@export var trail_budget_refresh_interval: float = 0.18
+@export var preserve_trail_after_destroy: bool = true
 
 @export_group("Vector Anomaly Upgrade Responses")
 @export var relativistic_rail_acceleration: float = 640.0
@@ -34,6 +41,10 @@ var _has_launched: bool = false
 var _rail_trail: CPUParticles2D = null
 var _vector_trail: CPUParticles2D = null
 var _rail_heat: float = 0.0
+var _visual_player: Node2D = null
+var _visual_budget_elapsed: float = 999.0
+var _visual_pressure: int = 0
+var _visual_in_focus: bool = true
 
 # ========================
 # == LIFECYCLE ==
@@ -61,8 +72,10 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	var total_grav_accel = Vector2.ZERO
+	_update_visual_budget(delta)
 	_apply_relativistic_rail(delta)
 	_update_vector_trail(delta)
+	_update_projectile_light()
 	if has_meta(&"orbital_satellite_owner"):
 		return
 	
@@ -172,13 +185,19 @@ func _destroy_projectile() -> void:
 	if parent != null:
 		if is_instance_valid(_vector_trail):
 			_vector_trail.emitting = false
-			_vector_trail.reparent(parent)
-			get_tree().create_timer(_vector_trail.lifetime).timeout.connect(_vector_trail.queue_free)
+			if _should_preserve_trail_after_destroy():
+				_vector_trail.reparent(parent)
+				get_tree().create_timer(_vector_trail.lifetime).timeout.connect(_vector_trail.queue_free)
+			else:
+				_vector_trail.queue_free()
 		
 		if is_instance_valid(_rail_trail):
 			_rail_trail.emitting = false
-			_rail_trail.reparent(parent)
-			get_tree().create_timer(_rail_trail.lifetime).timeout.connect(_rail_trail.queue_free)
+			if _should_preserve_trail_after_destroy():
+				_rail_trail.reparent(parent)
+				get_tree().create_timer(_rail_trail.lifetime).timeout.connect(_rail_trail.queue_free)
+			else:
+				_rail_trail.queue_free()
 			
 	queue_free()
 
@@ -216,6 +235,10 @@ func _update_rail_trail(active: bool, delta: float, ratio: float = 0.0) -> void:
 	_rail_heat = lerpf(_rail_heat, ratio if active else 0.0, clampf(delta * 8.0, 0.0, 1.0))
 	if _rail_heat <= 0.02 and _rail_trail == null:
 		return
+	if not _should_emit_projectile_trails(true):
+		if _rail_trail != null:
+			_rail_trail.emitting = false
+		return
 		
 	if _rail_trail == null:
 		_rail_trail = CPUParticles2D.new()
@@ -227,7 +250,7 @@ func _update_rail_trail(active: bool, delta: float, ratio: float = 0.0) -> void:
 		_rail_trail.material = mat
 		
 		_rail_trail.local_coords = false # Leaves a trail in global space
-		_rail_trail.amount = 150
+		_rail_trail.amount = _trail_amount(rail_trail_particle_cap)
 		_rail_trail.lifetime = 0.6
 		_rail_trail.gravity = Vector2.ZERO
 		_rail_trail.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
@@ -243,6 +266,7 @@ func _update_rail_trail(active: bool, delta: float, ratio: float = 0.0) -> void:
 
 	if _rail_heat > 0.03:
 		_rail_trail.emitting = true
+		_rail_trail.amount = _trail_amount(rail_trail_particle_cap)
 		_rail_trail.scale_amount_min = lerpf(2.0, 6.0, _rail_heat)
 		_rail_trail.scale_amount_max = lerpf(4.0, 9.0, _rail_heat)
 		_rail_trail.initial_velocity_min = lerpf(5.0, 30.0, _rail_heat)
@@ -270,6 +294,8 @@ func _configure_windowkill_visuals() -> void:
 func _ensure_vector_trail() -> void:
 	if _vector_trail != null:
 		return
+	if not _should_emit_projectile_trails(false):
+		return
 		
 	_vector_trail = CPUParticles2D.new()
 	_vector_trail.name = "VectorBoltParticles"
@@ -280,7 +306,7 @@ func _ensure_vector_trail() -> void:
 	_vector_trail.material = mat
 	
 	_vector_trail.local_coords = false # Leaves a trail in global space
-	_vector_trail.amount = 120
+	_vector_trail.amount = _trail_amount(vector_trail_particle_cap)
 	_vector_trail.lifetime = 0.45
 	_vector_trail.gravity = Vector2.ZERO
 	
@@ -310,7 +336,10 @@ func _update_vector_trail(_delta: float) -> void:
 		return
 
 	var speed := linear_velocity.length()
-	_vector_trail.emitting = speed > 24.0
+	var can_emit := speed > 24.0 and _should_emit_projectile_trails(false)
+	_vector_trail.emitting = can_emit
+	if can_emit:
+		_vector_trail.amount = _trail_amount(vector_trail_particle_cap)
 
 
 func _trigger_upgrade_impacts(body: Node) -> void:
@@ -390,6 +419,68 @@ func _filter_ignored_gravity_sources() -> void:
 		var source := planets[index]
 		if source == null or not is_instance_valid(source) or _should_ignore_gravity_source(source):
 			planets.remove_at(index)
+
+
+func _update_visual_budget(delta: float) -> void:
+	_visual_budget_elapsed += delta
+	if _visual_budget_elapsed < maxf(trail_budget_refresh_interval, 0.05):
+		return
+	_visual_budget_elapsed = 0.0
+	_visual_pressure = _projectile_pressure()
+	_visual_in_focus = _is_in_player_focus()
+
+
+func _should_emit_projectile_trails(include_upgraded: bool) -> bool:
+	if _visual_pressure >= visual_pressure_hard_cap:
+		return false
+	if not _visual_in_focus:
+		return false
+	if _visual_pressure >= visual_pressure_soft_cap and not include_upgraded:
+		return false
+	return true
+
+
+func _trail_amount(base_cap: int) -> int:
+	var cap := maxi(base_cap, 0)
+	if cap <= 0:
+		return 0
+	if _visual_pressure <= visual_pressure_soft_cap:
+		return cap
+	var span := maxf(float(visual_pressure_hard_cap - visual_pressure_soft_cap), 1.0)
+	var pressure := clampf(float(_visual_pressure - visual_pressure_soft_cap) / span, 0.0, 1.0)
+	return clampi(int(round(float(cap) * lerpf(0.62, 0.28, pressure))), 4, cap)
+
+
+func _projectile_pressure() -> int:
+	if RuntimeRegistry != null:
+		return RuntimeRegistry.get_count(&"Projectiles")
+	return get_tree().get_nodes_in_group("Projectiles").size()
+
+
+func _is_in_player_focus() -> bool:
+	if trail_focus_radius <= 0.0:
+		return true
+	if _visual_player == null or not is_instance_valid(_visual_player):
+		_visual_player = get_tree().get_first_node_in_group("Player") as Node2D
+	if _visual_player == null or not is_instance_valid(_visual_player):
+		return true
+	return global_position.distance_squared_to(_visual_player.global_position) <= trail_focus_radius * trail_focus_radius
+
+
+func _should_preserve_trail_after_destroy() -> bool:
+	return preserve_trail_after_destroy and _visual_in_focus and _visual_pressure < visual_pressure_soft_cap
+
+
+func _update_projectile_light() -> void:
+	var light := get_node_or_null("PointLight2D") as PointLight2D
+	if light == null:
+		return
+	var enabled := _visual_in_focus and _visual_pressure < visual_pressure_hard_cap
+	light.visible = enabled
+	if not enabled:
+		return
+	var pressure := clampf(float(_visual_pressure) / maxf(float(visual_pressure_soft_cap), 1.0), 0.0, 1.0)
+	light.energy = lerpf(2.65, 0.74, pressure)
 
 
 func _should_ignore_gravity_source(source: Node2D) -> bool:

@@ -22,7 +22,7 @@ func _ready() -> void:
 	add_to_group("Objects_With_Gravity")
 	add_to_group("planets")
 	_base_mass = mass
-	_player = get_tree().get_first_node_in_group("Player") as Node2D
+	_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_build_body()
 	_build_health()
 	_build_timer()
@@ -52,7 +52,7 @@ func take_damage(amount: float) -> void:
 func _update_distortion() -> void:
 	mass = _base_mass
 	if _player == null or not is_instance_valid(_player):
-		_player = get_tree().get_first_node_in_group("Player") as Node2D
+		_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 		return
 
 	var distance = global_position.distance_to(_player.global_position)

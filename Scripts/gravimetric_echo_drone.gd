@@ -31,7 +31,7 @@ func _ready() -> void:
 	add_to_group("enemies")
 	if RuntimeRegistry != null:
 		RuntimeRegistry.register_node(self, &"enemies")
-	_player = get_tree().get_first_node_in_group("Player") as Node2D
+	_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_build_body()
 	_build_health()
 	set_process(true)

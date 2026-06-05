@@ -164,6 +164,24 @@ UI/UX PRIORITIES
 - Avoid excessive menus and clutter.
 - Feedback should be immediate and readable.
 
+MULTIPLAYER ARCHITECTURE PRIORITIES
+- LAN host/join support is implemented through the `NetworkSession` autoload.
+- Keep transport/session logic in `NetworkSession`; gameplay scripts should expose narrow state hooks and events.
+- Host authority owns run start, restart, seed config, scene changes, and roster snapshots.
+- Clients should submit local player state and local vector/projectile events only.
+- Remote players are proxies: no input, no local HUD, no local camera, no local pause menu, no local trajectory/aim predictors.
+- Enemy, boss, projectile, HUD, and co-op systems should target `MultiplayerTargeting.local_player()` or nearest valid player rather than assuming the first `Player` group node.
+- Multiplayer resilience depends on deterministic seeds, capped snapshots, and shared vector events instead of serializing the whole live physics world.
+- When gameplay changes, audit `player.gd` network exports/imports, target selection helpers, projectile spawn broadcast, vector event broadcast, and pause/title session cleanup.
+- Steam support is a transport-roadmap layer. Do not fork gameplay for Steam; add a Steam `MultiplayerPeer` adapter behind `NetworkSession` when the GodotSteam/Steam transport plugin is available.
+
+TRAJECTORY READABILITY PRIORITIES
+- The orbital trajectory predictor is a core readability/spectacle feature.
+- It should look like a luminous future path: orange near-future/danger segments, cyan continuation, soft glow, and a readable alpha fade.
+- Do not mute the predictor into faint debug telemetry unless accessibility settings require it.
+- Keep predictor simulation aligned with player gravity sampling, projectile tuning, and local multiplayer ownership.
+- Scene overrides in `Nodes/player.tscn` must stay in lockstep with exported predictor defaults.
+
 WHEN HELPING WITH DESIGN
 - Preserve the game's identity.
 - Favor originality over generic roguelike conventions.

@@ -25,7 +25,7 @@ func _ready() -> void:
 	contact_monitor = true
 	max_contacts_reported = 2
 	body_entered.connect(_on_body_entered)
-	_player = get_tree().get_first_node_in_group("Player") as Node2D
+	_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_build_body()
 	_build_health()
 	_refresh_gravity_sources()
@@ -41,6 +41,9 @@ func _physics_process(delta: float) -> void:
 	if gravity != Vector2.ZERO:
 		apply_central_force(gravity)
 
+	if _player == null or not is_instance_valid(_player):
+		_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
+
 	if _player != null and is_instance_valid(_player):
 		var target = _predicted_player_position()
 		var desired = (target - global_position).normalized() * launch_speed
@@ -54,6 +57,8 @@ func take_damage(amount: float) -> void:
 		_health.take_damage(amount)
 
 func _launch_at_player() -> void:
+	if _player == null or not is_instance_valid(_player):
+		_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	if _player == null or not is_instance_valid(_player):
 		linear_velocity = Vector2.RIGHT.rotated(randf() * TAU) * launch_speed
 		return

@@ -21,7 +21,7 @@ var _rng = RandomNumberGenerator.new()
 func _ready() -> void:
 	add_to_group("enemies")
 	_rng.randomize()
-	_player = get_tree().get_first_node_in_group("Player") as Node2D
+	_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_build_body()
 	_build_health()
 	_refresh_gravity_sources()

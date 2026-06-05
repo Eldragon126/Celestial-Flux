@@ -50,6 +50,8 @@ func apply_budgets() -> void:
 	_apply_vfx_budget(scene, low, medium)
 	_apply_enemy_ai_budget(scene, low, medium)
 	_apply_player_budget(low)
+	_apply_prediction_budget(low, medium)
+	_apply_projectile_visual_budget(low, medium)
 	_apply_juice_coordinator_budget(scene, low)
 	_apply_new_director_budget(scene, low, medium)
 
@@ -144,6 +146,21 @@ func _apply_new_director_budget(scene: Node, low: bool, medium: bool) -> void:
 		_set_if_present(tear, "max_active_tears", 1 if low else (2 if medium else 3))
 		_set_if_present(tear, "max_alive_tear_enemies", 3 if low else (4 if medium else 6))
 		_set_if_present(tear, "max_enemies_per_tear", 1 if low else 2)
+	var swim := scene.find_child("SpacetimeSwimDirector", true, false)
+	if swim != null:
+		_set_if_present(swim, "enable_fabric_shader", not low)
+		_set_if_present(swim, "fabric_update_interval", 0.09 if medium else 0.05)
+		_set_if_present(swim, "fabric_crack_density", 5.2 if medium else 7.0)
+	var collapse := scene.find_child("RealityCollapseDirector", true, false)
+	if collapse != null:
+		_set_if_present(collapse, "enable_fabric_shader", not low)
+		_set_if_present(collapse, "fabric_update_interval", 0.1 if medium else 0.06)
+	var anomaly := scene.find_child("VectorAnomalyDirector", true, false)
+	if anomaly != null:
+		_set_if_present(anomaly, "max_active_micro_lenses", 2 if low else (3 if medium else 4))
+		_set_if_present(anomaly, "collapse_event_cooldown", 0.34 if low else (0.26 if medium else 0.22))
+		_set_if_present(anomaly, "relativistic_impact_cooldown", 0.22 if low else (0.17 if medium else 0.14))
+		_set_if_present(anomaly, "transient_ring_chaos_skip_threshold", 0.52 if low else (0.64 if medium else 0.72))
 	var wave := scene.find_child("WaveDirector", true, false)
 	if wave != null:
 		_set_if_present(wave, "max_regular_enemies", 7 if low else (8 if medium else 10))
@@ -155,6 +172,46 @@ func _apply_player_budget(low: bool) -> void:
 		return
 	_set_if_present(player, "max_gravity_sources", 3 if low else 4)
 	_set_if_present(player, "gravity_source_refresh_interval", 0.45 if low else 0.35)
+
+
+func _apply_prediction_budget(low: bool, medium: bool) -> void:
+	var player := get_tree().get_first_node_in_group("Player")
+	if player == null:
+		return
+	var aim := player.get_node_or_null("ProjectileAimPredictor")
+	if aim != null:
+		_set_if_present(aim, "prediction_steps", 58 if low else (74 if medium else 88))
+		_set_if_present(aim, "substeps", 1 if low else 2)
+		_set_if_present(aim, "ghost_count", 0 if low else (1 if medium else 2))
+		_set_if_present(aim, "max_draw_segments", 42 if low else (58 if medium else 72))
+		_set_if_present(aim, "prediction_recalculate_interval", 0.09 if low else (0.07 if medium else 0.055))
+		_set_if_present(aim, "pressure_hide_threshold", 72 if low else (96 if medium else 112))
+	var trajectory := player.get_node_or_null("OrbitalTrajectoryPredictor")
+	if trajectory != null:
+		_set_if_present(trajectory, "prediction_steps", 72 if low else (92 if medium else 112))
+		_set_if_present(trajectory, "max_gravity_sources", 3 if low else 4)
+		_set_if_present(trajectory, "max_branch_count", 1 if low else (2 if medium else 3))
+		_set_if_present(trajectory, "max_draw_segments", 52 if low else (68 if medium else 84))
+		_set_if_present(trajectory, "prediction_recalculate_interval", 0.1 if low else (0.075 if medium else 0.06))
+		_set_if_present(trajectory, "pressure_hide_threshold", 84 if low else (108 if medium else 128))
+
+
+func _apply_projectile_visual_budget(low: bool, medium: bool) -> void:
+	var pressure := _group_count(&"Projectiles")
+	if not low and pressure < projectile_pressure_threshold:
+		return
+	var vector_cap := 8 if low else (16 if medium else 22)
+	var rail_cap := 10 if low else (18 if medium else 26)
+	var soft_cap := 44 if low else (58 if medium else 70)
+	var hard_cap := 82 if low else (106 if medium else 128)
+	for projectile in get_tree().get_nodes_in_group("Projectiles"):
+		var node := projectile as Node
+		if node == null or not is_instance_valid(node):
+			continue
+		_set_if_present(node, "vector_trail_particle_cap", vector_cap)
+		_set_if_present(node, "rail_trail_particle_cap", rail_cap)
+		_set_if_present(node, "visual_pressure_soft_cap", soft_cap)
+		_set_if_present(node, "visual_pressure_hard_cap", hard_cap)
 
 
 func _update_auto_quality() -> void:

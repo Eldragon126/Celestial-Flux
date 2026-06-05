@@ -16,7 +16,7 @@ var _attach_offset = Vector2.ZERO
 var dt = 0.0
 func _ready() -> void:
 	add_to_group("enemies")
-	_player = get_tree().get_first_node_in_group("Player")
+	_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_build_body()
 	_build_health()
 	_build_damage_timer()
@@ -28,15 +28,15 @@ func _physics_process(delta: float) -> void:
 		dt += delta * 5
 		if dt >= TAU:
 			dt = 0
-		var x = _player.global_position.x + 90*cos(dt)
-		var y = _player.global_position.y + 90*sin(dt)
-		rotation = lerp_angle(rotation, (global_position - _player.global_position).angle(), delta * 10)
+		var x = _attached_body.global_position.x + 90*cos(dt)
+		var y = _attached_body.global_position.y + 90*sin(dt)
+		rotation = lerp_angle(rotation, (global_position - _attached_body.global_position).angle(), delta * 10)
 		global_position = Vector2(x,y)
 		velocity = Vector2.ZERO
 		return
 
 	if _player == null or not is_instance_valid(_player):
-		_player = get_tree().get_first_node_in_group("Player")
+		_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 		return
 
 	var to_player = (_player.global_position - global_position)

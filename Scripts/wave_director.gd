@@ -233,7 +233,10 @@ func _configure_music_maps() -> void:
 	}
 
 func _ready() -> void:
-	_rng.randomize()
+	if RunProgress != null and int(RunProgress.run_seed) != 0:
+		_rng.seed = int(RunProgress.run_seed) ^ 0x5A71E
+	else:
+		_rng.randomize()
 	_level_root = get_tree().current_scene
 	_configure_music_maps()
 	_build_ui()

@@ -69,6 +69,21 @@
 - Log errors appropriately in production builds
 - Handle network errors gracefully in multiplayer games
 
+## Multiplayer Maintenance
+
+- Keep LAN multiplayer isolated behind `NetworkSession`; gameplay scripts should expose small state/export hooks instead of owning transport logic.
+- Host authority owns run seed, scene start/restart, roster synchronization, and client scene changes.
+- Local and remote players must stay separated with `network_is_local`; only local players should process input, camera, HUD, pause UI, and player-owned predictors.
+- Prefer deterministic vector events, seed config, and capped snapshots over trying to serialize entire live physics state.
+- When gameplay changes, update `export_network_state()`, `apply_network_state()`, and `MultiplayerTargeting` before touching transport code.
+
+## Trajectory Predictor Maintenance
+
+- Orbital trajectory prediction is player-facing readability, not disposable debug telemetry.
+- Keep `OrbitalTrajectoryPredictor` visually bright, continuous, and readable: cyan future path, orange immediate/danger path, alpha fade, and glow pass.
+- Predictor simulation should mirror player gravity caps and local-player selection so multiplayer remote proxies do not draw local controls.
+- If projectile or gravity tuning changes, update predictor constants and scene overrides in lockstep.
+
 ## TileMap Implementation
 
 - TileMap node is deprecated - use multiple TileMapLayer nodes instead

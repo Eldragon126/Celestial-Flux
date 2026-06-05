@@ -250,9 +250,25 @@ Player hit flow now includes a short configurable post-hit invulnerability windo
 
 Hot systems that cache scene nodes must validate before casting. `RuntimeRegistry`, resonance/scar visual dictionaries, beam hit queries, powerup projectile instance IDs, pooled swim/lens/debris effects, enemy AI scans, and gravity source refreshes now check `is_instance_valid()` before assigning typed nodes.
 
-## Multiplayer Sync Foundation
+## Multiplayer Session Architecture
 
-Full drop-in/drop-out online co-op is still future work. The current foundation keeps that future from fighting the physics architecture:
+2026-06-05 milestone: Vector Anomaly now has first-pass LAN multiplayer instead of only passive sync scaffolding.
+
+`NetworkSession` is the transport/session autoload. It owns LAN hosting, LAN joining by IP/port, peer roster records, player scene configuration, run seed/config replication, hosted restart, leave-session cleanup, projectile spawn broadcast, vector-event broadcast, and future Steam transport entry points.
+
+Current supported flow:
+
+- title screen calls `host_and_play()` for local hosting plus play
+- title screen calls `join_lan_game(address, port, callsign)` for IP joins
+- the host starts/restarts network runs and broadcasts the deterministic run config
+- clients receive the run config, apply the same seed/phase state, and change to the run scene
+- `configure_arena_players()` maps the scene player plus spawned peer players to roster records
+- local players process input, camera, HUD, pause UI, predictors, projectile/vector broadcasts, and state submission
+- remote players are visual/gameplay proxies that interpolate submitted state and do not own local controls
+
+`MultiplayerTargeting` is the compatibility layer for gameplay scripts. Enemy AI, projectiles, HUD helpers, and co-op hooks should ask it for the local player or nearest valid player instead of assuming the first node in the `Player` group is authoritative.
+
+`MultiplayerSyncFoundation` remains useful, but its role has shifted from future-only placeholder to runtime readability/sync budget layer:
 
 - sync snapshots are quantized and deterministic rather than live simulation saves
 - gravity sources, wave enemies, bosses, and hostile projectiles are hashed within explicit budgets
@@ -260,9 +276,18 @@ Full drop-in/drop-out online co-op is still future work. The current foundation 
 - peer readability budgets expose limits for arrows and warnings as player count grows
 - co-op combo hooks accept player vector events and emit a combo-window signal without changing solo mechanics
 
-The foundation is passive and does not network anything yet.
+`CoopComboDirector` builds on that foundation. It registers local mastery slingshots and receives remote vector events through `NetworkSession.broadcast_vector_event()`. When two distinct player vector events land inside the combo window, it creates a shared resonance payoff, locally slows nearby threats, emits `coop_combo_triggered`, and gives the score tracker a combo event.
 
-`CoopComboDirector` builds on that foundation. It registers local mastery slingshots and exposes `register_remote_vector_event()` for future network peers. When two distinct player vector events land inside the combo window, it creates a shared resonance payoff, locally slows nearby threats, emits `coop_combo_triggered`, and gives the score tracker a combo event.
+Steam support is intentionally a transport roadmap, not a gameplay fork. When a GodotSteam/Steam `MultiplayerPeer` plugin is installed, add the Steam host/join/lobby adapter behind `NetworkSession` and keep player state, targeting, projectile events, vector events, run config, and pause/session cleanup unchanged.
+
+### Multiplayer Continuity Roadmap
+
+- Add a two-instance LAN smoke runner that starts host/client, confirms shared seed, roster count, remote player spawn, projectile broadcast, and hosted restart.
+- Add a gameplay-change checklist: every new player-owned ability must decide whether it is local-only visual, state-exported, reliable event-broadcast, or deterministic seed-driven.
+- Add transport abstraction tests before Steam integration so ENet LAN and Steam peers share the same session contract.
+- Add late-join reconciliation for active wave state, boss state, player health/energy, and important world hazards before advertising public drop-in co-op.
+- Add disconnect recovery rules: client returns to title with a clear message, host removes peer player/proxies, and run state remains valid.
+- Add version/compatibility handshake so mismatched builds or mod manifests fail cleanly before spawning players.
 
 ## Adaptive Music State
 
@@ -373,6 +398,8 @@ The pause menu displays `RunProgress.get_run_seed_code()` and can copy it to the
 Pause and HUD scaling are separated: the pause panel scales around its center and clamps to the viewport, while offscreen HUD arrows live outside the scaled HUD root so larger UI settings do not push arrows offscreen.
 
 ## Projectile Prediction And Flash Safety
+
+`OrbitalTrajectoryPredictor` is a player-facing movement forecast and visual identity feature. It draws in world space, resolves the local multiplayer player, and should remain visibly readable: orange immediate/danger segments, cyan future path, soft glow, alpha fade, and a compact origin marker. It throttles recalculation and caps draw segments/projectile pressure, but must not be muted into faint debug telemetry. If player gravity sampling, slingshot behavior, or multiplayer ownership changes, update the predictor simulation and `Nodes/player.tscn` overrides together.
 
 The player projectile predictor now mirrors the projectile's capped gravity-source sampling, launch speed inheritance from momentum, and planet-hit behavior. If a shot would hit a planet, the predictor stops at impact because the actual projectile is destroyed there.
 
