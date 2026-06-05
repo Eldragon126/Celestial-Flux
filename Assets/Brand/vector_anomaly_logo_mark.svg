@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Vector Anomaly logo mark">
+  <rect width="512" height="512" fill="#05080d"/>
+  <circle cx="256" cy="256" r="178" fill="none" stroke="#29d8ff" stroke-width="14" opacity="0.78"/>
+  <circle cx="256" cy="256" r="92" fill="none" stroke="#ffbe3d" stroke-width="10" opacity="0.88"/>
+  <path d="M256 50 L304 246 L462 256 L304 302 L256 462 L208 302 L50 256 L208 246 Z" fill="#07131d" stroke="#d9fbff" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M256 120 L292 256 L256 392 L220 256 Z" fill="#29d8ff" opacity="0.92"/>
+  <path d="M100 380 C190 310 314 310 422 112" fill="none" stroke="#ff4e3f" stroke-width="12" stroke-linecap="round" opacity="0.86"/>
+</svg>

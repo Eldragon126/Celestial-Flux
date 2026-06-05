@@ -7,6 +7,7 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 - Final Vector Anomaly logo, readable at Steam capsule size and in the title screen.
 - Steam capsule set: small capsule, header capsule, main capsule, vertical capsule, library hero, and library logo.
 - Key art showing the player slingshotting through a collapsing gravity field.
+- CODEX Progress 2026-06-04: First-pass editable SVG logo, logo mark, Steam capsule set, library hero/logo, vector key-art layout, and generated no-text concept PNG are in `Assets/Brand/`.
 - Press kit screenshots that clearly show player, gravity source, threat, trajectory, and recovery path.
 - Trailer capture scenes for early clean vectors, mid-run resonance, late collapse, Rupture, and the music finale.
 - Boss silhouette polish for Gravity Warden, Accretion Core, Null Vector Seraph, Magnetar Twins, Tidal Rift Weaver, The Polymorph, Centrifuge Marshal, and The Resonance Singularity.
@@ -34,6 +35,7 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 - HUD icons for energy, shield, slingshot grade, local field rule, chaos tier, and run arc phase.
 - Weapon HUD slots for future gravity-energy weapons.
 - Mod manifest status icons: loaded, failed, disabled, and future dependency warning.
+- CODEX Progress 2026-06-04: Simple SVG status icons created in `Assets/UI/Modding/`.
 
 ## Music Needed
 

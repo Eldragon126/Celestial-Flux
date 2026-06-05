@@ -236,11 +236,21 @@ func _apply_instability_shard() -> void:
 	var arena := _find_scene_node("ArenaDestabilizationManager")
 	if arena != null and arena.get("instability") != null:
 		arena.set("instability", clampf(float(arena.get("instability")) + 0.035 + float(rarity) * 0.012, 0.0, 1.0))
+	var reality := _find_scene_node("RealityCollapseDirector")
+	if rarity >= 3 and reality != null and reality.has_method("force_reality_breach"):
+		reality.call("force_reality_breach", &"corrupted_spacetime")
 	if RunProgress != null:
 		RunProgress.arena_flags["instability_shards"] = int(RunProgress.arena_flags.get("instability_shards", 0)) + 1
 
 
 func _activate_anomaly_seed() -> void:
+	var route := absi(hash("%s:%d:%d" % [global_position, rarity, int(value * 100.0)])) % 5
+	if route == 0 and _force_instability_event():
+		return
+	if route == 1 and _force_celestial_event():
+		return
+	if route == 2 and _force_reality_breach():
+		return
 	var arena := _find_scene_node("ArenaDestabilizationManager")
 	if arena != null and arena.has_method("force_arena_event"):
 		var events: Array[StringName] = [&"tide_slipstream", &"wormhole_shear", &"resonance_storm", &"temporal_pocket"]
@@ -249,6 +259,39 @@ func _activate_anomaly_seed() -> void:
 	var resonance := _find_scene_node("GravityResonanceManager")
 	if resonance != null and resonance.has_method("create_manual_resonance_zone"):
 		resonance.call("create_manual_resonance_zone", global_position, 260.0, GravityResonanceManager.ZoneType.SLIPSTREAM, 0.62, 3.2)
+
+
+func _force_instability_event() -> bool:
+	var instability := _find_scene_node("ArenaInstabilityDirector")
+	if instability == null or not instability.has_method("force_instability_event"):
+		return false
+	var events: Array[StringName] = [
+		&"gravity_tide",
+		&"resonance_storm",
+		&"slipstream_surge",
+		&"collapsing_orbit_lane",
+		&"spacetime_fracture",
+	]
+	instability.call("force_instability_event", events[_seeded_index(events.size(), 11)])
+	return true
+
+
+func _force_celestial_event() -> bool:
+	var celestial := _find_scene_node("CelestialBodyDirector")
+	if celestial == null or not celestial.has_method("force_celestial_event"):
+		return false
+	var events: Array[StringName] = [&"rogue_planet", &"binary_system", &"wandering_singularity", &"orbital_structure"]
+	celestial.call("force_celestial_event", events[_seeded_index(events.size(), 23)])
+	return true
+
+
+func _force_reality_breach() -> bool:
+	var reality := _find_scene_node("RealityCollapseDirector")
+	if reality == null or not reality.has_method("force_reality_breach"):
+		return false
+	var breaches: Array[StringName] = [&"screen_edge_breach", &"corrupted_spacetime", &"overlapping_timeline"]
+	reality.call("force_reality_breach", breaches[_seeded_index(breaches.size(), 37)])
+	return true
 
 
 func _apply_celestial_core(player_body: Node) -> void:
@@ -263,6 +306,7 @@ func _apply_celestial_core(player_body: Node) -> void:
 	if definition != null:
 		inventory.apply_powerup(definition)
 	player_body.set_meta(&"celestial_core_rule", String(TYPE_NAMES.get(drop_type, &"celestial_core")))
+	_force_celestial_event()
 
 
 func _expire() -> void:
@@ -276,6 +320,9 @@ func _drop_data() -> Dictionary:
 		"rarity": rarity,
 		"value": value,
 		"position": global_position,
+		"source_enemy": String(get_meta(&"source_enemy", "")),
+		"source_wave": int(get_meta(&"source_wave", 0)),
+		"drop_sequence": int(get_meta(&"drop_sequence", 0)),
 	}
 
 
@@ -419,6 +466,13 @@ func _find_scene_node(node_name: String) -> Node:
 	if root == null:
 		return null
 	return root.find_child(node_name, true, false)
+
+
+func _seeded_index(size: int, salt: int) -> int:
+	if size <= 0:
+		return 0
+	var seed := int(RunProgress.run_seed if RunProgress != null else 0)
+	return absi(hash("%d:%d:%d:%d:%d" % [seed, salt, rarity, int(global_position.x), int(global_position.y)])) % size
 
 
 func _now_seconds() -> float:

@@ -81,14 +81,15 @@ const ANY_SAMPLE_POSITION := Vector2(999999999.0, 999999999.0)
 @export_group("Visuals")
 @export var enable_visuals: bool = true
 @export_enum("Off", "Low", "High") var visual_quality: int = VisualQuality.HIGH
-@export var ring_segments: int = 72
-@export var max_particles_per_scar: int = 18
+@export var simple_polygon_visuals: bool = true
+@export var ring_segments: int = 42
+@export var max_particles_per_scar: int = 12
 @export var label_min_intensity: float = 0.32
 @export var visual_player_focus_radius: float = 1550.0
-@export var visual_radius_cap: float = 360.0
-@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.05
-@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.22
-@export_range(0.0, 1.0, 0.01) var visual_seam_alpha_cap: float = 0.16
+@export var visual_radius_cap: float = 320.0
+@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.035
+@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.18
+@export_range(0.0, 1.0, 0.01) var visual_seam_alpha_cap: float = 0.13
 
 var _scars: Array[Dictionary] = []
 var _visuals: Dictionary = {}
@@ -738,11 +739,11 @@ func _update_visual(scar: Dictionary, delta: float) -> void:
 	root.rotation += delta * _visual_spin(scar_type)
 
 	if core != null:
-		core.polygon = _soft_circle_points(36, visual_radius * 0.48)
+		core.polygon = _soft_circle_points(_visual_segments(16), visual_radius * 0.45)
 		core.color = Color(color.r, color.g, color.b, _visual_alpha(alpha * 0.09, visual_fill_alpha_cap))
 	if ring != null:
-		ring.points = _circle_points(maxi(ring_segments, 24), visual_radius)
-		ring.width = lerpf(1.2, 4.0, intensity)
+		ring.points = _circle_points(_visual_segments(ring_segments), visual_radius)
+		ring.width = lerpf(1.1, 2.8, intensity)
 		ring.default_color = Color(color.r, color.g, color.b, _visual_alpha(alpha, visual_ring_alpha_cap))
 	if seam != null:
 		seam.rotation = axis.angle() - root.rotation
@@ -762,7 +763,7 @@ func _update_visual(scar: Dictionary, delta: float) -> void:
 		label.modulate = Color(color.r, color.g, color.b, _visual_alpha(lerpf(0.34, 0.92, intensity), 0.72))
 	if particles != null:
 		particles.emitting = visual_quality == VisualQuality.HIGH and intensity > 0.2
-		particles.amount = int(lerpf(6.0, float(max_particles_per_scar), intensity))
+		particles.amount = int(lerpf(3.0, float(max_particles_per_scar), intensity))
 		if material != null:
 			material.emission_sphere_radius = visual_radius * 0.64
 
@@ -1080,16 +1081,26 @@ func _visual_alpha(alpha: float, hard_cap: float) -> float:
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()
-	for i in range(count):
-		var angle := TAU * float(i) / float(count)
+	var safe_count := maxi(count, 3)
+	for i in range(safe_count):
+		var angle := TAU * float(i) / float(safe_count)
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
 	return points
 
 
 func _soft_circle_points(count: int, base_radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()
-	for i in range(count):
-		var angle := TAU * float(i) / float(count)
+	var safe_count := maxi(count, 3)
+	for i in range(safe_count):
+		var angle := TAU * float(i) / float(safe_count)
 		var wave := sin(angle * 3.0 + _local_time * 0.5) * 0.05 + cos(angle * 7.0) * 0.03
 		points.append(Vector2(cos(angle), sin(angle)) * base_radius * (1.0 + wave))
 	return points
+
+
+func _visual_segments(requested: int, hard_cap: int = 32) -> int:
+	var cap_limit := 18 if simple_polygon_visuals else 32
+	var local_cap := mini(hard_cap, cap_limit)
+	if Settings != null and Settings.has_method("world_polygon_segments"):
+		return Settings.world_polygon_segments(requested, local_cap)
+	return clampi(requested, 3, local_cap)

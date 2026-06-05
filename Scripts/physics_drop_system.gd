@@ -2,6 +2,8 @@ extends Node
 class_name PhysicsDropSystem
 
 signal drop_sequence_spawned(enemy: Node, drops: Array, data: Dictionary)
+signal drop_collected(drop_type: int, data: Dictionary)
+signal drop_expired(drop_type: int, data: Dictionary)
 
 const PHYSICS_DROP_SCENE = preload("res://Nodes/physics_drop.tscn")
 
@@ -22,6 +24,8 @@ const PHYSICS_DROP_SCENE = preload("res://Nodes/physics_drop.tscn")
 
 var _active_drops: Array[Node] = []
 var _wave_director: Node = null
+var _sequence: int = 0
+var _spawn_source_enemy_name: String = ""
 
 
 func _ready() -> void:
@@ -55,6 +59,7 @@ func try_spawn_for_enemy(enemy: Node, position: Vector2, is_boss: bool = false) 
 	var rng := _rng_for_enemy(enemy)
 	var wave := _current_wave()
 	var rarity := _rarity_for_enemy(enemy, is_boss, wave)
+	_spawn_source_enemy_name = String(enemy.name)
 
 	_spawn_fragments(parent, position, rng, rarity, wave, spawned)
 	_try_spawn_optional(parent, position, rng, rarity, wave, is_boss, spawned)
@@ -64,6 +69,7 @@ func try_spawn_for_enemy(enemy: Node, position: Vector2, is_boss: bool = false) 
 		_spawn_drop(parent, PhysicsDrop.DropType.ANOMALY_SEED, 4, position, rng, 2.0, null, spawned)
 
 	_trim_to_budget()
+	_spawn_source_enemy_name = ""
 	drop_sequence_spawned.emit(enemy, spawned, {
 		"wave": wave,
 		"rarity": rarity,
@@ -126,7 +132,13 @@ func _spawn_drop(
 	var distance := rng.randf_range(drop_spread_radius * 0.18, drop_spread_radius)
 	var impulse := Vector2.RIGHT.rotated(angle) * rng.randf_range(110.0, 280.0)
 	drop.configure(drop_type, rarity, impulse, value, definition)
+	_sequence += 1
+	drop.set_meta(&"source_enemy", _spawn_source_enemy_name)
+	drop.set_meta(&"source_wave", _current_wave())
+	drop.set_meta(&"drop_sequence", _sequence)
 	drop.global_position = position + Vector2.RIGHT.rotated(angle) * distance
+	drop.physics_drop_collected.connect(Callable(self, "_on_drop_collected"))
+	drop.physics_drop_expired.connect(Callable(self, "_on_drop_expired"))
 	parent.call_deferred("add_child", drop)
 	_active_drops.append(drop)
 	spawned.append(drop)
@@ -206,6 +218,33 @@ func _cleanup_drops() -> void:
 		var drop := _active_drops[i]
 		if drop == null or not is_instance_valid(drop) or drop.is_queued_for_deletion():
 			_active_drops.remove_at(i)
+
+
+func _on_drop_collected(drop_type: int, data: Dictionary) -> void:
+	_record_drop_stat(&"physics_drops_collected")
+	_record_drop_type_stat(&"physics_drop_collected", drop_type)
+	drop_collected.emit(drop_type, data)
+
+
+func _on_drop_expired(drop_type: int, data: Dictionary) -> void:
+	_record_drop_stat(&"physics_drops_expired")
+	_record_drop_type_stat(&"physics_drop_expired", drop_type)
+	drop_expired.emit(drop_type, data)
+
+
+func _record_drop_stat(key: StringName) -> void:
+	if RunProgress == null:
+		return
+	var stat_key := String(key)
+	RunProgress.arena_flags[stat_key] = int(RunProgress.arena_flags.get(stat_key, 0)) + 1
+
+
+func _record_drop_type_stat(prefix: StringName, drop_type: int) -> void:
+	if RunProgress == null:
+		return
+	var type_name := String(PhysicsDrop.TYPE_NAMES.get(drop_type, &"unknown"))
+	var key := "%s_%s" % [String(prefix), type_name]
+	RunProgress.arena_flags[key] = int(RunProgress.arena_flags.get(key, 0)) + 1
 
 
 func _trim_to_budget() -> void:

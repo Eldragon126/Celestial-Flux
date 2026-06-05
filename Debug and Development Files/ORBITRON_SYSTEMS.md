@@ -308,7 +308,7 @@ Manifest validation now rejects malformed roots, missing ids, invalid versions, 
 
 It emits a score snapshot, writes the latest snapshot/challenge code into `RunProgress.arena_flags`, emits `physics_anomaly_achieved`, and publishes a challenge code. The code format is `mode:seed:wave:score_checksum`, so players can share repeatable seed challenges before a full leaderboard exists.
 
-The anomaly score path is fully signal-driven. Kinetic multipliers capture the player's current velocity when the enemy death signal fires, then quantize an exponential reward. Vector shears are awarded from counter-opposing gravitational-zone impulses. Event-horizon grazes require proximity to an `Objects_With_Gravity` source while shield/hull remain undamaged. Apex slingshots score from tangential exit velocity signatures. The checksum is a stable SHA-256-derived digest of the unified score snapshot.
+The anomaly score path is fully signal-driven. Kinetic multipliers capture the player's current velocity when the enemy death signal fires, then quantize an exponential reward. Vector shears are awarded from counter-opposing gravitational-zone impulses. Event-horizon grazes require proximity to an `Objects_With_Gravity` source while shield/hull remain undamaged; the tracker listens to player health and shield hit signals during the horizon window so later shield regeneration cannot hide damage. Apex slingshots score from tangential exit velocity signatures. The checksum is a stable SHA-256-derived digest of the unified score snapshot.
 
 ## Physics Drop Ecosystem
 
@@ -322,7 +322,7 @@ The anomaly score path is fully signal-driven. Kinetic multipliers capture the p
 - Anomaly Seeds: deterministic arena/resonance event triggers.
 - Celestial Cores: boss-grade rule-changing powerup drops.
 
-Drops are arena entities with decay, readable glyphs, gravity interaction where appropriate, and no generic gold/ammo/health-spam behavior.
+Drops are arena entities with decay, readable glyphs, gravity interaction where appropriate, and no generic gold/ammo/health-spam behavior. `PhysicsDropSystem` emits collection/expiry telemetry and records per-type counts in `RunProgress.arena_flags`; Anomaly Seeds and Celestial Cores can route into `ArenaInstabilityDirector`, `CelestialBodyDirector`, and `RealityCollapseDirector` when those systems are present.
 
 ## Production Simulation Runner
 

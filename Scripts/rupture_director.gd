@@ -4,6 +4,7 @@ extends Node
 signal rupture_complete
 
 const CHAOS_WISP_SCENE := preload("res://Nodes/chaos_wisp.tscn")
+const RUPTURE_TRACK := preload("res://Assets/Songs/[Err -502] RUPTURE.mp3")
 
 @export var duration_sec: float = 75.0
 @export var instability_floor: float = 0.82
@@ -19,6 +20,7 @@ var _player_tuning_saved: Dictionary = {}
 var _banner_canvas: CanvasLayer = null
 var _banner_label: Label = null
 var _spawned_drifters: Array[Node] = []
+var _music: AudioStreamPlayer = null
 
 
 func _ready() -> void:
@@ -64,6 +66,7 @@ func _begin_rupture() -> void:
 	if wave != null and wave.has_method("halt_waves"):
 		wave.call("halt_waves")
 
+	_start_rupture_music()
 	_build_rupture_prompt(level)
 	for i in range(3):
 		_spawn_rupture_drifter()
@@ -96,12 +99,26 @@ func _restore_player_tuning() -> void:
 
 func _exit_tree() -> void:
 	_restore_player_tuning()
+	if _music != null and is_instance_valid(_music):
+		_music.stop()
+		_music.queue_free()
 	if _banner_canvas != null and is_instance_valid(_banner_canvas):
 		_banner_canvas.queue_free()
 	for drifter in _spawned_drifters:
 		if drifter != null and is_instance_valid(drifter):
 			drifter.queue_free()
 	_spawned_drifters.clear()
+
+
+func _start_rupture_music() -> void:
+	if _music != null and is_instance_valid(_music):
+		return
+	_music = AudioStreamPlayer.new()
+	_music.name = "RuptureMusic"
+	_music.stream = RUPTURE_TRACK
+	_music.volume_db = -1.5
+	add_child(_music)
+	_music.play()
 
 
 func _build_rupture_prompt(level: Node) -> void:

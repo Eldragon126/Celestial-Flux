@@ -27,6 +27,20 @@ const WORMHOLE_SWIRL_STREAM := preload("res://Assets/Sound Effects/sfx_wormhole_
 const WORMHOLE_PULSE_STREAM := preload("res://Assets/Sound Effects/sfx_wormhole_loop_pulse.mp3")
 const BOSS_TELEGRAPH_STREAM := preload("res://Assets/Sound Effects/sfx_boss_telegraph_high.mp3")
 const BOSS_ATTACK_STREAM := preload("res://Assets/Sound Effects/sfx_boss_attack_release.mp3")
+const TIDE_POCKET_STREAM := preload("res://Assets/Sound Effects/sfx_tide_pocket_large.mp3")
+const VOLATILE_MOON_STREAM := preload("res://Assets/Sound Effects/sfx_volatile_moon_unstable.mp3")
+const NEBULA_SHEAR_STREAM := preload("res://Assets/Sound Effects/sfx_nebula_shear_harsh.mp3")
+const RARE_EVENT_STREAM := preload("res://Assets/Sound Effects/sfx_rare_event_distinct.mp3")
+const LATE_GAME_OVERFOLD_STREAM := preload("res://Assets/Sound Effects/sfx_late_game_overfold.mp3")
+const COLLAPSE_LANE_STREAM := preload("res://Assets/Sound Effects/sfx_collapse_lane_intense.mp3")
+const SPACETIME_SWIM_STREAM := preload("res://Assets/Sound Effects/sfx_spacetime_swim_phase.mp3")
+const TIME_DILATION_BREAK_STREAM := preload("res://Assets/Sound Effects/sfx_time_dilation_break.mp3")
+const FRACTURE_BOSS_TELEGRAPH_STREAM := preload("res://Assets/Sound Effects/sfx_fracture_boss_telegraph.mp3")
+const ORBIT_BOSS_TELEGRAPH_STREAM := preload("res://Assets/Sound Effects/sfx_orbit_boss_telegraph.mp3")
+const OVERFOLD_BOSS_TELEGRAPH_STREAM := preload("res://Assets/Sound Effects/sfx_overfold_boss_telegraph.mp3")
+const SINGULARITY_BOSS_TELEGRAPH_STREAM := preload("res://Assets/Sound Effects/sfx_singularity_boss_telegraph.mp3")
+const MOMENTUM_SURGE_STREAM := preload("res://Assets/Sound Effects/sfx_momentum_surge.mp3")
+const METALLIC_DECAY_STREAM := preload("res://Assets/Sound Effects/sfx_metallic_decay.mp3")
 
 @export var enabled: bool = true
 @export var max_simultaneous_cues: int = 6
@@ -50,10 +64,20 @@ var _shield: Node = null
 var _gravity_scar_manager: Node = null
 var _wave_director: Node = null
 var _arena_instability: Node = null
+var _arena_destabilization: Node = null
 var _tear_director: Node = null
+var _physics_drop_system: Node = null
+var _late_game_instability: Node = null
+var _recovery_director: Node = null
+var _reality_collapse: Node = null
+var _celestial_director: Node = null
+var _swim_director: Node = null
+var _weapon_system: Node = null
 var _active_players: Array[AudioStreamPlayer2D] = []
 var _last_cue_time := -999.0
 var _next_gravity_scar_apply_cue := 0.0
+var _next_weapon_cue_time := 0.0
+var _next_drop_collect_cue := 0.0
 var _source_refresh_elapsed := 999.0
 
 
@@ -98,14 +122,30 @@ func _connect_sources() -> void:
 	_connect_signal(_arena_instability, &"arena_instability_event_started", Callable(self, "_on_arena_instability_event_started"))
 	_connect_signal(_tear_director, &"spacetime_tear_opened", Callable(self, "_on_spacetime_tear_opened"))
 	_connect_signal(_tear_director, &"spacetime_tear_enemy_spawned", Callable(self, "_on_spacetime_tear_enemy_spawned"))
+	_connect_signal(_player, &"player_hit_invulnerability_started", Callable(self, "_on_player_hit_invulnerability_started"))
+	_connect_signal(_player, &"damage_ignored_during_invulnerability", Callable(self, "_on_damage_ignored_during_invulnerability"))
+	_connect_signal(_physics_drop_system, &"drop_sequence_spawned", Callable(self, "_on_drop_sequence_spawned"))
+	_connect_signal(_late_game_instability, &"impossible_event_started", Callable(self, "_on_impossible_event_started"))
+	_connect_signal(_recovery_director, &"recovery_opportunity_started", Callable(self, "_on_recovery_opportunity_started"))
+	_connect_signal(_recovery_director, &"recovery_opportunity_resolved", Callable(self, "_on_recovery_opportunity_resolved"))
+	_connect_signal(_recovery_director, &"near_miss_recorded", Callable(self, "_on_near_miss_recorded"))
+	_connect_signal(_reality_collapse, &"reality_breach_opened", Callable(self, "_on_reality_breach_opened"))
+	_connect_signal(_reality_collapse, &"physics_constants_shifted", Callable(self, "_on_physics_constants_shifted"))
+	_connect_signal(_celestial_director, &"celestial_event_started", Callable(self, "_on_celestial_event_started"))
+	_connect_signal(_celestial_director, &"celestial_body_spawned", Callable(self, "_on_celestial_body_spawned"))
+	_connect_signal(_swim_director, &"spacetime_swim_triggered", Callable(self, "_on_spacetime_swim_triggered"))
+	_connect_signal(_swim_director, &"spacetime_glitch_triggered", Callable(self, "_on_spacetime_glitch_triggered"))
+	_connect_signal(_weapon_system, &"weapon_fired", Callable(self, "_on_weapon_fired"))
 	_connect_ambient_audio_sources(scene)
+	_connect_boss_audio_sources()
 
 
 func _connect_ambient_audio_sources(scene: Node) -> void:
 	if scene == null:
 		return
-	var arena := scene.find_child("ArenaDestabilizationManager", true, false)
-	_connect_signal(arena, &"chaos_level_changed", Callable(self, "_on_chaos_level_changed"))
+	_connect_signal(_arena_destabilization, &"chaos_level_changed", Callable(self, "_on_chaos_level_changed"))
+	_connect_signal(_arena_destabilization, &"arena_event_started", Callable(self, "_on_arena_event_started"))
+	_connect_signal(_arena_destabilization, &"arena_hazard_spawned", Callable(self, "_on_arena_hazard_spawned"))
 	for pocket in get_tree().get_nodes_in_group("gravity_tide_pocket"):
 		_connect_signal(pocket, &"pocket_activated", Callable(self, "_on_tide_pocket_activated"))
 		_connect_signal(pocket, &"pocket_expired", Callable(self, "_on_tide_pocket_expired"))
@@ -121,12 +161,20 @@ func _resolve_sources() -> void:
 		_resonance_manager = scene.find_child("GravityResonanceManager", true, false)
 		_gravity_scar_manager = scene.find_child("GravityScarManager", true, false)
 		_wave_director = scene.find_child("WaveDirector", true, false)
+		_arena_destabilization = scene.find_child("ArenaDestabilizationManager", true, false)
 		_arena_instability = scene.find_child("ArenaInstabilityDirector", true, false)
 		_tear_director = scene.find_child("SpacetimeTearDirector", true, false)
+		_physics_drop_system = scene.find_child("PhysicsDropSystem", true, false)
+		_late_game_instability = scene.find_child("LateGameInstabilityDirector", true, false)
+		_recovery_director = scene.find_child("RecoveryOpportunityDirector", true, false)
+		_reality_collapse = scene.find_child("RealityCollapseDirector", true, false)
+		_celestial_director = scene.find_child("CelestialBodyDirector", true, false)
+		_swim_director = scene.find_child("SpacetimeSwimDirector", true, false)
 	if _player != null:
 		_momentum = _player.get_node_or_null("MomentumCombatComponent")
 		_inventory = _player.get_node_or_null("PowerupInventory")
 		_shield = _player.get_node_or_null("Shield")
+		_weapon_system = _player.get_node_or_null("WeaponSystem")
 
 
 func _connect_signal(source: Node, signal_name: StringName, callable: Callable) -> void:
@@ -134,6 +182,18 @@ func _connect_signal(source: Node, signal_name: StringName, callable: Callable) 
 		return
 	if not source.is_connected(signal_name, callable):
 		source.connect(signal_name, callable)
+
+
+func _connect_boss_audio_sources() -> void:
+	for boss in get_tree().get_nodes_in_group("bosses"):
+		if boss == null or not is_instance_valid(boss) or boss.is_queued_for_deletion():
+			continue
+		var breach_callable := Callable(self, "_on_breacher_attack_started")
+		if boss.has_signal("breach_attack_started") and not boss.is_connected("breach_attack_started", breach_callable):
+			boss.connect("breach_attack_started", breach_callable)
+		var phase_callable := Callable(self, "_on_boss_phase_entered").bind(boss)
+		if boss.has_signal("phase_entered") and not boss.is_connected("phase_entered", phase_callable):
+			boss.connect("phase_entered", phase_callable)
 
 
 func _on_dilation_started() -> void:
@@ -232,7 +292,7 @@ func _on_chaos_level_changed(value: float) -> void:
 
 
 func _on_tide_pocket_activated(_mode: int, position: Vector2) -> void:
-	_play_positional_cue(WORMHOLE_SWIRL_STREAM, position, time_cue_volume_db - 4.0, 0.88)
+	_play_positional_cue(TIDE_POCKET_STREAM, position, time_cue_volume_db - 4.0, 0.88)
 
 
 func _on_tide_pocket_expired(_mode: int, position: Vector2) -> void:
@@ -305,6 +365,157 @@ func _on_spacetime_tear_enemy_spawned(enemy: Node, data: Dictionary) -> void:
 	_play_positional_cue(WORMHOLE_PULSE_STREAM, position, time_cue_volume_db - 8.0, 0.72)
 
 
+func _on_player_hit_invulnerability_started(_duration: float) -> void:
+	_play_player_cue(METALLIC_DECAY_STREAM, shield_cue_volume_db - 2.0, 1.08)
+
+
+func _on_damage_ignored_during_invulnerability(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	_play_player_cue(MOMENTUM_SURGE_STREAM, shield_cue_volume_db - 8.0, 1.24)
+
+
+func _on_weapon_fired(weapon_id: StringName, weapon_data: Dictionary) -> void:
+	if weapon_id == &"vector_bolt":
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _next_weapon_cue_time:
+		return
+	_next_weapon_cue_time = now + 0.42
+	var position := _event_position(weapon_data)
+	var stream := MOMENTUM_SURGE_STREAM
+	var pitch := 0.94
+	match weapon_id:
+		&"gravity_wave_beam":
+			stream = TIDE_POCKET_STREAM
+			pitch = 0.82
+		&"chronal_refraction_beam":
+			stream = TIME_DILATION_BREAK_STREAM
+			pitch = 0.72
+		&"positron_beam":
+			stream = KINETIC_IMPACT_STREAM
+			pitch = 1.16
+	_play_positional_cue(stream, position, powerup_cue_volume_db - 6.0, pitch)
+
+
+func _on_drop_sequence_spawned(enemy: Node, drops: Array, data: Dictionary) -> void:
+	if drops.is_empty():
+		return
+	var position := _node_position(enemy, _event_position(data))
+	var rarity := int(data.get("rarity", 0))
+	var is_boss := bool(data.get("is_boss", false))
+	var stream := RARE_EVENT_STREAM if rarity >= 3 else RESONANCE_CREATED_STREAM
+	if is_boss:
+		stream = LATE_GAME_OVERFOLD_STREAM
+	_play_positional_cue(stream, position, powerup_cue_volume_db - 4.0, 0.9 + float(mini(rarity, 5)) * 0.08)
+	for drop_value in drops:
+		var drop := drop_value as Node
+		if drop == null or not is_instance_valid(drop):
+			continue
+		var callback := Callable(self, "_on_physics_drop_collected")
+		if drop.has_signal("physics_drop_collected") and not drop.is_connected("physics_drop_collected", callback):
+			drop.connect("physics_drop_collected", callback)
+
+
+func _on_physics_drop_collected(drop_type: int, data: Dictionary) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _next_drop_collect_cue:
+		return
+	_next_drop_collect_cue = now + 0.16
+	var stream := _drop_stream(drop_type)
+	var position := _event_position(data)
+	var pitch := 0.92 + float(drop_type) * 0.04
+	_play_positional_cue(stream, position, powerup_cue_volume_db - 3.0, pitch)
+
+
+func _on_impossible_event_started(event_id: StringName, data: Dictionary) -> void:
+	var stream := _impossible_event_stream(event_id)
+	_play_positional_cue(stream, _event_position(data), resonance_cue_volume_db - 2.0, 0.86)
+
+
+func _on_recovery_opportunity_started(opportunity_id: StringName, data: Dictionary) -> void:
+	var stream := _recovery_stream(opportunity_id)
+	_play_positional_cue(stream, _event_position(data), momentum_cue_volume_db - 4.0, 1.08)
+
+
+func _on_recovery_opportunity_resolved(_opportunity_id: StringName, data: Dictionary) -> void:
+	var success := bool(data.get("success", true))
+	var stream := SLINGSHOT_APEX_STREAM if success else TIME_POCKET_EXIT_STREAM
+	_play_positional_cue(stream, _event_position(data), momentum_cue_volume_db - 5.0, 1.12 if success else 0.74)
+
+
+func _on_near_miss_recorded(data: Dictionary) -> void:
+	var severity := clampf(float(data.get("severity", data.get("risk", 0.0))), 0.0, 1.0)
+	if severity < 0.42:
+		return
+	_play_positional_cue(MOMENTUM_SURGE_STREAM, _event_position(data), momentum_cue_volume_db - 8.0, lerpf(0.88, 1.3, severity))
+
+
+func _on_reality_breach_opened(breach_id: StringName, data: Dictionary) -> void:
+	var stream := OVERFOLD_BOSS_TELEGRAPH_STREAM if breach_id == &"edge_breach" else LATE_GAME_OVERFOLD_STREAM
+	_play_positional_cue(stream, _event_position(data), resonance_cue_volume_db - 2.0, 0.82)
+
+
+func _on_physics_constants_shifted(data: Dictionary) -> void:
+	_play_positional_cue(TIME_DILATION_BREAK_STREAM, _event_position(data), time_cue_volume_db - 5.0, 0.66)
+
+
+func _on_celestial_event_started(event_id: StringName, data: Dictionary) -> void:
+	var stream := VOLATILE_MOON_STREAM
+	match event_id:
+		&"binary_system":
+			stream = ORBIT_BOSS_TELEGRAPH_STREAM
+		&"wandering_singularity":
+			stream = SINGULARITY_BOSS_TELEGRAPH_STREAM
+		&"rogue_planet":
+			stream = TIDE_POCKET_STREAM
+	_play_positional_cue(stream, _event_position(data), resonance_cue_volume_db - 5.0, 0.82)
+
+
+func _on_celestial_body_spawned(body: Node, data: Dictionary) -> void:
+	var position := _node_position(body, _event_position(data))
+	var kind_value: Variant = data.get("kind", -1)
+	var kind_type := typeof(kind_value)
+	var is_singularity := false
+	if kind_type == TYPE_INT:
+		is_singularity = int(kind_value) == DynamicCelestialBody.BodyKind.SINGULARITY
+	elif kind_type == TYPE_STRING or kind_type == TYPE_STRING_NAME:
+		is_singularity = StringName(kind_value) == &"singularity"
+	var stream := SINGULARITY_BOSS_TELEGRAPH_STREAM if is_singularity else TIDE_POCKET_STREAM
+	_play_positional_cue(stream, position, resonance_cue_volume_db - 8.0, 0.72)
+
+
+func _on_spacetime_swim_triggered(data: Dictionary) -> void:
+	_play_positional_cue(SPACETIME_SWIM_STREAM, _event_position(data), time_cue_volume_db - 7.0, lerpf(0.82, 1.2, clampf(float(data.get("intensity", 0.5)), 0.0, 1.0)))
+
+
+func _on_spacetime_glitch_triggered(data: Dictionary) -> void:
+	_play_positional_cue(TIME_DILATION_BREAK_STREAM, _event_position(data), time_cue_volume_db - 8.0, 0.64)
+
+
+func _on_arena_event_started(event_id: StringName, value: float) -> void:
+	if value < 0.28:
+		return
+	_play_player_cue(_ambient_event_stream(event_id), resonance_cue_volume_db - 7.0, lerpf(0.72, 1.05, clampf(value, 0.0, 1.0)))
+
+
+func _on_arena_hazard_spawned(hazard: Node, event_id: StringName) -> void:
+	_play_positional_cue(_ambient_event_stream(event_id), _node_position(hazard, _player.global_position if _player != null else Vector2.ZERO), resonance_cue_volume_db - 6.0, 0.82)
+
+
+func _on_breacher_attack_started(attack_id: StringName, data: Dictionary) -> void:
+	_play_positional_cue(_breacher_attack_stream(attack_id), _event_position(data), momentum_cue_volume_db - 2.0, 0.86)
+
+
+func _on_boss_phase_entered(phase: int, boss: Node) -> void:
+	if boss == null or not is_instance_valid(boss):
+		return
+	var stream := _boss_telegraph_stream(boss)
+	var boss_2d := boss as Node2D
+	var position := boss_2d.global_position if boss_2d != null else (_player.global_position if _player != null else Vector2.ZERO)
+	_play_positional_cue(stream, position, momentum_cue_volume_db - 3.0, 0.84 + float(phase) * 0.08)
+
+
 func _play_zone_cue(zone_data: Dictionary, volume_offset: float, intensified: bool) -> void:
 	var position: Vector2 = zone_data.get("midpoint", Vector2.ZERO)
 	var intensity := clampf(float(zone_data.get("intensity", 0.35)), 0.0, 1.0)
@@ -343,15 +554,126 @@ func _zone_stream(zone_name: StringName, intensified: bool) -> AudioStream:
 
 func _instability_stream(event_id: StringName, started: bool) -> AudioStream:
 	match event_id:
+		&"gravity_tide":
+			return TIDE_POCKET_STREAM
 		&"slipstream_surge":
 			return RESONANCE_SLIPSTREAM_STREAM if not started else SLINGSHOT_GREAT_STREAM
-		&"resonance_storm", &"collapsing_orbit_lane":
+		&"collapsing_orbit_lane":
+			return COLLAPSE_LANE_STREAM
+		&"resonance_storm":
 			return RESONANCE_INTENSIFY_STREAM
 		&"spacetime_fracture":
-			return WORMHOLE_SWIRL_STREAM if not started else WORMHOLE_PULSE_STREAM
+			return TIME_DILATION_BREAK_STREAM if not started else WORMHOLE_PULSE_STREAM
 		&"momentum_inversion":
 			return INSTABILITY_CHANGED_STREAM if not started else BOSS_ATTACK_STREAM
 	return TIME_POCKET_ENTER_STREAM if not started else TIME_POCKET_EXIT_STREAM
+
+
+func _drop_stream(drop_type: int) -> AudioStream:
+	match drop_type:
+		PhysicsDrop.DropType.MOMENTUM_ORB:
+			return MOMENTUM_SURGE_STREAM
+		PhysicsDrop.DropType.GRAVITY_RESIDUE:
+			return TIDE_POCKET_STREAM
+		PhysicsDrop.DropType.TEMPORAL_CHARGE:
+			return TIME_POCKET_ENTER_STREAM
+		PhysicsDrop.DropType.INSTABILITY_SHARD:
+			return RARE_EVENT_STREAM
+		PhysicsDrop.DropType.ANOMALY_SEED:
+			return WORMHOLE_SWIRL_STREAM
+		PhysicsDrop.DropType.CELESTIAL_CORE:
+			return LATE_GAME_OVERFOLD_STREAM
+	return RESONANCE_CREATED_STREAM
+
+
+func _impossible_event_stream(event_id: StringName) -> AudioStream:
+	match event_id:
+		&"collapse_lane":
+			return COLLAPSE_LANE_STREAM
+		&"gravity_braid":
+			return TIDE_POCKET_STREAM
+		&"temporal_splinter":
+			return TIME_DILATION_BREAK_STREAM
+		&"resonance_overfold":
+			return LATE_GAME_OVERFOLD_STREAM
+	return RARE_EVENT_STREAM
+
+
+func _recovery_stream(opportunity_id: StringName) -> AudioStream:
+	match opportunity_id:
+		&"emergency_wormhole_exit":
+			return WORMHOLE_PULSE_STREAM
+		&"time_dilation_dodge_window":
+			return TIME_POCKET_ENTER_STREAM
+		&"resonance_rebound":
+			return RESONANCE_HARMONIC_STREAM
+		&"momentum_conservation_chain":
+			return MOMENTUM_SURGE_STREAM
+	return SLINGSHOT_GREAT_STREAM
+
+
+func _ambient_event_stream(event_id: StringName) -> AudioStream:
+	match event_id:
+		&"tide_slipstream", &"gravity_tide":
+			return TIDE_POCKET_STREAM
+		&"volatile_moon":
+			return VOLATILE_MOON_STREAM
+		&"nebula_shear":
+			return NEBULA_SHEAR_STREAM
+		&"collapse_lane", &"collapsing_orbit_lane":
+			return COLLAPSE_LANE_STREAM
+		&"wormhole_shear":
+			return WORMHOLE_SWIRL_STREAM
+		&"temporal_pocket":
+			return TIME_POCKET_ENTER_STREAM
+		&"rupture_pulse", &"finale_storm":
+			return LATE_GAME_OVERFOLD_STREAM
+	return RARE_EVENT_STREAM
+
+
+func _breacher_attack_stream(attack_id: StringName) -> AudioStream:
+	match attack_id:
+		&"moving_singularity":
+			return SINGULARITY_BOSS_TELEGRAPH_STREAM
+		&"moon_fragment_orbit":
+			return ORBIT_BOSS_TELEGRAPH_STREAM
+		&"slipstream_corridor":
+			return RESONANCE_SLIPSTREAM_STREAM
+		&"unstable_wormhole":
+			return WORMHOLE_SWIRL_STREAM
+		&"timeline_slam":
+			return TIME_DILATION_BREAK_STREAM
+		&"outside_space_breach":
+			return OVERFOLD_BOSS_TELEGRAPH_STREAM
+	return FRACTURE_BOSS_TELEGRAPH_STREAM
+
+
+func _boss_telegraph_stream(boss: Node) -> AudioStream:
+	var boss_name := boss.name.to_lower()
+	if boss_name.contains("singularity") or boss_name.contains("seraph") or boss_name.contains("accretion"):
+		return SINGULARITY_BOSS_TELEGRAPH_STREAM
+	if boss_name.contains("rift") or boss_name.contains("fracture") or boss_name.contains("polymorph"):
+		return FRACTURE_BOSS_TELEGRAPH_STREAM
+	if boss_name.contains("centrifuge") or boss_name.contains("orbit") or boss_name.contains("warden"):
+		return ORBIT_BOSS_TELEGRAPH_STREAM
+	if boss_name.contains("breacher") or boss_name.contains("overfold"):
+		return OVERFOLD_BOSS_TELEGRAPH_STREAM
+	return BOSS_TELEGRAPH_STREAM
+
+
+func _event_position(data: Dictionary) -> Vector2:
+	for key in [&"position", &"center", &"origin", &"midpoint"]:
+		var value: Variant = data.get(key, null)
+		if value is Vector2:
+			return value
+	return _player.global_position if _player != null else Vector2.ZERO
+
+
+func _node_position(node: Node, fallback: Vector2) -> Vector2:
+	var node_2d := node as Node2D
+	if node_2d == null or not is_instance_valid(node_2d):
+		return fallback
+	return node_2d.global_position
 
 
 func _play_player_cue(stream: AudioStream, volume_db: float, pitch: float) -> void:

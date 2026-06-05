@@ -151,21 +151,22 @@ func _apply_compression_pressure(multiplier: float) -> void:
 	var seen := {}
 	for group_name in [&"Projectiles", &"enemies", &"wave_enemy"]:
 		for body in get_tree().get_nodes_in_group(group_name):
-			if body == self or body == player or not is_instance_valid(body) or body.is_queued_for_deletion():
-				continue
-			var body_2d := body as Node2D
-			if body_2d == null:
-				continue
-			var id := body_2d.get_instance_id()
-			if seen.has(id):
-				continue
-			seen[id] = true
-			var offset := global_position - body_2d.global_position
-			var dist_squared := offset.length_squared()
-			if dist_squared <= 0.001 or dist_squared > radius_squared:
-				continue
-			var falloff := 1.0 - sqrt(dist_squared) / radius
-			CombatStatus.add_velocity(body_2d, offset.normalized() * compression_pressure_force * multiplier * falloff)
+			if is_instance_valid(body):
+				if body == self or body == player or not is_instance_valid(body) or body.is_queued_for_deletion():
+					continue
+				var body_2d := body as Node2D
+				if body_2d == null:
+					continue
+				var id := body_2d.get_instance_id()
+				if seen.has(id):
+					continue
+				seen[id] = true
+				var offset := global_position - body_2d.global_position
+				var dist_squared := offset.length_squared()
+				if dist_squared <= 0.001 or dist_squared > radius_squared:
+					continue
+				var falloff := 1.0 - sqrt(dist_squared) / radius
+				CombatStatus.add_velocity(body_2d, offset.normalized() * compression_pressure_force * multiplier * falloff)
 
 func _telegraph_pulse() -> void:
 	if _aura == null:

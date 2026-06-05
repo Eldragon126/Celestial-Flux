@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="1240" viewBox="0 0 3840 1240" role="img" aria-label="Vector Anomaly Steam library hero">
+  <rect width="3840" height="1240" fill="#05080d"/>
+  <g opacity="0.22" stroke="#1d4050" stroke-width="3">
+    <path d="M0 240 H3840"/>
+    <path d="M0 620 H3840"/>
+    <path d="M0 980 H3840"/>
+    <path d="M720 0 V1240"/>
+    <path d="M1640 0 V1240"/>
+    <path d="M2580 0 V1240"/>
+  </g>
+  <circle cx="1960" cy="686" r="330" fill="#07131d" stroke="#29d8ff" stroke-width="14"/>
+  <circle cx="1960" cy="686" r="166" fill="#020509" stroke="#ffbe3d" stroke-width="10"/>
+  <path d="M330 1040 C820 650 1390 540 2070 588 C2690 632 3170 842 3700 1080" fill="none" stroke="#29d8ff" stroke-width="18" stroke-linecap="round"/>
+  <path d="M2440 584 L2580 650 L2460 740 Z" fill="#ecfbff" stroke="#29d8ff" stroke-width="12"/>
+  <g stroke="#ff4e3f" stroke-width="10" stroke-linecap="round">
+    <path d="M3040 124 L3340 292 L3220 522"/>
+    <path d="M3420 560 L3120 720 L3340 1010"/>
+  </g>
+  <text x="220" y="286" fill="#ecfbff" font-family="Orbitron, Rajdhani, Arial, sans-serif" font-size="160" font-weight="800" letter-spacing="8">VECTOR</text>
+  <text x="220" y="456" fill="#29d8ff" font-family="Orbitron, Rajdhani, Arial, sans-serif" font-size="160" font-weight="800" letter-spacing="8">ANOMALY</text>
+</svg>

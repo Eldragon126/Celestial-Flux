@@ -1,7 +1,12 @@
 {
   "id": "example_vector_laws",
   "display_name": "Example Vector Laws",
+  "author": "Vector Anomaly Team",
   "version": 1,
+  "schema_version": 2,
+  "description": "A safe sample content pack showing arena, enemy, audio, UI, and rule hooks.",
+  "tags": ["sample", "physics", "law-pack"],
+  "dependencies": [],
   "arenas": [
     {
       "id": "mirror_well_demo",
@@ -37,5 +42,100 @@
       "zone_type": "inversion",
       "intensity_multiplier": 0.75
     }
-  ]
+  ],
+  "content": {
+    "powerups": [
+      {
+        "id": "apex_tether_refund",
+        "display_name": "Apex Tether Refund",
+        "law": "momentum",
+        "description": "Apex slingshots briefly refund thrust energy instead of adding a flat stat."
+      }
+    ],
+    "weapons": [
+      {
+        "id": "gravity_wave_lite",
+        "display_name": "Gravity Wave Prototype",
+        "resource": "res://Nodes/weapon_system.tscn",
+        "description": "Catalog-only beam concept that bends projectiles toward the firing axis."
+      }
+    ],
+    "enemies": [
+      {
+        "id": "phase_slip_swarm_variant",
+        "display_name": "Phase-Slip Swarm Variant",
+        "scene": "res://Nodes/phase_slip_swarm.tscn",
+        "minimum_wave": 6,
+        "rules": {
+          "resonance_bias": "temporal_scar"
+        }
+      }
+    ],
+    "bosses": [
+      {
+        "id": "chaos_wisp_trial",
+        "display_name": "Chaos Wisp Trial",
+        "scene": "res://Nodes/chaos_wisp.tscn",
+        "minimum_wave": 9,
+        "rules": {
+          "arena_instability": 0.35
+        }
+      }
+    ],
+    "arena_events": [
+      {
+        "id": "mirror_tide_surge",
+        "display_name": "Mirror Tide Surge",
+        "event_type": "tide_inversion",
+        "telegraph": "PUSH OUT"
+      }
+    ],
+    "celestial_bodies": [
+      {
+        "id": "rogue_micro_singularity",
+        "display_name": "Rogue Micro Singularity",
+        "body_type": "singularity",
+        "mass": 160.0,
+        "orbit_behavior": "wandering"
+      }
+    ],
+    "physics_drops": [
+      {
+        "id": "mirror_seed",
+        "display_name": "Mirror Seed",
+        "drop_type": "anomaly_seed",
+        "spawns": ["mirror_tide_surge", "rogue_micro_singularity"]
+      }
+    ],
+    "sfx": [
+      {
+        "id": "mirror_tide_cue",
+        "display_name": "Mirror Tide Cue",
+        "stream": "res://Assets/Sound Effects/sfx_rare_event_distinct.mp3"
+      }
+    ],
+    "music": [
+      {
+        "id": "mirror_thread_layer",
+        "display_name": "Mirror Thread Layer",
+        "stream": "res://Assets/Songs/A New Thread.mp3",
+        "state": "mid_run"
+      }
+    ],
+    "hud_badges": [
+      {
+        "id": "mirror_law_badge",
+        "display_name": "Mirror Law Badge",
+        "text": "MIRROR"
+      }
+    ],
+    "script_packs": [
+      {
+        "id": "mirror_law_script_pack",
+        "display_name": "Mirror Law Script Pack",
+        "script": "res://Mods/example_vector_laws/mirror_law_pack.gd",
+        "description": "Registered as locked by default; future trusted editor tooling may activate it."
+      }
+    ]
+  }
 }

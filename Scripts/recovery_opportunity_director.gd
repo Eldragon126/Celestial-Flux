@@ -107,7 +107,11 @@ func _update_active_windows(delta: float) -> void:
 		entry["age"] = age
 		_active_windows[i] = entry
 		if age >= duration:
-			recovery_opportunity_resolved.emit(StringName(entry.get("id", &"unknown")), entry.get("data", {}).duplicate(true))
+			var resolved_data: Dictionary = entry.get("data", {}).duplicate(true)
+			resolved_data["danger_after"] = _danger_score()
+			resolved_data["success"] = _recovery_window_succeeded(entry)
+			resolved_data["resolved_position"] = _player.global_position if _player != null else global_position
+			recovery_opportunity_resolved.emit(StringName(entry.get("id", &"unknown")), resolved_data)
 			_active_windows.remove_at(i)
 
 
@@ -261,6 +265,25 @@ func _record_near_miss(data: Dictionary) -> void:
 			recent.pop_front()
 		RunProgress.arena_flags["near_miss_recent"] = recent
 	near_miss_recorded.emit(data)
+
+
+func _recovery_window_succeeded(entry: Dictionary) -> bool:
+	if _player == null or not is_instance_valid(_player) or not _player_alive():
+		return false
+	var data: Dictionary = entry.get("data", {})
+	var start_position: Vector2 = data.get("position", _player.global_position)
+	var escape_distance := _player.global_position.distance_to(start_position)
+	var danger_after := _danger_score()
+	return danger_after < 0.58 or escape_distance > threat_radius * 0.72 or _player_velocity().length() < lethal_collision_speed * 0.58
+
+
+func _player_alive() -> bool:
+	if _health_component == null or not is_instance_valid(_health_component):
+		return true
+	if _health_component.has_method("is_dead"):
+		return not bool(_health_component.call("is_dead"))
+	var current: Variant = _health_component.get("current_health")
+	return not (current is float or current is int) or float(current) > 0.0
 
 
 func _resolve_sources() -> void:

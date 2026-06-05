@@ -22,8 +22,10 @@ const SEEKER_FRAGMENT_SCENE = preload("res://Nodes/seeker_fragment.tscn")
 @export var spawn_interval: float = 1.1
 @export var min_player_distance: float = 320.0
 @export var spawn_offset_radius: float = 72.0
-@export var ring_segments: int = 44
+@export var simple_polygon_visuals: bool = true
+@export var ring_segments: int = 28
 @export var visual_radius: float = 112.0
+@export var visual_radius_cap: float = 180.0
 
 var _player: Node2D = null
 var _scar_manager: Node = null
@@ -260,28 +262,28 @@ func _create_tear_visual(position: Vector2, intensity: float, type_name: StringN
 	add_child(root)
 
 	var color := _color_for_type(type_name)
-	var radius := visual_radius * lerpf(0.84, 1.46, intensity)
+	var radius := _visual_radius(visual_radius * lerpf(0.84, 1.32, intensity))
 
 	var core := Polygon2D.new()
 	core.name = "TearCore"
-	core.color = _safe_color(color, 0.18)
-	core.polygon = _soft_circle_points(18, radius * 0.56, intensity)
+	core.color = _safe_color(color, 0.08)
+	core.polygon = _soft_circle_points(_visual_segments(12), radius * 0.5, intensity)
 	root.add_child(core)
 
 	var ring := Line2D.new()
 	ring.name = "TearBoundary"
 	ring.closed = true
 	ring.antialiased = true
-	ring.width = lerpf(1.6, 4.2, intensity)
-	ring.default_color = _safe_color(color, 0.74)
-	ring.points = _circle_points(ring_segments, radius)
+	ring.width = lerpf(1.2, 3.0, intensity)
+	ring.default_color = _safe_color(color, 0.24)
+	ring.points = _circle_points(_visual_segments(ring_segments), radius)
 	root.add_child(ring)
 
 	var seam := Line2D.new()
 	seam.name = "TearSeam"
 	seam.antialiased = true
-	seam.width = lerpf(2.2, 5.2, intensity)
-	seam.default_color = _safe_color(Color.WHITE, 0.58)
+	seam.width = lerpf(1.8, 3.6, intensity)
+	seam.default_color = _safe_color(Color.WHITE, 0.32)
 	seam.points = PackedVector2Array([
 		Vector2(-radius * 0.2, -radius * 0.9),
 		Vector2(radius * 0.12, -radius * 0.42),
@@ -319,7 +321,7 @@ func _update_tear_visual(entry: Dictionary, age: float, lifetime: float, delta: 
 
 	var ring := visual.get("ring") as Line2D
 	if ring != null and is_instance_valid(ring):
-		ring.width = lerpf(1.2, 4.8, intensity) * lerpf(1.0, 0.38, t)
+		ring.width = lerpf(1.0, 3.2, intensity) * lerpf(1.0, 0.38, t)
 
 
 func _free_tear(entry: Dictionary) -> void:
@@ -384,19 +386,35 @@ func _safe_color(color: Color, alpha_cap: float) -> Color:
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()
-	for i in range(maxi(count, 3)):
-		var angle := TAU * float(i) / float(maxi(count, 3))
+	var safe_count := maxi(count, 3)
+	for i in range(safe_count):
+		var angle := TAU * float(i) / float(safe_count)
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
 	return points
 
 
 func _soft_circle_points(count: int, radius: float, intensity: float) -> PackedVector2Array:
 	var points := PackedVector2Array()
-	for i in range(maxi(count, 3)):
-		var angle := TAU * float(i) / float(maxi(count, 3))
+	var safe_count := maxi(count, 3)
+	for i in range(safe_count):
+		var angle := TAU * float(i) / float(safe_count)
 		var wobble := 1.0 + sin(angle * 3.0) * 0.08 * intensity + cos(angle * 7.0) * 0.04
 		points.append(Vector2(cos(angle), sin(angle)) * radius * wobble)
 	return points
+
+
+func _visual_radius(radius: float) -> float:
+	if Settings != null and Settings.has_method("world_effect_radius"):
+		return Settings.world_effect_radius(radius, visual_radius_cap)
+	return clampf(radius, 0.0, maxf(visual_radius_cap, 1.0))
+
+
+func _visual_segments(requested: int, hard_cap: int = 32) -> int:
+	var cap_limit := 16 if simple_polygon_visuals else 32
+	var local_cap := mini(hard_cap, cap_limit)
+	if Settings != null and Settings.has_method("world_polygon_segments"):
+		return Settings.world_polygon_segments(requested, local_cap)
+	return clampi(requested, 3, local_cap)
 
 
 func _now_seconds() -> float:

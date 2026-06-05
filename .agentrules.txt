@@ -41,7 +41,7 @@ VISUAL DESIGN PHILOSOPHY
 - Space should feel hostile, unstable, and alive.
 
 PHYSICS RULES
-- Player uses RigidBody2D.
+- Player uses CharacterBody2D.
 - Most enemies use CharacterBody2D with manual velocity.
 - Projectiles and certain physics objects may use RigidBody2D.
 - Gravity is localized and radius-based.

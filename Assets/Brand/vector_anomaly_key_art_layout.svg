@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Vector Anomaly key art first pass">
+  <defs>
+    <linearGradient id="space" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#03060a"/>
+      <stop offset="1" stop-color="#0a1018"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#space)"/>
+  <g opacity="0.28" stroke="#234b5c" stroke-width="2">
+    <path d="M0 160 H1920"/>
+    <path d="M0 360 H1920"/>
+    <path d="M0 620 H1920"/>
+    <path d="M0 860 H1920"/>
+    <path d="M260 0 V1080"/>
+    <path d="M620 0 V1080"/>
+    <path d="M1080 0 V1080"/>
+    <path d="M1540 0 V1080"/>
+  </g>
+  <circle cx="760" cy="570" r="260" fill="#07131d" stroke="#29d8ff" stroke-width="9" opacity="0.92"/>
+  <circle cx="760" cy="570" r="142" fill="#020509" stroke="#ffbe3d" stroke-width="8" opacity="0.88"/>
+  <path d="M222 848 C410 642 650 514 918 506 C1218 497 1454 630 1702 846" fill="none" stroke="#29d8ff" stroke-width="10" stroke-linecap="round"/>
+  <path d="M328 900 C546 698 752 650 1034 712" fill="none" stroke="#ffbe3d" stroke-width="7" stroke-linecap="round" opacity="0.9"/>
+  <path d="M1114 708 L1190 742 L1118 788 Z" fill="#d9fbff" stroke="#29d8ff" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M1212 744 L1328 784" stroke="#29d8ff" stroke-width="7" stroke-linecap="round" opacity="0.8"/>
+  <g stroke="#ff4e3f" stroke-width="6" stroke-linecap="round" opacity="0.85">
+    <path d="M1558 146 L1680 246 L1626 354"/>
+    <path d="M1466 238 L1516 392 L1414 476"/>
+    <path d="M1764 460 L1636 550 L1720 682"/>
+  </g>
+  <g fill="#ffbe3d" opacity="0.9">
+    <path d="M1510 604 L1532 616 L1510 628 L1488 616 Z"/>
+    <path d="M1378 328 L1400 340 L1378 352 L1356 340 Z"/>
+    <path d="M1660 764 L1682 776 L1660 788 L1638 776 Z"/>
+  </g>
+  <text x="96" y="164" fill="#ecfbff" font-family="Orbitron, Rajdhani, Arial, sans-serif" font-size="84" font-weight="800" letter-spacing="4">VECTOR</text>
+  <text x="96" y="252" fill="#29d8ff" font-family="Orbitron, Rajdhani, Arial, sans-serif" font-size="84" font-weight="800" letter-spacing="4">ANOMALY</text>
+  <text x="100" y="304" fill="#93aeb8" font-family="Rajdhani, Arial, sans-serif" font-size="30" letter-spacing="5">KEY ART LAYOUT V1</text>
+</svg>

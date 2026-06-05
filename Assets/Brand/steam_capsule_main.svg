@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="616" height="353" viewBox="0 0 616 353" role="img" aria-label="Vector Anomaly main Steam capsule">
+  <rect width="616" height="353" fill="#05080d"/>
+  <circle cx="250" cy="198" r="92" fill="#07131d" stroke="#29d8ff" stroke-width="7"/>
+  <circle cx="250" cy="198" r="48" fill="#020509" stroke="#ffbe3d" stroke-width="5"/>
+  <path d="M74 292 C166 206 290 174 438 184 C506 188 558 214 604 250" fill="none" stroke="#29d8ff" stroke-width="7" stroke-linecap="round"/>
+  <path d="M404 174 L456 198 L408 230 Z" fill="#ecfbff" stroke="#29d8ff" stroke-width="5"/>
+  <g stroke="#ff4e3f" stroke-width="4" stroke-linecap="round">
+    <path d="M488 36 L556 86 L526 146"/>
+    <path d="M546 186 L490 220 L548 282"/>
+  </g>
+  <text x="42" y="76" fill="#ecfbff" font-family="Orbitron, Rajdhani, Arial, sans-serif" font-size="52" font-weight="800">VECTOR</text>
+  <text x="42" y="132" fill="#29d8ff" font-family="Orbitron, Rajdhani, Arial, sans-serif" font-size="52" font-weight="800">ANOMALY</text>
+  <text x="46" y="160" fill="#93aeb8" font-family="Rajdhani, Arial, sans-serif" font-size="17" letter-spacing="3">MASTER MOMENTUM. SURVIVE COLLAPSE.</text>
+</svg>

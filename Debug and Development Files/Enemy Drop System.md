@@ -63,6 +63,7 @@ High-risk escalation rewards.
 
 - Rare drop in later waves or from elite pressure.
 - Raises `ArenaDestabilizationManager.instability`.
+- High-rarity shards can force a contained `RealityCollapseDirector` breach when that director is active.
 - Records `RunProgress.arena_flags["instability_shards"]`.
 - The player trades more reality-collapse pressure for greater reward potential.
 
@@ -71,7 +72,8 @@ High-risk escalation rewards.
 Compressed emergent event triggers.
 
 - Rare drop in later waves and guaranteed as a boss bonus.
-- Preferentially asks `ArenaDestabilizationManager.force_arena_event()` for deterministic arena events.
+- Can route into `ArenaInstabilityDirector`, `CelestialBodyDirector`, or `RealityCollapseDirector` when those directors are active.
+- Falls back to `ArenaDestabilizationManager.force_arena_event()` for deterministic arena events.
 - Falls back to a manual slipstream resonance zone if the arena event API is unavailable.
 - Can spawn wormhole/resonance/slipstream-style opportunities through existing systems.
 
@@ -81,6 +83,7 @@ Boss-grade rule-changing drops.
 
 - Bosses drop a unique core payload.
 - Applies a `PowerupDefinition` through `PowerupInventory`.
+- Triggers a celestial event when `CelestialBodyDirector` is available.
 - Current boss core routing chooses from existing law-defining powers such as Apex Vector Core, Barycentric Tether, Frame-Dragging Anchor, or Singularity Amplifier.
 - These should change how the run plays, not provide small percentage stat bumps.
 
@@ -147,6 +150,7 @@ Energy droplets are intentionally simple because they support basic combat rhyth
 - No per-frame enemy polling.
 - Drops self-expire.
 - Active drop count is capped and trimmed.
+- Collection and expiry emit system-level telemetry and per-type counters in `RunProgress.arena_flags`.
 - Gravity source sampling is interval-based and capped.
 - Long-lived particle visuals are focus-gated by local pickup logic and the global `ParticleFocusCuller`.
 

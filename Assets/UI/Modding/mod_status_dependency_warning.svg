@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Mod dependency warning">
+  <rect width="64" height="64" rx="6" fill="#171207"/>
+  <path d="M32 10 L56 52 H8 Z" fill="none" stroke="#ffbe3d" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M32 24 V37" stroke="#ffbe3d" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="32" cy="46" r="3.5" fill="#ffbe3d"/>
+</svg>

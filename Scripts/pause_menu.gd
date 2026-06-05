@@ -369,15 +369,18 @@ func _update_modding_menu() -> void:
 	if registry.has_method("get_registry_summary"):
 		var summary_value: Variant = registry.call("get_registry_summary")
 		var summary: Dictionary = summary_value if summary_value is Dictionary else {}
-		mod_summary_label.text = "MODS %d | ARENAS %d | WAVES %d | UPGRADES %d | RULES %d | FAIL %d" % [
-			int(summary.get("manifest_count", 0)),
-			int(summary.get("arenas", 0)),
-			int(summary.get("waves", 0)),
-			int(summary.get("upgrades", 0)),
-			int(summary.get("rules", 0)),
-			int(summary.get("failed", 0)),
-		]
+		mod_summary_label.text = _format_mod_summary(summary)
 	mod_entries_label.text = _format_mod_entries(registry)
+
+
+func _format_mod_summary(summary: Dictionary) -> String:
+	return "MODS %d | CONTENT %d | OFF %d | WARN %d | FAIL %d" % [
+		int(summary.get("manifest_count", 0)),
+		int(summary.get("content_total", 0)),
+		int(summary.get("disabled", 0)),
+		int(summary.get("dependency_warnings", 0)),
+		int(summary.get("failed", 0)),
+	]
 
 
 func _format_mod_entries(registry: Node) -> String:
@@ -389,19 +392,82 @@ func _format_mod_entries(registry: Node) -> String:
 	var manifests: Dictionary = manifests_value if manifests_value is Dictionary else {}
 	var failed_value: Variant = snapshot.get("failed_manifests", {})
 	var failed: Dictionary = failed_value if failed_value is Dictionary else {}
+	var warnings_value: Variant = snapshot.get("dependency_warnings", {})
+	var warnings: Dictionary = warnings_value if warnings_value is Dictionary else {}
+	var content_value: Variant = snapshot.get("content", {})
+	var content: Dictionary = content_value if content_value is Dictionary else {}
+	var load_order_value: Variant = snapshot.get("load_order", [])
+	var load_order: Array = load_order_value if load_order_value is Array else []
 	if manifests.is_empty() and failed.is_empty():
 		return "No manifests found. Drop vector_anomaly_mod.json into res://Mods or user://mods."
 	var lines: Array[String] = []
-	for manifest_id in manifests.keys():
+	for manifest_id_value in load_order:
+		var manifest_id := String(manifest_id_value)
+		if not manifests.has(manifest_id):
+			continue
 		var manifest_value: Variant = manifests[manifest_id]
 		var manifest: Dictionary = manifest_value if manifest_value is Dictionary else {}
-		lines.append("- %s v%d" % [
+		var status := "OK" if bool(manifest.get("enabled", true)) else "OFF"
+		var author := str(manifest.get("author", "")).strip_edges()
+		lines.append("[%s] %s v%s%s" % [
+			status,
 			str(manifest.get("display_name", manifest_id)),
-			int(manifest.get("version", 1)),
+			str(manifest.get("version", "1")),
+			" by %s" % author if not author.is_empty() else "",
+		])
+		var counts := _manifest_content_counts(content, manifest_id)
+		if not counts.is_empty():
+			lines.append("    %s" % _format_content_counts(counts))
+		var disabled_reason := str(manifest.get("disabled_reason", "")).strip_edges()
+		if not disabled_reason.is_empty():
+			lines.append("    disabled: %s" % disabled_reason)
+	for warning_value in warnings.values():
+		if not (warning_value is Dictionary):
+			continue
+		var warning: Dictionary = warning_value
+		lines.append("! %s -> %s: %s" % [
+			String(warning.get("manifest_id", "")),
+			String(warning.get("dependency_id", "")),
+			String(warning.get("reason", "")),
 		])
 	for path in failed.keys():
 		lines.append("! %s: %s" % [str(path), str(failed[path])])
 	return _join_lines(lines)
+
+
+func _manifest_content_counts(content: Dictionary, manifest_id: String) -> Dictionary:
+	var counts := {}
+	for bucket in content.keys():
+		var bucket_value: Variant = content[bucket]
+		if not (bucket_value is Dictionary):
+			continue
+		var count := 0
+		var bucket_entries := bucket_value as Dictionary
+		for entry_value in bucket_entries.values():
+			if not (entry_value is Dictionary):
+				continue
+			var entry: Dictionary = entry_value
+			if String(entry.get("manifest_id", "")) == manifest_id:
+				count += 1
+		if count > 0:
+			counts[String(bucket)] = count
+	return counts
+
+
+func _format_content_counts(counts: Dictionary) -> String:
+	var order := ["arenas", "waves", "upgrades", "rules", "powerups", "weapons", "enemies", "bosses", "arena_events", "sfx", "music", "script_packs"]
+	var parts: Array[String] = []
+	for bucket in order:
+		if counts.has(bucket):
+			parts.append("%s %d" % [bucket.to_upper(), int(counts[bucket])])
+	for bucket in counts.keys():
+		if order.has(String(bucket)):
+			continue
+		parts.append("%s %d" % [String(bucket).to_upper(), int(counts[bucket])])
+	var packed_parts := PackedStringArray()
+	for part in parts:
+		packed_parts.append(part)
+	return " | ".join(packed_parts)
 
 
 func _join_lines(lines: Array[String]) -> String:

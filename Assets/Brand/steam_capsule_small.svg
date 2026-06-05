@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="231" height="87" viewBox="0 0 231 87" role="img" aria-label="Vector Anomaly small Steam capsule">
+  <rect width="231" height="87" fill="#05080d"/>
+  <circle cx="46" cy="44" r="29" fill="none" stroke="#29d8ff" stroke-width="3"/>
+  <path d="M46 14 L54 41 L76 44 L54 50 L46 73 L38 50 L16 44 L38 41 Z" fill="#07131d" stroke="#ecfbff" stroke-width="3"/>
+  <path d="M91 34 H205" stroke="#ffbe3d" stroke-width="3"/>
+  <text x="89" y="31" fill="#ecfbff" font-family="Orbitron, Rajdhani, Arial, sans-serif" font-size="21" font-weight="800">VECTOR</text>
+  <text x="89" y="62" fill="#29d8ff" font-family="Orbitron, Rajdhani, Arial, sans-serif" font-size="21" font-weight="800">ANOMALY</text>
+</svg>

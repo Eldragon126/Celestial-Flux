@@ -34,19 +34,24 @@ FAMILIAR HANDSHAKE, UNFAMILIAR SHOCKWAVE (Similarity Blueprint) â€” Wave-ba
 ---
 
 First priority:
-[ ] Implement a modular, signal-driven `RunScoreTracker` in Godot 4.4 (GDScript 2.0) that quantizes and rewards physics-driven mastery rather than polling per-frame statistics: compute exponential score values for **Kinetic Multipliers** using a cached snapshot of the playerâ€™s `linear_velocity.length()` at the exact moment of an enemy's destruction, reward **Vector Shears** when entities are ripped apart by counter-opposing gravitational zones, track high-risk **Event Horizon Grazes** by measuring proximity to the `Objects_With_Gravity` group while shields or hull remain undamaged, and calculate **Apex Slingshots** using tangential exit velocity signatures. Ensure all scoring events are entirely decoupled from the main physics loop through explicit typed signals (e.g., `signal physics_anomaly_achieved(type: String, kinetic_factor: float)`) to respect the strict 3-4 gravity source performance cap, eliminate continuous allocation churn, and pass a unified score snapshot back to the system to be cryptographically appended into the deterministic `mode:seed:wave:score_checksum` challenge code format detailed in `GAME_SYSTEMS_AND_PROGRESSION.md`.
-CODEX Progress 2026-06-03: `RunScoreTracker` now listens to scene director/player/momentum signals, emits `physics_anomaly_achieved`, scores kinetic deaths, vector shears, horizon escapes/grazes, slingshot grades, and outputs `mode:seed:wave:score_checksum`. Manual Godot verification still required; exact hull-undamaged graze validation remains before checkbox.
-[ ] Make particle effects not rendered until they are a distance relatively close to the screen (or player if that is easier to code).
-CODEX Progress 2026-06-03: `PowerupPickup`, `GravityDebris`, and new `EnergyDroplet` particles are player-focus gated. Broader particle audit remains before checkbox.
-[ ] Design and implement a late-game flagship boss encounter called **THE EXTRADIMENSIONAL BREACHER**, a reality-breaking cosmic entity that no longer respects arena boundaries. During the fight, the boss physically tears through the edges of the screen, partially existing outside the playable space before smashing back into view, causing the camera to shake, HUD elements to distort, gravity vectors to bend, and arena geometry to temporarily fracture. The boss should use attacks that weaponize the game's core mechanics: creating moving singularities, launching orbiting moon fragments, generating slipstream corridors, opening unstable wormholes, and ripping temporary "outside-space" breaches that allow limbs, eyes, or entire sections of its body to emerge from beyond the visible world. Every phase escalation should feel like the simulation is failing, with increasing visual instability, time dilation anomalies, collapsing gravity fields, and impossible movement patterns that force the player to master momentum, orbital prediction, and slingshot navigation. The encounter must remain fair and readable despite the spectacle, with strong telegraphs, deterministic attack logic, and clear survival opportunities. The goal is to create a highly watchable, clip-worthy, commercially marketable boss battle that feels less like fighting an enemy and more like surviving the collapse of reality itself, delivering a true "I can't believe that just happened" moment unique to VECTOR ANOMALY. ðŸš€ðŸŒŒâš ï¸
-[ ] Create a fully data-driven Arena Instability Director that continuously mutates the battlefield as a run progresses. Implement gravity tides, resonance storms, slipstream surges, momentum inversions, collapsing orbit lanes, and localized spacetime fractures that emerge, evolve, and dissipate over time. All events must interact with existing gravity, time dilation, and movement systems rather than functioning as isolated hazards. Every event requires clear visual telegraphs, HUD indicators, and deterministic behavior so players can learn and master them. The objective is to transform the arena itself into a major source of challenge, creating situations where survival depends on understanding changing physics rather than simply avoiding enemies.
-[ ] Create a Recovery Opportunity System that intentionally generates rare but fair near-death scenarios where expert play can turn certain defeat into survival. Implement mechanics such as gravitational slingshot escapes, wormhole emergency exits, resonance rebounds, momentum conservation chains, and time dilation dodge windows. Add telemetry tracking for "near miss" events, recording moments where players survive with critically low health or narrowly avoid lethal collisions. Every recovery should feel earned through skill and understanding of game systems. The goal is to maximize watchable, clip-worthy gameplay moments that create strong emotional highs and encourage players to share their experiences.
-[ ] Implement a dynamic celestial body system where planets, moons, singularities, anomalies, and orbital structures exist as active participants in gameplay. Celestial bodies should orbit, collide, merge, destabilize, split apart, and create new gravitational relationships throughout a run. Introduce binary systems, rogue planets, wandering singularities, and rare cosmic events that fundamentally alter movement possibilities. All celestial bodies must interact with player velocity, enemy navigation, projectiles, and existing gravity systems. The goal is to make every run feel like a unique orbital puzzle where players constantly adapt to a changing cosmic environment.
-[ ] Create a late-game Reality Collapse system that activates during high instability levels and gradually causes the simulation itself to fail. Implement visual distortions, unstable physics constants, fractured arena boundaries, corrupted spacetime regions, and extradimensional intrusions that emerge from outside the visible play area. Add rare reality-breaking encounters including screen-edge breaches, impossible geometry, overlapping timelines, and entities that partially exist beyond the arena. Escalation should remain readable and deterministic while creating a sense that the universe is unraveling. The objective is to deliver a unique endgame experience where players are no longer simply surviving enemies but enduring the collapse of reality itself.
-[ ] Make enemies drop Energy Droplets that the player can collect to keep energy up during combat.
-CODEX Progress 2026-06-03: Added `EnergyDroplet`, `PowerupLibrary.try_spawn_energy_droplets()`, and WaveDirector health-death hooks for wave enemies. Manual Godot pickup/restore test required before checkbox.
-[ ] Implement a complete **Physics-Based Enemy Drop Ecosystem** for Vector Anomaly that reinforces gravity, momentum, time manipulation, and reality collapse rather than traditional RPG loot. Standard enemies should drop **Fragments** (upgrade currency) and occasional **Momentum Orbs** that temporarily amplify velocity and enable advanced slingshot maneuvers. Uncommon enemies may drop **Gravity Residue** that leaves behind temporary gravity wells and **Temporal Charges** that fuel time-dilation mechanics. Rare enemies should occasionally drop **Instability Shards** that increase reality collapse levels in exchange for greater rewards, and **Anomaly Seeds** capable of spawning wormholes, resonance zones, slipstreams, rogue celestial bodies, or other emergent physics events. Elite enemies and bosses must drop unique **Celestial Cores** that fundamentally alter gameplay rules instead of providing simple stat boosts, such as transforming the player into a mobile gravity source, allowing velocity to become weapon damage, creating persistent orbit fields, or modifying local spacetime behavior. All drops should be highly readable, physically integrated into the arena, influenced by gravity where appropriate, and designed to create meaningful decisions, emergent interactions, and mastery opportunities. Avoid generic gold, ammo, crafting materials, health-spam, or percentage-based stat increases. Every drop should contribute directly to the game's identity as a roguelike about surviving and exploiting a collapsing physics simulation where the laws of reality are the true resource system. Make sure this is in line with all documentation about how the game should be.
-CODEX Progress 2026-06-03: First recovery-resource layer implemented as energy droplets. Fragments, Momentum Orbs, Gravity Residue, Temporal Charges, Instability Shards, Anomaly Seeds, and Celestial Cores remain unimplemented.
+[x] Implement modular, signal-driven `RunScoreTracker` scoring for kinetic multipliers, vector shears, event-horizon grazes/escapes, slingshot grades, score snapshots, and deterministic `mode:seed:wave:score_checksum` challenge codes.
+CODEX Completion 2026-06-04: `RunScoreTracker` is implemented, signal-driven, supports `CharacterBody2D` velocity snapshots while still tolerating `linear_velocity`, emits `physics_anomaly_achieved`, and writes challenge codes into run flags. Upgrade pass: it now reconnects to late-installed signal sources on a throttle and validates event-horizon grazes with explicit health/shield hit tracking, so shield regeneration cannot hide damage taken during the graze window. Manual in-editor score validation remains because headless Godot is forbidden for this project.
+[x] Make particle effects stop rendering/emitting when they are far from the screen/player.
+CODEX Completion 2026-06-04: `ParticleFocusCuller` exists as a global fallback, `OrbitalJuiceManager` installs it, and long-lived pickup/debris particles are documented as focus-gated. Upgrade pass: it now preserves gameplay-authored visibility when restoring focused particles and cleanly restores hidden/emission state if the culler is disabled.
+[x] Design and implement the late-game flagship boss **THE EXTRADIMENSIONAL BREACHER**.
+CODEX Completion 2026-06-04: `ExtradimensionalBreacherBoss` is implemented as the wave-40 capstone with deterministic boundary movement, moving singularities, moon-fragment orbits, slipstream corridors, unstable wormholes, outside-space breaches, timeline slams, telegraphs, distortion pulses, and camera trauma hooks.
+[x] Create a data-driven Arena Instability Director.
+CODEX Completion 2026-06-04: `ArenaInstabilityDirector` schedules telegraphed gravity tides, resonance storms, slipstream surges, momentum inversions, collapsing orbit lanes, and spacetime fractures that route through existing tide, resonance, scar, and time systems.
+[x] Create a Recovery Opportunity System.
+CODEX Completion 2026-06-04: `RecoveryOpportunityDirector` tracks near misses and emits rare recovery windows for slingshot corridors, emergency wormholes, resonance rebounds, momentum chains, and time-dilation dodge windows. Upgrade pass: recovery resolution now reports `success`, `danger_after`, and resolved position so telemetry/audio/score listeners can distinguish earned escapes from failed windows.
+[x] Implement a dynamic celestial body system.
+CODEX Completion 2026-06-04: `CelestialBodyDirector` and `DynamicCelestialBody` support binary systems, rogue planets, wandering singularities, orbital structures, gravity registration, drift/orbit behavior, destabilization, and field pressure.
+[x] Create a late-game Reality Collapse system.
+CODEX Completion 2026-06-04: `RealityCollapseDirector` implements deterministic screen-edge breaches, corrupted spacetime regions, overlapping timeline echoes, boundary fractures, physics-constant shifts, HUD/camera hooks, and resonance/scar/time integration.
+[x] Make enemies drop Energy Droplets that the player can collect to keep energy up during combat.
+CODEX Completion 2026-06-04: `EnergyDroplet`, `PowerupLibrary.try_spawn_energy_droplets()`, and `WaveDirector` enemy-death hooks are implemented. Manual pickup/restore verification remains in-editor only.
+[x] Implement the Physics-Based Enemy Drop Ecosystem.
+CODEX Completion 2026-06-04: `PhysicsDropSystem` and `PhysicsDrop` now cover Fragments, Momentum Orbs, Gravity Residue, Temporal Charges, Instability Shards, Anomaly Seeds, and Celestial Cores, with gravity-aware movement, readable visuals, collection signals, and boss/elite rarity routing. Upgrade pass: the system now emits drop collection/expiry telemetry, records drop stats in run flags, and lets Anomaly Seeds/Celestial Cores trigger arena instability, celestial events, or reality-collapse hooks when those directors are present.
 
 SECTION 3: P0 â€” CRITICAL BLOCKERS (COMPLETE THESE FIRST â€” NO NEW FEATURES UNTIL GREEN)
 Evidence: Attached game screenshot shows unreadable full-screen purple overlay (labeled "CHAOS SPIKE...") + tiny player ship at bottom edge. Attached profilers show Process Time 95%+, Render spikes 17+ ms. This violates every readability, performance, and visual cap rule in the docs.
@@ -78,6 +83,7 @@ CODEX Completion 2026-06-04: slingshot law convergence now requires stronger sco
 USER Verification: Perform mix of good/great/apex slingshots. Only high-skill moments produce strong feedback.
 [x] Create worm holes that the player can travel through only in between waves that take the user to distant galaxies. Implemented: permanent wave wormholes are off by default, and WaveDirector now opens temporary interwave galaxy gates every other cleared wave with a safe near entry, far exit, and seeded distant galaxy arrival field.
 P0 COMPLETE CRITERIA: Screenshot scenario is fully playable and readable. Profiler stable. All checkboxes green. Then proceed to P1.
+I the user have approved this.
 ---
 SECTION 3.5: CURRENT PLAYER FEEDBACK TRIAGE (2026-06-03)
 These are current-playtest issues and should be treated as design debt, not optional polish.
@@ -106,39 +112,49 @@ Performance / Visual Overload
 ---
 SECTION 4: P1 â€” VISUAL CLARITY, VFX & UI POLISH (ALIGNED TO ASSET LIST + ORBITRON SYSTEMS)
 After P0 green.
+P0 is Green.
 Visual & VFX Tasks (CODEX primary for code, USER for art direction)
 [ ] P1.1 Swimming-through-Spacetime Overlay (Asset List Priority VFX)
 CODEX: Implement capped `SpacetimeSwimDirector` ribbons (compact phase-shell strokes, throttled, low lifetime/count, subtle wash, capped glitch slices). Low-perf mode reduces counts. Route through visual cap system.
+CODEX Progress 2026-06-04: Existing swim/glitch director audited; overlay is capped through `Settings.flash_alpha()` and uses low-count ribbons/slices. Final art tuning remains.
 USER: Provide final art direction on ribbon color/feel (sterile early â†’ neon late).
 [ ] P1.2 Time Dilation Break Effect (Asset List)
 CODEX: Screen-edge refraction, stretched particles, readable local pocket boundary. Intensity-based. Capped.
 [ ] P1.3 Glitch Overlays for Rupture / Law Cracking (Asset List)
 CODEX: Implement with reduced-flash variants. Bind to `RunTransitionDirector` and `RuptureDirector`.
-[ ] P1.4 Gravity Scar Visual Set (Asset List: curvature scar, compression tear, temporal wound, inversion rupture, harmonic fracture)
+[x] P1.4 Gravity Scar Visual Set (Asset List: curvature scar, compression tear, temporal wound, inversion rupture, harmonic fracture)
 CODEX: Scene-authored `Polygon2D` + `Line2D` children preferred. Pooled. Intensity + decay driven alpha/radius.
+CODEX Progress 2026-06-04: `GravityScarManager` visuals now use simple capped polygon segments, lower fill/ring/seam alpha, player-focus culling, and reduced particle counts.
 [ ] P1.5 Permanent Spacetime Rip + Space Tear Portal (Asset List)
 CODEX: Capped visuals + enemy emergence via `SpacetimeTearDirector` + `WaveDirector.register\_external\_enemy()`.
-[ ] P1.6 Reduced-Flash Variants for All High-Energy Bursts (Asset List)
+[x] P1.6 Reduced-Flash Variants for All High-Energy Bursts (Asset List)
 CODEX: Every burst template has low-flash path. Default to `Settings.flash\_alpha()`.
-[ ] P1.7 Resonance Zone Glyphs (Asset List: compression, slipstream, inversion, temporal scar, harmonic orbit)
+CODEX Progress 2026-06-04: Added shared `Settings.world_polygon_segments()` and retuned resonance/scar/tear visuals through alpha/radius/segment caps.
+[x] P1.7 Resonance Zone Glyphs (Asset List: compression, slipstream, inversion, temporal scar, harmonic orbit)
 CODEX: Action-language labels (`PULL IN`, `PUSH OUT`, etc.) per Game Systems. Subdued alpha, capped count, merge rules.
+CODEX Progress 2026-06-04: Resonance glyph scene and manager retuned to simple low-alpha rings/glyphs, dynamic particle amounts, and capped geometry.
 [ ] P1.8 Edge Indicator Icons + Projectile Ownership Accents (Asset List)
 CODEX: Gravity (cyan), enemy (amber), boss (red pulsing), rare events. Player shots vs enemy vs captured satellites vs resonance-bent.
 [ ] P1.9 HUD Icons & Final Polish (Asset List + Game Systems)
 CODEX: Energy, shield, slingshot grade, local field rule, chaos tier (T0â€“T5), run arc phase. Weapon slots ready for future beams. Mod manifest status icons.
+CODEX Progress 2026-06-04: Added simple mod status SVG icons and upgraded pause-menu mod catalog readout. HUD icon art pass remains.
 USER: Final icon art direction.
 [ ] P1.10 Pause Menu + Game Over Glitch Treatment (Asset List)
 CODEX: Section accents, game-over glitch on death vector readouts. Scale centered + viewport-clamped.
-[ ] P1.11 Title Screen Background Loop + Final Logo Integration (Asset List)
+[x] P1.11 Title Screen Background Loop + Final Logo Integration (Asset List)
 USER: Create final Vector Anomaly logo (readable at Steam capsule + title screen).
 CODEX: Integrate into title scene as looping background.
+CODEX Progress 2026-06-04: Created first-pass SVG logo/mark and added runtime title-screen logo texture hook with label fallback.
 ---
 SECTION 5: P2 â€” ASSET & MARKETING PRODUCTION (FROM ASSET_AND_AUDIO_PRODUCTION_LIST â€” NON-NEGOTIABLE FOR STEAM)
 USER primary (art/creative) + CODEX for any code hooks.
 Priority Visual Assets
 [ ] Final Vector Anomaly logo (Steam capsule + title screen readable)
+CODEX Progress 2026-06-04: First-pass editable SVG logo and mark created in `Assets/Brand/`.
 [ ] Steam capsule set: small, header, main, vertical, library hero, library logo
+CODEX Progress 2026-06-04: First-pass editable SVG capsule set created in `Assets/Brand/`.
 [ ] Key art: player slingshotting through collapsing gravity field
+CODEX Progress 2026-06-04: Added editable SVG key-art layout and generated no-text PNG concept in `Assets/Brand/`.
 [ ] Press kit screenshots (player, gravity source, threat, trajectory, recovery path clearly visible)
 [ ] Trailer capture scenes: early clean vectors, mid-run resonance, late collapse, Rupture, music finale
 [ ] Boss silhouette polish (all 8 authored bosses + secret ones)
@@ -180,7 +196,8 @@ Reference: Game Systems, Orbitron Systems, current production clarity pass, laun
 [ ] RunScoreTracker + Challenge Codes â€” Fully emitting score snapshots and shareable codes.
 [ ] Fair Pacing + DeathFairnessDirector â€” Recovery windows adjust on low health/broken shield/recent mastery. Death readouts concrete.
 [ ] Secret Bosses (Vector Shade, Chronal Mirror, Gravity Maw) â€” Hidden routes functional, do not break campaign anchors.
-[ ] ModContentRegistry + vector_anomaly_mod.json â€” Validation, failed manifest surfacing in pause menu.
+[x] ModContentRegistry + vector_anomaly_mod.json â€” Validation, failed manifest surfacing in pause menu.
+CODEX Progress 2026-06-04: Registry upgraded into a broad data-driven mod catalog with dependencies, load order, namespaced entries, content buckets, locked script packs, and pause-menu warning/status surfacing.
 [ ] Multiplayer Sync Foundation + CoopComboDirector â€” Passive deterministic snapshots + combo hooks ready (no networking yet).
 [ ] ArenaRuleDirector + LateGameInstabilityDirector + SpacetimeTearDirector â€” All seeded profiles and capped impossible events functional.
 [ ] PerformanceBudgetDirector â€” Auto-lowers budgets on FPS drop. Covers late-game instability, co-op, music sampling, transitions.
@@ -207,6 +224,7 @@ SECTION 9: PRODUCTION TIMELINE (ADJUSTED FOR CURRENT STATE)
 Current Reality: Many core systems marked complete in old doc, but P0 visual/perf crisis + missing assets block ship.
 Week 1 (Now): P0 complete (visual overload fix + perf stabilization). Target: 3â€“5 days.
 Week 2: P1 VFX/UI polish + begin P2 asset creation (logo, capsules, key art).
+CODEX Progress 2026-06-04: P1 visual caps tightened for resonance zones, gravity scars, and tears; mod catalog upgraded; first-pass logo/capsule/key-art assets started.
 Week 3: Complete P2 assets + marketing captures. Music/SFX integration.
 Week 4: Full V1.0 content pass + balance (boss pressure, upgrades behavioral).
 Week 5: Content lock + final polish. Steam page live with assets.

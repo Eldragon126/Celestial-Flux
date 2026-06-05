@@ -45,6 +45,7 @@ const SHEAR_PAYLOAD_TIME: StringName = &"time"
 @export var horizon_graze_velocity_floor: float = 90.0
 @export var horizon_graze_distance: float = 112.0
 @export var apex_tangential_reference_speed: float = 1850.0
+@export var signal_reconnect_interval: float = 0.5
 
 var score: int = 0
 var waves_cleared: int = 0
@@ -68,9 +69,13 @@ var _resonance_manager: Node = null
 var _scar_manager: Node = null
 var _event_horizon_active: bool = false
 var _event_horizon_graze_awarded: bool = false
+var _event_horizon_damage_taken: bool = false
 var _event_horizon_start_health: float = 0.0
 var _event_horizon_start_shield: float = 0.0
+var _last_player_health: float = 0.0
+var _last_player_shield: float = 0.0
 var _last_vector_shear_time: float = -999.0
+var _signal_reconnect_elapsed: float = 999.0
 var _pending_kinetic_kills: Dictionary = {}
 var _last_body_shear_impulses: Dictionary = {}
 
@@ -79,6 +84,22 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 	call_deferred("_bootstrap")
 	_emit_score_changed()
+
+
+func _process(delta: float) -> void:
+	_signal_reconnect_elapsed += delta
+	if _signal_reconnect_elapsed < maxf(signal_reconnect_interval, 0.1):
+		return
+	_signal_reconnect_elapsed = 0.0
+	_cache_player()
+	_connect_player_signal()
+	_connect_momentum_signal()
+	_connect_player_damage_signals()
+	_connect_node_signal(_find_scene_node(&"WaveDirector"), &"wave_cleared", Callable(self, "_on_wave_cleared"))
+	_connect_node_signal(_find_scene_node(&"WaveDirector"), &"boss_defeated_anchor", Callable(self, "_on_boss_defeated"))
+	_connect_node_signal(_find_scene_node(&"ArenaDestabilizationManager"), &"arena_hazard_spawned", Callable(self, "_on_arena_hazard_spawned"))
+	_connect_node_signal(_resonance_singleton(), &"fracture_applied", Callable(self, "_on_resonance_fracture_applied"))
+	_connect_node_signal(_scar_singleton(), &"gravity_scar_applied", Callable(self, "_on_gravity_scar_applied"))
 
 
 func _bootstrap() -> void:
@@ -96,6 +117,7 @@ func _bootstrap() -> void:
 	_connect_node_signal(_scar_singleton(), &"gravity_scar_applied", Callable(self, "_on_gravity_scar_applied"))
 	_connect_player_signal()
 	_connect_momentum_signal()
+	_connect_player_damage_signals()
 
 
 func reset_score() -> void:
@@ -118,8 +140,11 @@ func reset_score() -> void:
 	_last_vector_shear_time = -999.0
 	_event_horizon_active = false
 	_event_horizon_graze_awarded = false
+	_event_horizon_damage_taken = false
 	_event_horizon_start_health = 0.0
 	_event_horizon_start_shield = 0.0
+	_last_player_health = _player_health_value()
+	_last_player_shield = _player_shield_value()
 	_last_body_shear_impulses.clear()
 	_emit_score_changed()
 
@@ -136,6 +161,8 @@ func _connect_node_signal(source: Object, signal_name: StringName, callback: Cal
 
 func _cache_player() -> void:
 	if _player != null and is_instance_valid(_player):
+		if _momentum_component == null or not is_instance_valid(_momentum_component):
+			_momentum_component = _player.get_node_or_null("MomentumCombatComponent")
 		return
 	var tree: SceneTree = get_tree()
 	if tree == null:
@@ -147,6 +174,8 @@ func _cache_player() -> void:
 		return
 	_player = found as Node2D
 	_momentum_component = _player.get_node_or_null("MomentumCombatComponent")
+	_last_player_health = _player_health_value()
+	_last_player_shield = _player_shield_value()
 
 
 func _connect_player_signal() -> void:
@@ -162,6 +191,16 @@ func _connect_momentum_signal() -> void:
 		return
 	_connect_node_signal(_momentum_component, &"kinetic_impact_dealt", Callable(self, "_on_kinetic_impact_dealt"))
 	_connect_node_signal(_momentum_component, &"near_miss_velocity_gained", Callable(self, "_on_near_miss_velocity_gained"))
+
+
+func _connect_player_damage_signals() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	var health := _player.get_node_or_null("HealthComponent")
+	_connect_node_signal(health, &"health_changed", Callable(self, "_on_player_health_changed"))
+	var shield := _player.get_node_or_null("Shield")
+	_connect_node_signal(shield, &"shield_hit", Callable(self, "_on_player_shield_hit"))
+	_connect_node_signal(shield, &"shield_restored", Callable(self, "_on_player_shield_restored"))
 
 
 func _find_scene_node(node_name: StringName) -> Node:
@@ -216,13 +255,17 @@ func _on_coop_combo_triggered(_combo_id: StringName, _data: Dictionary) -> void:
 func _on_event_horizon_started(_data: Dictionary) -> void:
 	_event_horizon_active = true
 	_event_horizon_graze_awarded = false
+	_event_horizon_damage_taken = false
 	_event_horizon_start_health = _player_health_value()
 	_event_horizon_start_shield = _player_shield_value()
+	_last_player_health = _event_horizon_start_health
+	_last_player_shield = _event_horizon_start_shield
 
 
 func _on_event_horizon_ended(_data: Dictionary) -> void:
 	_event_horizon_active = false
 	_event_horizon_graze_awarded = false
+	_event_horizon_damage_taken = false
 	_event_horizon_start_health = 0.0
 	_event_horizon_start_shield = 0.0
 
@@ -261,6 +304,22 @@ func _on_near_miss_velocity_gained(target: Node, amount: float) -> void:
 		"player_speed": _player_speed_snapshot(),
 		"source_key": String(target.name)
 	})
+
+
+func _on_player_health_changed(current_health: float, _max_health: float) -> void:
+	if _event_horizon_active and current_health < _last_player_health - 0.001:
+		_event_horizon_damage_taken = true
+	_last_player_health = current_health
+
+
+func _on_player_shield_hit(amount: float, current_energy: float, _max_capacity: float) -> void:
+	if _event_horizon_active and amount > 0.0:
+		_event_horizon_damage_taken = true
+	_last_player_shield = current_energy
+
+
+func _on_player_shield_restored(_amount: float, current_energy: float, _max_capacity: float) -> void:
+	_last_player_shield = current_energy
 
 
 func _on_slingshot_mastery_scored(mastery_data: Dictionary) -> void:
@@ -634,7 +693,8 @@ func _player_shield_value() -> float:
 
 func _player_remained_undamaged_since_horizon_start() -> bool:
 	return (
-		_player_health_value() >= _event_horizon_start_health
+		not _event_horizon_damage_taken
+		and _player_health_value() >= _event_horizon_start_health
 		and _player_shield_value() >= _event_horizon_start_shield
 	)
 

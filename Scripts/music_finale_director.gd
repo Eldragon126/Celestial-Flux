@@ -3,7 +3,7 @@ extends Node
 
 signal finale_complete
 
-const FINALE_TRACK := "res://Assets/Songs/Resonance.mp3"
+const FINALE_TRACK := "res://Assets/Songs/A New Thread.mp3"
 const GRAVITY_TIDE_SCENE := preload("res://Nodes/gravity_tide_pocket.tscn")
 const MUSIC_RESONANCE_BOSS_SCENE := preload("res://Nodes/music_resonance_boss.tscn")
 
@@ -41,7 +41,7 @@ func _ready() -> void:
 		_music.stream = stream
 		_music.play()
 	else:
-		push_warning("MusicFinaleDirector: missing Resonance.mp3")
+		push_warning("MusicFinaleDirector: missing A New Thread.mp3")
 		_fire_beat(&"pulse")
 
 	_music.finished.connect(_on_music_finished)

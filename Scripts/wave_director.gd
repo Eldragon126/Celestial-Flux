@@ -44,29 +44,39 @@ const RESONANCE_PARALYTIC_CONSTRUCT_SCENE = preload("res://Nodes/resonance_paral
 
 const SONG_A_NEW_THREAD_AMBIENCE = preload("res://Assets/Songs/A New Thread Ambience.mp3")
 const SONG_A_NEW_THREAD = preload("res://Assets/Songs/A New Thread.mp3")
+const SONG_A_CASUAL = preload("res://Assets/Songs/ACasualSong.mp3")
+const SONG_A_NEW_PLANET = preload("res://Assets/Songs/A New Planet.mp3")
 const SONG_APPROACHING_ABYSS = preload("res://Assets/Songs/Approaching Abyss.mp3")
 const SONG_BOOGIE_WORLD = preload("res://Assets/Songs/Boogie World.mp3")
 const SONG_CONTINUUM = preload("res://Assets/Songs/Continuum.mp3")
 const SONG_COSMIC_BASS = preload("res://Assets/Songs/Cosmic Bass.wav")
 const SONG_COSMIC_JOURNEY_BACKGROUND = preload("res://Assets/Songs/Cosmic Journey Background.mp3")
 const SONG_COSMIC_JOURNEY_EPIC = preload("res://Assets/Songs/Cosmic Journey Epic.mp3")
+const SONG_CRASH_LANDING = preload("res://Assets/Songs/Crash Landing.mp3")
 const SONG_DAWN_ON_A_NEW_PLANET = preload("res://Assets/Songs/Dawn on A New Planet.mp3")
+const SONG_FRAGMENTS_FORGOTTEN_FUTUR = preload("res://Assets/Songs/Fragments of a Forgotten Futur.mp3")
 const SONG_GRAVITY_BLOOM = preload("res://Assets/Songs/Gravity Bloom.mp3")
 const SONG_GREEN_FLAME_ULTRA = preload("res://Assets/Songs/Green Flame Ultra.mp3")
 const SONG_INTERESTING = preload("res://Assets/Songs/Interesting Song (1).mp3")
 const SONG_NEON_STARLIGHT = preload("res://Assets/Songs/Neon Starlight.mp3")
 const SONG_ORBITAL_DRIFT = preload("res://Assets/Songs/Orbital Drift.mp3")
 const SONG_ORBITAL_FUN = preload("res://Assets/Songs/Orbital Fun.wav")
+const SONG_OTHER_WORLDS = preload("res://Assets/Songs/oTHER wORLDS.mp3")
 const SONG_QUANTUM_BREAK = preload("res://Assets/Songs/Quantum Break.mp3")
 const SONG_RESONANCE = preload("res://Assets/Songs/Resonance.mp3")
+const SONG_SOLAR_RAYS = preload("res://Assets/Songs/Solar Rays.mp3")
+const SONG_SPINE_CHILLING_CHRISTMAS = preload("res://Assets/Songs/Spine Chilling Christmas.mp3")
 const SONG_THE_4TH_DIMENSION = preload("res://Assets/Songs/The 4th Dimension.mp3")
 const SONG_THE_ABYSS = preload("res://Assets/Songs/The Abyss.wav")
 const SONG_THE_ABYSS_INTRO = preload("res://Assets/Songs/The Abyss Intro.wav")
 const SONG_THE_ARRIVAL = preload("res://Assets/Songs/The Arrival.mp3")
 const SONG_THE_LONG_DRIFT = preload("res://Assets/Songs/The Long Drift.mp3")
 const SONG_THE_NEURAL_DRIFT_THRESHOLD = preload("res://Assets/Songs/The Neural Drift Threshold.mp3")
+const SONG_THE_TOMB_OF_GALAXIES = preload("res://Assets/Songs/The Tomb of Galaxies.mp3")
 const SONG_THE_TOWN = preload("res://Assets/Songs/The Town.mp3")
 const SONG_THE_UNIVERSE_SAYS_HELLO = preload("res://Assets/Songs/The Universe Says Hello.mp3")
+const SONG_THROUGH_TIME = preload("res://Assets/Songs/Through Time.mp3")
+const SONG_TITLE_SCREEN_AMBIENCE = preload("res://Assets/Songs/Title Screen Ambience.mp3")
 const SONG_TWANGY_SPACE = preload("res://Assets/Songs/Twangy Space.mp3")
 const SONG_WHISPERS_IN_THE_VOID = preload("res://Assets/Songs/Whispers in the Void.mp3")
 const SONG_ERR_INVALID_THREAD_CHANGE = preload("res://Assets/Songs/[Err -42] invalid thread change.mp3")
@@ -149,6 +159,8 @@ var _music_mode: int = MusicMode.NONE
 var _active_music_stream: AudioStream = null
 var _pause_menu: Node = null
 var _music_blocked_by_pause: bool = false
+var _wave_music_by_wave: Dictionary = {}
+var _boss_music_by_wave: Dictionary = {}
 var _wave_music_tracks: Array[AudioStream] = [
 	SONG_THE_ABYSS,
 	SONG_ORBITAL_DRIFT,
@@ -175,9 +187,55 @@ var _intermission_music_tracks: Array[AudioStream] = [
 	SONG_A_NEW_THREAD,
 ]
 
+func _configure_music_maps() -> void:
+	_wave_music_by_wave = {
+		1: SONG_THE_ABYSS_INTRO,
+		2: SONG_WHISPERS_IN_THE_VOID,
+		3: SONG_COSMIC_BASS,
+		4: SONG_THE_ABYSS,
+		6: SONG_THE_ABYSS,
+		7: SONG_THE_4TH_DIMENSION,
+		8: SONG_GRAVITY_BLOOM,
+		9: SONG_A_NEW_THREAD_AMBIENCE,
+		11: SONG_SOLAR_RAYS,
+		12: SONG_CRASH_LANDING,
+		13: SONG_COSMIC_BASS,
+		14: SONG_DAWN_ON_A_NEW_PLANET,
+		16: SONG_THE_ABYSS,
+		17: SONG_CONTINUUM,
+		18: SONG_COSMIC_BASS,
+		19: SONG_BOOGIE_WORLD,
+		21: SONG_THE_ABYSS,
+		22: SONG_COSMIC_BASS,
+		23: SONG_COSMIC_BASS,
+		24: SONG_APPROACHING_ABYSS,
+		26: SONG_THE_ABYSS,
+		27: SONG_WHISPERS_IN_THE_VOID,
+		28: SONG_CONTINUUM,
+		29: SONG_THE_NEURAL_DRIFT_THRESHOLD,
+		31: SONG_THE_ABYSS,
+		32: SONG_CONTINUUM,
+		33: SONG_THROUGH_TIME,
+		34: SONG_A_NEW_PLANET,
+		36: SONG_FRAGMENTS_FORGOTTEN_FUTUR,
+		37: SONG_THE_TOMB_OF_GALAXIES,
+		38: SONG_TITLE_SCREEN_AMBIENCE,
+		39: SONG_THE_ABYSS,
+	}
+	_boss_music_by_wave = {
+		5: SONG_A_CASUAL,
+		15: SONG_OTHER_WORLDS,
+		20: SONG_QUANTUM_BREAK,
+		25: SONG_RESONANCE,
+		30: SONG_ERR_INVALID_THREAD_CHANGE,
+		35: SONG_THE_ARRIVAL,
+		40: SONG_COSMIC_JOURNEY_EPIC,
+	}
+
 func _ready() -> void:
 	_rng.randomize()
 	_level_root = get_tree().current_scene
+	_configure_music_maps()
 	_build_ui()
 	_stop_all_music()
 	call_deferred("_connect_pause_menu")
@@ -370,7 +428,7 @@ func _spawn_boss_wave() -> void:
 	_seed_wave_hazards()
 
 	var boss_scene = _choose_boss_scene()
-	_play_boss_music_for_scene(boss_scene)
+	_play_boss_music_for_wave(_wave, boss_scene)
 	_last_boss_scene_path = boss_scene.resource_path
 	var boss = boss_scene.instantiate()
 	boss.name = "%sWave%d" % [_boss_node_prefix(boss_scene), _wave]
@@ -631,6 +689,9 @@ func _seed_wave_hazards() -> void:
 		_spawn_hazard(UNSTABLE_MOON_SCENE, "Wave%dUnstableMoon" % _wave, _spawn_position_for_index(_wave + 3))
 	if _wave % 3 == 0:
 		_spawn_hazard(NEBULA_SCENE, "Wave%dNebulaCloud" % _wave, _spawn_position_for_index(_wave + 7))
+	if _wave == 19:
+		_spawn_hazard(NEBULA_SCENE, "Wave19BoogieNebula", _spawn_position_for_index(_wave + 11))
+		_spawn_hazard(UNSTABLE_MOON_SCENE, "Wave19BoogieMoon", _spawn_position_for_index(_wave + 13))
 
 	_refresh_player_planet_cache()
 
@@ -1152,24 +1213,33 @@ func _on_pause_state_changed(blocked: bool) -> void:
 	_resume_current_music_mode()
 
 func _play_wave_music_for_wave(wave: int) -> void:
-	if _wave_music_tracks.is_empty():
+	var stream := _music_for_regular_wave(wave)
+	if stream == null:
 		return
-	var index := wrapi(maxi(wave - 1, 0), 0, _wave_music_tracks.size())
-	_set_music_mode(MusicMode.WAVE, _wave_music_tracks[index], wave_music_volume_db)
+	_set_music_mode(MusicMode.WAVE, stream, wave_music_volume_db)
 
-func _play_intermission_music_for_wave(wave: int) -> void:
-	if _intermission_music_tracks.is_empty() or _waves_halted:
-		return
-	var index := wrapi(maxi(wave - 1, 0), 0, _intermission_music_tracks.size())
-	_set_music_mode(MusicMode.INTERMISSION, _intermission_music_tracks[index], intermission_music_volume_db)
+func _play_intermission_music_for_wave(_wave_number: int) -> void:
+	_stop_all_music()
 
-func _play_boss_music_for_scene(scene: PackedScene) -> void:
-	_set_music_mode(MusicMode.BOSS, _boss_music_for_scene(scene), boss_music_volume_db)
+func _play_boss_music_for_wave(wave: int, scene: PackedScene) -> void:
+	var stream: AudioStream = _boss_music_by_wave.get(wave, null)
+	if stream == null:
+		stream = _boss_music_for_scene(scene)
+	_set_music_mode(MusicMode.BOSS, stream, boss_music_volume_db)
 
 func _play_secret_boss_music(display_name: String) -> void:
 	var hash = abs(display_name.hash())
-	var stream := SONG_THE_ARRIVAL if hash % 2 == 0 else SONG_THE_4TH_DIMENSION
+	var stream := SONG_GREEN_FLAME_ULTRA if hash % 2 == 0 else SONG_SPINE_CHILLING_CHRISTMAS
 	_set_music_mode(MusicMode.BOSS, stream, boss_music_volume_db)
+
+func _music_for_regular_wave(wave: int) -> AudioStream:
+	var mapped: AudioStream = _wave_music_by_wave.get(wave, null)
+	if mapped != null:
+		return mapped
+	if _wave_music_tracks.is_empty():
+		return null
+	var index := wrapi(maxi(wave - 1, 0), 0, _wave_music_tracks.size())
+	return _wave_music_tracks[index]
 
 func _boss_music_for_scene(scene: PackedScene) -> AudioStream:
 	if scene == ACCRETION_CORE_SCENE:

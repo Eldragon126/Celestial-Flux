@@ -15,7 +15,9 @@ var _player: Node2D = null
 var _scan_elapsed: float = 999.0
 var _focus_elapsed: float = 999.0
 var _particle_nodes: Array[Node2D] = []
+var _desired_visible: Dictionary = {}
 var _desired_emitting: Dictionary = {}
+var _was_enabled: bool = true
 
 
 func _ready() -> void:
@@ -27,7 +29,14 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if not enabled:
+		if _was_enabled:
+			_restore_tracked_particles()
+		_was_enabled = false
 		return
+	if not _was_enabled:
+		_was_enabled = true
+		_scan_elapsed = 999.0
+		_focus_elapsed = 999.0
 	_scan_elapsed += delta
 	_focus_elapsed += delta
 	if _scan_elapsed >= maxf(scan_interval, 0.2):
@@ -51,6 +60,9 @@ func _scan_particles() -> void:
 	for id in _desired_emitting.keys():
 		if not active_ids.has(id):
 			_desired_emitting.erase(id)
+	for id in _desired_visible.keys():
+		if not active_ids.has(id):
+			_desired_visible.erase(id)
 
 
 func _collect_particles(node: Node) -> void:
@@ -83,7 +95,15 @@ func _update_focus() -> void:
 
 
 func _apply_focus_state(particle: Node2D, in_focus: bool) -> void:
-	particle.visible = in_focus
+	var id := particle.get_instance_id()
+	if not in_focus:
+		if not _desired_visible.has(id):
+			_desired_visible[id] = particle.visible
+		particle.visible = false
+	else:
+		if _desired_visible.has(id):
+			particle.visible = bool(_desired_visible[id])
+			_desired_visible.erase(id)
 	if particle is GPUParticles2D:
 		_apply_gpu_focus(particle as GPUParticles2D, in_focus)
 	elif particle is CPUParticles2D:
@@ -100,6 +120,7 @@ func _apply_gpu_focus(particles: GPUParticles2D, in_focus: bool) -> void:
 		return
 	if bool(_desired_emitting.get(id, particles.emitting)):
 		particles.emitting = true
+	_desired_emitting.erase(id)
 
 
 func _apply_cpu_focus(particles: CPUParticles2D, in_focus: bool) -> void:
@@ -112,6 +133,7 @@ func _apply_cpu_focus(particles: CPUParticles2D, in_focus: bool) -> void:
 		return
 	if bool(_desired_emitting.get(id, particles.emitting)):
 		particles.emitting = true
+	_desired_emitting.erase(id)
 
 
 func _is_particle_in_focus(particle: Node2D) -> bool:
@@ -140,3 +162,21 @@ func _resolve_player() -> void:
 	if _player != null and is_instance_valid(_player):
 		return
 	_player = get_tree().get_first_node_in_group("Player") as Node2D
+
+
+func _restore_tracked_particles() -> void:
+	for particle in _particle_nodes:
+		if particle == null or not is_instance_valid(particle) or particle.is_queued_for_deletion():
+			continue
+		var id := particle.get_instance_id()
+		particle.visible = bool(_desired_visible.get(id, particle.visible))
+		if particle is GPUParticles2D:
+			var gpu := particle as GPUParticles2D
+			if not gpu.one_shot and bool(_desired_emitting.get(id, gpu.emitting)):
+				gpu.emitting = true
+		elif particle is CPUParticles2D:
+			var cpu := particle as CPUParticles2D
+			if not cpu.one_shot and bool(_desired_emitting.get(id, cpu.emitting)):
+				cpu.emitting = true
+	_desired_visible.clear()
+	_desired_emitting.clear()

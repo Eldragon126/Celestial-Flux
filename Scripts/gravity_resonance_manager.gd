@@ -105,13 +105,14 @@ const ZONE_COLORS = {
 @export_enum("Off", "Low", "High") var resonance_visual_quality: int = VisualQuality.HIGH
 @export var enable_zone_labels: bool = true
 @export var enable_zone_glyphs: bool = true
-@export var max_visual_particles_per_zone: int = 24
-@export var visual_ring_segments: int = 72
-@export var resonance_visual_alpha_scale: float = 0.48
-@export var visual_radius_cap: float = 420.0
-@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.055
-@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.24
-@export_range(0.0, 1.0, 0.01) var visual_glyph_alpha_cap: float = 0.2
+@export var simple_polygon_visuals: bool = true
+@export var max_visual_particles_per_zone: int = 14
+@export var visual_ring_segments: int = 36
+@export var resonance_visual_alpha_scale: float = 0.42
+@export var visual_radius_cap: float = 360.0
+@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.035
+@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.18
+@export_range(0.0, 1.0, 0.01) var visual_glyph_alpha_cap: float = 0.16
 @export var maximum_manual_resonance_zones: int = 3
 @export var manual_zone_merge_distance: float = 120.0
 @export var visual_min_intensity: float = 0.26
@@ -964,15 +965,15 @@ func _update_zone_visual(zone: Dictionary, delta: float) -> void:
 	root.scale = Vector2.ONE * lerpf(0.96, 1.04, sin(Time.get_ticks_msec() / 180.0) * 0.5 + 0.5)
 
 	if core != null:
-		core.polygon = _soft_circle_points(40, visual_radius * 0.52)
+		core.polygon = _soft_circle_points(_visual_segments(16), visual_radius * 0.48)
 		core.color = Color(base_color.r, base_color.g, base_color.b, _visual_alpha(life_alpha * 0.1, visual_fill_alpha_cap))
 	if ring != null:
-		ring.points = _circle_points(maxi(24, visual_ring_segments), visual_radius)
-		ring.width = lerpf(1.4, 3.2, intensity)
+		ring.points = _circle_points(_visual_segments(visual_ring_segments), visual_radius)
+		ring.width = lerpf(1.2, 2.6, intensity)
 		ring.default_color = Color(base_color.r, base_color.g, base_color.b, _visual_alpha(life_alpha, visual_ring_alpha_cap))
 	if accent != null:
-		accent.points = _circle_points(maxi(18, int(visual_ring_segments / 2)), visual_radius * 0.58)
-		accent.width = lerpf(0.8, 1.8, intensity)
+		accent.points = _circle_points(_visual_segments(int(visual_ring_segments / 2), 18), visual_radius * 0.58)
+		accent.width = lerpf(0.7, 1.4, intensity)
 		accent.default_color = Color(1.0, 1.0, 1.0, _visual_alpha(life_alpha * 0.22, visual_glyph_alpha_cap))
 	if label != null:
 		label.visible = enable_zone_labels and intensity > 0.38
@@ -982,7 +983,7 @@ func _update_zone_visual(zone: Dictionary, delta: float) -> void:
 		label.modulate = Color(base_color.r, base_color.g, base_color.b, _visual_alpha(lerpf(0.42, 0.92, intensity), 0.72))
 	_update_zone_glyphs(glyphs, zone_type, visual_radius, intensity, base_color)
 	if particles != null:
-		particles.amount = maxi(0, max_visual_particles_per_zone)
+		particles.amount = int(lerpf(3.0, float(max_visual_particles_per_zone), intensity))
 		particles.emitting = intensity > 0.24 and resonance_visual_quality == VisualQuality.HIGH
 		if material != null:
 			material.emission_sphere_radius = visual_radius * 0.72
@@ -1144,18 +1145,27 @@ func _visual_spin_for_zone(zone_type: int) -> float:
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()
-	for i in range(count):
-		var angle := TAU * float(i) / float(count)
+	var safe_count := maxi(count, 3)
+	for i in range(safe_count):
+		var angle := TAU * float(i) / float(safe_count)
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
 	return points
 
 func _soft_circle_points(count: int, base_radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()
-	for i in range(count):
-		var angle := TAU * float(i) / float(count)
+	var safe_count := maxi(count, 3)
+	for i in range(safe_count):
+		var angle := TAU * float(i) / float(safe_count)
 		var wave := sin(angle * 3.0) * 0.05 + cos(angle * 5.0) * 0.035
 		points.append(Vector2(cos(angle), sin(angle)) * base_radius * (1.0 + wave))
 	return points
+
+func _visual_segments(requested: int, hard_cap: int = 32) -> int:
+	var cap_limit := 18 if simple_polygon_visuals else 32
+	var local_cap := mini(hard_cap, cap_limit)
+	if Settings != null and Settings.has_method("world_polygon_segments"):
+		return Settings.world_polygon_segments(requested, local_cap)
+	return clampi(requested, 3, local_cap)
 
 func _zone_id(source_a: Node2D, source_b: Node2D) -> int:
 	var a := source_a.get_instance_id() if is_instance_valid(source_a) else 0

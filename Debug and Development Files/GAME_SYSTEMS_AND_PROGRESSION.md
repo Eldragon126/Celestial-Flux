@@ -115,7 +115,7 @@ The tracker emits:
 
 It also mirrors the latest `score_snapshot` and `challenge_code` into `RunProgress.arena_flags` so other systems can read the unified score state without owning score logic.
 
-Challenge codes use `mode:seed:wave:score_checksum`, where the checksum is a stable SHA-256-derived digest of the unified score snapshot. They are intended for seed-based community challenges and score competitions; they are not anti-cheat infrastructure. Kinetic multiplier scoring captures the player's current velocity at the exact enemy death signal before quantizing an exponential reward. Vector shears score from counter-opposing gravitational impulses, event-horizon grazes require proximity to an `Objects_With_Gravity` source while shield/hull remain undamaged, and apex slingshots score from the player's tangential exit velocity signature.
+Challenge codes use `mode:seed:wave:score_checksum`, where the checksum is a stable SHA-256-derived digest of the unified score snapshot. They are intended for seed-based community challenges and score competitions; they are not anti-cheat infrastructure. Kinetic multiplier scoring captures the player's current velocity at the exact enemy death signal before quantizing an exponential reward. Vector shears score from counter-opposing gravitational impulses, event-horizon grazes require proximity to an `Objects_With_Gravity` source while shield/hull remain undamaged, and apex slingshots score from the player's tangential exit velocity signature. Horizon-graze validation listens to health and shield-hit signals during the horizon window, so regenerated shield does not retroactively qualify a damaged graze.
 
 ## Time Dilation
 
@@ -136,7 +136,7 @@ Current powerup definitions:
 
 Energy droplets are lightweight combat recovery pickups spawned through `PowerupLibrary.try_spawn_energy_droplets()`. Wave-tracked enemies connect their `HealthComponent.died` signal to the wave director, which spawns a small readable cluster that restores `EnergyComponent` on pickup. Droplets magnetize to the player only at close range and disable their particles outside player focus distance.
 
-`PhysicsDropSystem` expands enemy rewards into a physics-based drop ecosystem. Standard enemies drop Fragments and occasional Momentum Orbs. Uncommon enemies can drop Gravity Residue and Temporal Charges. Rare enemies can drop Instability Shards and Anomaly Seeds. Bosses can drop Celestial Cores that grant rule-changing powerup definitions. Drops are readable arena entities, can be bent by gravity where appropriate, decay if ignored, and avoid generic gold/ammo/health-spam loops.
+`PhysicsDropSystem` expands enemy rewards into a physics-based drop ecosystem. Standard enemies drop Fragments and occasional Momentum Orbs. Uncommon enemies can drop Gravity Residue and Temporal Charges. Rare enemies can drop Instability Shards and Anomaly Seeds. Bosses can drop Celestial Cores that grant rule-changing powerup definitions. Drops are readable arena entities, can be bent by gravity where appropriate, decay if ignored, emit collection/expiry telemetry, and avoid generic gold/ammo/health-spam loops. Anomaly Seeds and Celestial Cores can trigger arena-instability, celestial-body, or reality-collapse hooks when those directors are active.
 
 Current law fusions:
 
