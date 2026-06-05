@@ -1,9 +1,9 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1780677528
-.agentrules.txt::TextFile::-1::1780615969::0::1::::<><><>0<>0<><>::
+::res://::1780678734
+.agentrules.txt::TextFile::-1::1780678393::0::1::::<><><>0<>0<><>::
 default_bus_layout.tres::AudioBusLayout::6536144205823831777::1779223367::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1780079831::0::1::::<><><>0<>0<><>::
-HOW_TO_PLAY.md::TextFile::-1::1780418500::0::1::::<><><>0<>0<><>::
+HOW_TO_PLAY.md::TextFile::-1::1780678547::0::1::::<><><>0<>0<><>::
 icon.svg::CompressedTexture2D::1800171189912251906::1779223367::1779223367::1::::<><><>0<>0<>60cf4f21f9256d6dc7767d18abb03a86<>res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex::
 README.md::TextFile::-1::1780418529::0::1::::<><><>0<>0<><>::
 test_motor_position.gd::GDScript::7501230798128003658::1779223367::0::1::::<>Node2D<><>0<>0<><>::
@@ -25,7 +25,7 @@ Radial2D.svg::CompressedTexture2D::5294797171325615259::1779223366::1779223366::
 THIRDPARTY.txt::TextFile::-1::1779223366::0::1::::<><><>0<>0<><>::
 water_shader.gdshader::Shader::5244640210084459761::1779223367::0::1::::<><><>0<>0<><>::
 water_shader.tres::ShaderMaterial::6495341302912672044::1779223367::0::1::::<><><>0<>0<><>::res://addons/godot-rapier2d/water_shader.gdshader
-::res://addons/godot-rapier2d/bin/::1780678292
+::res://addons/godot-rapier2d/bin/::1780678730
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.arm64.framework/::1779223367
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.x86_64.framework/::1779223367
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.macos.framework/::1779223367
@@ -275,7 +275,7 @@ Twangy Space.mp3::AudioStreamMP3::4660492354967527197::1780591418::1780593489::1
 Whispers in the Void.mp3::AudioStreamMP3::3608305324537977308::1779223366::1779223366::1::::<><><>0<>0<>8d3d14b61e19dd08b11b011665f3adab<>res://.godot/imported/Whispers in the Void.mp3-32e794bf42bde1d89598e776537345bc.mp3str::
 [Err -42] invalid thread change.mp3::AudioStreamMP3::5908626644802616290::1779223366::1779223366::1::::<><><>0<>0<>9a6204e710d40bf4687fbf058109edb8<>res://.godot/imported/[Err -42] invalid thread change.mp3-2657091b07328bf50eb1ae66bf14b31b.mp3str::
 [Err -502] RUPTURE.mp3::AudioStreamMP3::1276690354223216142::1780372558::1780374572::1::::<><><>0<>0<>16082747ae0497ec2fbb4b8b4ccd8a62<>res://.godot/imported/[Err -502] RUPTURE.mp3-6f08590bd19ba68a8dac20b4a9ba4c39.mp3str::
-::res://Assets/Sound Effects/::1780617867
+::res://Assets/Sound Effects/::1780678638
 A_brief_surge_of_acc_#1-1780448604241.mp3::AudioStreamMP3::5565907458566466471::1780448606::1780528585::1::::<><><>0<>0<>5d5518c33052901822d43d542ab525e5<>res://.godot/imported/A_brief_surge_of_acc_#1-1780448604241.mp3-e1b9f231405a9e2a74745e40163a3380.mp3str::
 A_deep_sub-bass_dron_#1-1780448533112.mp3::AudioStreamMP3::2464926217249625276::1780448538::1780528585::1::::<><><>0<>0<>054014854cbe07952f03210a3cffd945<>res://.godot/imported/A_deep_sub-bass_dron_#1-1780448533112.mp3-b6f6d29ee97aaf2b960a290ff2c90ebb.mp3str::
 A_deep_sub-bass_dron_#2-1780448533113.mp3::AudioStreamMP3::7532458153062567984::1780448537::1780528585::1::::<><><>0<>0<>86ebc7fc4385352bee8841ba2f48beb6<>res://.godot/imported/A_deep_sub-bass_dron_#2-1780448533113.mp3-d8fc43848ee8809b8d48b67d60543171.mp3str::
@@ -417,7 +417,6 @@ Time_Dilation_Ended__#4-1780448929451.mp3::AudioStreamMP3::91175398400538939::17
 Time_Dilation_Starte_#1-1780448902052.mp3::AudioStreamMP3::6235087626351107411::1780448904::1780528585::1::::<><><>0<>0<>395036394545ba46d5171ef660b6da03<>res://.godot/imported/Time_Dilation_Starte_#1-1780448902052.mp3-356d4f56da0c99b677bede2aa4174338.mp3str::
 Time_Dilation_Starte_#3-1780448902050.mp3::AudioStreamMP3::4708174027677109465::1780448908::1780528585::1::::<><><>0<>0<>c0d4f139915db6058337f83a24cfecb9<>res://.godot/imported/Time_Dilation_Starte_#3-1780448902050.mp3-2e135345b6545c1bc251734cba6c4c98.mp3str::
 Time_Dilation_Starte_#4-1780448902043.mp3::AudioStreamMP3::8193164977303154408::1780448909::1780528585::1::::<><><>0<>0<>013a0e2bf9c99bca8bbf9dcf9c6ee467<>res://.godot/imported/Time_Dilation_Starte_#4-1780448902043.mp3-719ea0dda8dc11f744ead8a301050b8f.mp3str::
-VECTOR_ANOMALY_PRODUCTION_ROADMAP_v2_DropInReplacement.md::TextFile::-1::1780447587::0::1::::<><><>0<>0<><>::
 Volatile_Moons_Unsta_#1-1780527010790.mp3::AudioStreamMP3::6528017824396796471::1780527014::1780528585::1::::<><><>0<>0<>ff248a7e668dd9fb5ab3cac80ca2adc9<>res://.godot/imported/Volatile_Moons_Unsta_#1-1780527010790.mp3-7bdebbffc0256c288e41b0bb318d2f52.mp3str::
 Volatile_Moons_Unsta_#3-1780527010889.mp3::AudioStreamMP3::7903371431618432599::1780527019::1780528585::1::::<><><>0<>0<>868f66f91f61c5b8b75f2387519c3889<>res://.godot/imported/Volatile_Moons_Unsta_#3-1780527010889.mp3-2d64c0ac853d8ec39fa79a5cf7df199b.mp3str::
 Volatile_Moons_Unsta_#4-1780527010896.mp3::AudioStreamMP3::7842233413333579776::1780527020::1780528585::1::::<><><>0<>0<>70e8d7544a89f4f131b6ad241881bb41<>res://.godot/imported/Volatile_Moons_Unsta_#4-1780527010896.mp3-83cc5fbe71ec9c6c20fd6341156ef3fe.mp3str::
@@ -433,7 +432,7 @@ mod_status_disabled.svg::CompressedTexture2D::5967549022126738918::1780617582::1
 mod_status_failed.svg::CompressedTexture2D::6858016069277369797::1780617582::1780617867::1::::<><><>0<>0<>05717f1a35def138eec46829c27e230a<>res://.godot/imported/mod_status_failed.svg-93795c53dbfd35e9bed9efa143fcefff.ctex::
 mod_status_loaded.svg::CompressedTexture2D::6839653339055365539::1780617582::1780617867::1::::<><><>0<>0<>4fae4774a6569b44e16103b28d6c10e7<>res://.godot/imported/mod_status_loaded.svg-7657b2c51ac6df34fcfd1b0d5fd3cc34.ctex::
 ::res://Debug and Development Files/::1780617867
-ASSET_AND_AUDIO_PRODUCTION_LIST.md::TextFile::-1::1780617699::0::1::::<><><>0<>0<><>::
+ASSET_AND_AUDIO_PRODUCTION_LIST.md::TextFile::-1::1780678567::0::1::::<><><>0<>0<><>::
 BRAND_AND_MARKETING_PLAN.md::TextFile::-1::1780011005::0::1::::<><><>0<>0<><>::
 Bullets end up randomly doing this. WAY too much I can't even tell what's going on..png::CompressedTexture2D::271043534564010417::1780530841::1780532182::1::::<><><>0<>0<>5e7b802859ad034b7a9e7dac60d54f1c<>res://.godot/imported/Bullets end up randomly doing this. WAY too much I can't even tell what's going on..png-014191c4b3ddecda9d015285eabdac38.ctex::
 BulletsGotAnUpgradeandItsTooMuch.png::CompressedTexture2D::7729093674789125932::1780597855::1780617867::1::::<><><>0<>0<>613a601e09a4ee72f1971d6c7560cd54<>res://.godot/imported/BulletsGotAnUpgradeandItsTooMuch.png-a5994b1f7ba9cb772b1188a52b55fb85.ctex::
@@ -449,24 +448,24 @@ Errors.png::CompressedTexture2D::1304704459676343376::1780078571::1780078573::1:
 Example of a TON of rings.png::CompressedTexture2D::840176112995637556::1779556544::1780011668::1::::<><><>0<>0<>96da4d32a1626519e59a043077503f8e<>res://.godot/imported/Example of a TON of rings.png-199cf5911bda3c2ff490a00dcaee847f.ctex::
 Example of HUGE flash that takes ups entire screen when I get close to a planet going fast.png::CompressedTexture2D::8416149829690238598::1779557453::1780011668::1::::<><><>0<>0<>e4e9e983ddd8a95dd438d706e4a6eb6d<>res://.godot/imported/Example of HUGE flash that takes ups entire screen when I get close to a planet going fast.png-b37253cca75536af538238e32c391578.ctex::
 Game Feedback from Players.txt::TextFile::-1::1780522949::0::1::::<><><>0<>0<><>::
-GAME_SYSTEMS_AND_PROGRESSION.md::TextFile::-1::1780616789::0::1::::<><><>0<>0<><>::
+GAME_SYSTEMS_AND_PROGRESSION.md::TextFile::-1::1780678476::0::1::::<><><>0<>0<><>::
 I Have No Idea What's Going ONNN.png::CompressedTexture2D::1626502052871105752::1780430129::1780431299::1::::<><><>0<>0<>d3cc35ed601f0068ec86155b407e7e4e<>res://.godot/imported/I Have No Idea What's Going ONNN.png-9f3ed9321bbefabcf5764531f09129e3.ctex::
 MODDING_GUIDE.md::TextFile::-1::1780617659::0::1::::<><><>0<>0<><>::
 MoreLagtheLongerYouGo.png::CompressedTexture2D::4595982690084845004::1780531584::1780532182::1::::<><><>0<>0<>8e97c84504638df150b1aef0dfa20a99<>res://.godot/imported/MoreLagtheLongerYouGo.png-f0c629de4875bf115389bac861f7763f.ctex::
-ORBITRON_SYSTEMS.md::TextFile::-1::1780616774::0::1::::<><><>0<>0<><>::
-ORBITRON_UNIVERSE_GUIDE.md::TextFile::-1::1780526853::0::1::::<><><>0<>0<><>::
+ORBITRON_SYSTEMS.md::TextFile::-1::1780678432::0::1::::<><><>0<>0<><>::
+ORBITRON_UNIVERSE_GUIDE.md::TextFile::-1::1780678531::0::1::::<><><>0<>0<><>::
 Plan.txt::TextFile::-1::1780429988::0::1::::<><><>0<>0<><>::
 ProfilerDataStandardRunBeginning.png::CompressedTexture2D::7466498933215889271::1780186226::1780186228::1::::<><><>0<>0<>cf7e882f79d0fd082226b82ab484c5a3<>res://.godot/imported/ProfilerDataStandardRunBeginning.png-3c2ea32a09628cd476411fea25fd544f.ctex::
 SelfDirectedLearningProjectPlan.md::TextFile::-1::1780072262::0::1::::<><><>0<>0<><>::
-Separation_Blueprint.md::TextFile::-1::1780526869::0::1::::<><><>0<>0<><>::
+Separation_Blueprint.md::TextFile::-1::1780678509::0::1::::<><><>0<>0<><>::
 StillHavingPerformanceIssues631016.png::CompressedTexture2D::5789857514197837384::1780530266::1780530268::1::::<><><>0<>0<>e0fc4fe1883898ee47a08f5b01ccf2a3<>res://.godot/imported/StillHavingPerformanceIssues631016.png-3e6c114ef867ca526519523016b81c01.ctex::
 SuperChaoticExampleTHISISINWAVE1WHYYY.png::CompressedTexture2D::1880388934098513013::1780440679::1780440939::1::::<><><>0<>0<>b9a2ce5e00bc901162708f39701b37de<>res://.godot/imported/SuperChaoticExampleTHISISINWAVE1WHYYY.png-a83a4eb7920d9ca5370ee84d1a61c84b.ctex::
 Things to Fix.txt::TextFile::-1::1780615588::0::1::::<><><>0<>0<><>::
 This is the very start of the game. There are way too many and this shouldn't be happening..png::CompressedTexture2D::7471778296977724511::1780431602::1780431607::1::::<><><>0<>0<>db39b12d43484f4ebb5487b4f1b78418<>res://.godot/imported/This is the very start of the game. There are way too many and this shouldn't be happening..png-befb15fb43ad6f24f81e60d254ab3e82.ctex::
 Vectorfall Future.txt::TextFile::-1::1780421765::0::1::::<><><>0<>0<><>::
 vector_anomaly_performance_audit_markdown.md::TextFile::-1::1780333240::0::1::::<><><>0<>0<><>::
-VECTOR_ANOMALY_PRODUCTION_ROADMAP.md::TextFile::-1::1780617690::0::1::::<><><>0<>0<><>::
-vector_anomaly_similarity_blueprint.md::TextFile::-1::1780526887::0::1::::<><><>0<>0<><>::
+VECTOR_ANOMALY_PRODUCTION_ROADMAP.md::TextFile::-1::1780678494::0::1::::<><><>0<>0<><>::
+vector_anomaly_similarity_blueprint.md::TextFile::-1::1780678523::0::1::::<><><>0<>0<><>::
 VisualProfilerData.png::CompressedTexture2D::3434074635256424111::1780186352::1780186354::1::::<><><>0<>0<>f16ab45a501e1ff8b5eaf393097865e0<>res://.godot/imported/VisualProfilerData.png-c7e67726bf55b15c96ec43af4332aec7.ctex::
 WeAreCooked.png::CompressedTexture2D::1603122299174007240::1780453335::1780453642::1::::<><><>0<>0<>53ee3492f1174d31ade3de09e4a1e36e<>res://.godot/imported/WeAreCooked.png-f80f5a1877cf5a4e45a2ddd34df30269.ctex::
 What even is this.png::CompressedTexture2D::2162812024728855942::1780530982::1780532182::1::::<><><>0<>0<>ef543b501eec82d072618615fd38c08b<>res://.godot/imported/What even is this.png-f3281019d33265dcb6414ac50a02de8e.ctex::
