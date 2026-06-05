@@ -4,3 +4,5 @@
 
 [node name="Gravity Wave Maker" type="Node2D" unique_id=1314623969]
 script = ExtResource("1_qwsgf")
+
+[node name="Polygon2D" type="Polygon2D" parent="." unique_id=848917558]

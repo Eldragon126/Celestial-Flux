@@ -1,3 +1,4 @@
+Polygon2D
 Sprite2D
 AudioStreamPlayer
 Button
@@ -5,11 +6,9 @@ WorldEnvironment
 AudioStreamPlayer2D
 PointLight2D
 AnimationPlayer
-Polygon2D
 CollisionPolygon2D
 Timer
 StaticBody2D
 Camera2D
 VBoxContainer
 CenterContainer
-CanvasLayer
