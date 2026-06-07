@@ -1339,6 +1339,14 @@ func export_network_state() -> Dictionary:
 		energy_value = float(energy_component.get("current_energy"))
 		max_energy_value = float(energy_component.get("max_energy"))
 
+	var weapon_id := "vector_bolt"
+	var weapon_system := get_node_or_null("WeaponSystem")
+	if weapon_system != null and weapon_system.has_method("get_weapon_debug_state"):
+		var weapon_state_value: Variant = weapon_system.call("get_weapon_debug_state")
+		if weapon_state_value is Dictionary:
+			var weapon_state: Dictionary = weapon_state_value
+			weapon_id = String(weapon_state.get("weapon_id", &"vector_bolt"))
+
 	return {
 		"position": global_position,
 		"rotation": rotation,
@@ -1351,6 +1359,7 @@ func export_network_state() -> Dictionary:
 		"max_energy": max_energy_value,
 		"dead": _death_in_progress,
 		"slingshot_grade": String(last_slingshot_grade),
+		"weapon_id": weapon_id,
 	}
 
 
@@ -1363,6 +1372,7 @@ func apply_network_state(state: Dictionary) -> void:
 	_remote_state_received = true
 	DRAG_enabled = bool(state.get("drag_enabled", DRAG_enabled))
 	shields_on = bool(state.get("shield_active", shields_on))
+	set_meta(&"network_weapon_id", String(state.get("weapon_id", "vector_bolt")))
 
 	if health_component != null:
 		var max_health_value := float(state.get("max_health", health_component.get("max_health")))

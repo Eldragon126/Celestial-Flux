@@ -10,6 +10,8 @@ const SPLITTER_SCENE = preload("res://Nodes/splitting_asteroid_bot.tscn")
 @export var projectile_speed = 720.0
 @export var compression_pressure_radius = 520.0
 @export var compression_pressure_force = 620.0
+@export var max_debris_ring_count: int = 3
+@export var max_active_debris: int = 7
 
 var _orbit_angle = 0.0
 var _aura: Polygon2D
@@ -49,7 +51,7 @@ func _run_attack_pattern() -> void:
 	elif current_phase == 2:
 		_apply_compression_pressure(0.72)
 		_spawn_radial_bullets(14, projectile_speed * 0.95)
-		_spawn_debris_ring(5)
+		_spawn_debris_ring(max_debris_ring_count)
 	else:
 		_apply_compression_pressure(1.0)
 		_spawn_radial_bullets(18, projectile_speed * 1.04)
@@ -138,12 +140,24 @@ func _spawn_radial_bullets(count: int, speed: float) -> void:
 		get_parent().call_deferred("add_child", bullet)
 
 func _spawn_debris_ring(count: int) -> void:
-	for i in range(count):
+	var parent := get_parent()
+	if parent == null:
+		return
+	var active_debris := 0
+	for debris_node in get_tree().get_nodes_in_group("accretion_core_debris"):
+		if debris_node != null and is_instance_valid(debris_node) and not debris_node.is_queued_for_deletion():
+			active_debris += 1
+	if active_debris >= max_active_debris:
+		return
+	var spawn_count := mini(maxi(count, 0), max_active_debris - active_debris)
+	for i in range(spawn_count):
 		var debris = SPLITTER_SCENE.instantiate()
 		debris.global_position = global_position + Vector2.RIGHT.rotated(TAU * float(i) / float(count)) * 210.0
 		debris.velocity = Vector2.RIGHT.rotated(TAU * float(i) / float(count) + PI * 0.5) * 240.0
+		debris.set("max_split_generation", 0)
 		debris.add_to_group("wave_enemy")
-		get_parent().call_deferred("add_child", debris)
+		debris.add_to_group("accretion_core_debris")
+		parent.call_deferred("add_child", debris)
 
 func _apply_compression_pressure(multiplier: float) -> void:
 	var radius: float = compression_pressure_radius + 90.0 * float(current_phase - 1)

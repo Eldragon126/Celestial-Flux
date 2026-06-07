@@ -46,6 +46,18 @@ extends RigidBody2D
 @export var weapon_curve_side: float = 0.0
 @export var weapon_curve_frequency: float = 7.0
 @export var weapon_planet_damage: float = 0.0
+@export var weapon_radial_impulse: float = 0.0
+@export var weapon_tangent_impulse: float = 0.0
+@export var weapon_field_radius: float = 0.0
+@export var weapon_field_force: float = 0.0
+@export var weapon_field_damage: float = 0.0
+@export var weapon_field_slow_multiplier: float = 1.0
+@export var weapon_field_slow_duration: float = 0.0
+@export var weapon_field_max_targets: int = 18
+@export var weapon_scar_type: int = -1
+@export var weapon_scar_radius: float = 0.0
+@export var weapon_scar_intensity: float = 0.0
+@export var weapon_scar_duration: float = 0.0
 
 # ========================
 # == STATE VARIABLES ==
@@ -62,6 +74,7 @@ var _visual_in_focus: bool = true
 var _weapon_payload: Dictionary = {}
 var _pierced_body_ids: Dictionary = {}
 var _weapon_phase_offset: float = 0.0
+var _field_targets: Array[Node2D] = []
 
 # ========================
 # == LIFECYCLE ==
@@ -91,6 +104,7 @@ func _physics_process(delta: float) -> void:
 	var total_grav_accel = Vector2.ZERO
 	_update_visual_budget(delta)
 	_apply_relativistic_rail(delta)
+	_apply_weapon_curve(delta)
 	_update_vector_trail(delta)
 	_update_projectile_light()
 	if has_meta(&"orbital_satellite_owner"):
@@ -167,11 +181,16 @@ func _on_body_entered(body: Node) -> void:
 	
 	if body.is_in_group("Player"):
 		return
+	if _already_hit_body(body):
+		return
 
 	_trigger_upgrade_impacts(body)
+	_apply_weapon_contact_effects(body)
 	
 	if body.has_method("take_damage"):
 		body.take_damage(_roll_damage())
+		if _should_continue_after_hit(body):
+			return
 		_destroy_projectile()
 		return
 	elif body.is_in_group("obstacle") or body.is_in_group("Projectiles"):
@@ -195,6 +214,153 @@ func _roll_damage() -> float:
 		print("Dealt Damage: ", final_damage, " (Mult: ", multiplier, ")")
 		
 	return final_damage
+
+
+func _already_hit_body(body: Node) -> bool:
+	if body == null:
+		return true
+	return _pierced_body_ids.has(body.get_instance_id())
+
+
+func _should_continue_after_hit(body: Node) -> bool:
+	if weapon_pierce_count <= 0 or body == null:
+		return false
+	_pierced_body_ids[body.get_instance_id()] = true
+	return _pierced_body_ids.size() <= weapon_pierce_count
+
+
+func _apply_weapon_contact_effects(body: Node) -> void:
+	var body_2d := body as Node2D
+	if body_2d == null or not is_instance_valid(body_2d):
+		return
+
+	var direction := _current_direction()
+	var radial := (body_2d.global_position - global_position).normalized()
+	if radial == Vector2.ZERO:
+		radial = direction
+	var tangent := radial.orthogonal()
+	if tangent.dot(linear_velocity) < 0.0:
+		tangent = -tangent
+
+	if absf(weapon_axis_impulse) > 0.001:
+		CombatStatus.add_velocity(body_2d, direction * weapon_axis_impulse)
+	if absf(weapon_radial_impulse) > 0.001:
+		CombatStatus.add_velocity(body_2d, radial * weapon_radial_impulse)
+	if absf(weapon_tangent_impulse) > 0.001:
+		CombatStatus.add_velocity(body_2d, tangent * weapon_tangent_impulse)
+	if weapon_temporal_slow_duration > 0.0 and weapon_temporal_slow_multiplier < 1.0:
+		CombatStatus.apply_local_time_scale(body_2d, weapon_temporal_slow_multiplier, weapon_temporal_slow_duration)
+
+	_stamp_weapon_resonance(global_position)
+	_stamp_weapon_scar(global_position)
+	_apply_weapon_field(global_position, body_2d)
+	_apply_weapon_planet_damage(body_2d)
+
+
+func _apply_weapon_planet_damage(body: Node) -> void:
+	if weapon_planet_damage <= 0.0 or body == null or not is_instance_valid(body):
+		return
+	if not body.is_in_group("planets") or not body.has_method("apply_spacetime_damage"):
+		return
+	var hit_position := global_position
+	var body_2d := body as Node2D
+	if body_2d != null:
+		hit_position = body_2d.global_position
+	body.call("apply_spacetime_damage", weapon_planet_damage, hit_position, weapon_id)
+
+
+func _apply_weapon_curve(delta: float) -> void:
+	if absf(weapon_curve_force) <= 0.001:
+		return
+	var direction := _current_direction()
+	var side := signf(weapon_curve_side)
+	if side == 0.0:
+		side = 1.0
+	var phase := Time.get_ticks_msec() / 1000.0 * maxf(weapon_curve_frequency, 0.01) + _weapon_phase_offset
+	var pulse := 0.72 + 0.28 * sin(phase)
+	apply_force(direction.orthogonal() * side * weapon_curve_force * pulse)
+	if linear_velocity.length_squared() > 64.0:
+		linear_velocity = linear_velocity.limit_length(maxf(initial_speed * 1.9, initial_speed + 520.0))
+
+
+func _apply_weapon_field(position: Vector2, hit_body: Node2D) -> void:
+	if weapon_field_radius <= 0.0:
+		return
+	var targets := _collect_weapon_field_targets(position, weapon_field_radius, maxi(weapon_field_max_targets, 1))
+	for target in targets:
+		if target == null or not is_instance_valid(target) or target == self:
+			continue
+		if target == hit_body:
+			continue
+		var offset := target.global_position - position
+		var distance := maxf(offset.length(), 1.0)
+		var falloff := 1.0 - clampf(distance / weapon_field_radius, 0.0, 1.0)
+		var radial := offset / distance
+		if absf(weapon_field_force) > 0.001:
+			CombatStatus.add_velocity(target, radial * weapon_field_force * falloff)
+		if weapon_field_slow_duration > 0.0 and weapon_field_slow_multiplier < 1.0:
+			CombatStatus.apply_local_time_scale(target, weapon_field_slow_multiplier, weapon_field_slow_duration * (0.45 + falloff * 0.55))
+		if weapon_field_damage > 0.0 and target.has_method("take_damage") and _is_hostile_target(target):
+			target.call("take_damage", weapon_field_damage * falloff)
+		target.set_meta(&"weapon_field_pressure", falloff)
+
+
+func _collect_weapon_field_targets(position: Vector2, radius: float, limit: int) -> Array[Node2D]:
+	_field_targets.clear()
+	var groups: Array[StringName] = [&"enemies", &"wave_enemy", &"bosses", &"enemy_projectiles", &"law_gravity_debris"]
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius(groups, position, radius, limit, false, _field_targets)
+		return _field_targets
+	var seen := {}
+	var radius_squared := radius * radius
+	for group_name in groups:
+		for value in get_tree().get_nodes_in_group(group_name):
+			if limit > 0 and _field_targets.size() >= limit:
+				return _field_targets
+			var target := value as Node2D
+			if target == null or not is_instance_valid(target) or target.is_queued_for_deletion():
+				continue
+			var id := target.get_instance_id()
+			if seen.has(id):
+				continue
+			seen[id] = true
+			if target.global_position.distance_squared_to(position) <= radius_squared:
+				_field_targets.append(target)
+	return _field_targets
+
+
+func _stamp_weapon_resonance(position: Vector2) -> void:
+	if weapon_resonance_zone_type < 0 or weapon_resonance_radius <= 0.0:
+		return
+	var resonance := _find_resonance_manager()
+	if resonance == null or not resonance.has_method("create_manual_resonance_zone"):
+		return
+	resonance.call(
+		"create_manual_resonance_zone",
+		position,
+		weapon_resonance_radius,
+		weapon_resonance_zone_type,
+		weapon_resonance_intensity,
+		1.15
+	)
+
+
+func _stamp_weapon_scar(position: Vector2) -> void:
+	if weapon_scar_type < 0 or weapon_scar_radius <= 0.0 or weapon_scar_intensity <= 0.0:
+		return
+	var scars := _find_gravity_scar_manager()
+	if scars == null or not scars.has_method("create_gravity_scar"):
+		return
+	scars.call(
+		"create_gravity_scar",
+		position,
+		weapon_scar_radius,
+		weapon_scar_type,
+		weapon_scar_intensity,
+		weapon_scar_duration,
+		weapon_id
+	)
+
 
 func _destroy_projectile() -> void:
 	# Unparent particles so they gracefully fade out instead of instantly disappearing
@@ -364,24 +530,51 @@ func _trigger_upgrade_impacts(body: Node) -> void:
 	if director == null:
 		return
 
-	if has_meta(&"vacuum_collapse_stacks") and director.has_method("trigger_vacuum_collapse"):
+	var vacuum_stacks := _payload_stack_count(&"vacuum_collapse_stacks")
+	if vacuum_stacks > 0 and director.has_method("trigger_vacuum_collapse"):
 		director.call(
 			"trigger_vacuum_collapse",
 			global_position,
-			maxi(int(get_meta(&"vacuum_collapse_stacks", 1)), 1),
+			vacuum_stacks,
 			self,
 			body
 		)
 
-	if has_meta(&"relativistic_rail_stacks") and director.has_method("trigger_relativistic_impact"):
+	var rail_stacks := _payload_stack_count(&"relativistic_rail_stacks")
+	if rail_stacks > 0 and director.has_method("trigger_relativistic_impact"):
 		director.call(
 			"trigger_relativistic_impact",
 			global_position,
 			linear_velocity,
-			maxi(int(get_meta(&"relativistic_rail_stacks", 1)), 1),
+			rail_stacks,
 			self,
 			body
 		)
+
+
+func apply_weapon_payload(payload: Dictionary) -> void:
+	_weapon_payload = payload.duplicate(true)
+	set_meta(&"weapon_payload", _weapon_payload.duplicate(true))
+	for key in payload.keys():
+		var property_name := String(key)
+		if _is_projectile_payload_property(property_name):
+			set(property_name, payload[key])
+	_apply_payload_stack_meta(&"relativistic_rail_stacks")
+	_apply_payload_stack_meta(&"vacuum_collapse_stacks")
+	_weapon_phase_offset = float(payload.get("phase_offset", _weapon_phase_offset))
+	if is_inside_tree():
+		_configure_windowkill_visuals()
+
+
+func get_weapon_payload() -> Dictionary:
+	if not _weapon_payload.is_empty():
+		return _weapon_payload.duplicate(true)
+	if has_meta(&"weapon_payload"):
+		var payload_value: Variant = get_meta(&"weapon_payload")
+		if payload_value is Dictionary:
+			var payload: Dictionary = payload_value
+			return payload.duplicate(true)
+	return {}
 
 
 func _find_anomaly_director() -> Node:
@@ -391,6 +584,93 @@ func _find_anomaly_director() -> Node:
 		if director != null and is_instance_valid(director) and not director.is_queued_for_deletion():
 			return director
 	return null
+
+
+func _find_resonance_manager() -> Node:
+	var root := get_tree().current_scene
+	if root == null:
+		return null
+	var resonance := root.find_child("GravityResonanceManager", true, false)
+	if resonance != null and is_instance_valid(resonance) and not resonance.is_queued_for_deletion():
+		return resonance
+	return null
+
+
+func _find_gravity_scar_manager() -> Node:
+	var root := get_tree().current_scene
+	if root == null:
+		return null
+	var scars := root.find_child("GravityScarManager", true, false)
+	if scars != null and is_instance_valid(scars) and not scars.is_queued_for_deletion():
+		return scars
+	return null
+
+
+func _payload_stack_count(key: StringName) -> int:
+	if has_meta(key):
+		return maxi(int(get_meta(key, 0)), 0)
+	return maxi(int(_weapon_payload.get(key, 0)), 0)
+
+
+func _apply_payload_stack_meta(key: StringName) -> void:
+	var count := maxi(int(_weapon_payload.get(key, 0)), 0)
+	if count > 0:
+		set_meta(key, count)
+	elif has_meta(key):
+		remove_meta(key)
+
+
+func _is_projectile_payload_property(property_name: String) -> bool:
+	return [
+		"weapon_id",
+		"initial_speed",
+		"damage_min",
+		"damage_max",
+		"gravity_constant",
+		"gravity_pull_radius",
+		"player_gravity_deadzone_radius",
+		"windowkill_visual_scale",
+		"vector_core_color",
+		"vector_trail_fade_color",
+		"weapon_axis_impulse",
+		"weapon_temporal_slow_multiplier",
+		"weapon_temporal_slow_duration",
+		"weapon_pierce_count",
+		"weapon_resonance_zone_type",
+		"weapon_resonance_radius",
+		"weapon_resonance_intensity",
+		"weapon_curve_force",
+		"weapon_curve_side",
+		"weapon_curve_frequency",
+		"weapon_planet_damage",
+		"weapon_radial_impulse",
+		"weapon_tangent_impulse",
+		"weapon_field_radius",
+		"weapon_field_force",
+		"weapon_field_damage",
+		"weapon_field_slow_multiplier",
+		"weapon_field_slow_duration",
+		"weapon_field_max_targets",
+		"weapon_scar_type",
+		"weapon_scar_radius",
+		"weapon_scar_intensity",
+		"weapon_scar_duration",
+	].has(property_name)
+
+
+func _current_direction() -> Vector2:
+	if linear_velocity.length_squared() > 0.001:
+		return linear_velocity.normalized()
+	var direction := Vector2.RIGHT.rotated(global_rotation)
+	return direction if direction.length_squared() > 0.001 else Vector2.RIGHT
+
+
+func _is_hostile_target(target: Node) -> bool:
+	return target != null and (
+		target.is_in_group("enemies")
+		or target.is_in_group("wave_enemy")
+		or target.is_in_group("bosses")
+	)
 
 # ========================
 # == UTILITY ==
@@ -478,7 +758,7 @@ func _is_in_player_focus() -> bool:
 	if trail_focus_radius <= 0.0:
 		return true
 	if _visual_player == null or not is_instance_valid(_visual_player):
-		_visual_player = get_tree().get_first_node_in_group("Player") as Node2D
+		_visual_player = MultiplayerTargeting.local_player(get_tree())
 	if _visual_player == null or not is_instance_valid(_visual_player):
 		return true
 	return global_position.distance_squared_to(_visual_player.global_position) <= trail_focus_radius * trail_focus_radius

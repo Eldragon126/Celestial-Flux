@@ -7,6 +7,9 @@ const FINALE_TRACK := "res://Assets/Songs/A New Thread.mp3"
 const GRAVITY_TIDE_SCENE := preload("res://Nodes/gravity_tide_pocket.tscn")
 const MUSIC_RESONANCE_BOSS_SCENE := preload("res://Nodes/music_resonance_boss.tscn")
 
+@export var completion_bend_duration: float = 2.4
+@export var completion_ring_count: int = 5
+
 const BEAT_TIMELINE: Array = [
 	{"t": 2.0, "id": &"pulse"},
 	{"t": 5.5, "id": &"pulse"},
@@ -147,4 +150,64 @@ func _finish() -> void:
 	set_process(false)
 	if _music != null:
 		_music.stop()
+	call_deferred("_play_completion_bend")
+
+
+func _play_completion_bend() -> void:
+	_create_completion_bend_visual()
+	if is_inside_tree():
+		await get_tree().create_timer(maxf(completion_bend_duration, 0.2)).timeout
 	finale_complete.emit()
+
+
+func _create_completion_bend_visual() -> void:
+	if _level_root == null:
+		return
+	var center := _player.global_position if _player != null and is_instance_valid(_player) else Vector2.ZERO
+	var root := Node2D.new()
+	root.name = "FinaleRealityBend"
+	root.global_position = center
+	root.z_index = 80
+	_level_root.add_child(root)
+	for i in range(maxi(completion_ring_count, 1)):
+		var ring := Line2D.new()
+		ring.name = "ResolutionRing%d" % i
+		ring.closed = true
+		ring.antialiased = true
+		ring.width = 3.0 - float(i) * 0.22
+		var alpha := _safe_alpha(0.34 - float(i) * 0.04)
+		ring.default_color = Color(0.42, 1.0, 0.9, alpha)
+		ring.points = _circle_points(72, 120.0 + float(i) * 90.0)
+		root.add_child(ring)
+		var tween := ring.create_tween()
+		tween.tween_property(ring, "scale", Vector2.ONE * (1.45 + float(i) * 0.16), completion_bend_duration)
+		tween.parallel().tween_property(ring, "modulate:a", 0.0, completion_bend_duration)
+	var label := Label.new()
+	label.name = "ResolutionLabel"
+	label.text = "VECTOR ANOMALY RESOLVED"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 24)
+	label.modulate = Color(0.72, 1.0, 0.95, _safe_alpha(0.9))
+	label.position = Vector2(-260.0, -32.0)
+	label.size = Vector2(520.0, 64.0)
+	root.add_child(label)
+	get_tree().create_timer(completion_bend_duration + 0.2).timeout.connect(Callable(self, "_queue_free_if_valid").bind(root))
+
+
+func _safe_alpha(alpha: float) -> float:
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return Settings.flash_alpha(alpha)
+	return minf(alpha, 0.28)
+
+
+func _queue_free_if_valid(node: Node) -> void:
+	if node != null and is_instance_valid(node):
+		node.queue_free()
+
+
+func _circle_points(count: int, radius: float) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for i in range(maxi(count, 3)):
+		var angle := TAU * float(i) / float(maxi(count, 3))
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points

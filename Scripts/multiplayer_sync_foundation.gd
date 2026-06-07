@@ -111,7 +111,7 @@ func _hash_group(group_name: StringName, limit: int) -> int:
 	_fill_hash_nodes(group_name, limit)
 	_hash_nodes.sort_custom(
 		func(a: Node2D, b: Node2D) -> bool:
-			return a.get_instance_id() < b.get_instance_id()
+			return String(a.name) < String(b.name)
 	)
 
 	var acc := 17
@@ -136,7 +136,7 @@ func _fill_hash_nodes(group_name: StringName, limit: int) -> void:
 
 
 func _node_sync_token(node: Node) -> String:
-	var token := "%s:%d" % [String(node.name), node.get_instance_id()]
+	var token := "%s:%s" % [String(node.scene_file_path), String(node.name)]
 	var node_2d := node as Node2D
 	if node_2d != null:
 		var position := _quantize_vector(node_2d.global_position)

@@ -60,14 +60,7 @@ func _connect_once(source: Node, signal_name: StringName, callable: Callable) ->
 
 
 func _get_local_player() -> Node2D:
-	for node in get_tree().get_nodes_in_group("Player"):
-		var player := node as Node2D
-		if player == null:
-			continue
-		var is_local_value: Variant = player.get("network_is_local")
-		if typeof(is_local_value) != TYPE_BOOL or bool(is_local_value):
-			return player
-	return get_tree().get_first_node_in_group("Player") as Node2D
+	return MultiplayerTargeting.local_player(get_tree())
 
 
 func _on_local_mastery_scored(data: Dictionary) -> void:

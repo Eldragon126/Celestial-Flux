@@ -293,7 +293,7 @@ func _resolve_systems() -> void:
 		return
 
 	if _player == null or not is_instance_valid(_player):
-		_player = get_tree().get_first_node_in_group("Player") as CharacterBody2D
+		_player = MultiplayerTargeting.local_player(get_tree()) as CharacterBody2D
 		_connect_player_signals()
 
 	if _player != null and is_instance_valid(_player):

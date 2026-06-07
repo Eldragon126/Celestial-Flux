@@ -115,6 +115,10 @@ func _shield_broken() -> bool:
 		return false
 	var shield := _player.get("shield_component") as Node
 	if shield == null:
+		shield = _player.get_node_or_null("Shield")
+	if shield == null:
+		shield = _player.get_node_or_null("ShieldComponent")
+	if shield == null:
 		return false
 	return bool(shield.get("is_broken")) if shield.get("is_broken") != null else false
 

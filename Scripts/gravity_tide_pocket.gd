@@ -36,6 +36,9 @@ const MODE_RULE_NAMES = {
 @export var field_acceleration: float = 760.0
 @export var slipstream_acceleration: float = 430.0
 @export var max_body_impulse_per_second: float = 720.0
+@export var player_escape_floor_speed: float = 260.0
+@export var player_trap_escape_boost: float = 520.0
+@export var player_trap_escape_radius_ratio: float = 0.28
 @export var affects_player: bool = true
 @export var affects_enemies: bool = true
 @export var affects_projectiles: bool = true
@@ -262,6 +265,9 @@ func _apply_field(delta: float) -> void:
 		else:
 			impulse = _apply_temporal_field(body, radial, falloff, delta)
 
+		if body.is_in_group("Player"):
+			impulse += _player_escape_impulse(body, radial, falloff, distance, delta)
+
 		if impulse.length() > impulse_limit:
 			impulse = impulse.limit_length(impulse_limit)
 
@@ -316,6 +322,22 @@ func _apply_temporal_field(body: Node, radial: Vector2, falloff: float, delta: f
 	_apply_local_slow(body, multiplier, temporal_slow_duration)
 	temporal_pocket_entered.emit(body, multiplier, temporal_slow_duration)
 	return -velocity.normalized() * field_acceleration * 0.12 * falloff * delta if velocity != Vector2.ZERO else Vector2.ZERO
+
+
+func _player_escape_impulse(body: Node, radial: Vector2, falloff: float, distance: float, delta: float) -> Vector2:
+	if mode != TideMode.COMPRESSION and mode != TideMode.TEMPORAL:
+		return Vector2.ZERO
+	if distance > radius * clampf(player_trap_escape_radius_ratio, 0.08, 0.65):
+		return Vector2.ZERO
+	var velocity := _body_velocity(body)
+	if velocity.length() >= player_escape_floor_speed:
+		return Vector2.ZERO
+	var tangent := radial.orthogonal()
+	if velocity != Vector2.ZERO and tangent.dot(velocity) < 0.0:
+		tangent = -tangent
+	var escape_dir := (radial * 0.74 + tangent * 0.46).normalized()
+	return escape_dir * player_trap_escape_boost * falloff * delta
+
 
 func _apply_local_slow(body: Node, multiplier: float, duration: float) -> void:
 	var time_manager := _get_time_dilation_manager()

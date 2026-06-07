@@ -6,6 +6,9 @@ class_name RunTransitionDirector
 @export var message_hold_time: float = 1.15
 @export var wash_alpha: float = 0.28
 @export var line_alpha: float = 0.82
+@export var glitch_slice_count: int = 5
+@export var glitch_slice_alpha: float = 0.22
+@export var glitch_slice_height: float = 6.0
 
 @onready var _root: Control = $Root
 @onready var _wash: ColorRect = $Root/Wash
@@ -13,12 +16,14 @@ class_name RunTransitionDirector
 @onready var _label: Label = $Root/TransitionLabel
 
 var _tween: Tween = null
+var _glitch_slices: Array[ColorRect] = []
 
 
 func _ready() -> void:
 	add_to_group("run_transition_director")
 	layer = 94
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_build_glitch_slices()
 	_reset_visuals()
 	call_deferred("_connect_sources")
 
@@ -31,6 +36,8 @@ func play_transition(message: String, color: Color) -> void:
 	_wash.color = Color(color.r, color.g, color.b, 0.0)
 	_line.color = Color(color.r, color.g, color.b, 0.0)
 	_root.visible = true
+	var with_glitch := _transition_should_glitch(message)
+	_configure_glitch_slices(color, with_glitch)
 
 	if _tween != null:
 		_tween.kill()
@@ -39,12 +46,18 @@ func play_transition(message: String, color: Color) -> void:
 	_tween.tween_property(_wash, "color:a", wash_alpha, 0.12)
 	_tween.tween_property(_line, "color:a", line_alpha, 0.12)
 	_tween.tween_property(_label, "modulate:a", 1.0, 0.12)
+	for slice in _glitch_slices:
+		if slice.visible:
+			_tween.tween_property(slice, "color:a", _safe_transition_alpha(glitch_slice_alpha), 0.1)
 	_tween.set_parallel(false)
 	_tween.tween_interval(message_hold_time)
 	_tween.set_parallel(true)
 	_tween.tween_property(_wash, "color:a", 0.0, 0.32)
 	_tween.tween_property(_line, "color:a", 0.0, 0.28)
 	_tween.tween_property(_label, "modulate:a", 0.0, 0.28)
+	for slice in _glitch_slices:
+		if slice.visible:
+			_tween.tween_property(slice, "color:a", 0.0, 0.22)
 	_tween.finished.connect(_reset_visuals)
 
 
@@ -85,6 +98,50 @@ func _reset_visuals() -> void:
 		_line.color.a = 0.0
 	if _label != null:
 		_label.modulate.a = 0.0
+	for slice in _glitch_slices:
+		if slice != null:
+			slice.visible = false
+			slice.color.a = 0.0
+
+
+func _build_glitch_slices() -> void:
+	if _root == null:
+		return
+	for i in range(maxi(glitch_slice_count, 0)):
+		var slice := ColorRect.new()
+		slice.name = "LawCrackGlitchSlice%d" % i
+		slice.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slice.color = Color(1.0, 0.28, 0.14, 0.0)
+		slice.visible = false
+		_root.add_child(slice)
+		_glitch_slices.append(slice)
+
+
+func _configure_glitch_slices(color: Color, enabled_glitch: bool) -> void:
+	if not enabled_glitch:
+		for slice in _glitch_slices:
+			slice.visible = false
+		return
+	var viewport_size := get_viewport().get_visible_rect().size
+	for i in range(_glitch_slices.size()):
+		var slice := _glitch_slices[i]
+		var width := viewport_size.x * lerpf(0.22, 0.72, float((i * 37) % 100) / 100.0)
+		var y := viewport_size.y * lerpf(0.18, 0.78, float((i * 53 + 17) % 100) / 100.0)
+		slice.position = Vector2(lerpf(24.0, maxf(viewport_size.x - width - 24.0, 24.0), float((i * 29 + 11) % 100) / 100.0), y)
+		slice.size = Vector2(width, glitch_slice_height * lerpf(0.7, 1.5, float((i * 19 + 5) % 100) / 100.0))
+		slice.color = Color(color.r, color.g, color.b, 0.0)
+		slice.visible = true
+
+
+func _transition_should_glitch(message: String) -> bool:
+	var upper := message.to_upper()
+	return upper.contains("LAW") or upper.contains("RUPTURE") or upper.contains("CRACK") or upper.contains("BREACH")
+
+
+func _safe_transition_alpha(alpha: float) -> float:
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return Settings.flash_alpha(alpha)
+	return minf(alpha, 0.22)
 
 
 func _on_regular_wave() -> void:

@@ -103,6 +103,7 @@ var _last_tear_intensity: float = 0.0
 
 signal dilation_started()
 signal dilation_ended()
+signal dilation_break_triggered(data: Dictionary)
 
 signal time_scale_changed(scale: float, capacity: float)
 
@@ -262,13 +263,25 @@ func _start_dilation() -> void:
 
 	dilation_started.emit()
 
-func _end_dilation() -> void:
+func _end_dilation(drain_break: bool = false) -> void:
 	if not is_dilating:
 		return
 
 	is_dilating = false
 
 	dilation_ended.emit()
+	if drain_break:
+		var break_position := Vector2.ZERO
+		var break_velocity := Vector2.ZERO
+		if is_instance_valid(_player):
+			break_position = _player.global_position
+			break_velocity = _player.velocity
+		dilation_break_triggered.emit({
+			"position": break_position,
+			"velocity": break_velocity,
+			"intensity": clampf(1.0 - current_dilation_capacity / maxf(initial_dilation_capacity, 0.001), 0.0, 1.0),
+			"scale": current_time_scale,
+		})
 
 # ============================================================
 # CAPACITY
@@ -280,7 +293,7 @@ func _update_capacity(unscaled_delta: float) -> void:
 
 		if current_dilation_capacity <= 0.0:
 			current_dilation_capacity = 0.0
-			_end_dilation()
+			_end_dilation(true)
 
 	else:
 		current_dilation_capacity += recovery_per_second * unscaled_delta

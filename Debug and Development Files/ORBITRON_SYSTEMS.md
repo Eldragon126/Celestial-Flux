@@ -240,6 +240,8 @@ Enemies that emerge from tears are registered through `WaveDirector.register_ext
 - broken shield: modestly longer recovery
 - recent mastery: slightly shorter recovery
 
+The broken-shield check accepts both exported player references and scene-authored `Shield`/`ShieldComponent` nodes, so the recovery window survives prefab or scene organization changes.
+
 `DeathFairnessDirector` samples readable context and updates `RunProgress.last_death_message` after the player emits a death lesson. The game-over scene then shows both the lesson and the concrete run readout.
 
 Player death flow is intentionally short and locked. `player.gd`, `HealthComponent`, and `WeaponSystem` stop repeat death signals, held fire, beam fire, input, and movement acceleration as soon as death begins, while preserving a brief collapse watch before game over.
@@ -304,14 +306,22 @@ It emits intensity layers (`silence`, `drift`, `tension`, `overload`, `collapse`
 
 `ModContentRegistry` scans `res://Mods` and `user://mods` for `vector_anomaly_mod.json`. A manifest may declare:
 
-- `arenas`
-- `waves`
-- `upgrades`
-- `rules`
+- arenas, waves, upgrades, rules, powerups, weapons
+- enemies, bosses, arena events, celestial bodies, physics drops
+- materials, prefabs, entities, gamemodes, maps
+- sfx, music, HUD badges, mod palettes, creator notes
+- `law_weaves`, `anomaly_recipes`, and `challenge_cards`
+- tools, NPC behaviors, script packs, and workshop tags
 
-The registry stores manifest metadata and content dictionaries for future menus/loaders. It does not instantiate scenes, run scripts, or grant permissions; this keeps the first modding layer deterministic and safe enough to expand.
+The registry stores manifest metadata, namespaced content dictionaries, a local-id index, a hook index, and a capability snapshot for future menus/editors. It does not instantiate scenes, run scripts, or grant permissions. This keeps the modding layer deterministic and safe while still exposing a large creative surface.
 
-Manifest validation now rejects malformed roots, missing ids, invalid versions, non-array content buckets, non-object entries, and entries without ids. Failed manifests are stored in the registry snapshot and surfaced by the pause-menu Modding section.
+Hookable content is the unique modding spine. `law_weaves`, `anomaly_recipes`, and `challenge_cards` declare safe hooks such as `wave_start`, `slingshot_apex`, `resonance_created`, `rare_event_started`, `music_beat`, and `coop_combo_triggered`. They combine normalized conditions (`min_wave`, `chaos_tier_at_least`, `has_weapon`, `slingshot_grade_at_least`, etc.) with declarative effects (`create_resonance_zone`, `offer_weapon`, `spawn_celestial_body`, `request_music_layer`, `tag_score_event`, etc.). Trusted directors can consume those entries through `get_hook_entries()` without giving mods script execution.
+
+Playable weapon mods now flow through the same registry. `WeaponSystem` reads `get_playable_weapon_entries()`, adds safe projectile entries to its weapon catalog, and supports mod patterns such as single, spread, parallel, braid, helix, and ring. Weapon payload overrides are normalized so mod packs can create distinct projectile identities while still using the normal HUD, prediction, energy, projectile, and network event path.
+
+Manifest validation rejects malformed roots, missing ids, invalid versions, non-array content buckets, non-object entries, unsafe paths, invalid weapon payloads, unknown hooks, unknown condition/effect actions, and script references inside hookable entries. Failed manifests are stored in the registry snapshot and surfaced by the pause-menu Modding section. Script-like buckets are cataloged but locked unless script pack registration is explicitly enabled.
+
+`get_compatibility_signature()` now includes normalized gameplay-affecting mod content, including playable weapon profiles and hookable entries, while excluding entries marked `local_visual`. `NetworkSession` uses that signature for the mod/version handshake boundary so mismatched co-op gameplay packs can fail cleanly before spawning players.
 
 ## Scores And Community Challenges
 
@@ -381,7 +391,7 @@ The runner is a progress/performance validator, not a live-state save or determi
 
 ## Pause And Game Over
 
-`PauseMenu` runs in `PROCESS_MODE_ALWAYS`, fades the simulation into a true paused state, and exposes scene-authored sections for settings/readability, seed sharing, modding status, multiplayer prep, and run controls. Resume, restart, and abort-to-title remain real buttons rather than generated UI.
+`PauseMenu` runs in `PROCESS_MODE_ALWAYS`, fades the simulation into a true paused state, and exposes scene-authored sections for settings/readability, seed sharing, modding status, multiplayer prep, weapon status, and run controls. Resume, restart, and abort-to-title remain real buttons rather than generated UI. Section labels receive runtime color/outline accents so settings, weapon, modding, and multiplayer information stay scannable under the pause shader.
 
 Player death stores `RunProgress.last_death_message`, then changes to `res://Nodes/game_over_scene.tscn`. The game-over scene clears the progress anchor and displays the exact death vector lesson before allowing a retry or title return.
 

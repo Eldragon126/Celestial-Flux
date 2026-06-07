@@ -187,6 +187,10 @@ Rule:
 
 If it does not create a shareable moment, it is debt.
 
+Modding rule:
+
+Player-made content should extend the physics language, not bypass it. The production modding path is declarative: safe weapon profiles, law weaves, anomaly recipes, challenge cards, palettes, and creator notes are cataloged by `ModContentRegistry`, indexed by hooks/effects, and consumed only by trusted directors. No default arbitrary script execution, no unbounded spawn spam, and no mod feature should break the promise that movement plus collapsing physics is the star.
+
 ---
 
 # PRODUCTION CLARITY PASS - 2026-06-02

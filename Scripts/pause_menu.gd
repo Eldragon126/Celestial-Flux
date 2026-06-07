@@ -6,6 +6,12 @@ signal pause_state_changed(blocked: bool)
 const UI_PAUSE_OPEN_STREAM := preload("res://Assets/Sound Effects/sfx_ui_pause_open.mp3")
 const UI_PAUSE_CLOSE_STREAM := preload("res://Assets/Sound Effects/sfx_ui_pause_close.mp3")
 const UI_SETTINGS_CHANGED_STREAM := preload("res://Assets/Sound Effects/sfx_ui_settings_changed.mp3")
+const SECTION_ACCENTS := {
+	"AccessibilityLabel": Color(0.45, 0.9, 1.0, 0.96),
+	"WeaponLabel": Color(0.88, 1.0, 0.46, 0.96),
+	"ModdingLabel": Color(0.7, 0.78, 1.0, 0.96),
+	"MultiplayerLabel": Color(0.55, 1.0, 0.82, 0.96),
+}
 
 @export_group("Visual Fade")
 @export var fade_in_duration: float = 1.55
@@ -67,6 +73,7 @@ func _ready() -> void:
 	music_player.volume_db = -80.0
 	_setup_ui_audio()
 	_connect_buttons()
+	_apply_section_accents()
 	_setup_accessibility_controls()
 	_apply_menu_scale()
 	_update_modding_menu()
@@ -223,6 +230,18 @@ func _setup_ui_audio() -> void:
 	_ui_audio_player.process_mode = Node.PROCESS_MODE_ALWAYS
 	_ui_audio_player.bus = &"Player Sound Effects"
 	add_child(_ui_audio_player)
+
+
+func _apply_section_accents() -> void:
+	for node_name in SECTION_ACCENTS.keys():
+		var label := find_child(String(node_name), true, false) as Label
+		if label == null:
+			continue
+		var accent_value: Variant = SECTION_ACCENTS[node_name]
+		var accent: Color = accent_value if accent_value is Color else Color(0.62, 0.92, 1.0, 0.96)
+		label.add_theme_color_override("font_color", accent)
+		label.add_theme_color_override("font_outline_color", Color(accent.r, accent.g, accent.b, 0.22))
+		label.add_theme_constant_override("outline_size", 4)
 
 
 func _play_ui_sound(stream: AudioStream, volume_db: float = -12.0, pitch: float = 1.0) -> void:
@@ -532,14 +551,20 @@ func _update_weapon_menu() -> void:
 	var count := int(state.get("count", 1))
 	var energy := int(round(float(state.get("energy", 0.0))))
 	var max_energy := int(round(float(state.get("max_energy", 1.0))))
-	var cost := int(round(float(state.get("cost_per_second", 0.0))))
-	weapon_status_label.text = "%d/%d | %s | E %d/%d | %d/s" % [
+	var fire_mode := StringName(state.get("fire_mode", &"projectile"))
+	var raw_cost := float(state.get("cost_per_second", 0.0))
+	if fire_mode != &"beam":
+		raw_cost = float(state.get("cost_per_shot", 0.0))
+	var cost := int(round(raw_cost))
+	var cost_label := "/s" if fire_mode == &"beam" else "/shot"
+	weapon_status_label.text = "%d/%d | %s | E %d/%d | %d%s" % [
 		index,
 		count,
 		display_name,
 		energy,
 		max_energy,
 		cost,
+		cost_label,
 	]
 
 

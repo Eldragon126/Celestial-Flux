@@ -9,6 +9,9 @@ enum PlanetKind { AUTO, BLUE_DENSE, RED_VOLATILE, CYAN_LENS, VIOLET_TEMPORAL }
 @export var planet_type: PlanetKind = PlanetKind.AUTO
 @export var base_mass: float = 300000.0
 @export var base_radius: float = 150.0
+@export var deterministic_generation: bool = true
+@export var deterministic_seed: int = 0
+@export var deterministic_variation_key: StringName = &""
 @export var spacetime_stability_per_radius: float = 2.8
 @export var positron_mass_loss_scale: float = 0.22
 @export var minimum_fractured_radius_ratio: float = 0.36
@@ -82,10 +85,11 @@ func _ready() -> void:
 	add_to_group("Objects_With_Gravity")
 
 	# =========================
-	# RANDOMIZE SIZE & TYPE
+	# DETERMINISTIC SIZE & TYPE
 	# =========================
-	var rand_scale := randf_range(0.5, 1.5)
-	var resolved_type := _resolve_planet_type()
+	var rng := _planet_rng()
+	var rand_scale := rng.randf_range(0.5, 1.5)
+	var resolved_type := _resolve_planet_type(rng)
 	var type_data := _planet_type_data(resolved_type)
 	
 	planet_type_id = type_data.get("id", &"blue_dense")
@@ -150,10 +154,38 @@ func _process(delta: float) -> void:
 # MISSING HELPER FUNCTIONS IMPLEMENTED HERE
 # ==========================================
 
-func _resolve_planet_type() -> PlanetKind:
+func configure_deterministic(seed_value: int, key: StringName = &"") -> void:
+	deterministic_generation = true
+	deterministic_seed = seed_value
+	if not String(key).is_empty():
+		deterministic_variation_key = key
+
+
+func _planet_rng() -> RandomNumberGenerator:
+	var rng := RandomNumberGenerator.new()
+	if not deterministic_generation:
+		rng.randomize()
+		return rng
+
+	var base_seed := deterministic_seed
+	if base_seed == 0 and RunProgress != null:
+		base_seed = int(RunProgress.run_seed)
+	var stable_key := String(deterministic_variation_key)
+	if stable_key.is_empty():
+		stable_key = "%s:%s" % [String(scene_file_path), String(name)]
+	rng.seed = _stable_seed("%d:%s" % [base_seed, stable_key])
+	return rng
+
+
+func _stable_seed(text: String) -> int:
+	var value := absi(int(hash(text)))
+	return maxi(value, 1)
+
+
+func _resolve_planet_type(rng: RandomNumberGenerator) -> PlanetKind:
 	if planet_type == PlanetKind.AUTO:
 		var available_types := PLANET_CONFIGS.keys()
-		return available_types[randi() % available_types.size()] as PlanetKind
+		return available_types[rng.randi_range(0, available_types.size() - 1)] as PlanetKind
 	return planet_type
 
 func _planet_type_data(type: PlanetKind) -> Dictionary:

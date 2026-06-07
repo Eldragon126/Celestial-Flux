@@ -17,6 +17,8 @@ const SPACETIME_FABRIC_SHADER := preload("res://Scripts/spacetime_fabric.gdshade
 @export var ribbon_length: float = 96.0
 @export var ribbon_width: float = 3.0
 @export var phase_shell_radius: float = 54.0
+@export var break_boundary_radius: float = 132.0
+@export var max_break_boundaries: int = 3
 @export var enable_fabric_shader: bool = true
 @export var fabric_update_interval: float = 0.05
 @export var fabric_intensity_scale: float = 0.76
@@ -33,6 +35,7 @@ var _overlay: ColorRect = null
 var _glitch_root: Control = null
 var _ribbons: Array[Dictionary] = []
 var _glitch_slices: Array[Dictionary] = []
+var _break_rings: Array[Dictionary] = []
 var _swim_intensity := 0.0
 var _swim_until := 0.0
 var _swim_elapsed := 999.0
@@ -58,6 +61,7 @@ func _process(delta: float) -> void:
 	_update_swim(delta)
 	_update_ribbons(delta)
 	_update_glitch_slices(delta)
+	_update_break_rings(delta)
 	_update_overlay(delta)
 
 
@@ -85,6 +89,7 @@ func _resolve_player() -> void:
 func _connect_sources() -> void:
 	_connect_once(_time_manager, &"dilation_started", Callable(self, "_on_dilation_started"))
 	_connect_once(_time_manager, &"dilation_ended", Callable(self, "_on_dilation_ended"))
+	_connect_once(_time_manager, &"dilation_break_triggered", Callable(self, "_on_dilation_break_triggered"))
 	_connect_once(_time_manager, &"time_tear_intensity_changed", Callable(self, "_on_time_tear_intensity_changed"))
 	_connect_once(_time_manager, &"local_time_pocket_entered", Callable(self, "_on_local_time_pocket_entered"))
 	_connect_once(_player, &"slingshot_mastery_scored", Callable(self, "_on_slingshot_mastery_scored"))
@@ -106,6 +111,16 @@ func _on_dilation_started() -> void:
 
 func _on_dilation_ended() -> void:
 	_trigger_glitch(0.34, Color(0.72, 0.42, 1.0, 1.0), 4)
+
+
+func _on_dilation_break_triggered(data: Dictionary) -> void:
+	var position: Vector2 = data.get("position", _player_position())
+	var velocity: Vector2 = data.get("velocity", _player_velocity())
+	var intensity := clampf(float(data.get("intensity", 0.76)), 0.35, 1.0)
+	var color := Color(0.42, 0.92, 1.0, 1.0)
+	_trigger_glitch(intensity, color, 5)
+	_trigger_swim(position, velocity, intensity, 0.58, color, false)
+	_spawn_break_ring(position, intensity, color)
 
 
 func _on_time_tear_intensity_changed(intensity: float) -> void:
@@ -277,6 +292,37 @@ func _spawn_glitch_slice(intensity: float, color: Color) -> void:
 	})
 
 
+func _spawn_break_ring(position: Vector2, intensity: float, color: Color) -> void:
+	while _break_rings.size() >= max_break_boundaries and not _break_rings.is_empty():
+		var oldest := _break_rings.pop_front() as Dictionary
+		var old_value: Variant = oldest.get("node")
+		if old_value != null and is_instance_valid(old_value):
+			var old_node := old_value as Node
+			if old_node != null:
+				old_node.queue_free()
+
+	var ring := Line2D.new()
+	ring.name = "TimeDilationBreakBoundary"
+	ring.closed = true
+	ring.antialiased = true
+	ring.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	ring.end_cap_mode = Line2D.LINE_CAP_ROUND
+	ring.width = lerpf(2.0, 4.2, intensity)
+	ring.default_color = _safe_color(color, lerpf(0.2, 0.38, intensity))
+	ring.z_index = 34
+	ring.global_position = position
+	ring.points = _ring_points(48, break_boundary_radius * lerpf(0.88, 1.26, intensity))
+	add_child(ring)
+
+	_break_rings.append({
+		"node": ring,
+		"age": 0.0,
+		"lifetime": lerpf(0.34, 0.64, intensity),
+		"base_width": ring.width,
+		"base_scale": ring.scale,
+	})
+
+
 func _update_ribbons(delta: float) -> void:
 	for i in range(_ribbons.size() - 1, -1, -1):
 		var entry := _ribbons[i]
@@ -321,6 +367,30 @@ func _update_glitch_slices(delta: float) -> void:
 		if age >= lifetime:
 			rect.queue_free()
 			_glitch_slices.remove_at(i)
+
+
+func _update_break_rings(delta: float) -> void:
+	for i in range(_break_rings.size() - 1, -1, -1):
+		var entry := _break_rings[i]
+		var ring_value: Variant = entry.get("node")
+		if ring_value == null or not is_instance_valid(ring_value):
+			_break_rings.remove_at(i)
+			continue
+		var ring := ring_value as Line2D
+		if ring == null:
+			_break_rings.remove_at(i)
+			continue
+		var age := float(entry.get("age", 0.0)) + delta
+		var lifetime := maxf(float(entry.get("lifetime", 0.4)), 0.05)
+		var t := clampf(age / lifetime, 0.0, 1.0)
+		ring.scale = Vector2.ONE * lerpf(1.0, 1.55, t)
+		ring.width = float(entry.get("base_width", 2.0)) * lerpf(1.0, 0.25, t)
+		ring.modulate.a = pow(1.0 - t, 1.6)
+		entry["age"] = age
+		_break_rings[i] = entry
+		if age >= lifetime:
+			ring.queue_free()
+			_break_rings.remove_at(i)
 
 
 func _update_overlay(delta: float) -> void:
@@ -422,6 +492,16 @@ func _swim_points(direction: Vector2, intensity: float) -> PackedVector2Array:
 		var point := rear_offset + direction.rotated(angle) * radius
 		point += normal * sin(t * PI) * shimmer
 		points.append(point)
+	return points
+
+
+func _ring_points(count: int, radius: float) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var safe_count := maxi(count, 6)
+	for i in range(safe_count):
+		var angle := TAU * float(i) / float(safe_count)
+		var wobble := 1.0 + sin(angle * 5.0 + _now_seconds() * 9.0) * 0.025
+		points.append(Vector2(cos(angle), sin(angle)) * radius * wobble)
 	return points
 
 

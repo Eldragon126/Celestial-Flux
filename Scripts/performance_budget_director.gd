@@ -146,6 +146,9 @@ func _apply_new_director_budget(scene: Node, low: bool, medium: bool) -> void:
 		_set_if_present(tear, "max_active_tears", 1 if low else (2 if medium else 3))
 		_set_if_present(tear, "max_alive_tear_enemies", 3 if low else (4 if medium else 6))
 		_set_if_present(tear, "max_enemies_per_tear", 1 if low else 2)
+		_set_if_present(tear, "horde_max_alive_enemies", 6 if low else (9 if medium else 14))
+		_set_if_present(tear, "horde_max_enemies_per_tear", 4 if low else (6 if medium else 8))
+		_set_if_present(tear, "horde_spawn_interval", 0.72 if low else (0.56 if medium else 0.42))
 	var swim := scene.find_child("SpacetimeSwimDirector", true, false)
 	if swim != null:
 		_set_if_present(swim, "enable_fabric_shader", not low)

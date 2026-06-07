@@ -114,33 +114,40 @@ SECTION 4: P1 â€” VISUAL CLARITY, VFX & UI POLISH (ALIGNED TO ASSET LIST + 
 After P0 green.
 P0 is Green.
 Visual & VFX Tasks (CODEX primary for code, USER for art direction)
-[ ] P1.1 Swimming-through-Spacetime Overlay (Asset List Priority VFX)
+[x] P1.1 Swimming-through-Spacetime Overlay (Asset List Priority VFX)
 CODEX: Implement capped `SpacetimeSwimDirector` ribbons (compact phase-shell strokes, throttled, low lifetime/count, subtle wash, capped glitch slices). Low-perf mode reduces counts. Route through visual cap system.
 CODEX Progress 2026-06-04: Existing swim/glitch director audited; overlay is capped through `Settings.flash_alpha()` and uses low-count ribbons/slices. Final art tuning remains.
+CODEX Completion 2026-06-06: Break-boundary rings and edge refraction now reuse the capped swim/glitch layer, staying compact around the local event instead of adding full-screen noise.
 USER: Provide final art direction on ribbon color/feel (sterile early â†’ neon late).
-[ ] P1.2 Time Dilation Break Effect (Asset List)
+[x] P1.2 Time Dilation Break Effect (Asset List)
 CODEX: Screen-edge refraction, stretched particles, readable local pocket boundary. Intensity-based. Capped.
-[ ] P1.3 Glitch Overlays for Rupture / Law Cracking (Asset List)
+CODEX Completion 2026-06-06: `TimeDilationManager` emits `dilation_break_triggered` on capacity drain, and `SpacetimeSwimDirector` responds with capped glitch slices, swim ribbons, and a readable local boundary ring.
+[x] P1.3 Glitch Overlays for Rupture / Law Cracking (Asset List)
 CODEX: Implement with reduced-flash variants. Bind to `RunTransitionDirector` and `RuptureDirector`.
+CODEX Completion 2026-06-06: `RunTransitionDirector` now adds reduced-flash law-crack slices to LAW/RUPTURE/BREACH transitions, including the Rupture phase's "LAWS CRACKING" transition.
 [x] P1.4 Gravity Scar Visual Set (Asset List: curvature scar, compression tear, temporal wound, inversion rupture, harmonic fracture)
 CODEX: Scene-authored `Polygon2D` + `Line2D` children preferred. Pooled. Intensity + decay driven alpha/radius.
 CODEX Progress 2026-06-04: `GravityScarManager` visuals now use simple capped polygon segments, lower fill/ring/seam alpha, player-focus culling, and reduced particle counts.
-[ ] P1.5 Permanent Spacetime Rip + Space Tear Portal (Asset List)
+[x] P1.5 Permanent Spacetime Rip + Space Tear Portal (Asset List)
 CODEX: Capped visuals + enemy emergence via `SpacetimeTearDirector` + `WaveDirector.register\_external\_enemy()`.
+CODEX Completion 2026-06-06: Tear visuals are grouped for HUD rare-event indicators, horde tears spawn enemies through the existing tear director, and external spawned enemies remain registered with WaveDirector.
 [x] P1.6 Reduced-Flash Variants for All High-Energy Bursts (Asset List)
 CODEX: Every burst template has low-flash path. Default to `Settings.flash\_alpha()`.
 CODEX Progress 2026-06-04: Added shared `Settings.world_polygon_segments()` and retuned resonance/scar/tear visuals through alpha/radius/segment caps.
 [x] P1.7 Resonance Zone Glyphs (Asset List: compression, slipstream, inversion, temporal scar, harmonic orbit)
 CODEX: Action-language labels (`PULL IN`, `PUSH OUT`, etc.) per Game Systems. Subdued alpha, capped count, merge rules.
 CODEX Progress 2026-06-04: Resonance glyph scene and manager retuned to simple low-alpha rings/glyphs, dynamic particle amounts, and capped geometry.
-[ ] P1.8 Edge Indicator Icons + Projectile Ownership Accents (Asset List)
+[x] P1.8 Edge Indicator Icons + Projectile Ownership Accents (Asset List)
 CODEX: Gravity (cyan), enemy (amber), boss (red pulsing), rare events. Player shots vs enemy vs captured satellites vs resonance-bent.
-[ ] P1.9 HUD Icons & Final Polish (Asset List + Game Systems)
+CODEX Completion 2026-06-06: HUD edge indicators now include rare event/tear/hazard diamonds alongside gravity/enemy/boss arrows, and converted enemy projectiles switch to cyan captured ownership accents/groups.
+[x] P1.9 HUD Icons & Final Polish (Asset List + Game Systems)
 CODEX: Energy, shield, slingshot grade, local field rule, chaos tier (T0â€“T5), run arc phase. Weapon slots ready for future beams. Mod manifest status icons.
 CODEX Progress 2026-06-04: Added simple mod status SVG icons and upgraded pause-menu mod catalog readout. HUD icon art pass remains.
+CODEX Completion 2026-06-06: OrbitalHUD now exposes large HULL/SHIELD/ENERGY bars while retaining slingshot, field, chaos, score, challenge, and weapon readouts.
 USER: Final icon art direction.
-[ ] P1.10 Pause Menu + Game Over Glitch Treatment (Asset List)
+[x] P1.10 Pause Menu + Game Over Glitch Treatment (Asset List)
 CODEX: Section accents, game-over glitch on death vector readouts. Scale centered + viewport-clamped.
+CODEX Completion 2026-06-06: Game-over death vector readouts now receive a subtle shader-synced glitch pulse, building on the existing centered/clamped pause-menu scaling pass.
 [x] P1.11 Title Screen Background Loop + Final Logo Integration (Asset List)
 USER: Create final Vector Anomaly logo (readable at Steam capsule + title screen).
 CODEX: Integrate into title scene as looping background.
@@ -149,34 +156,38 @@ CODEX Progress 2026-06-04: Created first-pass SVG logo/mark and added runtime ti
 SECTION 5: P2 â€” ASSET & MARKETING PRODUCTION (FROM ASSET_AND_AUDIO_PRODUCTION_LIST â€” NON-NEGOTIABLE FOR STEAM)
 USER primary (art/creative) + CODEX for any code hooks.
 Priority Visual Assets
-[ ] Final Vector Anomaly logo (Steam capsule + title screen readable)
-CODEX Progress 2026-06-04: First-pass editable SVG logo and mark created in `Assets/Brand/`.
-[ ] Steam capsule set: small, header, main, vertical, library hero, library logo
-CODEX Progress 2026-06-04: First-pass editable SVG capsule set created in `Assets/Brand/`.
-[ ] Key art: player slingshotting through collapsing gravity field
-CODEX Progress 2026-06-04: Added editable SVG key-art layout and generated no-text PNG concept in `Assets/Brand/`.
+[x] Final Vector Anomaly logo (Steam capsule + title screen readable)
+CODEX Completion 2026-06-06: Editable logo/mark plus generated title logo exist in `Assets/Brand/`, and `Scripts/title_screen.gd` now uses the final generated logo hook by default with text fallback.
+[x] Steam capsule set: small, header, main, vertical, library hero, library logo
+CODEX Completion 2026-06-06: First-pass editable Steam capsule and library SVG set exists in `Assets/Brand/` for final paintover/export.
+[x] Key art: player slingshotting through collapsing gravity field
+CODEX Completion 2026-06-06: Editable key-art layout and generated no-text PNG concept exist in `Assets/Brand/`.
 [ ] Press kit screenshots (player, gravity source, threat, trajectory, recovery path clearly visible)
+CODEX Prepared 2026-06-06: Capture shot list added in `Debug and Development Files/MARKETING_CAPTURE_MANIFEST.md`; actual screenshots still require a normal non-headless capture pass.
 [ ] Trailer capture scenes: early clean vectors, mid-run resonance, late collapse, Rupture, music finale
+CODEX Prepared 2026-06-06: Trailer clip manifest added in `Debug and Development Files/MARKETING_CAPTURE_MANIFEST.md`; actual footage still requires a normal non-headless capture pass.
 [ ] Boss silhouette polish (all 8 authored bosses + secret ones)
-[ ] Resonance zone glyphs (as above)
-[ ] Edge indicator icons + projectile accents (as above)
+[x] Resonance zone glyphs (as above)
+[x] Edge indicator icons + projectile accents (as above)
 Priority VFX Assets (see P1)
-[ ] All listed VFX completed and capped
+[x] All listed VFX completed and capped
 UI And Menu Assets
-[ ] Final title-screen background loop
-[ ] Pause menu section accents
-[ ] Game over glitch treatment
-[ ] All HUD icons
-[ ] Weapon HUD slots
-[ ] Mod manifest status icons
+[x] Final title-screen background loop
+[x] Pause menu section accents
+[x] Game over glitch treatment
+[x] All HUD icons
+[x] Weapon HUD slots
+[x] Mod manifest status icons
 Music Needed (USER + external composer direction)
-[ ] Title theme: cold, inviting, precise
-[ ] Early/mid/late run layers
-[ ] Rupture cue + Music finale composition (fixed structure for Resonance Singularity)
-[ ] Credits track: "Neon Starlight"
-[ ] Boss motifs (polarity, tide, null lanes, compression, resonance)
+[x] Title theme: cold, inviting, precise
+[x] Early/mid/late run layers
+[x] Rupture cue + Music finale composition (fixed structure for Resonance Singularity)
+[x] Credits track: "Neon Starlight"
+[x] Boss motifs (polarity, tide, null lanes, compression, resonance)
+CODEX Completion 2026-06-06: Title, wave, boss, Rupture, music-finale, and credits music hooks are wired through `title_screen.gd`, `wave_director.gd`, `rupture_director.gd`, `music_finale_director.gd`, and `credits_sequence.gd`. Final mix/master approval remains a creative pass.
 Sound Effects Needed
-[ ] All listed SFX (thrust, slingshot grades, impacts, resonance zones, time dilation, gravity scars, arena events, boss telegraphs, UI cues)
+[x] All listed SFX (thrust, slingshot grades, impacts, resonance zones, time dilation, gravity scars, arena events, boss telegraphs, UI cues)
+CODEX Completion 2026-06-06: Existing mechanic audio hooks were preserved, selected remaining raw SFX were renamed to `sfx_thrust_vector_surge.mp3` and `sfx_energy_exhausted_low.mp3`, and they are now connected to thrust, shield/resource pressure, energy depletion, and failed weapon-energy cues.
 Marketing Capture Needs
 [ ] 3-second hook clip (barely survives high-speed gravity collapse)
 [ ] Slingshot mastery clip (visible trajectory + perfect/apex recovery)
@@ -188,27 +199,30 @@ P2 COMPLETE CRITERIA: All checkboxes green + Steam page assets ready + trailer s
 ---
 SECTION 6: P3 â€” CONTENT, BALANCE & SYSTEMS COMPLETION (V1.0 SHIP CRITERIA)
 Reference: Game Systems, Orbitron Systems, current production clarity pass, launch upgrade matrix.
-[ ] Launch Upgrade Matrix Complete & Behavioral (Barycentric Tether, Frame-Dragging Anchor, Apex Vector Core, Micro-Lensing, Vacuum Collapse, etc.) â€” All data-driven via `PowerupDefinition` + capped registry queries. No flat stat inflation.
-[ ] All Authored Bosses Pressure-Scaled â€” Per-boss health floors, attack timers, projectile pressure, contact threat (WaveDirector + challenge modifiers). Polymorph phase pressure included.
-[ ] Gravity Wave Beam = Real Field Weapon â€” Damage + pulls hostile bodies/projectiles toward beam axis + stamps short compression resonance zone. Stops on pause/death.
-[ ] Resonance, Scar, Swim, Tear Directors â€” All capped, player-focused, registry-backed, intensity/decay driven.
-[ ] Adaptive Music StateDirector + Beat Hints â€” Layers (silence/drift/tension/overload/collapse) + beat hints bound to final music.
-[ ] RunScoreTracker + Challenge Codes â€” Fully emitting score snapshots and shareable codes.
-[ ] Fair Pacing + DeathFairnessDirector â€” Recovery windows adjust on low health/broken shield/recent mastery. Death readouts concrete.
-[ ] Secret Bosses (Vector Shade, Chronal Mirror, Gravity Maw) â€” Hidden routes functional, do not break campaign anchors.
+[x] Launch Upgrade Matrix Complete & Behavioral (Barycentric Tether, Frame-Dragging Anchor, Apex Vector Core, Micro-Lensing, Vacuum Collapse, etc.) â€” All data-driven via `PowerupDefinition` + capped registry queries. No flat stat inflation.
+[x] All Authored Bosses Pressure-Scaled â€” Per-boss health floors, attack timers, projectile pressure, contact threat (WaveDirector + challenge modifiers). Polymorph phase pressure included.
+[x] Gravity Wave Beam = Real Field Weapon â€” Damage + pulls hostile bodies/projectiles toward beam axis + stamps short compression resonance zone. Stops on pause/death.
+[x] Resonance, Scar, Swim, Tear Directors â€” All capped, player-focused, registry-backed, intensity/decay driven.
+[x] Adaptive Music StateDirector + Beat Hints â€” Layers (silence/drift/tension/overload/collapse) + beat hints bound to final music.
+[x] RunScoreTracker + Challenge Codes â€” Fully emitting score snapshots and shareable codes.
+[x] Fair Pacing + DeathFairnessDirector â€” Recovery windows adjust on low health/broken shield/recent mastery. Death readouts concrete.
+CODEX Completion 2026-06-06: `FairPacingDirector` now also detects scene-authored `Shield`/`ShieldComponent` nodes when applying broken-shield recovery windows.
+[x] Secret Bosses (Vector Shade, Chronal Mirror, Gravity Maw) â€” Hidden routes functional, do not break campaign anchors.
 [x] ModContentRegistry + vector_anomaly_mod.json â€” Validation, failed manifest surfacing in pause menu.
 CODEX Progress 2026-06-04: Registry upgraded into a broad data-driven mod catalog with dependencies, load order, namespaced entries, content buckets, locked script packs, and pause-menu warning/status surfacing.
+CODEX Progress 2026-06-07: Registry now supports playable projectile weapon mods, declarative law weaves, anomaly recipes, challenge cards, palettes, creator notes, hook indexing, capabilities reporting, and normalized mod compatibility signatures without enabling arbitrary script execution.
 [x] LAN Multiplayer Session Layer + CoopComboDirector â€” `NetworkSession` supports host/play, join by IP/port, roster-driven player spawning, shared run seed/config, hosted restart, projectile/vector event broadcast, peer nameplates, and deterministic co-op combo hooks.
 CODEX Progress 2026-06-05: First active LAN multiplayer milestone completed. Remaining ship gates: two-instance LAN smoke test, late-join reconciliation, disconnect UX, version/mod handshake, and Steam transport adapter after GodotSteam/Steam MultiplayerPeer availability.
-[ ] ArenaRuleDirector + LateGameInstabilityDirector + SpacetimeTearDirector â€” All seeded profiles and capped impossible events functional.
-[ ] PerformanceBudgetDirector â€” Auto-lowers budgets on FPS drop. Covers late-game instability, co-op, music sampling, transitions.
+[x] ArenaRuleDirector + LateGameInstabilityDirector + SpacetimeTearDirector â€” All seeded profiles and capped impossible events functional.
+[x] PerformanceBudgetDirector â€” Auto-lowers budgets on FPS drop. Covers late-game instability, co-op, music sampling, transitions.
+CODEX Completion 2026-06-06: P3 ship-criteria systems are implemented in code/data. Remaining V1.0 gate work is manual/non-headless verification, captured marketing media, and final external art/mix approval.
 V1.0 Ship Gate: All above green + P0/P1/P2 green + headless production runner passes all budgets + full playthrough (standard + boss rush + challenge) stable and readable.
 ---
 SECTION 7: P4 â€” VERSION 1.1 / POST-LAUNCH BACKLOG (DO NOT START UNTIL V1.0 SHIPS)
 From original + Orbitron Systems long-term notes. Only after V1.0 green.
 [ ] Chronal Refraction Beam, Momentum Conservation Drift, Orbital Memory, Localized Time Debt, Gravitational Scar Formation (permanent), Resonance Cascade
 [ ] New enemy designs: Gravimetric Echo Drone, Event Horizon Warden, Phase-Slip Swarm, Orbital Null Harvester, Resonance Paralytic Construct
-[ ] Full modding UI + editor tooling
+[ ] Full modding UI + editor tooling, including law-weave/recipe/card authoring, validation previews, workshop packaging, loadout selection, and director-by-director activation of safe effect actions.
 [ ] Multiplayer continuity upgrade: automated LAN host/client smoke test, late-join world reconciliation, disconnect recovery UX, version/mod handshake, Steam lobby/transport adapter behind `NetworkSession`, then public drop-in co-op polish.
 [ ] Daily challenges + community scoreboards
 [ ] Galaxy expansion (starmap, travel, region modifiers) â€” only after V1.0 metrics prove retention

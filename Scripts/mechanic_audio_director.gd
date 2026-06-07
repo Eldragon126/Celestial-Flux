@@ -41,6 +41,8 @@ const OVERFOLD_BOSS_TELEGRAPH_STREAM := preload("res://Assets/Sound Effects/sfx_
 const SINGULARITY_BOSS_TELEGRAPH_STREAM := preload("res://Assets/Sound Effects/sfx_singularity_boss_telegraph.mp3")
 const MOMENTUM_SURGE_STREAM := preload("res://Assets/Sound Effects/sfx_momentum_surge.mp3")
 const METALLIC_DECAY_STREAM := preload("res://Assets/Sound Effects/sfx_metallic_decay.mp3")
+const THRUST_VECTOR_SURGE_STREAM := preload("res://Assets/Sound Effects/sfx_thrust_vector_surge.mp3")
+const ENERGY_EXHAUSTED_STREAM := preload("res://Assets/Sound Effects/sfx_energy_exhausted_low.mp3")
 
 @export var enabled: bool = true
 @export var max_simultaneous_cues: int = 6
@@ -61,6 +63,7 @@ var _resonance_manager: Node = null
 var _momentum: Node = null
 var _inventory: Node = null
 var _shield: Node = null
+var _energy_component: Node = null
 var _gravity_scar_manager: Node = null
 var _wave_director: Node = null
 var _arena_instability: Node = null
@@ -78,6 +81,8 @@ var _last_cue_time := -999.0
 var _next_gravity_scar_apply_cue := 0.0
 var _next_weapon_cue_time := 0.0
 var _next_drop_collect_cue := 0.0
+var _next_thrust_cue := 0.0
+var _next_resource_warning_cue := 0.0
 var _source_refresh_elapsed := 999.0
 
 
@@ -88,6 +93,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_prune_players()
+	_update_movement_audio()
 	_source_refresh_elapsed += delta
 	if _source_refresh_elapsed >= maxf(source_refresh_interval, 0.2):
 		_source_refresh_elapsed = 0.0
@@ -108,7 +114,9 @@ func _connect_sources() -> void:
 	_connect_signal(_inventory, &"powerup_applied", Callable(self, "_on_powerup_applied"))
 	_connect_signal(_inventory, &"law_fusion_triggered", Callable(self, "_on_law_fusion_triggered"))
 	_connect_signal(_shield, &"shield_broken", Callable(self, "_on_shield_broken"))
+	_connect_signal(_shield, &"shield_hit", Callable(self, "_on_shield_hit"))
 	_connect_signal(_shield, &"shield_restored", Callable(self, "_on_shield_restored"))
+	_connect_signal(_energy_component, &"energy_depleted", Callable(self, "_on_energy_depleted"))
 	_connect_signal(_resonance_manager, &"resonance_zone_decayed_detailed", Callable(self, "_on_resonance_zone_decayed"))
 	_connect_signal(_momentum, &"kinetic_overload_ended", Callable(self, "_on_kinetic_overload_ended"))
 	_connect_signal(_time_manager, &"time_tear_intensity_changed", Callable(self, "_on_time_tear_intensity_changed"))
@@ -136,6 +144,7 @@ func _connect_sources() -> void:
 	_connect_signal(_swim_director, &"spacetime_swim_triggered", Callable(self, "_on_spacetime_swim_triggered"))
 	_connect_signal(_swim_director, &"spacetime_glitch_triggered", Callable(self, "_on_spacetime_glitch_triggered"))
 	_connect_signal(_weapon_system, &"weapon_fired", Callable(self, "_on_weapon_fired"))
+	_connect_signal(_weapon_system, &"weapon_energy_failed", Callable(self, "_on_weapon_energy_failed"))
 	_connect_ambient_audio_sources(scene)
 	_connect_boss_audio_sources()
 
@@ -174,6 +183,7 @@ func _resolve_sources() -> void:
 		_momentum = _player.get_node_or_null("MomentumCombatComponent")
 		_inventory = _player.get_node_or_null("PowerupInventory")
 		_shield = _player.get_node_or_null("Shield")
+		_energy_component = _player.get_node_or_null("EnergyComponent")
 		_weapon_system = _player.get_node_or_null("WeaponSystem")
 
 
@@ -194,6 +204,24 @@ func _connect_boss_audio_sources() -> void:
 		var phase_callable := Callable(self, "_on_boss_phase_entered").bind(boss)
 		if boss.has_signal("phase_entered") and not boss.is_connected("phase_entered", phase_callable):
 			boss.connect("phase_entered", phase_callable)
+
+
+func _update_movement_audio() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	var local_value: Variant = _player.get("network_is_local")
+	var is_local := bool(local_value) if typeof(local_value) == TYPE_BOOL else true
+	if not is_local:
+		return
+	if not InputMap.has_action("thrust") or not Input.is_action_just_pressed("thrust"):
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _next_thrust_cue:
+		return
+	_next_thrust_cue = now + 0.28
+	var velocity_value: Variant = _player.get("velocity")
+	var speed := velocity_value.length() if velocity_value is Vector2 else 0.0
+	_play_player_cue(THRUST_VECTOR_SURGE_STREAM, momentum_cue_volume_db - 6.0, lerpf(0.88, 1.18, clampf(speed / 1800.0, 0.0, 1.0)))
 
 
 func _on_dilation_started() -> void:
@@ -270,8 +298,31 @@ func _on_shield_broken() -> void:
 	_play_player_cue(IMPACT_STREAM, shield_cue_volume_db, 0.72)
 
 
+func _on_shield_hit(amount: float, current_energy: float, max_capacity: float) -> void:
+	if amount <= 0.0:
+		return
+	var ratio := clampf(current_energy / maxf(max_capacity, 1.0), 0.0, 1.0)
+	_play_player_cue(METALLIC_DECAY_STREAM, shield_cue_volume_db - 5.0, lerpf(1.18, 0.78, ratio))
+
+
 func _on_shield_restored(_amount: float, _current_energy: float, _max_capacity: float) -> void:
 	_play_player_cue(RESONANCE_CREATED_STREAM, shield_cue_volume_db - 2.0, 1.12)
+
+
+func _on_energy_depleted() -> void:
+	_play_resource_warning(0.72)
+
+
+func _on_weapon_energy_failed(_weapon_id: StringName, _required_energy: float, _available_energy: float) -> void:
+	_play_resource_warning(0.86)
+
+
+func _play_resource_warning(pitch: float) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _next_resource_warning_cue:
+		return
+	_next_resource_warning_cue = now + 0.7
+	_play_player_cue(ENERGY_EXHAUSTED_STREAM, shield_cue_volume_db - 3.0, pitch)
 
 
 func _on_resonance_zone_decayed(zone_data: Dictionary) -> void:
@@ -386,6 +437,27 @@ func _on_weapon_fired(weapon_id: StringName, weapon_data: Dictionary) -> void:
 	var stream := MOMENTUM_SURGE_STREAM
 	var pitch := 0.94
 	match weapon_id:
+		&"relativistic_rail":
+			stream = KINETIC_IMPACT_STREAM
+			pitch = 1.24
+		&"barycentric_splitter", &"harmonic_needle":
+			stream = RESONANCE_HARMONIC_STREAM
+			pitch = 1.06
+		&"vacuum_collapse_seed", &"singularity_pin":
+			stream = GRAVITY_SCAR_CREATED_STREAM
+			pitch = 0.86
+		&"temporal_splinter":
+			stream = TIME_DILATION_BREAK_STREAM
+			pitch = 1.08
+		&"inversion_disc":
+			stream = RESONANCE_CREATED_STREAM
+			pitch = 0.92
+		&"shear_comet":
+			stream = MOMENTUM_SURGE_STREAM
+			pitch = 1.18
+		&"event_horizon_shard":
+			stream = LATE_GAME_OVERFOLD_STREAM
+			pitch = 0.7
 		&"gravity_wave_beam":
 			stream = TIDE_POCKET_STREAM
 			pitch = 0.82

@@ -4,6 +4,7 @@ class_name NetworkSessionManager
 signal session_status_changed(status: Dictionary)
 signal peer_roster_changed(roster: Array)
 signal network_run_started(config: Dictionary)
+signal network_wave_state_received(state: Dictionary)
 signal session_error(message: String)
 
 enum SessionMode {
@@ -16,9 +17,51 @@ enum SessionMode {
 
 const DEFAULT_PORT := 28942
 const DEFAULT_MAX_PEERS := 4
+const NETWORK_PROTOCOL_VERSION := 3
 const RUN_SCENE_PATH := "res://Nodes/the_abyss.tscn"
 const PLAYER_SCENE := preload("res://Nodes/player.tscn")
 const PROJECTILE_FALLBACK_SCENE_PATH := "res://Nodes/projectile.tscn"
+const MOD_MANIFEST_FILE_NAME := "vector_anomaly_mod.json"
+const MOD_SCAN_ROOTS: Array[String] = ["res://Mods", "user://mods"]
+const PROJECTILE_PAYLOAD_KEYS: Array[String] = [
+	"weapon_id",
+	"display_name",
+	"initial_speed",
+	"damage_min",
+	"damage_max",
+	"gravity_constant",
+	"gravity_pull_radius",
+	"player_gravity_deadzone_radius",
+	"windowkill_visual_scale",
+	"vector_core_color",
+	"vector_trail_fade_color",
+	"weapon_axis_impulse",
+	"weapon_temporal_slow_multiplier",
+	"weapon_temporal_slow_duration",
+	"weapon_pierce_count",
+	"weapon_resonance_zone_type",
+	"weapon_resonance_radius",
+	"weapon_resonance_intensity",
+	"weapon_curve_force",
+	"weapon_curve_side",
+	"weapon_curve_frequency",
+	"weapon_planet_damage",
+	"weapon_radial_impulse",
+	"weapon_tangent_impulse",
+	"weapon_field_radius",
+	"weapon_field_force",
+	"weapon_field_damage",
+	"weapon_field_slow_multiplier",
+	"weapon_field_slow_duration",
+	"weapon_field_max_targets",
+	"weapon_scar_type",
+	"weapon_scar_radius",
+	"weapon_scar_intensity",
+	"weapon_scar_duration",
+	"phase_offset",
+	"relativistic_rail_stacks",
+	"vacuum_collapse_stacks",
+]
 const PLAYER_COLORS: Array[Color] = [
 	Color(0.08, 0.88, 1.0, 1.0),
 	Color(1.0, 0.28, 0.58, 1.0),
@@ -37,6 +80,7 @@ var _peer: MultiplayerPeer = null
 var _peer_records: Dictionary = {}
 var _player_nodes_by_peer: Dictionary = {}
 var _run_config: Dictionary = {}
+var _last_wave_state: Dictionary = {}
 var _run_in_progress := false
 var _base_spawn_position := Vector2(135.0, 227.0)
 var _last_error := ""
@@ -130,6 +174,7 @@ func leave_session(publish: bool = true) -> void:
 	host_address = ""
 	_run_in_progress = false
 	_run_config.clear()
+	_last_wave_state.clear()
 	_player_nodes_by_peer.clear()
 	_status_label = "OFFLINE"
 	_reset_roster()
@@ -163,6 +208,8 @@ func get_status_snapshot() -> Dictionary:
 		"address": host_address,
 		"lan_hint": get_lan_address_hint(),
 		"run_in_progress": _run_in_progress,
+		"network_protocol": NETWORK_PROTOCOL_VERSION,
+		"mod_signature": _local_mod_signature(),
 		"steam_available": is_steam_multiplayer_available(),
 		"steam_message": get_steam_support_message(),
 	}
@@ -283,6 +330,7 @@ func broadcast_projectile_spawn(projectile: Node, direction: Vector2, owner: Nod
 		"position": projectile_2d.global_position,
 		"rotation": projectile_2d.global_rotation,
 		"direction": direction,
+		"weapon_payload": _sanitize_projectile_payload(projectile),
 	}
 	if multiplayer.is_server():
 		_rpc_remote_projectile_spawn.rpc(data)
@@ -302,6 +350,17 @@ func broadcast_vector_event(data: Dictionary, owner: Node) -> void:
 		_rpc_remote_vector_event.rpc(event_data)
 	else:
 		_rpc_client_vector_event.rpc_id(1, event_data)
+
+
+func broadcast_wave_state(state: Dictionary) -> void:
+	if not is_network_active() or not multiplayer.is_server():
+		return
+	_last_wave_state = state.duplicate(true)
+	_rpc_wave_state.rpc(_last_wave_state)
+
+
+func get_last_wave_state() -> Dictionary:
+	return _last_wave_state.duplicate(true)
 
 
 func _connect_multiplayer_signals() -> void:
@@ -328,8 +387,11 @@ func _begin_host_run() -> void:
 		"challenge_mode": false,
 		"boss_rush_mode": false,
 		"phase": int(RunProgress.phase),
+		"network_protocol": NETWORK_PROTOCOL_VERSION,
+		"mod_signature": _local_mod_signature(),
 	}
 	_run_in_progress = true
+	_last_wave_state.clear()
 	_status_label = "RUN HOSTING"
 	_rpc_begin_network_run.rpc(_run_config)
 	network_run_started.emit(_run_config.duplicate(true))
@@ -398,12 +460,20 @@ func _rpc_register_player(profile: Dictionary) -> void:
 	if not multiplayer.is_server():
 		return
 	var peer_id := multiplayer.get_remote_sender_id()
+	var compatibility_error := _profile_compatibility_error(profile)
+	if not compatibility_error.is_empty():
+		_rpc_session_rejected.rpc_id(peer_id, compatibility_error)
+		_peer_records.erase(peer_id)
+		_publish_roster()
+		return
 	_upsert_peer_record(peer_id, String(profile.get("player_name", "PEER %d" % peer_id)))
 	_publish_roster()
 	_publish_roster_to_clients()
 	_sync_players_to_current_scene()
 	if _run_in_progress:
 		_rpc_begin_network_run.rpc_id(peer_id, _run_config)
+		if not _last_wave_state.is_empty():
+			_rpc_wave_state.rpc_id(peer_id, _last_wave_state)
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -420,6 +490,11 @@ func _rpc_roster_snapshot(roster: Array) -> void:
 
 @rpc("authority", "call_remote", "reliable")
 func _rpc_begin_network_run(config: Dictionary) -> void:
+	var compatibility_error := _run_config_compatibility_error(config)
+	if not compatibility_error.is_empty():
+		_fail_session(compatibility_error)
+		leave_session()
+		return
 	_run_config = config.duplicate(true)
 	_run_in_progress = true
 	_status_label = "RUN CLIENT"
@@ -473,6 +548,18 @@ func _rpc_remote_vector_event(data: Dictionary) -> void:
 	_apply_remote_vector_event(data)
 
 
+@rpc("authority", "call_remote", "reliable")
+func _rpc_wave_state(state: Dictionary) -> void:
+	_last_wave_state = state.duplicate(true)
+	network_wave_state_received.emit(_last_wave_state.duplicate(true))
+
+
+@rpc("authority", "call_remote", "reliable")
+func _rpc_session_rejected(message: String) -> void:
+	_fail_session(message)
+	leave_session()
+
+
 func _publish_roster_to_clients() -> void:
 	if not multiplayer.is_server():
 		return
@@ -510,6 +597,11 @@ func _spawn_projectile_from_network(data: Dictionary) -> void:
 		return
 	var projectile := scene.instantiate()
 	projectile.set_meta(&"network_spawned", true)
+	projectile.set_meta(&"network_owner_peer_id", int(data.get("owner_peer_id", 0)))
+	var payload_value: Variant = data.get("weapon_payload", {})
+	if payload_value is Dictionary:
+		var payload: Dictionary = payload_value
+		_apply_network_projectile_payload(projectile, payload)
 	root.add_child(projectile)
 	var projectile_2d := projectile as Node2D
 	if projectile_2d != null:
@@ -651,6 +743,8 @@ func _local_profile() -> Dictionary:
 		"peer_id": _effective_local_peer_id(),
 		"player_name": local_player_name,
 		"color": _color_for_peer(_effective_local_peer_id()),
+		"network_protocol": NETWORK_PROTOCOL_VERSION,
+		"mod_signature": _local_mod_signature(),
 	}
 
 
@@ -730,6 +824,148 @@ func _color_from_record(record: Dictionary, peer_id: int) -> Color:
 	if value is Color:
 		return value
 	return _color_for_peer(peer_id)
+
+
+func _profile_compatibility_error(profile: Dictionary) -> String:
+	var protocol := int(profile.get("network_protocol", 0))
+	if protocol != NETWORK_PROTOCOL_VERSION:
+		return "JOIN FAILED: network protocol mismatch"
+	var remote_signature := String(profile.get("mod_signature", ""))
+	var local_signature := _local_mod_signature()
+	if not remote_signature.is_empty() and remote_signature != local_signature:
+		return "JOIN FAILED: mod catalog mismatch"
+	return ""
+
+
+func _run_config_compatibility_error(config: Dictionary) -> String:
+	var protocol := int(config.get("network_protocol", 0))
+	if protocol != NETWORK_PROTOCOL_VERSION:
+		return "JOIN FAILED: host protocol mismatch"
+	var remote_signature := String(config.get("mod_signature", ""))
+	var local_signature := _local_mod_signature()
+	if not remote_signature.is_empty() and remote_signature != local_signature:
+		return "JOIN FAILED: host mod catalog mismatch"
+	return ""
+
+
+func _sanitize_projectile_payload(projectile: Node) -> Dictionary:
+	var source: Dictionary = {}
+	if projectile != null and projectile.has_method("get_weapon_payload"):
+		var value: Variant = projectile.call("get_weapon_payload")
+		if value is Dictionary:
+			source = value
+	elif projectile != null and projectile.has_meta(&"weapon_payload"):
+		var meta_value: Variant = projectile.get_meta(&"weapon_payload")
+		if meta_value is Dictionary:
+			source = meta_value
+
+	var sanitized: Dictionary = {}
+	for key in PROJECTILE_PAYLOAD_KEYS:
+		var value: Variant = source.get(key, null)
+		if value == null and projectile != null:
+			value = projectile.get(key)
+		if _is_projectile_payload_value_safe(value):
+			sanitized[key] = value
+	return sanitized
+
+
+func _apply_network_projectile_payload(projectile: Node, payload: Dictionary) -> void:
+	if projectile == null:
+		return
+	var sanitized: Dictionary = {}
+	for key in PROJECTILE_PAYLOAD_KEYS:
+		var value: Variant = payload.get(key, null)
+		if _is_projectile_payload_value_safe(value):
+			sanitized[key] = value
+	if projectile.has_method("apply_weapon_payload"):
+		projectile.call("apply_weapon_payload", sanitized)
+		return
+	projectile.set_meta(&"weapon_payload", sanitized.duplicate(true))
+	for key in sanitized.keys():
+		var property_name := String(key)
+		if projectile.get(property_name) != null:
+			projectile.set(property_name, sanitized[key])
+
+
+func _is_projectile_payload_value_safe(value: Variant) -> bool:
+	return (
+		value is bool
+		or value is int
+		or value is float
+		or value is String
+		or value is StringName
+		or value is Vector2
+		or value is Color
+	)
+
+
+func _local_mod_signature() -> String:
+	var registry := _find_mod_registry()
+	if registry != null and registry.has_method("get_compatibility_signature"):
+		return String(registry.call("get_compatibility_signature"))
+	var tokens: Array[String] = []
+	for root in MOD_SCAN_ROOTS:
+		_collect_mod_signature_tokens(root, tokens)
+	tokens.sort()
+	var packed := PackedStringArray()
+	for token in tokens:
+		packed.append(token)
+	return ("mods:%s" % "|".join(packed)).sha256_text().substr(0, 16)
+
+
+func _find_mod_registry() -> Node:
+	var tree := get_tree()
+	if tree == null:
+		return null
+	var current := tree.current_scene
+	if current != null:
+		var registry := current.find_child("ModContentRegistry", true, false)
+		if registry != null and is_instance_valid(registry) and not registry.is_queued_for_deletion():
+			return registry
+	for node in tree.get_nodes_in_group("mod_content_registry"):
+		var registry_node := node as Node
+		if registry_node != null and is_instance_valid(registry_node) and not registry_node.is_queued_for_deletion():
+			return registry_node
+	return null
+
+
+func _collect_mod_signature_tokens(root_path: String, tokens: Array[String]) -> void:
+	var dir := DirAccess.open(root_path)
+	if dir == null:
+		return
+	dir.list_dir_begin()
+	var entry := dir.get_next()
+	while not entry.is_empty():
+		if entry.begins_with("."):
+			entry = dir.get_next()
+			continue
+		var child_path := "%s/%s" % [root_path.trim_suffix("/"), entry]
+		if dir.current_is_dir():
+			_append_manifest_signature_token("%s/%s" % [child_path, MOD_MANIFEST_FILE_NAME], tokens)
+		elif entry == MOD_MANIFEST_FILE_NAME:
+			_append_manifest_signature_token(child_path, tokens)
+		entry = dir.get_next()
+	dir.list_dir_end()
+
+
+func _append_manifest_signature_token(path: String, tokens: Array[String]) -> void:
+	if not FileAccess.file_exists(path):
+		return
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		tokens.append("failed:%s" % path)
+		return
+	var text := file.get_as_text()
+	file.close()
+	var parsed: Variant = JSON.parse_string(text)
+	if not (parsed is Dictionary):
+		tokens.append("invalid:%s:%s" % [path, text.sha256_text().substr(0, 8)])
+		return
+	var manifest := parsed as Dictionary
+	var manifest_id := str(manifest.get("id", "")).strip_edges()
+	var version := str(manifest.get("version", "")).strip_edges()
+	var schema := int(manifest.get("schema_version", 1))
+	tokens.append("%s:%s:%d:%s" % [manifest_id, version, schema, text.sha256_text().substr(0, 8)])
 
 
 func _sanitize_vector_event(data: Dictionary) -> Dictionary:

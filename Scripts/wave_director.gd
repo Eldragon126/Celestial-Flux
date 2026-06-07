@@ -92,6 +92,10 @@ enum MusicMode { NONE, WAVE, BOSS, INTERMISSION }
 @export var boss_every_waves = 5
 @export var max_regular_enemies = 10
 @export var wave_soft_timeout: float = 145.0
+@export var minimum_regular_wave_duration: float = 54.0
+@export var pacing_reinforcement_interval: float = 12.0
+@export var pacing_reinforcement_count: int = 2
+@export var max_pacing_reinforcement_batches: int = 2
 @export var external_enemies_block_wave: bool = false
 @export var clear_external_enemies_on_wave_clear: bool = true
 @export var recovery_wave_interval: int = 4
@@ -153,12 +157,16 @@ var _last_status_wave: int = -1
 var _last_status_threats: int = -1
 var _physics_drop_system: Node = null
 var _wave_elapsed: float = 0.0
+var _next_pacing_reinforcement_time: float = 0.0
+var _pacing_reinforcement_batches: int = 0
 var _external_enemy_ids: Dictionary = {}
 var _interwave_gate: Node = null
 var _music_mode: int = MusicMode.NONE
 var _active_music_stream: AudioStream = null
 var _pause_menu: Node = null
 var _music_blocked_by_pause: bool = false
+var _network_forced_wave_start: bool = false
+var _network_forced_wave_clear: bool = false
 var _wave_music_by_wave: Dictionary = {}
 var _boss_music_by_wave: Dictionary = {}
 var _wave_music_tracks: Array[AudioStream] = [
@@ -241,6 +249,7 @@ func _ready() -> void:
 	_configure_music_maps()
 	_build_ui()
 	_stop_all_music()
+	_connect_network_session()
 	call_deferred("_connect_pause_menu")
 	call_deferred("_start_director")
 
@@ -269,6 +278,12 @@ func _process(delta: float) -> void:
 		return
 
 	if _primary_enemy_count() <= 0 and (not external_enemies_block_wave or _external_enemy_count() <= 0):
+		if _is_network_client() and not _network_forced_wave_clear:
+			_banner_label.text = "WAVE %d CLEAR - AWAITING HOST LOCK" % _wave
+			return
+		if _should_extend_regular_wave_for_music():
+			_try_spawn_pacing_reinforcements()
+			return
 		_complete_wave()
 
 func _primary_enemy_count() -> int:
@@ -322,6 +337,9 @@ func _start_director() -> void:
 	_spawn_battlefield_features()
 	_refresh_player_planet_cache()
 	_banner_label.text = "WAVE SYSTEM ONLINE"
+	if _is_network_client():
+		_banner_label.text = "WAITING FOR HOST WAVE LOCK"
+		return
 	await get_tree().create_timer(first_wave_delay).timeout
 	_begin_next_wave()
 
@@ -376,6 +394,9 @@ func register_external_enemy(enemy: Node) -> void:
 	_track_enemy_rewards(enemy)
 
 func _begin_next_wave() -> void:
+	if _is_network_client() and not _network_forced_wave_start:
+		_banner_label.text = "WAITING FOR HOST WAVE LOCK"
+		return
 	if _waves_halted or not _waves_enabled():
 		_banner_label.text = "BOSS RUSH CLEARED" if RunProgress and RunProgress.boss_rush_mode and RunProgress.run_finished else "WAVE DIRECTOR STANDBY"
 		return
@@ -384,6 +405,8 @@ func _begin_next_wave() -> void:
 
 	_wave += 1
 	_wave_elapsed = 0.0
+	_next_pacing_reinforcement_time = pacing_reinforcement_interval
+	_pacing_reinforcement_batches = 0
 	_clear_interwave_galaxy_gate()
 	if RunProgress:
 		RunProgress.sync_phase_from_wave(_wave)
@@ -392,6 +415,7 @@ func _begin_next_wave() -> void:
 	_boss = null
 	_boss_panel.visible = false
 
+	_broadcast_wave_state(&"begin")
 	if _is_boss_wave():
 		await _spawn_boss_wave()
 	else:
@@ -526,7 +550,7 @@ func _spawn_enemy(scene: PackedScene, node_name: String) -> Node:
 	if enemy_2d != null:
 		var avoid_planets := _enemy_requires_planet_clearance(enemy, scene)
 		enemy_2d.global_position = _spawn_position_for_index(
-			_active_enemies.size(),
+			_stable_index_from_text(node_name),
 			avoid_planets,
 			stationary_enemy_planet_clearance
 		)
@@ -611,7 +635,7 @@ func _get_physics_drop_system() -> Node:
 	return _physics_drop_system
 
 func _spawn_battlefield_features() -> void:
-	var origin = _player.global_position
+	var origin := _spawn_center()
 	_spawn_far_planet_field(origin)
 	_spawn_hazard_once(NEBULA_SCENE, "PermanentNebulaNorth", origin + Vector2(-740.0, -520.0))
 	_spawn_hazard_once(NEBULA_SCENE, "PermanentNebulaSouth", origin + Vector2(920.0, 680.0))
@@ -634,7 +658,7 @@ func _spawn_interwave_galaxy_gate(_rest_duration: float) -> void:
 	if interwave_gate_interval > 0 and _wave % interwave_gate_interval != 0:
 		return
 
-	var origin := _player.global_position
+	var origin := _spawn_center()
 	var entry_position := _safe_orbital_position(
 		origin,
 		interwave_gate_near_radius * 0.82,
@@ -701,11 +725,13 @@ func _seed_wave_hazards() -> void:
 func _spawn_hazard(scene: PackedScene, node_name: String, global_pos: Vector2) -> Node:
 	var hazard = scene.instantiate()
 	hazard.name = node_name
-	_level_root.add_child(hazard)
-
 	var hazard_2d = hazard as Node2D
 	if hazard_2d != null:
 		hazard_2d.global_position = global_pos
+	if hazard.has_method("configure_deterministic"):
+		hazard.call("configure_deterministic", _seed_for_key(node_name), StringName(node_name))
+
+	_level_root.add_child(hazard)
 
 	_active_hazards.append(hazard)
 	return hazard
@@ -717,11 +743,12 @@ func _spawn_hazard_once(scene: PackedScene, node_name: String, global_pos: Vecto
 	return _spawn_hazard(scene, node_name, global_pos)
 
 func _spawn_position_for_index(index: int, avoid_planets: bool = false, clearance: float = 0.0) -> Vector2:
-	var center := _player.global_position
+	var center := _spawn_center()
 	var fallback := center
 	for attempt in range(maxi(spawn_position_attempts, 1)):
-		var angle := TAU * float((index + attempt * 3) % 17) / 17.0 + _rng.randf_range(-0.24, 0.24)
-		var radius := _rng.randf_range(min_spawn_radius, max_spawn_radius)
+		var key := "spawn:%d:%d:%d" % [_wave, index, attempt]
+		var angle := TAU * float((index + attempt * 3) % 17) / 17.0 + _seeded_range(key + ":angle", -0.24, 0.24)
+		var radius := _seeded_range(key + ":radius", min_spawn_radius, max_spawn_radius)
 		var candidate := center + Vector2(cos(angle), sin(angle)) * radius
 		if attempt == 0:
 			fallback = candidate
@@ -744,14 +771,51 @@ func _spawn_far_planet_field(origin: Vector2) -> void:
 func _safe_orbital_position(center: Vector2, min_radius: float, max_radius: float, index: int, clearance: float) -> Vector2:
 	var fallback := center + Vector2.RIGHT.rotated(TAU * float(index % 19) / 19.0) * min_radius
 	for attempt in range(maxi(spawn_position_attempts, 1)):
-		var angle := TAU * float((index + attempt * 5) % 23) / 23.0 + _rng.randf_range(-0.18, 0.18)
-		var radius := _rng.randf_range(min_radius, max_radius)
+		var key := "orbit:%d:%d:%d" % [_wave, index, attempt]
+		var angle := TAU * float((index + attempt * 5) % 23) / 23.0 + _seeded_range(key + ":angle", -0.18, 0.18)
+		var radius := _seeded_range(key + ":radius", min_radius, max_radius)
 		var candidate := center + Vector2.RIGHT.rotated(angle) * radius
 		if attempt == 0:
 			fallback = candidate
 		if _is_position_clear_of_planets(candidate, clearance):
 			return candidate
 	return _push_position_out_of_planets(fallback, clearance)
+
+
+func _spawn_center() -> Vector2:
+	if _is_network_active():
+		var host_player := _player_for_peer(1)
+		if host_player != null:
+			return host_player.global_position
+	return _player.global_position if _player != null and is_instance_valid(_player) else Vector2.ZERO
+
+
+func _player_for_peer(peer_id: int) -> Node2D:
+	for node in get_tree().get_nodes_in_group("Player"):
+		var player_node := node as Node2D
+		if player_node == null or not is_instance_valid(player_node):
+			continue
+		var peer_value: Variant = player_node.get("network_peer_id")
+		if typeof(peer_value) == TYPE_INT and int(peer_value) == peer_id:
+			return player_node
+	return null
+
+
+func _stable_index_from_text(text: String) -> int:
+	return absi(int(hash("%d:%s" % [_wave, text]))) % 100000
+
+
+func _seed_for_key(key: String) -> int:
+	var base_seed := int(RunProgress.run_seed if RunProgress != null else 0)
+	return maxi(absi(int(hash("%d:%s" % [base_seed, key]))), 1)
+
+
+func _seeded_unit(key: String) -> float:
+	return float(_seed_for_key(key) % 1000000) / 1000000.0
+
+
+func _seeded_range(key: String, min_value: float, max_value: float) -> float:
+	return lerpf(min_value, max_value, _seeded_unit(key))
 
 
 func _enemy_requires_planet_clearance(enemy: Node, scene: PackedScene) -> bool:
@@ -789,7 +853,7 @@ func _push_position_out_of_planets(position: Vector2, clearance: float) -> Vecto
 			if distance >= radius:
 				continue
 			if distance <= 0.001:
-				offset = Vector2.RIGHT.rotated(_rng.randf_range(0.0, TAU))
+				offset = Vector2.RIGHT.rotated(_seeded_range("push:%d:%d" % [_wave, _attempt], 0.0, TAU))
 			adjusted = planet.global_position + offset.normalized() * radius
 			moved = true
 		if not moved:
@@ -806,7 +870,45 @@ func _node_radius(node: Node2D) -> float:
 		return (collision.shape as CircleShape2D).radius * maxf(node.scale.x, node.scale.y)
 	return 96.0 * maxf(node.scale.x, node.scale.y)
 
-func _complete_wave() -> void:
+
+func _should_extend_regular_wave_for_music() -> bool:
+	if _is_boss_wave():
+		return false
+	if minimum_regular_wave_duration <= 0.0:
+		return false
+	if _wave_elapsed >= minimum_regular_wave_duration:
+		return false
+	return _pacing_reinforcement_batches < max_pacing_reinforcement_batches
+
+
+func _try_spawn_pacing_reinforcements() -> void:
+	if _spawning or _level_root == null:
+		return
+	if _wave_elapsed < _next_pacing_reinforcement_time:
+		return
+	_next_pacing_reinforcement_time = _wave_elapsed + maxf(pacing_reinforcement_interval, 4.0)
+	_pacing_reinforcement_batches += 1
+	var roster := _build_wave_roster()
+	if roster.is_empty():
+		return
+	var count := maxi(pacing_reinforcement_count, 1)
+	for i in range(count):
+		var scene_value: Variant = roster[(_pacing_reinforcement_batches + i) % roster.size()]
+		var scene := scene_value as PackedScene
+		if scene == null:
+			continue
+		var enemy := _spawn_enemy(scene, "Wave%dPacingReinforcement%d_%d" % [_wave, _pacing_reinforcement_batches, i])
+		if enemy != null:
+			_active_enemies.append(enemy)
+	_banner_label.text = "WAVE %d VECTOR PRESSURE HOLD" % _wave
+
+
+func _complete_wave(network_forced: bool = false) -> void:
+	if _is_network_client() and not network_forced:
+		_wave_running = false
+		_spawning = false
+		_banner_label.text = "WAVE %d CLEAR - AWAITING HOST LOCK" % _wave
+		return
 	_wave_running = false
 	_wave_elapsed = 0.0
 	if clear_external_enemies_on_wave_clear:
@@ -815,6 +917,10 @@ func _complete_wave() -> void:
 	_boss_panel.visible = false
 	wave_cleared.emit(_wave)
 	_play_intermission_music_for_wave(_wave)
+	_broadcast_wave_state(&"cleared")
+
+	if _is_network_client():
+		return
 
 	if _waves_halted or not _waves_enabled():
 		if RunProgress and RunProgress.boss_rush_mode and RunProgress.run_finished:
@@ -1192,6 +1298,73 @@ func _clear_remaining_wave_enemies() -> void:
 			enemy.queue_free()
 	_active_enemies.clear()
 	_external_enemy_ids.clear()
+
+
+func _connect_network_session() -> void:
+	if NetworkSession == null or not NetworkSession.has_signal("network_wave_state_received"):
+		return
+	var callable := Callable(self, "_on_network_wave_state_received")
+	if not NetworkSession.is_connected("network_wave_state_received", callable):
+		NetworkSession.connect("network_wave_state_received", callable)
+	if _is_network_client() and NetworkSession.has_method("get_last_wave_state"):
+		var state_value: Variant = NetworkSession.call("get_last_wave_state")
+		if typeof(state_value) == TYPE_DICTIONARY:
+			var state: Dictionary = state_value
+			if not state.is_empty():
+				call_deferred("_on_network_wave_state_received", state)
+
+
+func _broadcast_wave_state(event: StringName) -> void:
+	if not _is_network_host():
+		return
+	if NetworkSession == null or not NetworkSession.has_method("broadcast_wave_state"):
+		return
+	NetworkSession.call("broadcast_wave_state", {
+		"event": String(event),
+		"wave": _wave,
+		"seed": int(RunProgress.run_seed if RunProgress != null else 0),
+		"boss_wave": _is_boss_wave(),
+		"wave_running": _wave_running,
+		"phase": int(RunProgress.phase if RunProgress != null else 0),
+	})
+
+
+func _on_network_wave_state_received(state: Dictionary) -> void:
+	if not _is_network_client():
+		return
+	var seed := int(state.get("seed", 0))
+	if RunProgress != null and seed != 0:
+		RunProgress.run_seed = seed
+	var state_wave := int(state.get("wave", _wave))
+	var event := StringName(state.get("event", &""))
+	if event == &"begin":
+		if _wave_running and state_wave == _wave:
+			return
+		_clear_remaining_wave_enemies()
+		_wave = maxi(state_wave - 1, 0)
+		_network_forced_wave_start = true
+		_begin_next_wave()
+		_network_forced_wave_start = false
+	elif event == &"cleared":
+		if state_wave < _wave:
+			return
+		_wave = state_wave
+		_network_forced_wave_clear = true
+		_complete_wave(true)
+		_network_forced_wave_clear = false
+
+
+func _is_network_active() -> bool:
+	return NetworkSession != null and NetworkSession.has_method("is_network_active") and bool(NetworkSession.call("is_network_active"))
+
+
+func _is_network_host() -> bool:
+	return _is_network_active() and multiplayer.is_server()
+
+
+func _is_network_client() -> bool:
+	return _is_network_active() and not multiplayer.is_server()
+
 
 func _connect_pause_menu() -> void:
 	if _pause_menu != null and is_instance_valid(_pause_menu):

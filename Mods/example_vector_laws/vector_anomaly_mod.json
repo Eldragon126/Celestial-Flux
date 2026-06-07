@@ -56,8 +56,227 @@
       {
         "id": "gravity_wave_lite",
         "display_name": "Gravity Wave Prototype",
+        "fire_mode": "beam",
+        "network_category": "reliable_event",
         "resource": "res://Nodes/weapon_system.tscn",
         "description": "Catalog-only beam concept that bends projectiles toward the firing axis."
+      },
+      {
+        "id": "inversion_disc_variant",
+        "display_name": "Inversion Disc Variant",
+        "fire_mode": "projectile",
+        "network_category": "reliable_event",
+        "base_weapon_id": "inversion_disc",
+        "pattern": "braid",
+        "shot_count": 2,
+        "spread_radians": 0.1,
+        "energy_per_shot": 16.0,
+        "description": "A cataloged projectile profile that pushes threats outward and stamps an inversion wake.",
+        "payload": {
+          "weapon_resonance_zone_type": "inversion",
+          "field_radius": 230.0,
+          "field_force": 420.0,
+          "field_damage": 10.0,
+          "scar_type": "inversion_wake",
+          "scar_radius": 210.0,
+          "scar_intensity": 0.42
+        }
+      },
+      {
+        "id": "temporal_splinter_variant",
+        "display_name": "Temporal Splinter Variant",
+        "fire_mode": "projectile",
+        "network_category": "reliable_event",
+        "base_weapon_id": "temporal_splinter",
+        "pattern": "spread",
+        "shot_count": 3,
+        "spread_radians": 0.15,
+        "description": "A cataloged three-shot local time fracture profile for future data-driven weapon loading.",
+        "payload": {
+          "weapon_resonance_zone_type": "temporal_scar",
+          "slow_multiplier": 0.68,
+          "slow_duration": 0.28,
+          "field_radius": 175.0,
+          "field_slow_multiplier": 0.64,
+          "field_slow_duration": 0.32,
+          "scar_type": "temporal_rip"
+        }
+      },
+      {
+        "id": "mirror_lance",
+        "display_name": "Mirror Lance",
+        "fire_mode": "projectile",
+        "network_category": "reliable_event",
+        "base_weapon_id": "gravity_lance",
+        "pattern": "parallel",
+        "shot_count": 2,
+        "spread_radians": 0.08,
+        "energy_per_shot": 14.0,
+        "color": [0.42, 0.96, 1.0, 1.0],
+        "description": "A playable mod projectile that mirrors the Gravity Lance into paired compression lines.",
+        "payload": {
+          "resonance_zone_type": "compression",
+          "resonance_radius": 165.0,
+          "field_radius": 170.0,
+          "field_force": -390.0,
+          "axis_impulse": 340.0,
+          "pierce_count": 1
+        }
+      },
+      {
+        "id": "harmonic_saw_demo",
+        "display_name": "Harmonic Saw Demo",
+        "fire_mode": "projectile",
+        "network_category": "reliable_event",
+        "base_weapon_id": "orbit_saw",
+        "pattern": "helix",
+        "shot_count": 4,
+        "spread_radians": 0.2,
+        "description": "A playable mod profile that turns orbit-saw cutters into a helix-shaped harmonic burst.",
+        "payload": {
+          "resonance_zone_type": "harmonic_orbit",
+          "curve_force": 560.0,
+          "curve_frequency": 12.0,
+          "field_radius": 150.0,
+          "field_force": 260.0
+        }
+      }
+    ],
+    "law_weaves": [
+      {
+        "id": "mirror_apex_weave",
+        "display_name": "Mirror Apex Weave",
+        "hooks": ["slingshot_apex", "resonance_created"],
+        "network_category": "deterministic_seed",
+        "weight": 1.2,
+        "cooldown": 5.0,
+        "max_triggers": 4,
+        "exclusive_group": "mirror_apex_payoff",
+        "tags": ["skill", "resonance", "weapon-offer"],
+        "description": "A data-only weave that lets apex movement echo into a harmonic field and a themed weapon offer.",
+        "conditions": [
+          {
+            "type": "min_wave",
+            "value": 4
+          },
+          {
+            "type": "slingshot_grade_at_least",
+            "grade": "apex"
+          }
+        ],
+        "effects": [
+          {
+            "action": "create_resonance_zone",
+            "zone_type": "harmonic_orbit",
+            "radius": 220.0,
+            "intensity": 0.65,
+            "duration": 3.0
+          },
+          {
+            "action": "offer_weapon",
+            "weapon_id": "mirror_lance",
+            "weight": 0.65
+          },
+          {
+            "action": "play_sfx",
+            "sfx_id": "mirror_tide_cue"
+          }
+        ]
+      }
+    ],
+    "anomaly_recipes": [
+      {
+        "id": "mirror_collapse_recipe",
+        "display_name": "Mirror Collapse Recipe",
+        "hooks": ["wave_start", "rare_event_started"],
+        "network_category": "deterministic_seed",
+        "weight": 0.85,
+        "cooldown": 2.0,
+        "max_triggers": 3,
+        "tags": ["recipe", "arena", "celestial"],
+        "description": "A safe recipe that combines the pack's arena event, celestial body, HUD badge, and music layer into one reproducible late-run moment.",
+        "conditions": [
+          {
+            "type": "min_wave",
+            "value": 6
+          },
+          {
+            "type": "chaos_tier_at_least",
+            "value": 2
+          }
+        ],
+        "effects": [
+          {
+            "action": "spawn_arena_event",
+            "content_id": "mirror_tide_surge"
+          },
+          {
+            "action": "spawn_celestial_body",
+            "content_id": "rogue_micro_singularity"
+          },
+          {
+            "action": "emit_hud_badge",
+            "content_id": "mirror_law_badge"
+          },
+          {
+            "action": "request_music_layer",
+            "content_id": "mirror_thread_layer",
+            "intensity": "overload"
+          }
+        ]
+      }
+    ],
+    "challenge_cards": [
+      {
+        "id": "mirror_well_trial",
+        "display_name": "Mirror Well Trial",
+        "hooks": ["run_start"],
+        "network_category": "deterministic_seed",
+        "weight": 1.0,
+        "max_triggers": 1,
+        "tags": ["challenge", "weapon", "score"],
+        "description": "Start a run under mirror pressure, seed the Mirror Lance into the offer pool, and tag score events for community challenges.",
+        "effects": [
+          {
+            "action": "start_challenge_card",
+            "challenge_id": "mirror_well_trial",
+            "display_name": "Mirror Well Trial"
+          },
+          {
+            "action": "adjust_run_pressure",
+            "pressure_delta": 0.12,
+            "reason": "mirror_well_trial"
+          },
+          {
+            "action": "offer_weapon",
+            "weapon_id": "mirror_lance",
+            "weight": 1.0
+          },
+          {
+            "action": "tag_score_event",
+            "tag": "mirror_trial"
+          }
+        ]
+      }
+    ],
+    "mod_palettes": [
+      {
+        "id": "mirror_cyan_orange",
+        "display_name": "Mirror Cyan Orange",
+        "network_category": "local_visual",
+        "colors": ["#6BFAFF", "#FFAA44", "#243A62"],
+        "accent_colors": [
+          [0.42, 0.96, 1.0, 1.0],
+          [1.0, 0.48, 0.2, 1.0]
+        ],
+        "description": "A local-only palette suggestion for menus, cards, and workshop previews."
+      }
+    ],
+    "creator_notes": [
+      {
+        "id": "mirror_pack_design_notes",
+        "display_name": "Mirror Pack Design Notes",
+        "note": "This sample avoids scripts. Its weapons, recipe, challenge card, and palette are all declarative catalog entries that future directors can consume safely."
       }
     ],
     "enemies": [

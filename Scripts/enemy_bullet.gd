@@ -18,6 +18,12 @@ extends RigidBody2D
 @export var minimum_homing_scale: float = 0.08
 @export var homing_speed_floor_ratio: float = 0.45
 
+@export_group("Projectile Readability")
+@export var enemy_projectile_color: Color = Color(1.0, 0.42, 0.12, 0.96)
+@export var captured_projectile_color: Color = Color(0.18, 1.0, 0.84, 0.96)
+@export var enemy_projectile_light_energy: float = 1.6
+@export var captured_projectile_light_energy: float = 2.2
+
 var planets: Array[Node2D] = []
 var target: Node2D = null
 
@@ -26,6 +32,7 @@ var _configured_launch_direction := Vector2.ZERO
 var _configured_launch_speed := 0.0
 var _source_id := -1
 var _spawn_safe_until := 0.0
+var _ownership_visual_state: StringName = &""
 
 
 func _ready() -> void:
@@ -40,6 +47,7 @@ func _ready() -> void:
 		RuntimeRegistry.register_node(self, &"Projectiles")
 		RuntimeRegistry.register_node(self, &"enemy_projectiles")
 
+	_update_ownership_accent()
 	target = MultiplayerTargeting.nearest_player(global_position, get_tree())
 
 	_refresh_gravity_sources()
@@ -94,6 +102,7 @@ func _auto_launch() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_update_ownership_accent()
 	var time_scale := CombatStatus.get_time_scale(self)
 
 	var total_force := Vector2.ZERO
@@ -246,6 +255,7 @@ func _exit_tree() -> void:
 	if RuntimeRegistry != null:
 		RuntimeRegistry.unregister_node(self, &"Projectiles")
 		RuntimeRegistry.unregister_node(self, &"enemy_projectiles")
+		RuntimeRegistry.unregister_node(self, &"player_projectiles")
 
 
 func _refresh_gravity_sources() -> void:
@@ -329,3 +339,47 @@ func _should_ignore_body(body: Node) -> bool:
 		return true
 
 	return false
+
+
+func _update_ownership_accent() -> void:
+	var state := &"captured" if has_meta(&"converted_to_player_projectile") else &"enemy"
+	if state == _ownership_visual_state:
+		return
+	_ownership_visual_state = state
+
+	if state == &"captured":
+		if is_in_group("enemy_projectiles"):
+			remove_from_group("enemy_projectiles")
+			if RuntimeRegistry != null:
+				RuntimeRegistry.unregister_node(self, &"enemy_projectiles")
+		if not is_in_group("player_projectiles"):
+			add_to_group("player_projectiles")
+			if RuntimeRegistry != null:
+				RuntimeRegistry.register_node(self, &"player_projectiles")
+		_apply_projectile_color(captured_projectile_color, captured_projectile_light_energy)
+	else:
+		if not is_in_group("enemy_projectiles"):
+			add_to_group("enemy_projectiles")
+			if RuntimeRegistry != null:
+				RuntimeRegistry.register_node(self, &"enemy_projectiles")
+		if is_in_group("player_projectiles"):
+			remove_from_group("player_projectiles")
+			if RuntimeRegistry != null:
+				RuntimeRegistry.unregister_node(self, &"player_projectiles")
+		_apply_projectile_color(enemy_projectile_color, enemy_projectile_light_energy)
+
+
+func _apply_projectile_color(color: Color, light_energy: float) -> void:
+	var polygon := get_node_or_null("Polygon2D") as Polygon2D
+	if polygon != null:
+		polygon.color = _safe_projectile_color(color)
+	var light := get_node_or_null("PointLight2D") as PointLight2D
+	if light != null:
+		light.color = Color(color.r, color.g, color.b, 1.0)
+		light.energy = light_energy
+
+
+func _safe_projectile_color(color: Color) -> Color:
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return Color(color.r, color.g, color.b, Settings.flash_alpha(color.a))
+	return color

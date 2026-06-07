@@ -55,14 +55,14 @@ func _ready() -> void:
 # ============================================================
 
 func spawn_planets() -> void:
-	var player := get_tree().get_first_node_in_group(player_group)
+	var player := _planet_spawn_anchor()
 
 	if player == null:
 		push_error("PlanetSpawner: No player found in group '%s'" % player_group)
 		return
 
-	for i in planets_to_spawn:
-		var success := try_spawn_planet(player.global_position)
+	for i in range(planets_to_spawn):
+		var success := try_spawn_planet(player.global_position, i)
 
 		if !success:
 			continue
@@ -71,9 +71,9 @@ func spawn_planets() -> void:
 # SPAWN SINGLE PLANET
 # ============================================================
 
-func try_spawn_planet(center_position: Vector2) -> bool:
+func try_spawn_planet(center_position: Vector2, planet_index: int) -> bool:
 
-	for attempt in max_spawn_attempts_per_planet:
+	for attempt in range(max_spawn_attempts_per_planet):
 
 		# --------------------------------------------
 		# Random orbit ring around player
@@ -98,8 +98,15 @@ func try_spawn_planet(center_position: Vector2) -> bool:
 		if is_position_valid(spawn_position, radius):
 
 			var planet := planet_scene.instantiate()
+			planet.name = "SeedPlanet%d" % planet_index
 
 			planet.global_position = spawn_position
+			if planet.has_method("configure_deterministic"):
+				planet.call(
+					"configure_deterministic",
+					_planet_seed_for_index(planet_index),
+					StringName("abyss_planet_%d" % planet_index)
+				)
 
 			# ----------------------------------------
 			# Scale planet based on desired diameter
@@ -108,6 +115,10 @@ func try_spawn_planet(center_position: Vector2) -> bool:
 
 			var scale_factor := diameter / 100.0
 			planet.scale = Vector2.ONE * scale_factor
+			if planet.get("base_radius") != null:
+				planet.set("base_radius", radius)
+			if planet.get("base_mass") != null:
+				planet.set("base_mass", 300000.0 * maxf(radius / 150.0, 0.25))
 
 			add_child(planet)
 
@@ -179,3 +190,20 @@ func _seed_rng() -> void:
 		_rng.seed = int(RunProgress.run_seed) ^ 0xA8B155
 	else:
 		_rng.randomize()
+
+
+func _planet_spawn_anchor() -> Node2D:
+	if NetworkSession != null and NetworkSession.has_method("is_network_active") and bool(NetworkSession.call("is_network_active")):
+		for node in get_tree().get_nodes_in_group(player_group):
+			var player := node as Node2D
+			if player == null or not is_instance_valid(player):
+				continue
+			var peer_value: Variant = player.get("network_peer_id")
+			if typeof(peer_value) == TYPE_INT and int(peer_value) == 1:
+				return player
+	return get_tree().get_first_node_in_group(player_group) as Node2D
+
+
+func _planet_seed_for_index(index: int) -> int:
+	var run_seed := int(RunProgress.run_seed if RunProgress != null else 0)
+	return maxi(absi(int(hash("%d:abyss_planet:%d" % [run_seed, index]))), 1)

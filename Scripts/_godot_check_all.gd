@@ -21,6 +21,12 @@ const SCRIPTS := [
 	"res://Scripts/resonance_paralytic_construct.gd",
 	"res://Scripts/black_hole.gd",
 	"res://Scripts/weapon_system.gd",
+	"res://Scripts/projectile.gd",
+	"res://Scripts/network_session.gd",
+	"res://Scripts/mod_content_registry.gd",
+	"res://Scripts/multiplayer_targeting.gd",
+	"res://Scripts/coop_combo_director.gd",
+	"res://Scripts/mechanic_audio_director.gd",
 ]
 
 func _init() -> void:

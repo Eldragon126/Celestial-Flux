@@ -17,6 +17,12 @@ const SEEKER_FRAGMENT_SCENE = preload("res://Nodes/seeker_fragment.tscn")
 @export var max_active_tears: int = 2
 @export var max_alive_tear_enemies: int = 4
 @export var max_enemies_per_tear: int = 2
+@export var enable_horde_tears: bool = true
+@export var horde_min_wave: int = 7
+@export var horde_scar_intensity_threshold: float = 0.64
+@export var horde_max_alive_enemies: int = 14
+@export var horde_max_enemies_per_tear: int = 8
+@export var horde_spawn_interval: float = 0.42
 @export var tear_lifetime: float = 3.6
 @export var first_spawn_delay: float = 0.75
 @export var spawn_interval: float = 1.1
@@ -147,24 +153,42 @@ func _scar_type_can_open_tear(type_name: StringName, intensity: float) -> bool:
 	return intensity >= 0.86
 
 
+func _should_open_horde_tear(intensity: float, type_name: StringName) -> bool:
+	if not enable_horde_tears or _current_wave() < horde_min_wave:
+		return false
+	if intensity < horde_scar_intensity_threshold:
+		return false
+	return (
+		type_name == &"temporal_rip"
+		or type_name == &"harmonic_fracture"
+		or type_name == &"inversion_wake"
+	)
+
+
 func _open_tear(position: Vector2, intensity: float, type_name: StringName) -> void:
 	var visual := _create_tear_visual(position, intensity, type_name)
-	var max_spawns := clampi(int(round(lerpf(1.0, float(max_enemies_per_tear), intensity))), 1, max_enemies_per_tear)
+	var horde := _should_open_horde_tear(intensity, type_name)
+	var spawn_budget := horde_max_enemies_per_tear if horde else max_enemies_per_tear
+	var minimum_spawns := 4 if horde else 1
+	var max_spawns := clampi(int(round(lerpf(float(minimum_spawns), float(spawn_budget), intensity))), minimum_spawns, spawn_budget)
 	_tears.append({
 		"visual": visual,
 		"position": position,
 		"intensity": intensity,
 		"type_name": type_name,
+		"horde": horde,
 		"age": 0.0,
 		"next_spawn": first_spawn_delay,
 		"spawned": 0,
 		"max_spawns": max_spawns,
+		"spawn_interval": horde_spawn_interval if horde else spawn_interval,
 	})
 	spacetime_tear_opened.emit({
 		"position": position,
 		"intensity": intensity,
 		"type_name": type_name,
 		"max_spawns": max_spawns,
+		"horde": horde,
 	})
 
 
@@ -179,10 +203,11 @@ func _update_tears(delta: float) -> void:
 		var spawned := int(entry.get("spawned", 0))
 		var max_spawns := int(entry.get("max_spawns", 1))
 		if next_spawn <= 0.0 and spawned < max_spawns:
-			if _alive_tear_enemy_count() < max_alive_tear_enemies:
+			var alive_budget := horde_max_alive_enemies if bool(entry.get("horde", false)) else max_alive_tear_enemies
+			if _alive_tear_enemy_count() < alive_budget:
 				_spawn_enemy_from_tear(entry)
 				spawned += 1
-			next_spawn = spawn_interval
+			next_spawn = maxf(float(entry.get("spawn_interval", spawn_interval)), 0.18)
 
 		entry["age"] = age
 		entry["next_spawn"] = next_spawn
@@ -223,6 +248,7 @@ func _spawn_enemy_from_tear(entry: Dictionary) -> void:
 	spacetime_tear_enemy_spawned.emit(enemy, {
 		"position": position,
 		"intensity": intensity,
+		"horde": bool(entry.get("horde", false)),
 	})
 
 
@@ -259,6 +285,7 @@ func _create_tear_visual(position: Vector2, intensity: float, type_name: StringN
 	root.name = "SpacetimeTear"
 	root.global_position = position
 	root.z_index = 32
+	root.add_to_group("spacetime_tear")
 	add_child(root)
 
 	var color := _color_for_type(type_name)

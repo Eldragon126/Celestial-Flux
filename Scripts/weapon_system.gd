@@ -11,6 +11,20 @@ const WEAPON_IDS: Array[StringName] = [
 	&"relativistic_rail",
 	&"barycentric_splitter",
 	&"vacuum_collapse_seed",
+	&"temporal_splinter",
+	&"inversion_disc",
+	&"harmonic_needle",
+	&"shear_comet",
+	&"singularity_pin",
+	&"event_horizon_shard",
+	&"gravity_lance",
+	&"orbit_saw",
+	&"tidal_mortar",
+	&"chronal_mirror_shot",
+	&"polarity_javelin",
+	&"lensing_flak",
+	&"rift_anchor",
+	&"apex_vector_spear",
 	&"positron_beam",
 	&"gravity_wave_beam",
 	&"chronal_refraction_beam",
@@ -20,9 +34,280 @@ const WEAPON_NAMES := {
 	&"relativistic_rail": "Relativistic Rail",
 	&"barycentric_splitter": "Barycentric Splitter",
 	&"vacuum_collapse_seed": "Vacuum Collapse Seed",
+	&"temporal_splinter": "Temporal Splinter",
+	&"inversion_disc": "Inversion Disc",
+	&"harmonic_needle": "Harmonic Needle",
+	&"shear_comet": "Shear Comet",
+	&"singularity_pin": "Singularity Pin",
+	&"event_horizon_shard": "Event Horizon Shard",
+	&"gravity_lance": "Gravity Lance",
+	&"orbit_saw": "Orbit Saw",
+	&"tidal_mortar": "Tidal Mortar",
+	&"chronal_mirror_shot": "Chronal Mirror Shot",
+	&"polarity_javelin": "Polarity Javelin",
+	&"lensing_flak": "Lensing Flak",
+	&"rift_anchor": "Rift Anchor",
+	&"apex_vector_spear": "Apex Vector Spear",
 	&"positron_beam": "Positron Beam",
 	&"gravity_wave_beam": "Gravity Wave Beam",
 	&"chronal_refraction_beam": "Chronal Refraction Beam",
+}
+const EXTRA_WEAPON_DEFINITIONS := {
+	&"gravity_lance": {
+		"display_name": "Gravity Lance",
+		"fire_mode": &"projectile",
+		"energy_per_shot": 10.0,
+		"fire_interval": 0.31,
+		"speed": 1260.0,
+		"damage_min": 30.0,
+		"damage_max": 42.0,
+		"gravity_constant": 135.0,
+		"shot_count": 1,
+		"pattern": &"single",
+		"role": "piercing compression lance",
+		"color": Color(0.46, 0.86, 1.0, 1.0),
+		"trail_color": Color(0.08, 0.58, 1.0, 0.9),
+		"visual_scale": 0.9,
+		"payload": {
+			"weapon_axis_impulse": 300.0,
+			"weapon_pierce_count": 2,
+			"weapon_resonance_zone_type": GravityResonanceManager.ZoneType.COMPRESSION,
+			"weapon_resonance_radius": 150.0,
+			"weapon_resonance_intensity": 0.42,
+			"weapon_field_radius": 145.0,
+			"weapon_field_force": -340.0,
+			"weapon_field_damage": 9.0,
+			"weapon_field_max_targets": 10,
+			"weapon_scar_type": GravityScarManager.ScarType.CURVATURE,
+			"weapon_scar_radius": 150.0,
+			"weapon_scar_intensity": 0.34,
+			"weapon_scar_duration": 18.0,
+		},
+	},
+	&"orbit_saw": {
+		"display_name": "Orbit Saw",
+		"fire_mode": &"projectile",
+		"energy_per_shot": 13.0,
+		"fire_interval": 0.48,
+		"speed": 780.0,
+		"damage_min": 18.0,
+		"damage_max": 27.0,
+		"gravity_constant": 310.0,
+		"shot_count": 3,
+		"pattern": &"braid",
+		"spread_radians": 0.16,
+		"role": "braided harmonic cutters",
+		"color": Color(0.82, 1.0, 0.36, 1.0),
+		"trail_color": Color(0.38, 1.0, 0.54, 0.9),
+		"visual_scale": 0.78,
+		"payload": {
+			"weapon_curve_force": 520.0,
+			"weapon_curve_frequency": 10.8,
+			"weapon_tangent_impulse": 240.0,
+			"weapon_pierce_count": 1,
+			"weapon_resonance_zone_type": GravityResonanceManager.ZoneType.HARMONIC_ORBIT,
+			"weapon_resonance_radius": 135.0,
+			"weapon_resonance_intensity": 0.43,
+			"weapon_field_radius": 155.0,
+			"weapon_field_force": 230.0,
+			"weapon_field_max_targets": 12,
+		},
+	},
+	&"tidal_mortar": {
+		"display_name": "Tidal Mortar",
+		"fire_mode": &"projectile",
+		"energy_per_shot": 22.0,
+		"fire_interval": 0.82,
+		"speed": 560.0,
+		"damage_min": 34.0,
+		"damage_max": 49.0,
+		"gravity_constant": 360.0,
+		"shot_count": 1,
+		"pattern": &"single",
+		"role": "slow compression blast",
+		"color": Color(0.12, 0.82, 1.0, 1.0),
+		"trail_color": Color(0.0, 0.48, 1.0, 0.9),
+		"visual_scale": 1.36,
+		"payload": {
+			"vacuum_collapse_stacks": 1,
+			"weapon_resonance_zone_type": GravityResonanceManager.ZoneType.COMPRESSION,
+			"weapon_resonance_radius": 270.0,
+			"weapon_resonance_intensity": 0.58,
+			"weapon_field_radius": 310.0,
+			"weapon_field_force": -720.0,
+			"weapon_field_damage": 18.0,
+			"weapon_field_slow_multiplier": 0.78,
+			"weapon_field_slow_duration": 0.28,
+			"weapon_field_max_targets": 24,
+			"weapon_planet_damage": 64.0,
+			"weapon_scar_type": GravityScarManager.ScarType.CURVATURE,
+			"weapon_scar_radius": 275.0,
+			"weapon_scar_intensity": 0.52,
+			"weapon_scar_duration": 28.0,
+		},
+	},
+	&"chronal_mirror_shot": {
+		"display_name": "Chronal Mirror Shot",
+		"fire_mode": &"projectile",
+		"energy_per_shot": 12.0,
+		"fire_interval": 0.46,
+		"speed": 880.0,
+		"damage_min": 17.0,
+		"damage_max": 25.0,
+		"gravity_constant": 175.0,
+		"shot_count": 2,
+		"pattern": &"parallel",
+		"spread_radians": 0.1,
+		"role": "paired time desync shots",
+		"color": Color(0.66, 0.58, 1.0, 1.0),
+		"trail_color": Color(0.78, 0.36, 1.0, 0.88),
+		"visual_scale": 0.74,
+		"payload": {
+			"weapon_temporal_slow_multiplier": 0.5,
+			"weapon_temporal_slow_duration": 0.5,
+			"weapon_pierce_count": 1,
+			"weapon_resonance_zone_type": GravityResonanceManager.ZoneType.TEMPORAL_SCAR,
+			"weapon_resonance_radius": 145.0,
+			"weapon_resonance_intensity": 0.46,
+			"weapon_curve_force": 240.0,
+			"weapon_curve_frequency": 8.8,
+			"weapon_field_radius": 175.0,
+			"weapon_field_slow_multiplier": 0.62,
+			"weapon_field_slow_duration": 0.34,
+			"weapon_field_max_targets": 14,
+			"weapon_scar_type": GravityScarManager.ScarType.TEMPORAL_RIP,
+			"weapon_scar_radius": 145.0,
+			"weapon_scar_intensity": 0.36,
+			"weapon_scar_duration": 20.0,
+		},
+	},
+	&"polarity_javelin": {
+		"display_name": "Polarity Javelin",
+		"fire_mode": &"projectile",
+		"energy_per_shot": 15.0,
+		"fire_interval": 0.52,
+		"speed": 1120.0,
+		"damage_min": 28.0,
+		"damage_max": 40.0,
+		"gravity_constant": 245.0,
+		"shot_count": 1,
+		"pattern": &"single",
+		"role": "inversion spear",
+		"color": Color(1.0, 0.5, 0.18, 1.0),
+		"trail_color": Color(1.0, 0.24, 0.08, 0.9),
+		"visual_scale": 1.04,
+		"payload": {
+			"weapon_radial_impulse": 520.0,
+			"weapon_axis_impulse": 130.0,
+			"weapon_pierce_count": 1,
+			"weapon_resonance_zone_type": GravityResonanceManager.ZoneType.INVERSION,
+			"weapon_resonance_radius": 240.0,
+			"weapon_resonance_intensity": 0.56,
+			"weapon_field_radius": 255.0,
+			"weapon_field_force": 540.0,
+			"weapon_field_damage": 12.0,
+			"weapon_field_max_targets": 16,
+			"weapon_scar_type": GravityScarManager.ScarType.INVERSION_WAKE,
+			"weapon_scar_radius": 230.0,
+			"weapon_scar_intensity": 0.46,
+			"weapon_scar_duration": 24.0,
+		},
+	},
+	&"lensing_flak": {
+		"display_name": "Lensing Flak",
+		"fire_mode": &"projectile",
+		"energy_per_shot": 16.0,
+		"fire_interval": 0.58,
+		"speed": 820.0,
+		"damage_min": 12.0,
+		"damage_max": 19.0,
+		"gravity_constant": 265.0,
+		"shot_count": 5,
+		"pattern": &"spread",
+		"spread_radians": 0.24,
+		"role": "micro-lensing flak fan",
+		"color": Color(0.28, 1.0, 0.9, 1.0),
+		"trail_color": Color(0.0, 0.92, 1.0, 0.86),
+		"visual_scale": 0.62,
+		"payload": {
+			"weapon_curve_force": 150.0,
+			"weapon_curve_frequency": 13.0,
+			"weapon_resonance_zone_type": GravityResonanceManager.ZoneType.SLIPSTREAM,
+			"weapon_resonance_radius": 95.0,
+			"weapon_resonance_intensity": 0.28,
+			"weapon_field_radius": 120.0,
+			"weapon_field_force": -160.0,
+			"weapon_field_damage": 5.0,
+			"weapon_field_max_targets": 8,
+		},
+	},
+	&"rift_anchor": {
+		"display_name": "Rift Anchor",
+		"fire_mode": &"projectile",
+		"energy_per_shot": 28.0,
+		"fire_interval": 0.9,
+		"speed": 500.0,
+		"damage_min": 32.0,
+		"damage_max": 48.0,
+		"gravity_constant": 430.0,
+		"shot_count": 1,
+		"pattern": &"single",
+		"role": "harmonic fracture anchor",
+		"color": Color(1.0, 0.82, 0.22, 1.0),
+		"trail_color": Color(1.0, 0.58, 0.12, 0.92),
+		"visual_scale": 1.28,
+		"payload": {
+			"vacuum_collapse_stacks": 1,
+			"weapon_temporal_slow_multiplier": 0.64,
+			"weapon_temporal_slow_duration": 0.32,
+			"weapon_resonance_zone_type": GravityResonanceManager.ZoneType.HARMONIC_ORBIT,
+			"weapon_resonance_radius": 300.0,
+			"weapon_resonance_intensity": 0.62,
+			"weapon_field_radius": 340.0,
+			"weapon_field_force": -680.0,
+			"weapon_field_damage": 20.0,
+			"weapon_field_slow_multiplier": 0.72,
+			"weapon_field_slow_duration": 0.38,
+			"weapon_field_max_targets": 24,
+			"weapon_scar_type": GravityScarManager.ScarType.HARMONIC_FRACTURE,
+			"weapon_scar_radius": 310.0,
+			"weapon_scar_intensity": 0.58,
+			"weapon_scar_duration": 32.0,
+		},
+	},
+	&"apex_vector_spear": {
+		"display_name": "Apex Vector Spear",
+		"fire_mode": &"projectile",
+		"energy_per_shot": 26.0,
+		"fire_interval": 0.74,
+		"speed": 1480.0,
+		"damage_min": 44.0,
+		"damage_max": 62.0,
+		"gravity_constant": 110.0,
+		"shot_count": 1,
+		"pattern": &"single",
+		"role": "high-skill vector finisher",
+		"color": Color(0.92, 1.0, 0.72, 1.0),
+		"trail_color": Color(0.32, 0.76, 1.0, 0.95),
+		"visual_scale": 1.12,
+		"payload": {
+			"relativistic_rail_stacks": 1,
+			"weapon_axis_impulse": 420.0,
+			"weapon_tangent_impulse": 360.0,
+			"weapon_pierce_count": 3,
+			"weapon_resonance_zone_type": GravityResonanceManager.ZoneType.HARMONIC_ORBIT,
+			"weapon_resonance_radius": 185.0,
+			"weapon_resonance_intensity": 0.5,
+			"weapon_field_radius": 185.0,
+			"weapon_field_force": 300.0,
+			"weapon_field_damage": 12.0,
+			"weapon_field_max_targets": 14,
+			"weapon_scar_type": GravityScarManager.ScarType.VELOCITY_SHEAR,
+			"weapon_scar_radius": 190.0,
+			"weapon_scar_intensity": 0.44,
+			"weapon_scar_duration": 22.0,
+		},
+	},
 }
 const IMPACT_RING_WIDTH: float = 2.0
 
@@ -43,6 +328,12 @@ const IMPACT_RING_WIDTH: float = 2.0
 @export var relativistic_rail_energy_per_shot: float = 8.0
 @export var barycentric_splitter_energy_per_shot: float = 11.0
 @export var vacuum_seed_energy_per_shot: float = 24.0
+@export var temporal_splinter_energy_per_shot: float = 9.0
+@export var inversion_disc_energy_per_shot: float = 14.0
+@export var harmonic_needle_energy_per_shot: float = 7.0
+@export var shear_comet_energy_per_shot: float = 12.0
+@export var singularity_pin_energy_per_shot: float = 18.0
+@export var event_horizon_shard_energy_per_shot: float = 30.0
 @export var positron_energy_per_second: float = 34.0
 @export var gravity_wave_energy_per_second: float = 22.0
 @export var chronal_energy_per_second: float = 30.0
@@ -53,6 +344,12 @@ const IMPACT_RING_WIDTH: float = 2.0
 @export var relativistic_rail_fire_interval: float = 0.34
 @export var barycentric_splitter_fire_interval: float = 0.44
 @export var vacuum_seed_fire_interval: float = 0.78
+@export var temporal_splinter_fire_interval: float = 0.38
+@export var inversion_disc_fire_interval: float = 0.56
+@export var harmonic_needle_fire_interval: float = 0.24
+@export var shear_comet_fire_interval: float = 0.42
+@export var singularity_pin_fire_interval: float = 0.68
+@export var event_horizon_shard_fire_interval: float = 0.92
 @export var projectile_spawn_offset: float = 70.0
 @export var projectile_side_offset: float = 24.0
 @export var projectile_minimum_energy_buffer: float = 0.0
@@ -76,6 +373,24 @@ const IMPACT_RING_WIDTH: float = 2.0
 @export var vacuum_seed_damage_max: float = 32.0
 @export var vacuum_seed_collapse_stacks: int = 1
 @export var vacuum_seed_resonance_radius: float = 190.0
+@export var temporal_splinter_speed: float = 900.0
+@export var temporal_splinter_damage_min: float = 14.0
+@export var temporal_splinter_damage_max: float = 20.0
+@export var inversion_disc_speed: float = 740.0
+@export var inversion_disc_damage_min: float = 20.0
+@export var inversion_disc_damage_max: float = 28.0
+@export var harmonic_needle_speed: float = 1180.0
+@export var harmonic_needle_damage_min: float = 16.0
+@export var harmonic_needle_damage_max: float = 24.0
+@export var shear_comet_speed: float = 980.0
+@export var shear_comet_damage_min: float = 24.0
+@export var shear_comet_damage_max: float = 34.0
+@export var singularity_pin_speed: float = 690.0
+@export var singularity_pin_damage_min: float = 26.0
+@export var singularity_pin_damage_max: float = 38.0
+@export var event_horizon_shard_speed: float = 520.0
+@export var event_horizon_shard_damage_min: float = 38.0
+@export var event_horizon_shard_damage_max: float = 52.0
 
 @export_group("Positron Beam")
 @export var positron_damage_per_second: float = 145.0
@@ -113,6 +428,12 @@ const IMPACT_RING_WIDTH: float = 2.0
 @export var relativistic_rail_color: Color = Color(0.86, 1.0, 1.0, 1.0)
 @export var barycentric_splitter_color: Color = Color(0.56, 1.0, 0.58, 1.0)
 @export var vacuum_seed_color: Color = Color(1.0, 0.38, 0.2, 1.0)
+@export var temporal_splinter_color: Color = Color(0.74, 0.36, 1.0, 1.0)
+@export var inversion_disc_color: Color = Color(1.0, 0.46, 0.78, 1.0)
+@export var harmonic_needle_color: Color = Color(0.62, 1.0, 0.72, 1.0)
+@export var shear_comet_color: Color = Color(0.28, 0.94, 1.0, 1.0)
+@export var singularity_pin_color: Color = Color(1.0, 0.32, 0.12, 1.0)
+@export var event_horizon_shard_color: Color = Color(1.0, 0.16, 0.1, 1.0)
 @export var positron_color: Color = Color(1.0, 0.72, 0.28, 1.0)
 @export var gravity_wave_color: Color = Color(0.3, 0.72, 1.0, 1.0)
 @export var chronal_color: Color = Color(0.74, 0.36, 1.0, 1.0)
@@ -132,6 +453,9 @@ var _pause_menu: Node = null
 var _query_shape := RectangleShape2D.new()
 var _query_params := PhysicsShapeQueryParameters2D.new()
 var _active_weapon_id: StringName = &"vector_bolt"
+var _weapon_ids: Array[StringName] = []
+var _weapon_catalog: Dictionary = {}
+var _mod_registry: Node = null
 var _beam_active := false
 var _beam_heat := 0.0
 var _last_switch_time := -999.0
@@ -143,6 +467,7 @@ var _last_wave_planet_fracture_time := -999.0
 var _last_chronal_zone_time := -999.0
 var _last_chronal_echo_zone_time := -999.0
 var _chronal_phantoms_this_tick: int = 0
+var _chronal_async_generation: int = 0
 var _beam_points := PackedVector2Array([Vector2.ZERO, Vector2.ZERO])
 var _chronal_trace_pool: Array[Line2D] = []
 
@@ -153,6 +478,7 @@ func _ready() -> void:
 	call_deferred("_resolve_pause_menu")
 	_configure_query()
 	_ensure_visual_nodes()
+	_initialize_weapon_catalog()
 	select_weapon(selected_weapon_index)
 	set_process_unhandled_input(true)
 	set_physics_process(true)
@@ -223,19 +549,24 @@ func select_previous_weapon() -> void:
 
 
 func select_weapon(index: int) -> void:
+	if _weapon_ids.is_empty():
+		_initialize_weapon_catalog()
+	if _weapon_ids.is_empty():
+		return
 	var now := _now_seconds()
 	if now - _last_switch_time < switch_cooldown:
 		return
 	_last_switch_time = now
 
-	selected_weapon_index = posmod(index, WEAPON_IDS.size())
-	_active_weapon_id = WEAPON_IDS[selected_weapon_index]
+	selected_weapon_index = posmod(index, _weapon_ids.size())
+	_active_weapon_id = _weapon_ids[selected_weapon_index]
 	_end_beam()
+	_sync_projectile_predictor()
 	weapon_changed.emit(_active_weapon_id, _display_name(_active_weapon_id), get_weapon_debug_state())
 
 
 func select_weapon_by_id(weapon_id: StringName) -> void:
-	var index := WEAPON_IDS.find(weapon_id)
+	var index := _weapon_ids.find(weapon_id)
 	if index >= 0:
 		select_weapon(index)
 
@@ -252,7 +583,7 @@ func get_weapon_debug_state() -> Dictionary:
 		"weapon_id": _active_weapon_id,
 		"display_name": _display_name(_active_weapon_id),
 		"index": selected_weapon_index,
-		"count": WEAPON_IDS.size(),
+		"count": _weapon_ids.size(),
 		"fire_mode": &"beam" if is_beam else &"projectile",
 		"is_projectile": is_projectile,
 		"beam_active": _beam_active,
@@ -267,7 +598,94 @@ func get_weapon_debug_state() -> Dictionary:
 		"ready": cooldown_remaining <= 0.001 and energy >= _minimum_energy_for_weapon(_active_weapon_id),
 		"role": _weapon_role(_active_weapon_id),
 		"color": _weapon_color(_active_weapon_id),
+		"prediction": _projectile_prediction_state(_active_weapon_id),
 	}
+
+
+func _initialize_weapon_catalog() -> void:
+	var previous_weapon := _active_weapon_id
+	_weapon_ids.clear()
+	_weapon_catalog.clear()
+
+	for weapon_id in WEAPON_IDS:
+		_register_builtin_weapon(weapon_id)
+
+	_bind_mod_registry()
+	_register_mod_weapons()
+
+	if _weapon_ids.is_empty():
+		_weapon_ids.append(&"vector_bolt")
+	if _weapon_ids.has(previous_weapon):
+		_active_weapon_id = previous_weapon
+	else:
+		_active_weapon_id = _weapon_ids[0]
+	selected_weapon_index = maxi(_weapon_ids.find(_active_weapon_id), 0)
+
+
+func _register_builtin_weapon(weapon_id: StringName) -> void:
+	var entry := {
+		"id": weapon_id,
+		"qualified_id": String(weapon_id),
+		"display_name": _builtin_display_name(weapon_id),
+		"fire_mode": &"beam" if _is_builtin_beam_weapon(weapon_id) else &"projectile",
+		"builtin": true,
+		"base_weapon_id": weapon_id,
+		"payload": {},
+	}
+	if EXTRA_WEAPON_DEFINITIONS.has(weapon_id):
+		var definition: Dictionary = EXTRA_WEAPON_DEFINITIONS[weapon_id]
+		entry.merge(definition.duplicate(true), true)
+		entry["builtin"] = true
+		entry["base_weapon_id"] = weapon_id
+	_register_weapon_entry(weapon_id, entry)
+
+
+func _bind_mod_registry() -> void:
+	var root := get_tree().current_scene
+	_mod_registry = root.find_child("ModContentRegistry", true, false) if root != null else null
+	if _mod_registry == null:
+		return
+	var loaded_callable := Callable(self, "_on_mod_registry_loaded")
+	if _mod_registry.has_signal("mod_catalog_changed") and not _mod_registry.is_connected("mod_catalog_changed", loaded_callable):
+		_mod_registry.connect("mod_catalog_changed", loaded_callable)
+	elif _mod_registry.has_signal("registry_reloaded") and not _mod_registry.is_connected("registry_reloaded", loaded_callable):
+		_mod_registry.connect("registry_reloaded", loaded_callable)
+
+
+func _register_mod_weapons() -> void:
+	if _mod_registry == null or not is_instance_valid(_mod_registry):
+		return
+	if not _mod_registry.has_method("get_playable_weapon_entries"):
+		return
+	var entries_value: Variant = _mod_registry.call("get_playable_weapon_entries")
+	if not (entries_value is Array):
+		return
+	for value in entries_value:
+		if not (value is Dictionary):
+			continue
+		var entry := (value as Dictionary).duplicate(true)
+		var weapon_id := StringName(str(entry.get("qualified_id", entry.get("id", ""))))
+		if String(weapon_id).is_empty():
+			continue
+		if _weapon_catalog.has(String(weapon_id)):
+			continue
+		entry["builtin"] = false
+		entry["fire_mode"] = StringName(str(entry.get("fire_mode", "projectile")))
+		entry["base_weapon_id"] = StringName(str(entry.get("base_weapon_id", "vector_bolt")))
+		_register_weapon_entry(weapon_id, entry)
+
+
+func _register_weapon_entry(weapon_id: StringName, entry: Dictionary) -> void:
+	var key := String(weapon_id)
+	_weapon_catalog[key] = entry
+	if not _weapon_ids.has(weapon_id):
+		_weapon_ids.append(weapon_id)
+
+
+func _on_mod_registry_loaded(_summary: Dictionary) -> void:
+	_initialize_weapon_catalog()
+	_sync_projectile_predictor()
+	weapon_changed.emit(_active_weapon_id, _display_name(_active_weapon_id), get_weapon_debug_state())
 
 
 func _fire_selected_beam(delta: float) -> void:
@@ -457,6 +875,7 @@ func _apply_gravity_wave_beam(origin: Vector2, direction: Vector2, hits: Array[N
 
 func _apply_chronal_refraction_beam(origin: Vector2, direction: Vector2, hits: Array[Node], delta: float) -> void:
 	_chronal_phantoms_this_tick = 0
+	var generation := _chronal_async_generation
 	var stacks := maxi(_powerup_stack_count(&"chronal_refraction_beam"), 1)
 	var slow := clampf(chronal_slow_multiplier - 0.035 * float(stacks - 1), 0.25, 0.86)
 	var duration := chronal_slow_duration * (1.0 + 0.12 * float(stacks - 1))
@@ -485,7 +904,7 @@ func _apply_chronal_refraction_beam(origin: Vector2, direction: Vector2, hits: A
 			target_2d.call("take_damage", damage)
 
 		_spawn_chronal_echoes(target_2d, body_velocity)
-		_apply_delayed_chronal_chain(target_2d, impulse + desync_impulse, damage * 0.9, chronal_delay_seconds)
+		_apply_delayed_chronal_chain(target_2d, impulse + desync_impulse, damage * 0.9, chronal_delay_seconds, generation)
 
 	_stamp_chronal_refraction_zone(origin, direction, stacks)
 
@@ -580,8 +999,12 @@ func _stamp_chronal_refraction_zone(origin: Vector2, direction: Vector2, stacks:
 		)
 
 
-func _apply_delayed_chronal_chain(target: Node2D, impulse: Vector2, damage: float, delay: float) -> void:
+func _apply_delayed_chronal_chain(target: Node2D, impulse: Vector2, damage: float, delay: float, generation: int) -> void:
 	await get_tree().create_timer(maxf(delay, 0.02)).timeout
+	if generation != _chronal_async_generation:
+		return
+	if not is_inside_tree() or is_queued_for_deletion():
+		return
 	if target == null or not is_instance_valid(target) or target.is_queued_for_deletion():
 		return
 	CombatStatus.add_velocity(target, impulse)
@@ -603,7 +1026,7 @@ func _spawn_chronal_echoes(target: Node2D, body_velocity: Vector2) -> void:
 
 func _spawn_chronal_phantom(target: Node2D, phantom_position: Vector2, echo_index: int) -> void:
 	var root := get_tree().current_scene
-	if root == null or target == null:
+	if root == null or target == null or not is_instance_valid(target) or target.is_queued_for_deletion():
 		return
 	var line := _acquire_chronal_trace(root)
 	line.antialiased = true
@@ -684,6 +1107,19 @@ func _projectile_payload(weapon_id: StringName, shot_index: int, shot_count: int
 		"weapon_curve_side": _projectile_side_for_index(shot_index, shot_count),
 		"weapon_curve_frequency": 7.0,
 		"weapon_planet_damage": 0.0,
+		"weapon_radial_impulse": 0.0,
+		"weapon_tangent_impulse": 0.0,
+		"weapon_field_radius": 0.0,
+		"weapon_field_force": 0.0,
+		"weapon_field_damage": 0.0,
+		"weapon_field_slow_multiplier": 1.0,
+		"weapon_field_slow_duration": 0.0,
+		"weapon_field_max_targets": 18,
+		"weapon_scar_type": -1,
+		"weapon_scar_radius": 0.0,
+		"weapon_scar_intensity": 0.0,
+		"weapon_scar_duration": 0.0,
+		"phase_offset": float(_projectile_pattern_index * 3 + shot_index) * 0.73,
 		"relativistic_rail_stacks": 0,
 		"vacuum_collapse_stacks": 0,
 	}
@@ -714,9 +1150,124 @@ func _projectile_payload(weapon_id: StringName, shot_index: int, shot_count: int
 			payload["weapon_planet_damage"] = 34.0
 			payload["gravity_pull_radius"] = 1700.0
 			payload["player_gravity_deadzone_radius"] = 760.0
+		&"temporal_splinter":
+			payload["weapon_temporal_slow_multiplier"] = 0.55
+			payload["weapon_temporal_slow_duration"] = 0.42
+			payload["weapon_pierce_count"] = 1
+			payload["weapon_resonance_zone_type"] = GravityResonanceManager.ZoneType.TEMPORAL_SCAR
+			payload["weapon_resonance_radius"] = 118.0
+			payload["weapon_resonance_intensity"] = 0.34
+			payload["weapon_curve_force"] = 180.0
+			payload["weapon_curve_frequency"] = 9.5
+			payload["weapon_field_radius"] = 165.0
+			payload["weapon_field_slow_multiplier"] = 0.68
+			payload["weapon_field_slow_duration"] = 0.28
+			payload["weapon_field_max_targets"] = 10
+			payload["weapon_scar_type"] = GravityScarManager.ScarType.TEMPORAL_RIP
+			payload["weapon_scar_radius"] = 120.0
+			payload["weapon_scar_intensity"] = 0.24
+			payload["weapon_scar_duration"] = 16.0
+		&"inversion_disc":
+			payload["weapon_radial_impulse"] = 210.0
+			payload["weapon_tangent_impulse"] = 160.0
+			payload["weapon_resonance_zone_type"] = GravityResonanceManager.ZoneType.INVERSION
+			payload["weapon_resonance_radius"] = 210.0
+			payload["weapon_resonance_intensity"] = 0.46
+			payload["weapon_field_radius"] = 230.0
+			payload["weapon_field_force"] = 360.0
+			payload["weapon_field_damage"] = 8.0
+			payload["weapon_field_slow_multiplier"] = 0.9
+			payload["weapon_field_slow_duration"] = 0.18
+			payload["weapon_scar_type"] = GravityScarManager.ScarType.INVERSION_WAKE
+			payload["weapon_scar_radius"] = 190.0
+			payload["weapon_scar_intensity"] = 0.36
+			payload["weapon_scar_duration"] = 22.0
+			payload["gravity_pull_radius"] = 2100.0
+		&"harmonic_needle":
+			payload["weapon_axis_impulse"] = 95.0
+			payload["weapon_tangent_impulse"] = 150.0
+			payload["weapon_pierce_count"] = 2
+			payload["weapon_resonance_zone_type"] = GravityResonanceManager.ZoneType.HARMONIC_ORBIT
+			payload["weapon_resonance_radius"] = 118.0
+			payload["weapon_resonance_intensity"] = 0.38
+			payload["weapon_curve_force"] = 120.0
+			payload["weapon_curve_frequency"] = 12.0
+			payload["weapon_field_radius"] = 120.0
+			payload["weapon_field_force"] = 180.0
+			payload["weapon_field_max_targets"] = 8
+		&"shear_comet":
+			payload["weapon_axis_impulse"] = 180.0
+			payload["weapon_tangent_impulse"] = 280.0
+			payload["weapon_curve_force"] = 740.0
+			payload["weapon_curve_side"] = -1.0 if _projectile_pattern_index % 2 == 0 else 1.0
+			payload["weapon_curve_frequency"] = 4.4
+			payload["weapon_resonance_zone_type"] = GravityResonanceManager.ZoneType.SLIPSTREAM
+			payload["weapon_resonance_radius"] = 190.0
+			payload["weapon_resonance_intensity"] = 0.44
+			payload["weapon_field_radius"] = 190.0
+			payload["weapon_field_force"] = 260.0
+			payload["weapon_field_max_targets"] = 12
+			payload["weapon_scar_type"] = GravityScarManager.ScarType.VELOCITY_SHEAR
+			payload["weapon_scar_radius"] = 175.0
+			payload["weapon_scar_intensity"] = 0.32
+			payload["weapon_scar_duration"] = 18.0
+		&"singularity_pin":
+			payload["vacuum_collapse_stacks"] = 1
+			payload["weapon_resonance_zone_type"] = GravityResonanceManager.ZoneType.COMPRESSION
+			payload["weapon_resonance_radius"] = 220.0
+			payload["weapon_resonance_intensity"] = 0.52
+			payload["weapon_field_radius"] = 260.0
+			payload["weapon_field_force"] = -620.0
+			payload["weapon_field_damage"] = 14.0
+			payload["weapon_planet_damage"] = 42.0
+			payload["gravity_pull_radius"] = 1800.0
+			payload["player_gravity_deadzone_radius"] = 700.0
+			payload["weapon_scar_type"] = GravityScarManager.ScarType.CURVATURE
+			payload["weapon_scar_radius"] = 230.0
+			payload["weapon_scar_intensity"] = 0.44
+			payload["weapon_scar_duration"] = 28.0
+		&"event_horizon_shard":
+			payload["vacuum_collapse_stacks"] = 2
+			payload["weapon_temporal_slow_multiplier"] = 0.58
+			payload["weapon_temporal_slow_duration"] = 0.46
+			payload["weapon_resonance_zone_type"] = GravityResonanceManager.ZoneType.COMPRESSION
+			payload["weapon_resonance_radius"] = 285.0
+			payload["weapon_resonance_intensity"] = 0.68
+			payload["weapon_field_radius"] = 360.0
+			payload["weapon_field_force"] = -880.0
+			payload["weapon_field_damage"] = 22.0
+			payload["weapon_field_slow_multiplier"] = 0.62
+			payload["weapon_field_slow_duration"] = 0.42
+			payload["weapon_field_max_targets"] = 28
+			payload["weapon_planet_damage"] = 72.0
+			payload["gravity_pull_radius"] = 1900.0
+			payload["player_gravity_deadzone_radius"] = 820.0
+			payload["weapon_scar_type"] = GravityScarManager.ScarType.HARMONIC_FRACTURE
+			payload["weapon_scar_radius"] = 320.0
+			payload["weapon_scar_intensity"] = 0.62
+			payload["weapon_scar_duration"] = 34.0
 		_:
 			pass
+	_apply_catalog_payload_overrides(payload, weapon_id)
 	return payload
+
+
+func _apply_catalog_payload_overrides(payload: Dictionary, weapon_id: StringName) -> void:
+	var entry := _weapon_entry(weapon_id)
+	if entry.is_empty():
+		return
+	var payload_value: Variant = entry.get("payload", {})
+	if payload_value is Dictionary:
+		var overrides: Dictionary = payload_value
+		for key in overrides.keys():
+			payload[key] = overrides[key]
+	payload["weapon_id"] = weapon_id
+	payload["display_name"] = _display_name(weapon_id)
+	if entry.has("color"):
+		var color := _color_from_variant(entry.get("color"), _weapon_color(weapon_id))
+		payload["vector_core_color"] = Color(color.r, color.g, color.b, 0.82)
+	if entry.has("trail_color"):
+		payload["vector_trail_fade_color"] = _color_from_variant(entry.get("trail_color"), _projectile_trail_color_for_weapon(weapon_id))
 
 
 func _apply_projectile_payload(projectile: Node, payload: Dictionary) -> void:
@@ -758,14 +1309,15 @@ func _projectile_prediction_state(weapon_id: StringName) -> Dictionary:
 	if not _is_projectile_weapon(weapon_id):
 		return {"is_projectile": false}
 	var color := _weapon_color(weapon_id)
+	var payload := _projectile_payload(weapon_id, 0, _projectile_count_for_weapon(weapon_id))
 	return {
 		"is_projectile": true,
 		"weapon_id": weapon_id,
 		"display_name": _display_name(weapon_id),
 		"initial_speed": _projectile_speed_for_weapon(weapon_id),
 		"gravity_constant": _projectile_gravity_for_weapon(weapon_id),
-		"gravity_pull_radius": 2000.0,
-		"player_gravity_deadzone_radius": 520.0,
+		"gravity_pull_radius": float(payload.get("gravity_pull_radius", 2000.0)),
+		"player_gravity_deadzone_radius": float(payload.get("player_gravity_deadzone_radius", 520.0)),
 		"spawn_offset": projectile_spawn_offset,
 		"collision_radius": 68.5 * _projectile_visual_scale_for_weapon(weapon_id),
 		"prediction_color": Color(color.r, color.g, color.b, 0.62),
@@ -774,7 +1326,14 @@ func _projectile_prediction_state(weapon_id: StringName) -> Dictionary:
 
 
 func _projectile_count_for_weapon(weapon_id: StringName) -> int:
+	var entry := _weapon_entry(weapon_id)
+	if entry.has("shot_count"):
+		return clampi(int(entry.get("shot_count", 1)), 1, 6)
 	if weapon_id == &"barycentric_splitter":
+		return 2
+	if weapon_id == &"temporal_splinter":
+		return 3
+	if weapon_id == &"harmonic_needle":
 		return 2
 	return 1
 
@@ -785,10 +1344,52 @@ func _projectile_direction_for_index(
 	shot_index: int,
 	shot_count: int
 ) -> Vector2:
-	if weapon_id != &"barycentric_splitter" or shot_count <= 1:
+	var entry := _weapon_entry(weapon_id)
+	if entry.has("pattern"):
+		return _catalog_projectile_direction(entry, direction, shot_index, shot_count)
+	if weapon_id == &"temporal_splinter" and shot_count > 1:
+		var spread := (float(shot_index) - float(shot_count - 1) * 0.5) * 0.13
+		return direction.rotated(spread).normalized()
+	if weapon_id == &"harmonic_needle" and shot_count > 1:
+		var spread := -0.035 if shot_index == 0 else 0.035
+		return direction.rotated(spread).normalized()
+	if weapon_id == &"barycentric_splitter" and shot_count > 1:
+		var spread := -0.08 if shot_index == 0 else 0.08
+		return direction.rotated(spread).normalized()
+	if weapon_id == &"shear_comet":
+		var drift := -0.1 if _projectile_pattern_index % 2 == 0 else 0.1
+		return direction.rotated(drift).normalized()
+	if weapon_id == &"inversion_disc":
+		var drift := 0.04 if _projectile_pattern_index % 2 == 0 else -0.04
+		return direction.rotated(drift).normalized()
+	return direction
+
+
+func _catalog_projectile_direction(
+	entry: Dictionary,
+	direction: Vector2,
+	shot_index: int,
+	shot_count: int
+) -> Vector2:
+	if shot_count <= 1:
 		return direction
-	var spread := -0.08 if shot_index == 0 else 0.08
-	return direction.rotated(spread).normalized()
+	var pattern := StringName(str(entry.get("pattern", &"single")))
+	var spread := float(entry.get("spread_radians", 0.12))
+	var middle := float(shot_count - 1) * 0.5
+	var offset := float(shot_index) - middle
+	match pattern:
+		&"spread":
+			return direction.rotated(offset * spread).normalized()
+		&"braid":
+			var parity := -1.0 if (_projectile_pattern_index + shot_index) % 2 == 0 else 1.0
+			return direction.rotated(offset * spread + parity * spread * 0.34).normalized()
+		&"helix":
+			var phase := float(_projectile_pattern_index) * 0.82 + float(shot_index) * TAU / float(shot_count)
+			return direction.rotated(sin(phase) * spread).normalized()
+		&"ring":
+			return direction.rotated(offset * spread * 1.55).normalized()
+		_:
+			return direction
 
 
 func _projectile_side_offset_for_index(direction: Vector2, shot_index: int, shot_count: int) -> Vector2:
@@ -800,10 +1401,15 @@ func _projectile_side_offset_for_index(direction: Vector2, shot_index: int, shot
 func _projectile_side_for_index(shot_index: int, shot_count: int) -> float:
 	if shot_count <= 1:
 		return 0.0
-	return -1.0 if shot_index % 2 == 0 else 1.0
+	if shot_count == 2:
+		return -1.0 if shot_index == 0 else 1.0
+	return float(shot_index) - float(shot_count - 1) * 0.5
 
 
 func _projectile_fire_interval(weapon_id: StringName) -> float:
+	var catalog_value := _catalog_float_or_base(weapon_id, "fire_interval", -1.0)
+	if catalog_value >= 0.0:
+		return maxf(catalog_value, 0.05)
 	match weapon_id:
 		&"relativistic_rail":
 			return maxf(relativistic_rail_fire_interval, 0.05)
@@ -811,10 +1417,25 @@ func _projectile_fire_interval(weapon_id: StringName) -> float:
 			return maxf(barycentric_splitter_fire_interval, 0.05)
 		&"vacuum_collapse_seed":
 			return maxf(vacuum_seed_fire_interval, 0.05)
+		&"temporal_splinter":
+			return maxf(temporal_splinter_fire_interval, 0.05)
+		&"inversion_disc":
+			return maxf(inversion_disc_fire_interval, 0.05)
+		&"harmonic_needle":
+			return maxf(harmonic_needle_fire_interval, 0.05)
+		&"shear_comet":
+			return maxf(shear_comet_fire_interval, 0.05)
+		&"singularity_pin":
+			return maxf(singularity_pin_fire_interval, 0.05)
+		&"event_horizon_shard":
+			return maxf(event_horizon_shard_fire_interval, 0.05)
 	return maxf(vector_bolt_fire_interval, 0.05)
 
 
 func _projectile_energy_cost(weapon_id: StringName) -> float:
+	var catalog_value := _catalog_float_or_base(weapon_id, "energy_per_shot", -1.0)
+	if catalog_value >= 0.0:
+		return catalog_value
 	match weapon_id:
 		&"relativistic_rail":
 			return relativistic_rail_energy_per_shot
@@ -822,10 +1443,25 @@ func _projectile_energy_cost(weapon_id: StringName) -> float:
 			return barycentric_splitter_energy_per_shot
 		&"vacuum_collapse_seed":
 			return vacuum_seed_energy_per_shot
+		&"temporal_splinter":
+			return temporal_splinter_energy_per_shot
+		&"inversion_disc":
+			return inversion_disc_energy_per_shot
+		&"harmonic_needle":
+			return harmonic_needle_energy_per_shot
+		&"shear_comet":
+			return shear_comet_energy_per_shot
+		&"singularity_pin":
+			return singularity_pin_energy_per_shot
+		&"event_horizon_shard":
+			return event_horizon_shard_energy_per_shot
 	return vector_bolt_energy_per_shot
 
 
 func _projectile_speed_for_weapon(weapon_id: StringName) -> float:
+	var catalog_value := _catalog_float_or_base(weapon_id, "speed", -1.0)
+	if catalog_value >= 0.0:
+		return catalog_value
 	match weapon_id:
 		&"relativistic_rail":
 			return relativistic_rail_speed
@@ -833,10 +1469,25 @@ func _projectile_speed_for_weapon(weapon_id: StringName) -> float:
 			return barycentric_splitter_speed
 		&"vacuum_collapse_seed":
 			return vacuum_seed_speed
+		&"temporal_splinter":
+			return temporal_splinter_speed
+		&"inversion_disc":
+			return inversion_disc_speed
+		&"harmonic_needle":
+			return harmonic_needle_speed
+		&"shear_comet":
+			return shear_comet_speed
+		&"singularity_pin":
+			return singularity_pin_speed
+		&"event_horizon_shard":
+			return event_horizon_shard_speed
 	return vector_bolt_speed
 
 
 func _projectile_damage_min_for_weapon(weapon_id: StringName) -> float:
+	var catalog_value := _catalog_float_or_base(weapon_id, "damage_min", -1.0)
+	if catalog_value >= 0.0:
+		return catalog_value
 	match weapon_id:
 		&"relativistic_rail":
 			return relativistic_rail_damage_min
@@ -844,10 +1495,25 @@ func _projectile_damage_min_for_weapon(weapon_id: StringName) -> float:
 			return barycentric_splitter_damage_min
 		&"vacuum_collapse_seed":
 			return vacuum_seed_damage_min
+		&"temporal_splinter":
+			return temporal_splinter_damage_min
+		&"inversion_disc":
+			return inversion_disc_damage_min
+		&"harmonic_needle":
+			return harmonic_needle_damage_min
+		&"shear_comet":
+			return shear_comet_damage_min
+		&"singularity_pin":
+			return singularity_pin_damage_min
+		&"event_horizon_shard":
+			return event_horizon_shard_damage_min
 	return vector_bolt_damage_min
 
 
 func _projectile_damage_max_for_weapon(weapon_id: StringName) -> float:
+	var catalog_value := _catalog_float_or_base(weapon_id, "damage_max", -1.0)
+	if catalog_value >= 0.0:
+		return catalog_value
 	match weapon_id:
 		&"relativistic_rail":
 			return relativistic_rail_damage_max
@@ -855,10 +1521,25 @@ func _projectile_damage_max_for_weapon(weapon_id: StringName) -> float:
 			return barycentric_splitter_damage_max
 		&"vacuum_collapse_seed":
 			return vacuum_seed_damage_max
+		&"temporal_splinter":
+			return temporal_splinter_damage_max
+		&"inversion_disc":
+			return inversion_disc_damage_max
+		&"harmonic_needle":
+			return harmonic_needle_damage_max
+		&"shear_comet":
+			return shear_comet_damage_max
+		&"singularity_pin":
+			return singularity_pin_damage_max
+		&"event_horizon_shard":
+			return event_horizon_shard_damage_max
 	return vector_bolt_damage_max
 
 
 func _projectile_gravity_for_weapon(weapon_id: StringName) -> float:
+	var catalog_value := _catalog_float_or_base(weapon_id, "gravity_constant", -1.0)
+	if catalog_value >= 0.0:
+		return catalog_value
 	match weapon_id:
 		&"relativistic_rail":
 			return vector_bolt_gravity * 0.62
@@ -866,10 +1547,25 @@ func _projectile_gravity_for_weapon(weapon_id: StringName) -> float:
 			return vector_bolt_gravity * 1.22
 		&"vacuum_collapse_seed":
 			return vector_bolt_gravity * 0.84
+		&"temporal_splinter":
+			return vector_bolt_gravity * 0.92
+		&"inversion_disc":
+			return vector_bolt_gravity * 1.46
+		&"harmonic_needle":
+			return vector_bolt_gravity * 0.74
+		&"shear_comet":
+			return vector_bolt_gravity * 1.08
+		&"singularity_pin":
+			return vector_bolt_gravity * 1.34
+		&"event_horizon_shard":
+			return vector_bolt_gravity * 1.18
 	return vector_bolt_gravity
 
 
 func _projectile_visual_scale_for_weapon(weapon_id: StringName) -> float:
+	var catalog_value := _catalog_float_or_base(weapon_id, "visual_scale", -1.0)
+	if catalog_value >= 0.0:
+		return catalog_value
 	match weapon_id:
 		&"relativistic_rail":
 			return 1.28
@@ -877,10 +1573,31 @@ func _projectile_visual_scale_for_weapon(weapon_id: StringName) -> float:
 			return 0.92
 		&"vacuum_collapse_seed":
 			return 1.18
+		&"temporal_splinter":
+			return 0.72
+		&"inversion_disc":
+			return 1.34
+		&"harmonic_needle":
+			return 0.68
+		&"shear_comet":
+			return 1.06
+		&"singularity_pin":
+			return 1.16
+		&"event_horizon_shard":
+			return 1.42
 	return 1.18
 
 
 func _projectile_trail_color_for_weapon(weapon_id: StringName) -> Color:
+	var entry := _weapon_entry(weapon_id)
+	if entry.has("trail_color"):
+		return _color_from_variant(entry.get("trail_color"), Color(1.0, 0.35, 0.1, 0.95))
+	var payload_value: Variant = entry.get("payload", {})
+	if payload_value is Dictionary and (payload_value as Dictionary).has("vector_trail_fade_color"):
+		return _color_from_variant((payload_value as Dictionary).get("vector_trail_fade_color"), Color(1.0, 0.35, 0.1, 0.95))
+	var base_weapon := _catalog_base_weapon_id(weapon_id)
+	if base_weapon != weapon_id:
+		return _projectile_trail_color_for_weapon(base_weapon)
 	match weapon_id:
 		&"relativistic_rail":
 			return Color(0.24, 0.55, 1.0, 0.9)
@@ -888,6 +1605,18 @@ func _projectile_trail_color_for_weapon(weapon_id: StringName) -> Color:
 			return Color(0.18, 1.0, 0.62, 0.86)
 		&"vacuum_collapse_seed":
 			return Color(1.0, 0.18, 0.08, 0.88)
+		&"temporal_splinter":
+			return Color(0.74, 0.36, 1.0, 0.82)
+		&"inversion_disc":
+			return Color(1.0, 0.3, 0.72, 0.86)
+		&"harmonic_needle":
+			return Color(0.56, 1.0, 0.58, 0.86)
+		&"shear_comet":
+			return Color(0.16, 0.86, 1.0, 0.9)
+		&"singularity_pin":
+			return Color(1.0, 0.24, 0.08, 0.9)
+		&"event_horizon_shard":
+			return Color(1.0, 0.12, 0.08, 0.95)
 	return Color(1.0, 0.35, 0.1, 0.95)
 
 
@@ -898,6 +1627,12 @@ func _minimum_energy_for_weapon(weapon_id: StringName) -> float:
 
 
 func _weapon_role(weapon_id: StringName) -> String:
+	var entry := _weapon_entry(weapon_id)
+	if entry.has("role"):
+		return String(entry.get("role", "catalog vector profile"))
+	var base_weapon := _catalog_base_weapon_id(weapon_id)
+	if base_weapon != weapon_id:
+		return _weapon_role(base_weapon)
 	match weapon_id:
 		&"relativistic_rail":
 			return "velocity pierce"
@@ -905,6 +1640,18 @@ func _weapon_role(weapon_id: StringName) -> String:
 			return "linked orbit pressure"
 		&"vacuum_collapse_seed":
 			return "delayed compression"
+		&"temporal_splinter":
+			return "multi-shot local time fractures"
+		&"inversion_disc":
+			return "radial inversion shove"
+		&"harmonic_needle":
+			return "piercing orbit stitch"
+		&"shear_comet":
+			return "curved velocity shear"
+		&"singularity_pin":
+			return "pinned inward collapse"
+		&"event_horizon_shard":
+			return "heavy collapse anchor"
 		&"positron_beam":
 			return "direct fracture beam"
 		&"gravity_wave_beam":
@@ -1021,10 +1768,35 @@ func _visual_range_from_hits(origin: Vector2, direction: Vector2, hits: Array[No
 
 
 func _end_beam() -> void:
+	if _beam_active:
+		_chronal_async_generation += 1
 	_beam_active = false
 	_beam_heat = maxf(_beam_heat - get_physics_process_delta_time() * 4.0, 0.0) if is_inside_tree() else 0.0
 	if _beam_root != null:
 		_beam_root.visible = false
+
+
+func _sync_projectile_predictor() -> void:
+	_resolve_player()
+	if _player == null or not is_instance_valid(_player):
+		return
+	var predictor := _player.get_node_or_null("ProjectileAimPredictor") as Node
+	if predictor == null:
+		return
+	var state := _projectile_prediction_state(_active_weapon_id)
+	var should_show := bool(state.get("is_projectile", false)) and _is_local_player()
+	var predictor_item := predictor as CanvasItem
+	if predictor_item != null:
+		predictor_item.visible = should_show
+	if not bool(state.get("is_projectile", false)):
+		return
+	_set_if_present(predictor, "projectile_speed", state.get("initial_speed", vector_bolt_speed))
+	_set_if_present(predictor, "gravity_constant", state.get("gravity_constant", vector_bolt_gravity))
+	_set_if_present(predictor, "gravity_radius", state.get("gravity_pull_radius", 2000.0))
+	_set_if_present(predictor, "spawn_offset", state.get("spawn_offset", projectile_spawn_offset))
+	_set_if_present(predictor, "collision_radius", state.get("collision_radius", 68.5))
+	_set_if_present(predictor, "prediction_color", state.get("prediction_color", vector_bolt_color))
+	_set_if_present(predictor, "danger_color", state.get("danger_color", _projectile_trail_color_for_weapon(_active_weapon_id)))
 
 
 func _resolve_player() -> void:
@@ -1086,15 +1858,28 @@ func _input_pressed(event: InputEvent, action_name: StringName, fallback_key: Ke
 
 
 func _is_beam_weapon(weapon_id: StringName) -> bool:
-	return weapon_id == &"positron_beam" or weapon_id == &"gravity_wave_beam" or weapon_id == &"chronal_refraction_beam"
+	var entry := _weapon_entry(weapon_id)
+	if not entry.is_empty():
+		return StringName(str(entry.get("fire_mode", &"projectile"))) == &"beam"
+	return _is_builtin_beam_weapon(weapon_id)
 
 
 func _is_projectile_weapon(weapon_id: StringName) -> bool:
+	var entry := _weapon_entry(weapon_id)
+	if not entry.is_empty():
+		return StringName(str(entry.get("fire_mode", &"projectile"))) == &"projectile"
 	return (
 		weapon_id == &"vector_bolt"
 		or weapon_id == &"relativistic_rail"
 		or weapon_id == &"barycentric_splitter"
 		or weapon_id == &"vacuum_collapse_seed"
+		or weapon_id == &"temporal_splinter"
+		or weapon_id == &"inversion_disc"
+		or weapon_id == &"harmonic_needle"
+		or weapon_id == &"shear_comet"
+		or weapon_id == &"singularity_pin"
+		or weapon_id == &"event_horizon_shard"
+		or EXTRA_WEAPON_DEFINITIONS.has(weapon_id)
 	)
 
 
@@ -1128,6 +1913,13 @@ func _is_player_dead() -> bool:
 	if _player.has_meta(&"death_in_progress"):
 		return bool(_player.get_meta(&"death_in_progress"))
 	return false
+
+
+func _is_local_player() -> bool:
+	if _player == null or not is_instance_valid(_player):
+		return true
+	var value: Variant = _player.get("network_is_local")
+	return bool(value) if typeof(value) == TYPE_BOOL else true
 
 
 func _aim_direction() -> Vector2:
@@ -1185,6 +1977,15 @@ func _beam_width_for_weapon(weapon_id: StringName) -> float:
 
 
 func _weapon_color(weapon_id: StringName) -> Color:
+	var entry := _weapon_entry(weapon_id)
+	if entry.has("color"):
+		return _color_from_variant(entry.get("color"), vector_bolt_color)
+	var payload_value: Variant = entry.get("payload", {})
+	if payload_value is Dictionary and (payload_value as Dictionary).has("vector_core_color"):
+		return _color_from_variant((payload_value as Dictionary).get("vector_core_color"), vector_bolt_color)
+	var base_weapon := _catalog_base_weapon_id(weapon_id)
+	if base_weapon != weapon_id:
+		return _weapon_color(base_weapon)
 	match weapon_id:
 		&"relativistic_rail":
 			return relativistic_rail_color
@@ -1192,6 +1993,18 @@ func _weapon_color(weapon_id: StringName) -> Color:
 			return barycentric_splitter_color
 		&"vacuum_collapse_seed":
 			return vacuum_seed_color
+		&"temporal_splinter":
+			return temporal_splinter_color
+		&"inversion_disc":
+			return inversion_disc_color
+		&"harmonic_needle":
+			return harmonic_needle_color
+		&"shear_comet":
+			return shear_comet_color
+		&"singularity_pin":
+			return singularity_pin_color
+		&"event_horizon_shard":
+			return event_horizon_shard_color
 		&"positron_beam":
 			return positron_color
 		&"gravity_wave_beam":
@@ -1202,7 +2015,99 @@ func _weapon_color(weapon_id: StringName) -> Color:
 
 
 func _display_name(weapon_id: StringName) -> String:
+	var entry := _weapon_entry(weapon_id)
+	if entry.has("display_name"):
+		return String(entry.get("display_name", _builtin_display_name(weapon_id)))
+	return _builtin_display_name(weapon_id)
+
+
+func _builtin_display_name(weapon_id: StringName) -> String:
 	return String(WEAPON_NAMES.get(weapon_id, "Vector Bolt"))
+
+
+func _weapon_entry(weapon_id: StringName) -> Dictionary:
+	var entry_value: Variant = _weapon_catalog.get(String(weapon_id), {})
+	if entry_value is Dictionary:
+		return entry_value as Dictionary
+	return {}
+
+
+func _catalog_base_weapon_id(weapon_id: StringName) -> StringName:
+	var entry := _weapon_entry(weapon_id)
+	if entry.is_empty() or bool(entry.get("builtin", false)):
+		return weapon_id
+	var base_value: Variant = entry.get("base_weapon_id", &"vector_bolt")
+	var base_weapon := StringName(str(base_value))
+	if String(base_weapon).is_empty() or base_weapon == weapon_id:
+		return &"vector_bolt"
+	return base_weapon
+
+
+func _catalog_float_or_base(weapon_id: StringName, field: String, fallback: float) -> float:
+	var entry := _weapon_entry(weapon_id)
+	if not entry.is_empty():
+		if entry.has(field):
+			var value: Variant = entry.get(field)
+			if value is float or value is int:
+				return float(value)
+		var payload_value: Variant = entry.get("payload", {})
+		if payload_value is Dictionary:
+			var payload: Dictionary = payload_value
+			var payload_field := _payload_field_for_profile_field(field)
+			if payload.has(payload_field):
+				var payload_value_for_field: Variant = payload.get(payload_field)
+				if payload_value_for_field is float or payload_value_for_field is int:
+					return float(payload_value_for_field)
+	var base_weapon := _catalog_base_weapon_id(weapon_id)
+	if base_weapon != weapon_id:
+		match field:
+			"energy_per_shot":
+				return _projectile_energy_cost(base_weapon)
+			"fire_interval":
+				return _projectile_fire_interval(base_weapon)
+			"speed":
+				return _projectile_speed_for_weapon(base_weapon)
+			"damage_min":
+				return _projectile_damage_min_for_weapon(base_weapon)
+			"damage_max":
+				return _projectile_damage_max_for_weapon(base_weapon)
+			"gravity_constant":
+				return _projectile_gravity_for_weapon(base_weapon)
+			"visual_scale":
+				return _projectile_visual_scale_for_weapon(base_weapon)
+	return fallback
+
+
+func _payload_field_for_profile_field(field: String) -> String:
+	match field:
+		"speed":
+			return "initial_speed"
+		"energy_per_shot", "fire_interval", "visual_scale":
+			return field
+	return field
+
+
+func _is_builtin_beam_weapon(weapon_id: StringName) -> bool:
+	return weapon_id == &"positron_beam" or weapon_id == &"gravity_wave_beam" or weapon_id == &"chronal_refraction_beam"
+
+
+func _color_from_variant(value: Variant, fallback: Color) -> Color:
+	if value is Color:
+		return value
+	if value is String:
+		var text := str(value).strip_edges()
+		if text.begins_with("#") and (text.length() == 7 or text.length() == 9):
+			return Color.html(text)
+	if value is Array:
+		var values := value as Array
+		if values.size() >= 3:
+			return Color(
+				clampf(float(values[0]), 0.0, 1.0),
+				clampf(float(values[1]), 0.0, 1.0),
+				clampf(float(values[2]), 0.0, 1.0),
+				clampf(float(values[3]), 0.0, 1.0) if values.size() >= 4 else fallback.a
+			)
+	return fallback
 
 
 func _get_resonance_manager() -> Node:
@@ -1264,6 +2169,13 @@ func _impact_radius(radius: float) -> float:
 	if Settings != null and Settings.has_method("world_effect_radius"):
 		return Settings.world_effect_radius(radius, beam_impact_radius_cap)
 	return minf(radius, beam_impact_radius_cap)
+
+
+func _set_if_present(target: Object, property_name: String, value: Variant) -> void:
+	if target == null:
+		return
+	if target.get(property_name) != null:
+		target.set(property_name, value)
 
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:

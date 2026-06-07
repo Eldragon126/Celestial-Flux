@@ -3,6 +3,7 @@ extends CanvasLayer
 @export var max_arrow_count: int = 8
 @export var max_threat_arrow_count: int = 8
 @export var max_boss_arrow_count: int = 2
+@export var max_rare_arrow_count: int = 3
 @export var arrow_margin: float = 42.0
 @export var threat_arrow_refresh_interval: float = 0.12
 @export var g_warning_level: float = 850.0
@@ -33,6 +34,12 @@ var _slingshot_bar: ProgressBar
 var _combo_label: Label
 var _weapon_label: Label
 var _weapon_bar: ProgressBar
+var _health_resource_label: Label
+var _health_resource_bar: ProgressBar
+var _shield_resource_label: Label
+var _shield_resource_bar: ProgressBar
+var _energy_resource_label: Label
+var _energy_resource_bar: ProgressBar
 var _score_panel: PanelContainer
 var _score_label: Label
 var _score_detail_label: Label
@@ -44,6 +51,7 @@ var _vignette_material: ShaderMaterial
 var _arrows: Array[Polygon2D] = []
 var _threat_arrows: Array[Polygon2D] = []
 var _boss_arrows: Array[Polygon2D] = []
+var _rare_arrows: Array[Polygon2D] = []
 var _arrow_layer: Node2D
 var _orbit_layer: Node2D
 var _health_arc: Line2D
@@ -52,6 +60,7 @@ var _time_arc: Line2D
 var _sling_arc: Line2D
 var _threat_targets: Array[Node2D] = []
 var _boss_targets: Array[Node2D] = []
+var _rare_targets: Array[Node2D] = []
 var _powerup_notice_time := 0.0
 var _powerup_notice_color := Color(0.72, 1.0, 0.96, 1.0)
 var _threat_refresh_elapsed := 999.0
@@ -81,6 +90,7 @@ func _process(delta: float) -> void:
 		return
 	
 	_update_speedometer()
+	_update_resource_bars()
 	var gravity_strength: float = _update_gravity_meter()
 	_resolve_rule_systems()
 	_update_field_lens()
@@ -110,6 +120,7 @@ func _build_hud() -> void:
 	add_child(_hud_root)
 	
 	_build_vignette()
+	_build_resource_bars()
 	_build_readout_panel()
 	_build_score_panel()
 	_build_powerup_notice()
@@ -143,11 +154,60 @@ func _build_vignette() -> void:
 	_hud_root.add_child(_critical_vignette)
 
 
+func _build_resource_bars() -> void:
+	var panel := PanelContainer.new()
+	panel.name = "ResourceBarsPanel"
+	panel.offset_left = 18.0
+	panel.offset_top = 18.0
+	panel.custom_minimum_size = Vector2(390.0, 104.0)
+	panel.add_theme_stylebox_override(
+		"panel",
+		_make_hud_panel_style(Color(0.006, 0.012, 0.02, 0.86), Color(0.24, 0.92, 1.0, 0.58))
+	)
+	_hud_root.add_child(panel)
+
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 4)
+	panel.add_child(rows)
+
+	_health_resource_label = _make_resource_label("HULL 100/100")
+	_health_resource_bar = _make_resource_bar(Color(1.0, 0.22, 0.14, 0.96), 20.0)
+	rows.add_child(_health_resource_label)
+	rows.add_child(_health_resource_bar)
+
+	_shield_resource_label = _make_resource_label("SHIELD 000/000")
+	_shield_resource_bar = _make_resource_bar(Color(0.24, 0.72, 1.0, 0.94), 16.0)
+	rows.add_child(_shield_resource_label)
+	rows.add_child(_shield_resource_bar)
+
+	_energy_resource_label = _make_resource_label("ENERGY 0000/0000")
+	_energy_resource_bar = _make_resource_bar(Color(0.34, 1.0, 0.78, 0.94), 16.0)
+	rows.add_child(_energy_resource_label)
+	rows.add_child(_energy_resource_bar)
+
+
+func _make_resource_label(text: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.clip_text = true
+	label.add_theme_font_size_override("font_size", 11)
+	label.modulate = _readability_color(Color(0.78, 0.96, 0.98, 1.0))
+	return label
+
+
+func _make_resource_bar(fill_color: Color, height: float) -> ProgressBar:
+	var bar := ProgressBar.new()
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(350.0, height)
+	_style_progress_bar(bar, fill_color)
+	return bar
+
+
 func _build_readout_panel() -> void:
 	var panel = PanelContainer.new()
 	panel.name = "VectorReadoutPanel"
 	panel.offset_left = 18.0
-	panel.offset_top = 82.0
+	panel.offset_top = 138.0
 	panel.custom_minimum_size = Vector2(330.0, 336.0)
 	_hud_root.add_child(panel)
 	
@@ -365,6 +425,11 @@ func _build_nav_arrows() -> void:
 		_arrow_layer.add_child(arrow)
 		_boss_arrows.append(arrow)
 
+	for i in range(max_rare_arrow_count):
+		var arrow := _make_rare_screen_arrow("RareEventArrow%d" % i, Color(0.74, 0.5, 1.0, 0.9), 1.0, 4)
+		_arrow_layer.add_child(arrow)
+		_rare_arrows.append(arrow)
+
 
 func _build_orbit_telemetry() -> void:
 	_orbit_layer = Node2D.new()
@@ -410,6 +475,22 @@ func _make_screen_arrow(node_name: String, color: Color, arrow_scale: float, z: 
 	return arrow
 
 
+func _make_rare_screen_arrow(node_name: String, color: Color, arrow_scale: float, z: int) -> Polygon2D:
+	var arrow := Polygon2D.new()
+	arrow.name = node_name
+	arrow.polygon = PackedVector2Array([
+		Vector2(0.0, -16.0),
+		Vector2(16.0, 0.0),
+		Vector2(0.0, 16.0),
+		Vector2(-16.0, 0.0),
+	])
+	arrow.color = _readability_color(color)
+	arrow.scale = Vector2.ONE * arrow_scale
+	arrow.z_index = z
+	arrow.visible = false
+	return arrow
+
+
 # ============================
 # SPEEDOMETER
 # ============================
@@ -429,6 +510,76 @@ func _update_speedometer() -> void:
 	_speed_bar.max_value = current_max_speed
 	_speed_bar.value = clampf(speed, 0.0, current_max_speed)
 	_speed_label.text = "SPD %04d / %04d" % [int(round(speed)), int(round(current_max_speed))]
+
+
+func _update_resource_bars() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	var health := _resource_pair("HealthComponent", "current_health", "max_health")
+	_apply_resource_bar(
+		_health_resource_label,
+		_health_resource_bar,
+		"HULL",
+		float(health.get("current", 0.0)),
+		float(health.get("max", 1.0)),
+		Color(1.0, 0.22, 0.14, 1.0)
+	)
+
+	var shield := _resource_pair("Shield", "current_energy", "max_capacity")
+	var shield_color := Color(0.24, 0.72, 1.0, 1.0)
+	var shield_node := _player.get_node_or_null("Shield")
+	var shield_broken_value: Variant = shield_node.get("is_broken") if shield_node != null else false
+	if typeof(shield_broken_value) == TYPE_BOOL and bool(shield_broken_value):
+		shield_color = Color(0.78, 0.42, 0.95, 1.0)
+	_apply_resource_bar(
+		_shield_resource_label,
+		_shield_resource_bar,
+		"SHIELD",
+		float(shield.get("current", 0.0)),
+		float(shield.get("max", 1.0)),
+		shield_color
+	)
+
+	var energy := _resource_pair("EnergyComponent", "current_energy", "max_energy")
+	_apply_resource_bar(
+		_energy_resource_label,
+		_energy_resource_bar,
+		"ENERGY",
+		float(energy.get("current", 0.0)),
+		float(energy.get("max", 1.0)),
+		Color(0.34, 1.0, 0.78, 1.0)
+	)
+
+
+func _resource_pair(node_name: String, current_property: String, max_property: String) -> Dictionary:
+	var component := _player.get_node_or_null(node_name) if _player != null else null
+	if component == null:
+		return {"current": 0.0, "max": 1.0}
+	var current_value: Variant = component.get(current_property)
+	var max_value: Variant = component.get(max_property)
+	var current := float(current_value) if typeof(current_value) == TYPE_FLOAT or typeof(current_value) == TYPE_INT else 0.0
+	var maximum := float(max_value) if typeof(max_value) == TYPE_FLOAT or typeof(max_value) == TYPE_INT else 1.0
+	return {"current": current, "max": maxf(maximum, 1.0)}
+
+
+func _apply_resource_bar(
+	label: Label,
+	bar: ProgressBar,
+	resource_name: String,
+	current: float,
+	maximum: float,
+	color: Color
+) -> void:
+	if label == null or bar == null:
+		return
+	bar.max_value = maxf(maximum, 1.0)
+	bar.value = clampf(current, 0.0, bar.max_value)
+	label.text = "%s %d/%d" % [resource_name, int(round(current)), int(round(maximum))]
+	label.modulate = _readability_color(color)
+	var fill := bar.get_theme_stylebox("fill") as StyleBoxFlat
+	if fill != null:
+		fill.bg_color = color
 
 
 # ============================
@@ -748,11 +899,14 @@ func _update_weapon_lens() -> void:
 	var display_name := String(state.get("display_name", "Vector Bolt")).to_upper()
 	var active := bool(state.get("beam_active", false))
 	var energy_percent := clampf(float(state.get("energy_percent", 0.0)), 0.0, 1.0)
-	var cost := float(state.get("cost_per_second", 0.0))
+	var fire_mode := StringName(state.get("fire_mode", &"projectile"))
+	var cost := float(state.get("cost_per_second", 0.0)) if fire_mode == &"beam" else float(state.get("cost_per_shot", 0.0))
+	var cost_label := "/s" if fire_mode == &"beam" else "/shot"
 	var color: Color = state.get("color", Color(0.34, 1.0, 0.86, 1.0))
-	var state_label := "FIRING" if active else ("READY" if energy_percent > 0.12 else "LOW ENERGY")
+	var ready := bool(state.get("ready", energy_percent > 0.12))
+	var state_label := "FIRING" if active else ("READY" if ready else "LOW ENERGY")
 
-	_weapon_label.text = "%s  %s %.0f/s" % [display_name, state_label, cost]
+	_weapon_label.text = "%s  %s %.0f%s" % [display_name, state_label, cost, cost_label]
 	_weapon_label.modulate = _readability_color(color)
 	_weapon_bar.value = energy_percent
 
@@ -1133,11 +1287,17 @@ func _update_threat_arrows(delta: float) -> void:
 
 	_update_target_arrows(_boss_arrows, _boss_targets, Color(1.0, 0.16, 0.1, 0.96), true)
 	_update_target_arrows(_threat_arrows, _threat_targets, Color(1.0, 0.72, 0.22, 0.88), false)
+	_update_target_arrows(_rare_arrows, _rare_targets, Color(0.74, 0.5, 1.0, 0.9), false, 1.04)
 
 
 func _refresh_threat_arrow_targets() -> void:
 	_boss_targets = _collect_offscreen_targets(&"bosses", max_boss_arrow_count, false)
 	_threat_targets = _collect_offscreen_targets(&"enemies", max_threat_arrow_count, true)
+	_rare_targets = _collect_offscreen_targets_from_groups([
+		&"spacetime_tear",
+		&"arena_hazard",
+		&"gravity_tide_pocket",
+	], max_rare_arrow_count)
 
 
 func _collect_offscreen_targets(group_name: StringName, limit: int, skip_bosses: bool) -> Array[Node2D]:
@@ -1172,7 +1332,41 @@ func _collect_offscreen_targets(group_name: StringName, limit: int, skip_bosses:
 	return targets
 
 
-func _update_target_arrows(arrows: Array[Polygon2D], targets: Array[Node2D], base_color: Color, is_boss_arrow: bool) -> void:
+func _collect_offscreen_targets_from_groups(group_names: Array[StringName], limit: int) -> Array[Node2D]:
+	var targets: Array[Node2D] = []
+	if limit <= 0 or _player == null:
+		return targets
+
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var seen := {}
+
+	for group_name in group_names:
+		for node in get_tree().get_nodes_in_group(group_name):
+			if node == null or not is_instance_valid(node):
+				continue
+			var target := node as Node2D
+			if target == null or target == _player or target.is_queued_for_deletion():
+				continue
+			var id := target.get_instance_id()
+			if seen.has(id):
+				continue
+			seen[id] = true
+			var screen_pos: Vector2 = canvas_transform * target.global_position
+			if not _is_screen_position_offscreen(screen_pos, viewport_size, 18.0):
+				continue
+			targets.append(target)
+
+	targets.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return a.global_position.distance_squared_to(_player.global_position) < b.global_position.distance_squared_to(_player.global_position)
+	)
+
+	if targets.size() > limit:
+		targets.resize(limit)
+	return targets
+
+
+func _update_target_arrows(arrows: Array[Polygon2D], targets: Array[Node2D], base_color: Color, is_boss_arrow: bool, base_scale: float = 1.0) -> void:
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	var center: Vector2 = viewport_size * 0.5
 	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
@@ -1201,7 +1395,7 @@ func _update_target_arrows(arrows: Array[Polygon2D], targets: Array[Node2D], bas
 
 		arrow.position = _project_to_screen_edge(center, direction, viewport_size)
 		arrow.rotation = direction.angle() + PI * 0.5
-		arrow.scale = Vector2.ONE * (1.35 if is_boss_arrow else 0.82) * pulse
+		arrow.scale = Vector2.ONE * (1.35 if is_boss_arrow else 0.82) * pulse * base_scale
 		var adjusted_color := _readability_color(base_color)
 		arrow.color = Color(adjusted_color.r, adjusted_color.g, adjusted_color.b, lerpf(0.62, adjusted_color.a, proximity))
 		arrow.visible = true

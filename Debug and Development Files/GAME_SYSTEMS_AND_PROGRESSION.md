@@ -257,11 +257,16 @@ The current layers are `silence`, `drift`, `tension`, `overload`, and `collapse`
 
 ## Modding Foundation
 
-`ModContentRegistry` discovers data manifests from `res://Mods` and `user://mods`. It registers arenas, waves, upgrades, and rule definitions from JSON without executing arbitrary code or spawning content automatically.
+`ModContentRegistry` discovers data manifests from `res://Mods` and `user://mods`. It registers arenas, waves, upgrades, rules, enemies, bosses, arena events, celestial bodies, physics drops, audio/UI entries, weapons, palettes, creator notes, and hookable mod systems from JSON without executing arbitrary code or spawning content automatically.
 
-The registry validates manifests before registration, stores failed manifest reasons, and exposes a snapshot for UI/debugging. `Mods/example_vector_laws/vector_anomaly_mod.json` is the current reference manifest.
+The registry now exposes two production modding surfaces:
 
-This is an initial data-driven foundation. The game still needs runtime selection UI, editor tooling, dependency rules, and activation paths before it should be described as fully moddable.
+- Playable projectile weapon profiles. `WeaponSystem` reads safe entries from `get_playable_weapon_entries()` and adds mod weapons to the normal selectable weapon catalog, using existing energy, prediction, projectile, HUD, and network event paths.
+- Declarative hookable systems. `law_weaves`, `anomaly_recipes`, and `challenge_cards` describe hooks, conditions, effects, weights, cooldowns, and trigger limits. The registry indexes them by hook through `get_hook_entries()` so trusted directors can opt in without letting mods execute scripts.
+
+The registry validates manifests before registration, stores failed manifest reasons, exposes capability/snapshot data for UI/debugging, and contributes a normalized compatibility signature for multiplayer handshakes. `Mods/example_vector_laws/vector_anomaly_mod.json` is the current reference manifest and now includes playable weapons, a law weave, an anomaly recipe, a challenge card, a palette, and creator notes.
+
+Remaining modding work is activation breadth and authoring experience: runtime selection UI, editor tooling, workshop packaging, and director-by-director effect consumption. The code-side foundation is no longer just a catalog; it is a safe declarative modding contract.
 
 ## Menus And State Flow
 

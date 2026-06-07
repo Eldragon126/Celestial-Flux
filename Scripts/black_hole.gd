@@ -18,6 +18,7 @@ signal horizon_body_consumed(body: Node)
 
 var _spaghettified_ids: Dictionary = {}
 var _target_buffer: Array[Node2D] = []
+var _consumed_ids: Dictionary = {}
 var _field_elapsed: float = 999.0
 var _player: Node2D = null
 var _particles: GPUParticles2D = null
@@ -78,6 +79,7 @@ func _physics_process(delta: float) -> void:
 
 		if distance <= consume_radius:
 			_consume_body(body)
+			continue
 		affected += 1
 	_update_particle_focus()
 
@@ -120,14 +122,35 @@ func _restore_spaghettified_shape(body: Node2D) -> void:
 func _consume_body(body: Node) -> void:
 	if body == null or not is_instance_valid(body) or body == self:
 		return
+	var id := body.get_instance_id()
+	if _consumed_ids.has(id):
+		return
+	_consumed_ids[id] = true
 	if body.is_in_group("Player") and body.has_method("take_damage"):
 		body.set_meta(&"last_death_context", &"black_hole")
-		body.call("take_damage", 10000000.0)
+		horizon_body_consumed.emit(body)
+		call_deferred("_deal_consumption_damage", id)
+		return
 	elif body.has_method("take_damage"):
+		horizon_body_consumed.emit(body)
 		body.call("take_damage", 10000000.0)
 	elif body is RigidBody2D or body.is_in_group("Projectiles"):
-		body.queue_free()
-	horizon_body_consumed.emit(body)
+		horizon_body_consumed.emit(body)
+		body.call_deferred("queue_free")
+	else:
+		horizon_body_consumed.emit(body)
+
+
+func _deal_consumption_damage(instance_id: int) -> void:
+	if not is_instance_id_valid(instance_id):
+		return
+	var value := instance_from_id(instance_id)
+	if value == null or not is_instance_valid(value):
+		return
+	var body := value as Node
+	if body == null or body.is_queued_for_deletion() or not body.has_method("take_damage"):
+		return
+	body.call("take_damage", 10000000.0)
 
 
 func _refresh_targets() -> void:
