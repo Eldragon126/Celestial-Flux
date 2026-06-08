@@ -9,3 +9,4 @@ res://Scripts/enemy_bullet.gd
 res://Scripts/mod_content_registry.gd
 res://Nodes/title_screen.tscn
 res://Scripts/title_screen.gd
+res://Nodes/multiplayer_sync_foundation.tscn
