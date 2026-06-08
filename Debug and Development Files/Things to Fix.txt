@@ -276,4 +276,18 @@ func _draw() -> void:
 		
 		draw_line(a, b, Color(col.r, col.g, col.b, alpha * col.a), line_width)
 
-[ ] 
+[ ] Even though I've said this 5 times to fix and it's been "fixed" five times (it hasn't) The player once getting a specific powerup has huge blue star flashes that take over the entire screen when firing bullets and slingshotting.
+
+[ ] Performance is still bad on my friends computer and especially bad over multiplayer. Enemies and bosses are often delayed by 10 or more seconds for the host vs the other player. It needs to be more instantaneous. 
+
+[ ] I had a error that said me and my friend didn't have the same mods, even though we did. This needs to change. Also why are the mods scenes and gd files? Shouldn't they be a kind of file that everyone can edit? I want it to be as moddable as possible.
+
+[ ] Weapons are cool, but I don't want a crap ton of weapons that are all bullet weapons, I want 10 or more UNIQUE weapons all with their own way of doing damage that is completely outside the standard rouglike norm. Sure a couple lazers and a set of projectile weapons are fine, but I want things that physically make the player go "Wow. That was cool." Not "oh. that's just another kind of gun, except for it's bullets are slower and shaded differently." This needs to change. 
+
+[ ] Multiplayer systems need to be more fully developed into a solid and stable framework.
+
+[ ] We keep getting "tried to cast a null instance" errors. This needs to be fixed.
+
+[ ] I get trapped in small gravity wells that I can't see very well and I can't get out.
+
+[ ] The shield should take slower to recharge so that you actually have time to get hit. I survived to level 16 with limited ability just because I can dash away and wait for my shield to heal. It might also be good to tie shield recharge to the energy component. 

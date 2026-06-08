@@ -763,10 +763,11 @@ func _play_positional_cue(stream: AudioStream, position: Vector2, volume_db: flo
 		return
 	_last_cue_time = now
 	var scene
-	if is_instance_valid(get_tree().current_scene):
+
+	if get_tree().current_scene != null and is_instance_valid(get_tree().current_scene):
 		scene = get_tree().current_scene
-	if scene == null:
-		return
+		if scene == null:
+			return
 	var player := AudioStreamPlayer2D.new()
 	player.name = "MechanicCue"
 	player.stream = stream
