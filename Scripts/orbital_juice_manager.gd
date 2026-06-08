@@ -31,6 +31,7 @@ const SECRET_BOSS_DIRECTOR_SCENE = preload("res://Nodes/secret_boss_director.tsc
 const RUN_VARIATION_DIRECTOR_SCENE = preload("res://Nodes/run_variation_director.tscn")
 const MULTIPLAYER_SYNC_FOUNDATION_SCENE = preload("res://Nodes/multiplayer_sync_foundation.tscn")
 const MOD_CONTENT_REGISTRY_SCENE = preload("res://Nodes/mod_content_registry.tscn")
+const MOD_HOOK_DIRECTOR_SCENE = preload("res://Nodes/mod_hook_director.tscn")
 const RUN_SCORE_TRACKER_SCENE = preload("res://Nodes/run_score_tracker.tscn")
 const PHYSICS_DROP_SYSTEM_SCENE = preload("res://Nodes/physics_drop_system.tscn")
 const ARENA_RULE_DIRECTOR_SCENE = preload("res://Nodes/arena_rule_director.tscn")
@@ -93,6 +94,7 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var enable_run_variation = true
 @export var enable_multiplayer_sync_foundation = true
 @export var enable_mod_content_registry = true
+@export var enable_mod_hook_director = true
 @export var enable_run_score_tracker = true
 @export var enable_physics_drop_system = true
 @export var enable_arena_rule_profiles = true
@@ -174,6 +176,8 @@ func _install_modular_additions() -> void:
 		_add_child_scene_once(level_root, PARTICLE_FOCUS_CULLER_SCENE, "ParticleFocusCuller")
 	if enable_mod_content_registry:
 		_add_child_scene_once(level_root, MOD_CONTENT_REGISTRY_SCENE, "ModContentRegistry")
+	if enable_mod_hook_director:
+		_add_child_scene_once(level_root, MOD_HOOK_DIRECTOR_SCENE, "ModHookDirector")
 	if enable_physics_drop_system:
 		_add_child_scene_once(level_root, PHYSICS_DROP_SYSTEM_SCENE, "PhysicsDropSystem")
 	if enable_multiplayer_sync_foundation:

@@ -1,5 +1,7 @@
 extends RigidBody2D
 
+signal projectile_hit(hit_data: Dictionary)
+
 # ========================
 # == EXPORT VARIABLES ==
 # ========================
@@ -184,11 +186,13 @@ func _on_body_entered(body: Node) -> void:
 	if _already_hit_body(body):
 		return
 
+	var rolled_damage := _roll_damage() if body.has_method("take_damage") else 0.0
+	_emit_projectile_hit(body, rolled_damage)
 	_trigger_upgrade_impacts(body)
 	_apply_weapon_contact_effects(body)
 	
 	if body.has_method("take_damage"):
-		body.take_damage(_roll_damage())
+		body.take_damage(rolled_damage)
 		if _should_continue_after_hit(body):
 			return
 		_destroy_projectile()
@@ -214,6 +218,37 @@ func _roll_damage() -> float:
 		print("Dealt Damage: ", final_damage, " (Mult: ", multiplier, ")")
 		
 	return final_damage
+
+
+func _emit_projectile_hit(body: Node, damage: float) -> void:
+	var body_2d := body as Node2D
+	var target_position := global_position
+	if body_2d != null:
+		target_position = body_2d.global_position
+	projectile_hit.emit({
+		"weapon_id": String(weapon_id),
+		"position": global_position,
+		"origin": global_position,
+		"target_position": target_position,
+		"target_name": String(body.name) if body != null else "",
+		"target_group": _target_group_label(body),
+		"target_has_damage": body.has_method("take_damage") if body != null else false,
+		"damage": damage,
+		"velocity": linear_velocity,
+		"speed": linear_velocity.length(),
+		"pierce_index": _pierced_body_ids.size(),
+		"owner_peer_id": int(get_meta(&"network_owner_peer_id", 0)),
+		"network_spawned": bool(get_meta(&"network_spawned", false)),
+	})
+
+
+func _target_group_label(body: Node) -> String:
+	if body == null:
+		return ""
+	for group_name in ["bosses", "enemies", "wave_enemy", "planets", "obstacle", "obstacles", "Projectiles"]:
+		if body.is_in_group(group_name):
+			return group_name
+	return ""
 
 
 func _already_hit_body(body: Node) -> bool:

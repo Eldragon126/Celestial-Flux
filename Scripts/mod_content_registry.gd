@@ -60,7 +60,7 @@ const HOOKABLE_CONTENT_BUCKETS := ["law_weaves", "anomaly_recipes", "challenge_c
 const LOCAL_ONLY_CONTENT_BUCKETS := ["mod_palettes", "creator_notes", "hud_badges", "sfx", "music"]
 const WEAPON_FIRE_MODES := ["catalog", "projectile", "beam"]
 const NETWORK_CATEGORIES := ["local_visual", "exported_state", "reliable_event", "deterministic_seed"]
-const WEAPON_PATTERN_MODES := ["single", "spread", "parallel", "braid", "helix", "ring"]
+const WEAPON_PATTERN_MODES := ["single", "spread", "parallel", "braid", "helix", "ring", "converge", "scissor", "pinwheel"]
 const MOD_HOOKS := [
 	"run_start",
 	"wave_start",
@@ -333,7 +333,7 @@ func get_content_buckets() -> Array:
 
 
 func get_entries(content_type: StringName) -> Array:
-	var key := String(content_type)
+	var key := str(content_type)
 	if not _content.has(key):
 		return []
 	return (_content[key] as Dictionary).values()
@@ -355,7 +355,7 @@ func get_playable_weapon_entries() -> Array:
 
 
 func get_hook_entries(hook_id: StringName) -> Array:
-	var hook_key := String(hook_id)
+	var hook_key := str(hook_id)
 	var indexed_value: Variant = _hook_index.get(hook_key, [])
 	if not (indexed_value is Array):
 		return []
@@ -370,7 +370,7 @@ func get_hook_entries(hook_id: StringName) -> Array:
 
 
 func get_entries_with_tag(content_type: StringName, tag: StringName) -> Array:
-	var tag_text := String(tag)
+	var tag_text := str(tag)
 	if tag_text.is_empty():
 		return []
 	var matches := []
@@ -415,18 +415,18 @@ func get_content(content_type: StringName) -> Array:
 
 
 func get_entry(content_type: StringName, entry_id: StringName) -> Dictionary:
-	var key := String(content_type)
+	var key := str(content_type)
 	if not _content.has(key):
 		return {}
 	var entries := _content[key] as Dictionary
-	var id_text := String(entry_id)
+	var id_text := str(entry_id)
 	var entry: Variant = entries.get(id_text, {})
 	if entry is Dictionary:
 		return (entry as Dictionary).duplicate(true)
 
 	var indexed_key := "%s:%s" % [key, id_text]
 	if _content_index.has(indexed_key):
-		var qualified_id := String(_content_index[indexed_key])
+		var qualified_id := str(_content_index[indexed_key])
 		entry = entries.get(qualified_id, {})
 		if entry is Dictionary:
 			return (entry as Dictionary).duplicate(true)
@@ -442,7 +442,7 @@ func has_content(content_type: StringName, entry_id: StringName) -> bool:
 
 
 func get_manifest(manifest_id: StringName) -> Dictionary:
-	var manifest: Variant = _manifests.get(String(manifest_id), {})
+	var manifest: Variant = _manifests.get(str(manifest_id), {})
 	if manifest is Dictionary:
 		return (manifest as Dictionary).duplicate(true)
 	return {}
@@ -468,13 +468,13 @@ func get_compatibility_signature() -> String:
 			var entry: Dictionary = entries[qualified_id]
 			if not bool(entry.get("enabled", true)):
 				continue
-			var network_category := String(entry.get("network_category", _default_network_category(bucket)))
+			var network_category := str(entry.get("network_category", _default_network_category(bucket)))
 			if network_category == "local_visual":
 				continue
-			gameplay_manifest_keys[String(entry.get("manifest_id", ""))] = true
-			content_tokens.append(_content_signature_token(bucket, String(qualified_id), entry))
+			gameplay_manifest_keys[str(entry.get("manifest_id", ""))] = true
+			content_tokens.append(_content_signature_token(bucket, str(qualified_id), entry))
 	for manifest_id in _load_order:
-		var manifest_key := String(manifest_id)
+		var manifest_key := str(manifest_id)
 		if not gameplay_manifest_keys.has(manifest_key):
 			continue
 		var manifest: Dictionary = _manifests.get(manifest_key, {})
@@ -482,11 +482,12 @@ func get_compatibility_signature() -> String:
 			continue
 		tokens.append("%s:%s:%d" % [
 			manifest_key,
-			String(manifest.get("version", "1")),
+			str(manifest.get("version", "1")),
 			int(manifest.get("schema_version", 1)),
 		])
 	for token in content_tokens:
 		tokens.append(token)
+	tokens.sort()
 	var packed := PackedStringArray()
 	for token in tokens:
 		packed.append(token)
@@ -504,7 +505,7 @@ func _content_signature_token(bucket: String, qualified_id: String, entry: Dicti
 	var token := "%s:%s:%s" % [
 		bucket,
 		qualified_id,
-		String(entry.get("network_category", _default_network_category(bucket))),
+		str(entry.get("network_category", _default_network_category(bucket))),
 	]
 	if bucket != "weapons":
 		if HOOKABLE_CONTENT_BUCKETS.has(bucket):
@@ -526,11 +527,11 @@ func _content_signature_token(bucket: String, qualified_id: String, entry: Dicti
 		payload_digest = _stable_dictionary_digest(payload_value as Dictionary)
 	return "%s:%s:%s:%s:%s:%s:%s" % [
 		token,
-		String(entry.get("fire_mode", "catalog")),
-		String(entry.get("base_weapon_id", "")),
-		String(entry.get("pattern", "single")),
-		String(entry.get("shot_count", 1)),
-		String(entry.get("spread_radians", 0.0)),
+		str(entry.get("fire_mode", "catalog")),
+		str(entry.get("base_weapon_id", "")),
+		str(entry.get("pattern", "single")),
+		str(entry.get("shot_count", 1)),
+		str(entry.get("spread_radians", 0.0)),
 		payload_digest,
 	]
 
@@ -610,7 +611,7 @@ func _load_manifest_path(path: String) -> void:
 		return
 
 	var manifest_id := StringName(str(manifest.get("id", "")))
-	var manifest_key := String(manifest_id)
+	var manifest_key := str(manifest_id)
 	if _manifests.has(manifest_key):
 		_record_failed_manifest(path, "duplicate manifest id %s" % manifest_key)
 		return
@@ -1189,27 +1190,27 @@ func _register_hook_index(entry: Dictionary) -> void:
 
 func _resolve_dependency_warnings() -> void:
 	for manifest_id in _load_order:
-		var manifest_key := String(manifest_id)
+		var manifest_key := str(manifest_id)
 		var manifest: Dictionary = _manifests.get(manifest_key, {})
 		var dependencies: Array = manifest.get("dependencies", [])
 		for dependency_value in dependencies:
 			var dependency: Dictionary = dependency_value if dependency_value is Dictionary else {}
 			var dependency_id := StringName(str(dependency.get("id", "")))
-			if String(dependency_id).is_empty():
+			if str(dependency_id).is_empty():
 				continue
-			if not _manifests.has(String(dependency_id)):
+			if not _manifests.has(str(dependency_id)):
 				_add_dependency_warning(manifest_id, dependency_id, "missing dependency")
 				if bool(dependency.get("required", true)):
-					_disabled_manifests[manifest_key] = "missing dependency %s" % String(dependency_id)
+					_disabled_manifests[manifest_key] = "missing dependency %s" % str(dependency_id)
 				continue
 			var min_version := str(dependency.get("min_version", "")).strip_edges()
 			if min_version.is_empty():
 				continue
-			var loaded_version := str((_manifests[String(dependency_id)] as Dictionary).get("version", "0"))
+			var loaded_version := str((_manifests[str(dependency_id)] as Dictionary).get("version", "0"))
 			if _version_sort_value(loaded_version) < _version_sort_value(min_version):
 				_add_dependency_warning(manifest_id, dependency_id, "dependency below min_version %s" % min_version)
 				if bool(dependency.get("required", true)):
-					_disabled_manifests[manifest_key] = "dependency %s below %s" % [String(dependency_id), min_version]
+					_disabled_manifests[manifest_key] = "dependency %s below %s" % [str(dependency_id), min_version]
 
 	if not allow_script_pack_registration:
 		for manifest_id in _load_order:
@@ -1221,7 +1222,7 @@ func _resolve_dependency_warnings() -> void:
 
 func _apply_manifest_enabled_state() -> void:
 	for manifest_id in _load_order:
-		var manifest_key := String(manifest_id)
+		var manifest_key := str(manifest_id)
 		var enabled_state := not _disabled_manifests.has(manifest_key)
 		var manifest: Dictionary = _manifests.get(manifest_key, {})
 		manifest["enabled"] = enabled_state
@@ -1232,7 +1233,7 @@ func _apply_manifest_enabled_state() -> void:
 		var entries := _content[bucket] as Dictionary
 		for qualified_id in entries.keys():
 			var entry: Dictionary = entries[qualified_id]
-			var manifest_key := String(entry.get("manifest_id", ""))
+			var manifest_key := str(entry.get("manifest_id", ""))
 			var enabled_state := not _disabled_manifests.has(manifest_key)
 			entry["enabled"] = enabled_state
 			entry["disabled_reason"] = str(_disabled_manifests.get(manifest_key, ""))
@@ -1249,13 +1250,13 @@ func _entries_for_manifest(manifest_id: StringName, buckets: Array) -> Array:
 			if not (entry_value is Dictionary):
 				continue
 			var entry := entry_value as Dictionary
-			if String(entry.get("manifest_id", "")) == String(manifest_id):
+			if str(entry.get("manifest_id", "")) == str(manifest_id):
 				found.append(entry)
 	return found
 
 
 func _add_dependency_warning(manifest_id: StringName, dependency_id: StringName, reason: String) -> void:
-	var key := "%s:%s:%s" % [String(manifest_id), String(dependency_id), reason]
+	var key := "%s:%s:%s" % [str(manifest_id), str(dependency_id), reason]
 	_dependency_warnings[key] = {
 		"manifest_id": manifest_id,
 		"dependency_id": dependency_id,
@@ -1320,7 +1321,7 @@ func _default_network_category(bucket: String) -> String:
 
 
 func _qualified_content_id(manifest_id: StringName, local_id: String) -> String:
-	return "%s/%s" % [String(manifest_id), local_id]
+	return "%s/%s" % [str(manifest_id), local_id]
 
 
 func _is_safe_identifier(text: String) -> bool:

@@ -313,6 +313,8 @@ Late-wave spectacle now has explicit technical boundaries:
 - Title secret completion is gated behind an explicit secret-mode state, keeping menu presentation separate from hidden encounter cleanup.
 - LAN multiplayer now lives behind `NetworkSession`, keeping host/join transport, roster, run config, projectile/vector events, hosted restart, and leave-session cleanup separate from core gameplay scripts.
 - Multiplayer gameplay compatibility is routed through `MultiplayerTargeting`, player state import/export, and deterministic vector events so enemies, projectiles, HUD, and co-op combo systems do not assume one hardcoded player.
+- Safe mod hooks now resolve through `ModHookDirector`: manifests declare conditions/effects, the registry validates/indexes them, and a trusted director applies bounded resonance/scar/powerup/weapon/HUD/SFX effects or records higher-level requests. Player-triggered hook effects replay through `NetworkSession` by entry id instead of giving mods script execution or raw scene spawning.
+- Weapon expansion stays catalog-driven. New built-in weapons and mod weapons share the same projectile payload, HUD, prediction, energy, and network projectile path, including the safe pattern vocabulary `converge`, `scissor`, and `pinwheel`.
 
 The commercial rule remains unchanged: the player should see impossible physics, while the code keeps discovery, pooling, validation, UI, saves, and content manifests separated into inspectable systems.
 

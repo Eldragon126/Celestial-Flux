@@ -148,6 +148,34 @@ Supported effect actions:
 - `start_challenge_card`
 - `complete_challenge_card`
 
+## Runtime Hook Activation
+
+`ModHookDirector` is the safe runtime consumer for hookable entries. It listens to existing game signals, asks `ModContentRegistry.get_hook_entries()`, evaluates normalized conditions, and applies only whitelisted effects.
+
+Live bounded effects:
+
+- `create_resonance_zone`
+- `create_gravity_scar`
+- `grant_powerup`
+- `offer_weapon`
+- `emit_hud_badge`
+- `play_sfx`
+
+Recorded director requests:
+
+- `spawn_arena_event`
+- `spawn_celestial_body`
+- `spawn_physics_drop`
+- `request_music_layer`
+- `adjust_run_pressure`
+- `tag_score_event`
+- `start_challenge_card`
+- `complete_challenge_card`
+
+Recorded requests are stored in `RunProgress.arena_flags["mod_hook_events"]` for trusted directors, score systems, menus, and future editor tooling. They are not arbitrary scene/script execution.
+
+Player-triggered hook effects such as `slingshot_apex`, `weapon_fired`, `projectile_hit`, and `coop_combo_triggered` use `NetworkSession.broadcast_mod_hook_event()` so peers replay the same registry entry by id when LAN multiplayer is active. The payload is intentionally narrow: hook id, entry id, owner peer, position, wave, grade, weapon id, and typed resonance/scar context. Projectile impacts are owner-gated so replicated remote projectiles do not double-apply gameplay hooks on peers.
+
 ## Playable Weapon Mods
 
 Weapon entries can now be catalog-only concepts, beams for future trusted integration, or playable projectile profiles that `WeaponSystem` registers into its weapon list.
@@ -157,7 +185,7 @@ Playable projectile entries use:
 - `fire_mode`: `projectile`
 - `network_category`: usually `reliable_event`
 - `base_weapon_id`: any built-in projectile weapon profile
-- `pattern`: `single`, `spread`, `parallel`, `braid`, `helix`, or `ring`
+- `pattern`: `single`, `spread`, `parallel`, `braid`, `helix`, `ring`, `converge`, `scissor`, or `pinwheel`
 - `shot_count`: clamped to `1-6`
 - `spread_radians`: clamped to `0.0-0.75`
 - `payload`: safe overrides for projectile speed, damage, gravity fields, resonance/scar type, pierce, curve force, planet damage, and other approved weapon fields
@@ -185,6 +213,8 @@ Example:
 
 `WeaponSystem` reads normalized playable entries through `get_playable_weapon_entries()`. Cataloged entries remain visible to UI/tooling but are not selectable as live weapons.
 
+Current built-in projectile catalog includes the original vector/rail/splitter/collapse/time/inversion/harmonic/shear/singularity/event-horizon set plus Gravity Lance, Orbit Saw, Tidal Mortar, Chronal Mirror Shot, Polarity Javelin, Lensing Flak, Rift Anchor, Apex Vector Spear, Phase Suture, Null Rebounder, Graviton Bloom, Causal Anchor, Vector Prism, Mass Driver, Tidal Skein, Scar Carver, Chronal Needleloom, Singularity Kite, Inertia Maul, and Harmonic Bloom.
+
 ## Network Categories
 
 Every new content type should declare how it affects multiplayer and challenges:
@@ -194,7 +224,7 @@ Every new content type should declare how it affects multiplayer and challenges:
 - `reliable_event`: explicit events such as weapon fire or authoritative one-shot activation.
 - `deterministic_seed`: seed-driven law, recipe, arena, or challenge data that must match across peers.
 
-`NetworkSession` hashes the normalized mod registry compatibility signature, including gameplay-affecting weapon and hookable entries, so mismatched gameplay mod packs can fail cleanly before co-op starts. Entries marked `local_visual` are intentionally excluded from the compatibility signature.
+`NetworkSession` hashes the normalized mod registry compatibility signature, including gameplay-affecting weapon and hookable entries, so mismatched gameplay mod packs can fail cleanly before co-op starts. Entries marked `local_visual` are intentionally excluded from the compatibility signature. The title-screen/pre-run fallback also filters manifest hashes to gameplay-affecting entries, so local palettes, music, creator notes, and HUD cosmetics do not falsely block a LAN join.
 
 Hookable entries marked `local_visual` may only request local-safe effect actions: `emit_hud_badge`, `play_sfx`, or `request_music_layer`.
 
@@ -228,6 +258,9 @@ Useful signals:
 - `mod_hook_registered(hook_id, entry_id, manifest_id, entry)`
 - `dependency_warning(manifest_id, dependency_id, reason)`
 - `mod_catalog_changed(snapshot)`
+- `ModHookDirector.mod_hook_triggered(hook_id, entry_id, data)`
+- `ModHookDirector.mod_effect_applied(action, entry_id, data)`
+- `ModHookDirector.mod_weapon_offered(weapon_id, entry, data)`
 
 ## Validation
 
@@ -254,6 +287,6 @@ Missing required dependencies disable the manifest and its content. Optional dep
 
 ## Current Runtime Status
 
-The registry, sample manifest, pause-menu status readout, compatibility signature, and playable projectile weapon loading are code-side foundations. Hookable law weaves, recipes, and challenge cards are cataloged and indexed now; individual directors still need explicit activation paths before each effect action changes live gameplay.
+The registry, sample manifest, pause-menu status readout, compatibility signature, playable projectile weapon loading, safe hook activation, and LAN hook replay are code-side foundations now. Hookable law weaves, recipes, and challenge cards can apply bounded live effects through `ModHookDirector`, while higher-level requests are recorded for trusted directors instead of spawning arbitrary scenes.
 
-That separation is intentional. It lets the game grow toward a wild modding ecosystem while keeping V1 runtime behavior deterministic, inspectable, and production-safe.
+That separation is intentional. It lets the game grow toward a wild modding ecosystem while keeping V1 runtime behavior deterministic, inspectable, multiplayer-aware, and production-safe.

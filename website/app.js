@@ -63,7 +63,7 @@ function initSiteConfig() {
 			target.target = "_blank";
 			target.rel = "noopener";
 		} else {
-			target.href = "#sandbox";
+			target.href = "#systems";
 		}
 	});
 
@@ -234,7 +234,7 @@ function initHeroField() {
 			if (!reduceMotion) particle.angle += delta * particle.speed;
 			const wobble = Math.sin(particle.angle * 2.1 + now * 0.0007) * 12;
 			const x = centerX + Math.cos(particle.angle) * (particle.radius + wobble);
-			const y = centerY + Math.sin(particle.angle * 0.82) * (particle.radius * 0.54 + wobble);
+			const y = centerY + Math.sin(particle.angle) * (particle.radius + wobble);
 			ctx.fillStyle = particle.radius % 3 === 0 ? "rgba(255,202,95,0.48)" : "rgba(255,255,255,0.42)";
 			ctx.fillRect(x - particle.size * 0.5, y - particle.size * 0.5, particle.size, particle.size);
 		}
@@ -307,9 +307,10 @@ function initTrailerSimulation() {
 		ctx.stroke();
 
 		if (!reduceMotion) playerAngle += delta * 0.00125;
+		const orbitRadius = Math.min(142, Math.min(size.width, size.height) * 0.32);
 		const player = {
-			x: cx + Math.cos(playerAngle) * 142,
-			y: cy + Math.sin(playerAngle * 1.08) * 86,
+			x: cx + Math.cos(playerAngle) * orbitRadius,
+			y: cy + Math.sin(playerAngle) * orbitRadius,
 		};
 
 		ctx.setLineDash([5, 8]);
@@ -317,8 +318,8 @@ function initTrailerSimulation() {
 		ctx.beginPath();
 		for (let i = 0; i < 80; i += 1) {
 			const a = playerAngle - i * 0.035;
-			const x = cx + Math.cos(a) * 142;
-			const y = cy + Math.sin(a * 1.08) * 86;
+			const x = cx + Math.cos(a) * orbitRadius;
+			const y = cy + Math.sin(a) * orbitRadius;
 			if (i === 0) ctx.moveTo(x, y);
 			else ctx.lineTo(x, y);
 		}
@@ -328,7 +329,7 @@ function initTrailerSimulation() {
 		for (const point of points) {
 			if (!reduceMotion) point.angle += delta * 0.00012;
 			const x = cx + Math.cos(point.angle) * point.radius;
-			const y = cy + Math.sin(point.angle * 0.9) * point.radius * 0.62;
+			const y = cy + Math.sin(point.angle) * point.radius;
 			ctx.fillStyle = point.radius > 180 ? "rgba(255,74,50,0.52)" : "rgba(101,255,231,0.42)";
 			ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
 		}
@@ -870,7 +871,6 @@ initScrollProgress();
 initReveal();
 initHeroField();
 initTrailerSimulation();
-initSandbox();
 initBossLog();
 initClipConsole();
 initCodex();

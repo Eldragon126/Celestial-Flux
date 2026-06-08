@@ -1092,6 +1092,17 @@ func _on_powerup_applied(definition: PowerupDefinition, stacks: int) -> void:
 	_powerup_notice_color = definition.color
 	_powerup_notice_time = 2.2
 
+
+func show_mod_notice(text: String, color: Color = Color(0.34, 1.0, 0.86, 1.0), duration: float = 1.6) -> void:
+	if _powerup_notice_label == null:
+		return
+	var clean_text := text.strip_edges()
+	if clean_text.is_empty():
+		return
+	_powerup_notice_label.text = clean_text
+	_powerup_notice_color = color
+	_powerup_notice_time = maxf(_powerup_notice_time, duration)
+
 func _on_slingshot_mastery_triggered(data: Dictionary) -> void:
 	if _powerup_notice_label == null:
 		return

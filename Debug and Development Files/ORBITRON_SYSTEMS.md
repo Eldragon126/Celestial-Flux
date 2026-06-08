@@ -17,6 +17,7 @@
 - `MultiplayerSyncFoundation` emits passive deterministic sync snapshots and co-op readability budgets.
 - `CoopComboDirector` turns sync-safe vector events into deterministic shared resonance/time payoffs.
 - `ModContentRegistry` discovers data-driven mod manifests without executing arbitrary code.
+- `ModHookDirector` consumes safe hookable mod entries, evaluates conditions, applies bounded whitelisted effects, records deferred director requests, and replays player-triggered hook effects through `NetworkSession`.
 - `RunScoreTracker` emits score snapshots and shareable challenge codes.
 - `PhysicsDropSystem` spawns physics-based enemy rewards from death signals.
 - `ArenaRuleDirector` applies seeded arena law profiles for alternate arena physics.
@@ -317,11 +318,17 @@ The registry stores manifest metadata, namespaced content dictionaries, a local-
 
 Hookable content is the unique modding spine. `law_weaves`, `anomaly_recipes`, and `challenge_cards` declare safe hooks such as `wave_start`, `slingshot_apex`, `resonance_created`, `rare_event_started`, `music_beat`, and `coop_combo_triggered`. They combine normalized conditions (`min_wave`, `chaos_tier_at_least`, `has_weapon`, `slingshot_grade_at_least`, etc.) with declarative effects (`create_resonance_zone`, `offer_weapon`, `spawn_celestial_body`, `request_music_layer`, `tag_score_event`, etc.). Trusted directors can consume those entries through `get_hook_entries()` without giving mods script execution.
 
-Playable weapon mods now flow through the same registry. `WeaponSystem` reads `get_playable_weapon_entries()`, adds safe projectile entries to its weapon catalog, and supports mod patterns such as single, spread, parallel, braid, helix, and ring. Weapon payload overrides are normalized so mod packs can create distinct projectile identities while still using the normal HUD, prediction, energy, projectile, and network event path.
+Playable weapon mods now flow through the same registry. `WeaponSystem` reads `get_playable_weapon_entries()`, adds safe projectile entries to its weapon catalog, and supports mod patterns such as single, spread, parallel, braid, helix, ring, converge, scissor, and pinwheel. Weapon payload overrides are normalized so mod packs can create distinct projectile identities while still using the normal HUD, prediction, energy, projectile, and network event path.
 
 Manifest validation rejects malformed roots, missing ids, invalid versions, non-array content buckets, non-object entries, unsafe paths, invalid weapon payloads, unknown hooks, unknown condition/effect actions, and script references inside hookable entries. Failed manifests are stored in the registry snapshot and surfaced by the pause-menu Modding section. Script-like buckets are cataloged but locked unless script pack registration is explicitly enabled.
 
 `get_compatibility_signature()` now includes normalized gameplay-affecting mod content, including playable weapon profiles and hookable entries, while excluding entries marked `local_visual`. `NetworkSession` uses that signature for the mod/version handshake boundary so mismatched co-op gameplay packs can fail cleanly before spawning players.
+
+`ModHookDirector` is the runtime bridge for the safe hook spine. It listens to wave, boss, slingshot, weapon, projectile-hit, resonance, scar, rare-event, death, and co-op combo signals, then consumes entries from `get_hook_entries()`. Live effects are capped to resonance zones, gravity scars, powerup grants, weapon offers, HUD badges, and SFX. Higher-level requests such as arena events, celestial bodies, physics drops, music layers, run pressure, score tags, and challenge cards are recorded in `RunProgress.arena_flags["mod_hook_events"]` for trusted directors instead of spawning arbitrary content immediately.
+
+Player-triggered hook events are replicated through `NetworkSession.broadcast_mod_hook_event()` with a narrow payload so matching peers replay the same registry entry by id. Pre-run fallback mod signatures now filter to gameplay-affecting content, keeping local-only palettes, music, HUD badges, and creator notes out of LAN compatibility checks.
+
+The built-in weapon catalog now has a deeper production matrix without leaving the safe projectile path: Phase Suture, Null Rebounder, Graviton Bloom, Causal Anchor, Vector Prism, Mass Driver, Tidal Skein, Scar Carver, Chronal Needleloom, Singularity Kite, Inertia Maul, and Harmonic Bloom join the previous projectile and beam families. New safe projectile patterns `converge`, `scissor`, and `pinwheel` are available to mods alongside `single`, `spread`, `parallel`, `braid`, `helix`, and `ring`.
 
 ## Scores And Community Challenges
 

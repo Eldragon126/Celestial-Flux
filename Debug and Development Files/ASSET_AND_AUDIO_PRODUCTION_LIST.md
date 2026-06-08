@@ -44,6 +44,7 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 - CODEX Progress 2026-06-06: Game-over death vector text now has a subtle glitch treatment, and live HULL/SHIELD/ENERGY bars are integrated in OrbitalHUD.
 - CODEX Completion 2026-06-06: Pause sections now receive runtime color/outline accents for settings, weapons, modding, and multiplayer, matching the production menu checklist without needing scene rewrites.
 - CODEX Progress 2026-06-07: Modding docs and registry now define distinct visual/UI concepts for safe hookable mod content and playable weapon profiles; final editor art remains a future UI pass.
+- CODEX Progress 2026-06-07: Safe hook runtime activation, LAN replay for player-triggered mod hooks, and the expanded weapon-pattern catalog are code-backed; final mod editor cards should now show live/recorded effect status, network category, and projectile pattern previews.
 
 ## Music Needed
 

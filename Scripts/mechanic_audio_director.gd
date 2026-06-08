@@ -220,7 +220,7 @@ func _update_movement_audio() -> void:
 		return
 	_next_thrust_cue = now + 0.28
 	var velocity_value: Variant = _player.get("velocity")
-	var speed := velocity_value.length() if velocity_value is Vector2 else 0.0
+	var speed = velocity_value.length() if velocity_value is Vector2 else 0.0
 	_play_player_cue(THRUST_VECTOR_SURGE_STREAM, momentum_cue_volume_db - 6.0, lerpf(0.88, 1.18, clampf(speed / 1800.0, 0.0, 1.0)))
 
 
@@ -762,8 +762,9 @@ func _play_positional_cue(stream: AudioStream, position: Vector2, volume_db: flo
 	if _active_players.size() >= max_simultaneous_cues:
 		return
 	_last_cue_time = now
-
-	var scene := get_tree().current_scene
+	var scene
+	if is_instance_valid(get_tree().current_scene):
+		scene = get_tree().current_scene
 	if scene == null:
 		return
 	var player := AudioStreamPlayer2D.new()

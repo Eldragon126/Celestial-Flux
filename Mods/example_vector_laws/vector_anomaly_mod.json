@@ -140,6 +140,48 @@
           "field_radius": 150.0,
           "field_force": 260.0
         }
+      },
+      {
+        "id": "mirror_pinwheel",
+        "display_name": "Mirror Pinwheel",
+        "fire_mode": "projectile",
+        "network_category": "reliable_event",
+        "base_weapon_id": "graviton_bloom",
+        "pattern": "pinwheel",
+        "shot_count": 6,
+        "spread_radians": 0.32,
+        "energy_per_shot": 24.0,
+        "color": [0.42, 0.96, 1.0, 1.0],
+        "description": "A playable mod profile using the rotating pinwheel pattern for a bounded compression bloom.",
+        "payload": {
+          "resonance_zone_type": "compression",
+          "resonance_radius": 145.0,
+          "field_radius": 185.0,
+          "field_force": -360.0,
+          "scar_type": "curvature",
+          "scar_radius": 160.0
+        }
+      },
+      {
+        "id": "phase_suture_demo",
+        "display_name": "Phase Suture Demo",
+        "fire_mode": "projectile",
+        "network_category": "reliable_event",
+        "base_weapon_id": "phase_suture",
+        "pattern": "converge",
+        "shot_count": 2,
+        "spread_radians": 0.14,
+        "energy_per_shot": 13.0,
+        "description": "A playable mod profile using converging temporal stitches instead of a simple spread.",
+        "payload": {
+          "resonance_zone_type": "temporal_scar",
+          "slow_multiplier": 0.58,
+          "slow_duration": 0.34,
+          "field_radius": 155.0,
+          "field_slow_multiplier": 0.62,
+          "field_slow_duration": 0.28,
+          "scar_type": "temporal_rip"
+        }
       }
     ],
     "law_weaves": [

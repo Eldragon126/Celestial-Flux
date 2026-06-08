@@ -7,7 +7,7 @@ const TITLE_TRACK_DARK_PULSE := preload("res://Assets/Songs/Title Screen New.mp3
 @export var version_string: String = "v1.0.4.6"
 @export var secret_completion_check_interval: float = 0.25
 @export var alternate_title_music: bool = true
-@export var use_brand_logo_texture: bool = true
+@export var use_brand_logo_texture: bool = false #keep this false. I don't want the logo to be there.
 @export var logo_texture_path: String = "res://Assets/Brand/vector_anomaly_epic_logo_generated.png"
 
 @export_group("Multiplayer")

@@ -5,6 +5,7 @@ signal session_status_changed(status: Dictionary)
 signal peer_roster_changed(roster: Array)
 signal network_run_started(config: Dictionary)
 signal network_wave_state_received(state: Dictionary)
+signal network_mod_hook_received(hook_id: StringName, entry_id: StringName, data: Dictionary)
 signal session_error(message: String)
 
 enum SessionMode {
@@ -17,12 +18,35 @@ enum SessionMode {
 
 const DEFAULT_PORT := 28942
 const DEFAULT_MAX_PEERS := 4
-const NETWORK_PROTOCOL_VERSION := 3
+const NETWORK_PROTOCOL_VERSION := 4
 const RUN_SCENE_PATH := "res://Nodes/the_abyss.tscn"
 const PLAYER_SCENE := preload("res://Nodes/player.tscn")
 const PROJECTILE_FALLBACK_SCENE_PATH := "res://Nodes/projectile.tscn"
 const MOD_MANIFEST_FILE_NAME := "vector_anomaly_mod.json"
 const MOD_SCAN_ROOTS: Array[String] = ["res://Mods", "user://mods"]
+const LOCAL_ONLY_MOD_BUCKETS := ["mod_palettes", "creator_notes", "hud_badges", "sfx", "music"]
+const HOOKABLE_MOD_BUCKETS := ["law_weaves", "anomaly_recipes", "challenge_cards"]
+const GAMEPLAY_MOD_BUCKETS := [
+	"arenas",
+	"waves",
+	"upgrades",
+	"rules",
+	"powerups",
+	"weapons",
+	"enemies",
+	"bosses",
+	"arena_events",
+	"celestial_bodies",
+	"physics_drops",
+	"materials",
+	"prefabs",
+	"entities",
+	"gamemodes",
+	"maps",
+	"law_weaves",
+	"anomaly_recipes",
+	"challenge_cards",
+]
 const PROJECTILE_PAYLOAD_KEYS: Array[String] = [
 	"weapon_id",
 	"display_name",
@@ -318,6 +342,8 @@ func broadcast_projectile_spawn(projectile: Node, direction: Vector2, owner: Nod
 	var owner_peer_id := int(owner.get("network_peer_id"))
 	if owner_peer_id != _effective_local_peer_id():
 		return
+	projectile.set_meta(&"network_owner_peer_id", owner_peer_id)
+	projectile.set_meta(&"network_local_projectile", true)
 	var path := projectile.scene_file_path
 	if path.is_empty():
 		path = PROJECTILE_FALLBACK_SCENE_PATH
@@ -350,6 +376,24 @@ func broadcast_vector_event(data: Dictionary, owner: Node) -> void:
 		_rpc_remote_vector_event.rpc(event_data)
 	else:
 		_rpc_client_vector_event.rpc_id(1, event_data)
+
+
+func broadcast_mod_hook_event(hook_id: StringName, entry_id: StringName, data: Dictionary, owner: Node = null) -> void:
+	if not is_network_active():
+		return
+	var owner_peer_id := _effective_local_peer_id()
+	if owner != null:
+		if owner.get("network_is_local") != null and not bool(owner.get("network_is_local")):
+			return
+		var owner_value: Variant = owner.get("network_peer_id")
+		if typeof(owner_value) == TYPE_INT:
+			owner_peer_id = int(owner_value)
+	var event_data := _sanitize_mod_hook_event(hook_id, entry_id, data)
+	event_data["owner_peer_id"] = owner_peer_id
+	if multiplayer.is_server():
+		_rpc_remote_mod_hook_event.rpc(event_data)
+	else:
+		_rpc_client_mod_hook_event.rpc_id(1, event_data)
 
 
 func broadcast_wave_state(state: Dictionary) -> void:
@@ -546,6 +590,33 @@ func _rpc_remote_vector_event(data: Dictionary) -> void:
 	if int(data.get("owner_peer_id", 0)) == _effective_local_peer_id():
 		return
 	_apply_remote_vector_event(data)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_client_mod_hook_event(data: Dictionary) -> void:
+	if not multiplayer.is_server():
+		return
+	var sanitized := _sanitize_mod_hook_event(
+		StringName(str(data.get("hook_id", ""))),
+		StringName(str(data.get("entry_id", ""))),
+		data
+	)
+	sanitized["owner_peer_id"] = multiplayer.get_remote_sender_id()
+	_emit_network_mod_hook(sanitized)
+	_rpc_remote_mod_hook_event.rpc(sanitized)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _rpc_remote_mod_hook_event(data: Dictionary) -> void:
+	if _int_from_variant(data.get("owner_peer_id", 0), 0) == _effective_local_peer_id():
+		return
+	var sanitized := _sanitize_mod_hook_event(
+		StringName(str(data.get("hook_id", ""))),
+		StringName(str(data.get("entry_id", ""))),
+		data
+	)
+	sanitized["owner_peer_id"] = _int_from_variant(data.get("owner_peer_id", 0), 0)
+	_emit_network_mod_hook(sanitized)
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -962,10 +1033,8 @@ func _append_manifest_signature_token(path: String, tokens: Array[String]) -> vo
 		tokens.append("invalid:%s:%s" % [path, text.sha256_text().substr(0, 8)])
 		return
 	var manifest := parsed as Dictionary
-	var manifest_id := str(manifest.get("id", "")).strip_edges()
-	var version := str(manifest.get("version", "")).strip_edges()
-	var schema := int(manifest.get("schema_version", 1))
-	tokens.append("%s:%s:%d:%s" % [manifest_id, version, schema, text.sha256_text().substr(0, 8)])
+	for token in _manifest_gameplay_signature_tokens(manifest):
+		tokens.append(token)
 
 
 func _sanitize_vector_event(data: Dictionary) -> Dictionary:
@@ -981,6 +1050,141 @@ func _sanitize_vector_event(data: Dictionary) -> Dictionary:
 		"speed_after": float(data.get("speed_after", 0.0)),
 		"time": float(data.get("time", Time.get_ticks_msec() / 1000.0)),
 	}
+
+
+func _sanitize_mod_hook_event(hook_id: StringName, entry_id: StringName, data: Dictionary) -> Dictionary:
+	return {
+		"hook_id": String(hook_id),
+		"entry_id": String(entry_id),
+		"position": _vector2_from_variant(data.get("position", data.get("origin", Vector2.ZERO))),
+		"origin": _vector2_from_variant(data.get("origin", data.get("position", Vector2.ZERO))),
+		"weapon_id": String(data.get("weapon_id", "")),
+		"grade": String(data.get("grade", "")),
+		"score": clampf(float(data.get("score", 0.0)), 0.0, 1.0),
+		"wave": maxi(_int_from_variant(data.get("wave", 0), 0), 0),
+		"zone_type": _int_from_variant(data.get("zone_type", data.get("resonance_type", -1)), -1),
+		"zone_type_name": String(data.get("zone_type_name", data.get("resonance_type_name", ""))),
+		"scar_type": _int_from_variant(data.get("scar_type", -1), -1),
+		"scar_type_name": String(data.get("scar_type_name", "")),
+		"combo_id": String(data.get("combo_id", "")),
+		"time": float(data.get("time", Time.get_ticks_msec() / 1000.0)),
+	}
+
+
+func _int_from_variant(value: Variant, fallback: int = 0) -> int:
+	if value is int or value is float:
+		return int(value)
+	var text := str(value).strip_edges()
+	if text.is_valid_int():
+		return int(text)
+	if text.is_valid_float():
+		return int(float(text))
+	return fallback
+
+
+func _emit_network_mod_hook(data: Dictionary) -> void:
+	var hook_id := StringName(str(data.get("hook_id", "")))
+	var entry_id := StringName(str(data.get("entry_id", "")))
+	if String(hook_id).is_empty() or String(entry_id).is_empty():
+		return
+	network_mod_hook_received.emit(hook_id, entry_id, data.duplicate(true))
+
+
+func _manifest_gameplay_signature_tokens(manifest: Dictionary) -> Array[String]:
+	var manifest_id := str(manifest.get("id", "")).strip_edges()
+	if manifest_id.is_empty():
+		return []
+	var content_tokens: Array[String] = []
+	for bucket in GAMEPLAY_MOD_BUCKETS:
+		var entries := _manifest_bucket_entries_for_signature(manifest, bucket)
+		for value in entries:
+			if not (value is Dictionary):
+				continue
+			var entry: Dictionary = value
+			var network_category := str(entry.get("network_category", _default_signature_network_category(bucket))).strip_edges()
+			if network_category == "local_visual" or LOCAL_ONLY_MOD_BUCKETS.has(bucket):
+				continue
+			var entry_id := str(entry.get("id", "")).strip_edges()
+			if entry_id.is_empty():
+				continue
+			var signature_entry := _filtered_mod_signature_entry(entry)
+			content_tokens.append("%s:%s/%s:%s" % [
+				bucket,
+				manifest_id,
+				entry_id,
+				_stable_mod_value_text(signature_entry),
+			])
+	if content_tokens.is_empty():
+		return []
+	content_tokens.sort()
+	var tokens: Array[String] = [
+		"manifest:%s:%s:%d" % [
+			manifest_id,
+			str(manifest.get("version", "1")).strip_edges(),
+			int(manifest.get("schema_version", 1)),
+		],
+	]
+	for token in content_tokens:
+		tokens.append(token)
+	return tokens
+
+
+func _manifest_bucket_entries_for_signature(manifest: Dictionary, bucket: String) -> Array:
+	var entries := []
+	var root_value: Variant = manifest.get(bucket, [])
+	if root_value is Array:
+		for value in root_value:
+			entries.append(value)
+	var content_value: Variant = manifest.get("content", {})
+	if content_value is Dictionary:
+		var nested_value: Variant = (content_value as Dictionary).get(bucket, [])
+		if nested_value is Array:
+			for value in nested_value:
+				entries.append(value)
+	return entries
+
+
+func _filtered_mod_signature_entry(entry: Dictionary) -> Dictionary:
+	var filtered := entry.duplicate(true)
+	for field in ["display_name", "description", "author", "icon", "thumbnail", "preview", "creator_note", "note"]:
+		filtered.erase(field)
+	return filtered
+
+
+func _default_signature_network_category(bucket: String) -> String:
+	if LOCAL_ONLY_MOD_BUCKETS.has(bucket):
+		return "local_visual"
+	if HOOKABLE_MOD_BUCKETS.has(bucket) or bucket == "arenas" or bucket == "waves" or bucket == "rules" or bucket == "arena_events":
+		return "deterministic_seed"
+	if bucket == "weapons":
+		return "reliable_event"
+	return "exported_state"
+
+
+func _stable_mod_value_text(value: Variant) -> String:
+	if value is Dictionary:
+		var dictionary := value as Dictionary
+		var keys := dictionary.keys()
+		keys.sort_custom(func(a: Variant, b: Variant) -> bool:
+			return str(a) < str(b)
+		)
+		var parts := PackedStringArray()
+		for key in keys:
+			parts.append("%s=%s" % [str(key), _stable_mod_value_text(dictionary[key])])
+		return "{%s}" % "|".join(parts)
+	if value is Array:
+		var array_value := value as Array
+		var parts := PackedStringArray()
+		for item in array_value:
+			parts.append(_stable_mod_value_text(item))
+		return "[%s]" % ",".join(parts)
+	if value is Color:
+		var color: Color = value
+		return "color(%.4f,%.4f,%.4f,%.4f)" % [color.r, color.g, color.b, color.a]
+	if value is Vector2:
+		var vector: Vector2 = value
+		return "vec2(%.3f,%.3f)" % [vector.x, vector.y]
+	return str(value)
 
 
 func _vector2_from_variant(value: Variant) -> Vector2:
