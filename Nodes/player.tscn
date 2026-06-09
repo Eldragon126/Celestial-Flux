@@ -166,6 +166,7 @@ volume_db = -20.0
 bus = &"Player Sound Effects"
 
 [node name="OrbitalTrajectoryPredictor" type="Node2D" parent="." unique_id=1075155317]
+visible = false
 script = ExtResource("7_0bouj")
 branch_step_stride = 1
 metadata/_custom_type_script = "uid://i6fhtodnnkja"

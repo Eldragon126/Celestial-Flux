@@ -276,7 +276,7 @@ func _draw() -> void:
 		
 		draw_line(a, b, Color(col.r, col.g, col.b, alpha * col.a), line_width)
 
-[ ] Even though I've said this 5 times to fix and it's been "fixed" five times (it hasn't) The player once getting a specific powerup has huge blue star flashes that take over the entire screen when firing bullets and slingshotting.
+[ ] Even though I've said this 5 times to fix, and it's been "fixed" five times (it hasn't) The player once getting a specific powerup has huge blue star flashes that take over the entire screen when firing bullets and slingshotting.
 
 [ ] Performance is still bad on my friends computer and especially bad over multiplayer. Enemies and bosses are often delayed by 10 or more seconds for the host vs the other player. It needs to be more instantaneous. 
 
@@ -291,3 +291,52 @@ func _draw() -> void:
 [ ] I get trapped in small gravity wells that I can't see very well and I can't get out.
 
 [ ] The shield should take slower to recharge so that you actually have time to get hit. I survived to level 16 with limited ability just because I can dash away and wait for my shield to heal. It might also be good to tie shield recharge to the energy component. 
+
+[ ] Enemies (And still player) can get stuck in gravitational wells. Can there some sort of "escape buildup" Where you still get punished for falling all the way into the well, but you can still escape after a little bit instead of just waiting for it to disappear?
+
+[ ] Make the aura circles brighter and more present. Make them look cool, clean, and professional.
+
+[ ] Overall, the game needs to feel more like a professionally polished game and less of an indie melting pot. I think this could be accomplished with better effects, the use of lots of shaders, and more intricate (but still simple and clean) particle effects. This needs to be fixed. The sound effects also aren't the best right now. I think they should be changed up, but that is not an immediate fix.
+
+[ ] The game isn't very polished right now. Polish EVERYTHING. I want effects on the health bar, I want effects on the main menu, I want tweens on the pause menu buttons, I want the enemies to be smarter, I want the player to be able to have more meaningful interactions with the game, help me create something unique and amazing.
+
+[ ] Make a Demo-Game scene. I will export the game with just that scene (Not the abyss scene) for the Steam Demo Game. 
+
+[ ] Demo should include:
+
+10-15 minutes of gameplay
+1 polished arena
+1 strong boss or mini-boss
+A few upgrades that change behavior, not just stats
+Enough juice that clips look insane
+A “Wishlist now” button or end screen
+Phase 3: Market through clips, not essays
+
+Your game’s strength is not lore walls. It is visual chaos with skill. So market with short clips.
+
+Best content types:
+
+“I survived with 1 HP because gravity saved me”
+“This boss broke the arena”
+“I made a roguelike where momentum is your weapon”
+“The map collapses if you survive too long”
+“This upgrade bends bullets through gravity wells”
+
+You want people to understand the game in 3 seconds.
+
+
+[ ] Make the game understandable in 3 seconds.
+
+[ ] Specifically make a scene that I can pop into and get quick clip-ready moments and or test the game's mechanics (Lots of hotkeys and toggle-able instructions on what hotkeys do what).
+
+[ ] Make a standalone scene for mod management, and what mods load and how the mods load. Kind of like TModLoader for Terraria, but built into the game as a core function.
+
+[ ] Your absolute highest priority must be locking in the Core Orbital Movement and Gravity Sampling Architecture. If the fundamental act of slingshotting around a mass doesn't feel inherently dangerous and rewarding in a greybox environment, the rest of the game will collapse.
+
+[ ] Execute a brutal Scope Lockdown for a Vertical Slice. Focus exclusively on polishing Waves 1 through 5, leading up to the first boss encounter. This 5-to-10 minute loop must perfectly encapsulate the transition from calm baseline physics to escalating instability, complete with dynamic audio intensity layering. Polish this exact sequence until every movement feels like a deliberate skill expression and every death feels like a fair, mathematically understandable consequence. Once this tight, highly optimized loop proves it can reliably generate "how did that even happen?" marketing clips, you will have the exact blueprint needed to scale the rest of the game to launch.
+
+[ ] Make sure each wave is long enough so that the player doesn't have music cuts.
+
+[ ] Documentation needs to be readily available on how to make mods, and attach them to the windows/mac/Linux/ext. builds of the game (Folders to drop it into ext.)
+
+[ ] 
