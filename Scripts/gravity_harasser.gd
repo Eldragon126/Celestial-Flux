@@ -61,7 +61,7 @@ func _pull_player(delta: float) -> void:
 	else:
 		# fallback for direct variable access
 		var player_velocity: Variant = _player.get("velocity")
-		if not player_velocity is Vector2:
+		if not (player_velocity is Vector2):
 			return
 		_player.set("velocity", player_velocity + pull * delta)
 

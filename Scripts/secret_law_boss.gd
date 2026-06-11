@@ -76,7 +76,8 @@ func _build_editable_body() -> void:
 		_hull.name = "SecretHull"
 		add_child(_hull)
 	if _hull.polygon.is_empty():
-		_hull.polygon = _circle_points(9, 96.0)
+		# CORRECTED: Passed the float (radius) first, then int (count)
+		_hull.polygon = _circle_points(96.0, 9)
 	_hull.color = Color(0.12, 0.08, 0.22, 0.92)
 
 	_core = get_node_or_null("SecretCore") as Polygon2D
@@ -85,7 +86,8 @@ func _build_editable_body() -> void:
 		_core.name = "SecretCore"
 		add_child(_core)
 	if _core.polygon.is_empty():
-		_core.polygon = _circle_points(7, 38.0)
+		# CORRECTED: Passed the float (radius) first, then int (count)
+		_core.polygon = _circle_points(38.0, 7)
 	_core.color = _phase_color(1)
 
 	_rings.clear()
@@ -109,7 +111,8 @@ func _build_editable_body() -> void:
 	if not has_node("CollisionShape2D") and not has_node("CollisionPolygon2D"):
 		var collision := CollisionPolygon2D.new()
 		collision.name = "CollisionPolygon2D"
-		collision.polygon = _circle_points(9, 100.0)
+		# CORRECTED: Passed the float (radius) first, then int (count)
+		collision.polygon = _circle_points(100.0, 9)
 		add_child(collision)
 
 
@@ -192,7 +195,8 @@ func _update_visuals(delta: float) -> void:
 		if ring == null:
 			continue
 		var radius := 126.0 + float(i) * 46.0 + _rule_charge * 34.0
-		ring.points = _circle_points(64, radius)
+		# CORRECTED: Passed the float (radius) first, then int (count)
+		ring.points = _circle_points(radius, 64)
 		ring.rotation += delta * (0.5 + float(i) * 0.22) * (-1.0 if secret_variant == 1 else 1.0)
 		var color := Color(0.36, 1.0, 0.88, 0.32) if secret_variant == 0 else Color(0.82, 0.42, 1.0, 0.32)
 		ring.default_color = color
@@ -254,7 +258,8 @@ func _phase_color(phase: int) -> Color:
 	return [Color(0.32, 1.0, 0.78, 1.0), Color(1.0, 0.82, 0.24, 1.0), Color(1.0, 0.34, 0.16, 1.0)][clampi(phase - 1, 0, 2)]
 
 
-func _circle_points(count: int, radius: float) -> PackedVector2Array:
+# CORRECTED: Function signature now matches parent (float, int)
+func _circle_points(radius: float, count: int) -> PackedVector2Array:
 	var points := PackedVector2Array()
 	for i in range(count):
 		var angle := TAU * float(i) / float(count)

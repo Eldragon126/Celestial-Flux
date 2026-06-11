@@ -489,7 +489,11 @@ func get_compatibility_signature() -> String:
 		tokens.append(token)
 	tokens.sort()
 	var packed := PackedStringArray()
+	var seen_tokens := {}
 	for token in tokens:
+		if seen_tokens.has(token):
+			continue
+		seen_tokens[token] = true
 		packed.append(token)
 	return ("mods:%s" % "|".join(packed)).sha256_text().substr(0, 16)
 

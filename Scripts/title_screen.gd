@@ -3,6 +3,9 @@ extends Control
 const SECRET_ENEMY_GROUPS: Array[StringName] = [&"wave_enemy", &"enemies", &"ParametricEnemies"]
 const TITLE_TRACK_ORBITAL_DRIFT := preload("res://Assets/Songs/Orbital Drift.mp3")
 const TITLE_TRACK_DARK_PULSE := preload("res://Assets/Songs/Title Screen New.mp3")
+const STEAM_DEMO_SCENE := "res://Nodes/demo_game.tscn"
+const CLIP_LAB_SCENE := "res://Nodes/clip_lab_scene.tscn"
+const MOD_MANAGER_SCENE := "res://Nodes/mod_management_scene.tscn"
 
 @export var version_string: String = "v1.0.4.6"
 @export var secret_completion_check_interval: float = 0.25
@@ -35,6 +38,10 @@ var _mp_host_button: Button = null
 var _mp_join_button: Button = null
 var _mp_stop_button: Button = null
 var _mp_steam_button: Button = null
+var _demo_button: Button = null
+var _clip_lab_button: Button = null
+var _mod_manager_button: Button = null
+var _menu_button_tweens: Dictionary = {}
 
 
 func _ready() -> void:
@@ -52,7 +59,10 @@ func _ready() -> void:
 	_update_button_visibility()
 	_update_version_label()
 	_apply_title_brand()
+	_build_production_buttons()
 	_build_multiplayer_ui()
+	_normalize_title_menu_density()
+	call_deferred("_setup_menu_button_tweens")
 	_connect_network_session()
 	_update_multiplayer_ui()
 
@@ -194,6 +204,45 @@ func _build_multiplayer_ui() -> void:
 	_ensure_multiplayer_panel()
 
 
+func _build_production_buttons() -> void:
+	var menu := get_node_or_null("Menu") as VBoxContainer
+	if menu == null:
+		return
+	_demo_button = _ensure_menu_button("SteamDemoButton", "Steam Demo", Callable(self, "_on_steam_demo_button_pressed"))
+	_clip_lab_button = _ensure_menu_button("ClipLabButton", "Clip Lab", Callable(self, "_on_clip_lab_button_pressed"))
+	_mod_manager_button = _ensure_menu_button("ModManagerButton", "Mods", Callable(self, "_on_mod_manager_button_pressed"))
+	_reorder_menu_button(_demo_button, "TutorialButton")
+	_reorder_menu_button(_clip_lab_button, "BossRushButton")
+	_reorder_menu_button(_mod_manager_button, "BossRushButton")
+
+
+func _ensure_menu_button(node_name: String, text: String, callback: Callable) -> Button:
+	var menu := get_node_or_null("Menu") as VBoxContainer
+	if menu == null:
+		return null
+	var button := menu.get_node_or_null(node_name) as Button
+	if button == null:
+		button = Button.new()
+		button.name = node_name
+		button.text = text
+		button.custom_minimum_size = Vector2(420.0, 0.0)
+		menu.add_child(button)
+	_copy_button_font(button, get_node_or_null("Menu/NewRunButton") as Button)
+	if not button.pressed.is_connected(callback):
+		button.pressed.connect(callback)
+	return button
+
+
+func _reorder_menu_button(button: Button, after_node_name: String) -> void:
+	if button == null:
+		return
+	var menu := get_node_or_null("Menu") as VBoxContainer
+	var anchor := menu.get_node_or_null(after_node_name) if menu != null else null
+	if menu == null or anchor == null:
+		return
+	menu.move_child(button, mini(anchor.get_index() + 1, menu.get_child_count() - 1))
+
+
 func _ensure_multiplayer_button() -> void:
 	var menu := get_node_or_null("Menu") as VBoxContainer
 	if menu == null:
@@ -205,7 +254,7 @@ func _ensure_multiplayer_button() -> void:
 		_multiplayer_button.text = "Multiplayer"
 		_multiplayer_button.custom_minimum_size = Vector2(420.0, 0.0)
 		menu.add_child(_multiplayer_button)
-		menu.move_child(_multiplayer_button, mini(2, menu.get_child_count() - 1))
+		menu.move_child(_multiplayer_button, menu.get_child_count() - 1)
 	_copy_button_font(_multiplayer_button, get_node_or_null("Menu/NewRunButton") as Button)
 	if not _multiplayer_button.pressed.is_connected(_on_multiplayer_button_pressed):
 		_multiplayer_button.pressed.connect(_on_multiplayer_button_pressed)
@@ -377,6 +426,24 @@ func _on_multiplayer_close_pressed() -> void:
 		_mp_panel.visible = false
 
 
+func _on_steam_demo_button_pressed() -> void:
+	if NetworkSession != null:
+		NetworkSession.leave_session()
+	RunProgress.begin_new_run(false)
+	get_tree().change_scene_to_file(STEAM_DEMO_SCENE)
+
+
+func _on_clip_lab_button_pressed() -> void:
+	if NetworkSession != null:
+		NetworkSession.leave_session()
+	RunProgress.begin_new_run(false)
+	get_tree().change_scene_to_file(CLIP_LAB_SCENE)
+
+
+func _on_mod_manager_button_pressed() -> void:
+	get_tree().change_scene_to_file(MOD_MANAGER_SCENE)
+
+
 func _on_network_status_changed(_status: Dictionary) -> void:
 	_update_multiplayer_ui()
 
@@ -465,6 +532,73 @@ func _copy_button_font(target: Button, source: Button) -> void:
 	if font != null:
 		target.add_theme_font_override("font", font)
 	target.add_theme_font_size_override("font_size", source.get_theme_font_size("font_size"))
+
+
+func _normalize_title_menu_density() -> void:
+	var menu := get_node_or_null("Menu") as VBoxContainer
+	if menu == null:
+		return
+	menu.add_theme_constant_override("separation", 2)
+	menu.offset_top = -520.0
+	menu.offset_bottom = -68.0
+	for child in menu.get_children():
+		if child is Button:
+			(child as Button).add_theme_font_size_override("font_size", 34)
+			(child as Button).custom_minimum_size = Vector2(420.0, 40.0)
+		elif child is Label:
+			(child as Label).add_theme_font_size_override("font_size", 54)
+
+
+func _setup_menu_button_tweens() -> void:
+	var menu := get_node_or_null("Menu") as VBoxContainer
+	if menu == null:
+		return
+	for child in menu.get_children():
+		var button := child as Button
+		if button == null:
+			continue
+		button.pivot_offset = button.size * 0.5
+		var hover_callable := Callable(self, "_on_menu_button_hovered").bind(button)
+		if not button.mouse_entered.is_connected(hover_callable):
+			button.mouse_entered.connect(hover_callable)
+		var focus_callable := Callable(self, "_on_menu_button_hovered").bind(button)
+		if not button.focus_entered.is_connected(focus_callable):
+			button.focus_entered.connect(focus_callable)
+		var exit_callable := Callable(self, "_on_menu_button_unhovered").bind(button)
+		if not button.mouse_exited.is_connected(exit_callable):
+			button.mouse_exited.connect(exit_callable)
+		var blur_callable := Callable(self, "_on_menu_button_unhovered").bind(button)
+		if not button.focus_exited.is_connected(blur_callable):
+			button.focus_exited.connect(blur_callable)
+		var press_callable := Callable(self, "_on_menu_button_pressed_feedback").bind(button)
+		if not button.pressed.is_connected(press_callable):
+			button.pressed.connect(press_callable)
+
+
+func _on_menu_button_hovered(button: Button) -> void:
+	_tween_menu_button(button, Vector2(1.045, 1.08), Color(0.74, 1.0, 0.96, 1.0), 0.12)
+
+
+func _on_menu_button_unhovered(button: Button) -> void:
+	_tween_menu_button(button, Vector2.ONE, Color(1.0, 1.0, 1.0, 1.0), 0.16)
+
+
+func _on_menu_button_pressed_feedback(button: Button) -> void:
+	_tween_menu_button(button, Vector2(0.96, 0.94), Color(1.0, 0.86, 0.34, 1.0), 0.07)
+
+
+func _tween_menu_button(button: Button, scale_value: Vector2, color: Color, duration: float) -> void:
+	if button == null or not is_instance_valid(button):
+		return
+	var id := button.get_instance_id()
+	var old_tween_value: Variant = _menu_button_tweens.get(id, null)
+	var old_tween: Tween = old_tween_value as Tween
+	if old_tween != null:
+		old_tween.kill()
+	var tween := create_tween()
+	_menu_button_tweens[id] = tween
+	tween.tween_property(button, "scale", scale_value, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(button, "modulate", color, duration)
 
 
 func _load_title_texture(path: String) -> Texture2D:

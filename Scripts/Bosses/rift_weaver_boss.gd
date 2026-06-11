@@ -86,7 +86,8 @@ func _build_body() -> void:
 		_core.color = Color(0.24, 1.0, 0.72, 1.0)
 		add_child(_core)
 	if _core.polygon.is_empty():
-		_core.polygon = _circle_points(9, 38.0)
+		# CORRECTED: Passed the float (radius) first, then int (count)
+		_core.polygon = _circle_points(38.0, 9) 
 
 	if not has_node("CollisionPolygon2D"):
 		var collision = CollisionPolygon2D.new()
@@ -129,7 +130,7 @@ func _apply_rift_lanes(delta: float) -> void:
 		var lane_dir = Vector2.RIGHT.rotated(_lane_angle + TAU * float(i) / float(_rift_lanes.size()))
 		if absf(offset.dot(lane_dir.orthogonal())) <= rift_width:
 			var player_velocity: Variant = player.get("velocity")
-			if not player_velocity is Vector2:
+			if not (player_velocity is Vector2):
 				return
 			player.set("velocity", player_velocity + lane_dir * lane_force * delta)
 			return
@@ -199,7 +200,7 @@ func _rift_snap() -> void:
 	var offset = player.global_position - global_position
 	if offset.length() < 780.0:
 		var player_velocity: Variant = player.get("velocity")
-		if not player_velocity is Vector2:
+		if not (player_velocity is Vector2):
 			return
 		player.set("velocity", player_velocity.rotated(0.32).limit_length(maxf(player_velocity.length(), 420.0)))
 		CombatStatus.apply_local_slow(player, 0.82, 0.55)
@@ -212,7 +213,8 @@ func _pulse_core() -> void:
 	tween.tween_property(_core, "scale", Vector2(1.3, 1.3), 0.12)
 	tween.tween_property(_core, "scale", Vector2.ONE, 0.2)
 
-func _circle_points(count: int, radius: float) -> PackedVector2Array:
+# CORRECTED: Function signature now matches parent (float, int)
+func _circle_points(radius: float, count: int) -> PackedVector2Array:
 	var points = PackedVector2Array()
 	for i in range(count):
 		var angle = TAU * float(i) / float(count)

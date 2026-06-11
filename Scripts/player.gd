@@ -74,7 +74,7 @@ signal damage_ignored_during_invulnerability(amount: float)
 @export var post_hit_invulnerability_flash_rate: float = 14.0
 
 @export_group("Network")
-@export var network_state_send_interval: float = 0.055
+@export var network_state_send_interval: float = 0.035
 @export var network_position_lerp_rate: float = 18.0
 @export var network_velocity_lerp_rate: float = 14.0
 @export var network_nameplate_offset: Vector2 = Vector2(0.0, -72.0)

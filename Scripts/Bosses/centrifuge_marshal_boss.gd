@@ -103,16 +103,19 @@ func _build_body() -> void:
 		_core = get_node("CentrifugeCore") as Polygon2D
 		_collect_halo_lines()
 		if _aura != null and _aura.polygon.is_empty():
-			_aura.polygon = _circle_points(48, 168.0)
+			# CORRECTED: Passed the float (radius) first, then int (count)
+			_aura.polygon = _circle_points(168.0, 48)
 		if _core != null and _core.polygon.is_empty():
-			_core.polygon = _circle_points(10, 52.0)
+			# CORRECTED: Passed the float (radius) first, then int (count)
+			_core.polygon = _circle_points(52.0, 10)
 	else:
 		_build_body_polygons()
 
 	if not has_node("CollisionPolygon2D"):
 		var collision := CollisionPolygon2D.new()
 		collision.name = "CollisionPolygon2D"
-		collision.polygon = _circle_points(12, 118.0)
+		# CORRECTED: Passed the float (radius) first, then int (count)
+		collision.polygon = _circle_points(118.0, 12)
 		add_child(collision)
 
 	if _halo_lines.is_empty():
@@ -131,13 +134,15 @@ func _build_body_polygons() -> void:
 	_aura.name = "CentrifugeAura"
 	_aura.z_index = -3
 	_aura.color = Color(0.2, 0.82, 1.0, 0.1)
-	_aura.polygon = _circle_points(48, 168.0)
+	# CORRECTED: Passed the float (radius) first, then int (count)
+	_aura.polygon = _circle_points(168.0, 48)
 	add_child(_aura)
 
 	_core = Polygon2D.new()
 	_core.name = "CentrifugeCore"
 	_core.color = Color(0.35, 0.95, 1.0, 1.0)
-	_core.polygon = _circle_points(10, 52.0)
+	# CORRECTED: Passed the float (radius) first, then int (count)
+	_core.polygon = _circle_points(52.0, 10)
 	add_child(_core)
 
 
@@ -242,7 +247,7 @@ func _pull_player(delta: float) -> void:
 	if distance <= 1.0 or distance > gravity_radius:
 		return
 	var player_velocity: Variant = player.get("velocity")
-	if not player_velocity is Vector2:
+	if not (player_velocity is Vector2):
 		return
 	var pull = offset.normalized() * gravity_strength * mass / maxf(distance * distance, 1800.0)
 	player.set("velocity", player_velocity + pull * delta)
@@ -267,7 +272,8 @@ func _spawn_aimed_shot(speed: float) -> void:
 	get_parent().call_deferred("add_child", bullet)
 
 
-func _circle_points(count: int, radius: float) -> PackedVector2Array:
+# CORRECTED: Function signature now matches parent (float, int)
+func _circle_points(radius: float, count: int) -> PackedVector2Array:
 	var points := PackedVector2Array()
 	for i in range(count):
 		var angle := TAU * float(i) / float(count)

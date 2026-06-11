@@ -128,6 +128,7 @@ texture = SubResource("PlaceholderTexture2D_pie2b")
 process_mode = 3
 
 [node name="Health" type="Label" parent="CanvasLayer" unique_id=1346219360]
+visible = false
 offset_left = 7.0
 offset_top = 7.0
 offset_right = 68.0
@@ -135,6 +136,7 @@ offset_bottom = 30.0
 text = "Health: "
 
 [node name="Drag" type="Label" parent="CanvasLayer" unique_id=2051683901]
+visible = false
 offset_left = 6.0
 offset_top = 30.0
 offset_right = 114.0
@@ -142,6 +144,7 @@ offset_bottom = 53.0
 text = "Drag: Enabled"
 
 [node name="Energy" type="Label" parent="CanvasLayer" unique_id=942929448]
+visible = false
 offset_left = 6.0
 offset_top = 53.0
 offset_right = 114.0
@@ -185,8 +188,8 @@ metadata/_custom_type_script = "uid://br88kgexjpay7"
 
 [node name="ProjectileAimPredictor" type="Node2D" parent="." unique_id=501727973]
 script = ExtResource("9_2hphp")
-prediction_color = Color(0, 0.8509804, 1, 0.46666667)
-danger_color = Color(1, 0.34901962, 0.101960786, 0.5254902)
+prediction_color = Color(0, 0.8509804, 1, 0.78)
+danger_color = Color(1, 0.35, 0.1, 0.92)
 ghost_color = Color(0, 0.6, 1, 0.21568628)
 metadata/_custom_type_script = "uid://8e10xg8c2op6"
 

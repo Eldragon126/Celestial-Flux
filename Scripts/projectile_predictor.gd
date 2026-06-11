@@ -4,17 +4,19 @@ class_name ProjectileAimPredictor
 # ============================================================
 # VISUAL SETTINGS
 # ============================================================
-@export var prediction_steps: int = 88
+@export var prediction_steps: int = 110
 @export var substeps: int = 2
-@export var line_width: float = 2.0
-@export var ghost_count: int = 2
+@export var line_width: float = 2.3
+@export var ghost_count: int = 0
 @export var ghost_amplitude: float = 10.0
 @export var ghost_frequency: float = 2.2
 @export var ghost_speed: float = 6.0
-@export var prediction_recalculate_interval: float = 0.055
-@export var draw_stride: int = 2
-@export var max_draw_segments: int = 72
-@export var pressure_hide_threshold: int = 112
+@export var prediction_recalculate_interval: float = 0.045
+@export var draw_stride: int = 1
+@export var max_draw_segments: int = 110
+@export var pressure_hide_threshold: int = 128
+@export_range(0.8, 1.0, 0.001) var stability_damping: float = 0.975
+@export var immediate_danger_segments: int = 25
 
 @export var prediction_color: Color = Color(0.0, 0.85, 1.0, 0.75)
 @export var danger_color: Color = Color(1.0, 0.35, 0.1, 0.95)
@@ -155,6 +157,7 @@ func _simulate() -> void:
 			var accel := force / maxf(projectile_mass, 0.001)
 			vel += accel * step_dt
 			pos += vel * step_dt
+		vel *= stability_damping
 
 		# Collision uses the same cached nearest sources as gravity so the
 		# predictor cannot scan every planet on every simulated step.
@@ -196,10 +199,6 @@ func _draw() -> void:
 	if _projectile_pressure >= pressure_hide_threshold:
 		return
 	
-	# ONLY draw when time is normal (not paused and not in dilation)
-	if not is_equal_approx(Engine.time_scale, 1.0):
-		return
-
 	# Ghost pulsing fields
 	var stride := maxi(draw_stride, 1)
 	for g in range(ghost_count):
@@ -235,13 +234,13 @@ func _draw() -> void:
 		var t := float(i) / float(_points.size())
 		
 		var col := prediction_color
-		if i > _points.size() - 20:
+		if i <= immediate_danger_segments:
 			col = danger_color
 		
-		draw_line(a, b, Color(col.r, col.g, col.b, _safe_visual_alpha((1.0 - t) * col.a, 0.24)), line_width)
+		draw_line(a, b, Color(col.r, col.g, col.b, _safe_visual_alpha((1.0 - t) * col.a, 0.82)), line_width)
 		drawn_main += 1
 
-	draw_circle(to_local(_points[0]), 7.0, Color(0.42, 1.0, 0.92, _safe_visual_alpha(0.5, 0.18)))
+	draw_circle(to_local(_points[0]), 7.0, Color(0.42, 1.0, 0.92, _safe_visual_alpha(0.5, 0.34)))
 
 
 func _projectile_pressure_count() -> int:

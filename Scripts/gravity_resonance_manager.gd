@@ -107,12 +107,12 @@ const ZONE_COLORS = {
 @export var enable_zone_glyphs: bool = true
 @export var simple_polygon_visuals: bool = true
 @export var max_visual_particles_per_zone: int = 14
-@export var visual_ring_segments: int = 36
-@export var resonance_visual_alpha_scale: float = 0.42
-@export var visual_radius_cap: float = 360.0
-@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.035
-@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.18
-@export_range(0.0, 1.0, 0.01) var visual_glyph_alpha_cap: float = 0.16
+@export var visual_ring_segments: int = 48
+@export var resonance_visual_alpha_scale: float = 0.58
+@export var visual_radius_cap: float = 420.0
+@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.055
+@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.28
+@export_range(0.0, 1.0, 0.01) var visual_glyph_alpha_cap: float = 0.24
 @export var maximum_manual_resonance_zones: int = 3
 @export var manual_zone_merge_distance: float = 120.0
 @export var visual_min_intensity: float = 0.26
@@ -222,13 +222,17 @@ func _detect_resonance_zones(delta: float) -> void:
 		var raw_a = _gravity_sources[i]
 		if not is_instance_valid(raw_a) or raw_a.is_queued_for_deletion():
 			continue
-		var source_a: Node2D = raw_a
+		var source_a := raw_a as Node2D
+		if source_a == null:
+			continue
 
 		for j in range(i + 1, _gravity_sources.size()):
 			var raw_b = _gravity_sources[j]
 			if not is_instance_valid(raw_b) or raw_b.is_queued_for_deletion():
 				continue
-			var source_b: Node2D = raw_b
+			var source_b := raw_b as Node2D
+			if source_b == null:
+				continue
 
 			var distance_squared := source_a.global_position.distance_squared_to(source_b.global_position)
 			if distance_squared > detection_diameter_squared:
@@ -635,13 +639,13 @@ func _resonance_projectile_direction(zone: Dictionary, projectile: Node2D, offse
 	var raw_a = zone.get("source_a")
 	if is_instance_valid(raw_a) and not raw_a.is_queued_for_deletion():
 		var source_a := raw_a as Node2D
-		if source_a:
+		if source_a != null:
 			field += (source_a.global_position - projectile.global_position).normalized()
 
 	var raw_b = zone.get("source_b")
 	if is_instance_valid(raw_b) and not raw_b.is_queued_for_deletion():
 		var source_b := raw_b as Node2D
-		if source_b:
+		if source_b != null:
 			field += (source_b.global_position - projectile.global_position).normalized()
 
 	var tangent := offset_from_center.normalized().orthogonal()

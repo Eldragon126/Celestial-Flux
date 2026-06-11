@@ -352,7 +352,8 @@ func _update_visuals(delta: float) -> void:
 		if ring == null:
 			continue
 		var radius := 138.0 + float(i) * 54.0 + _consume_charge * 52.0
-		ring.points = _circle_points(64, radius)
+		# CORRECTED: Passed the float (radius) first, then int (count)
+		ring.points = _circle_points(radius, 64)
 		ring.rotation -= delta * (0.38 + float(i) * 0.18 + _consume_charge * 0.8)
 		ring.default_color = Color(0.82, 0.28, 1.0, 0.24 + _consume_charge * 0.18)
 	if _core != null:
@@ -380,7 +381,8 @@ func _phase_color(phase: int) -> Color:
 	return [Color(0.84, 0.34, 1.0, 1.0), Color(0.34, 0.9, 1.0, 1.0), Color(1.0, 0.28, 0.22, 1.0)][clampi(phase - 1, 0, 2)]
 
 
-func _circle_points(count: int, point_radius: float) -> PackedVector2Array:
+# CORRECTED: Function signature now matches parent (float, int)
+func _circle_points(point_radius: float, count: int) -> PackedVector2Array:
 	var points := PackedVector2Array()
 	for i in range(maxi(count, 3)):
 		var angle := TAU * float(i) / float(maxi(count, 3))

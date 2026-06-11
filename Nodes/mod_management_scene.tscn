@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://cbsdjkip6qw5"]
+
+[ext_resource type="Script" uid="uid://46h5son1n3q6" path="res://Scripts/mod_management_scene.gd" id="1_mods"]
+
+[node name="ModManagementScene" type="Control" unique_id=312217791]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_mods")

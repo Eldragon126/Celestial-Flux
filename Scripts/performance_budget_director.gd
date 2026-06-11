@@ -14,6 +14,9 @@ enum QualityTier { LOW, MEDIUM, HIGH }
 @export var auto_adjust_quality: bool = true
 @export var projectile_pressure_threshold: int = 180
 @export var enemy_pressure_threshold: int = 36
+@export var network_projectile_pressure_threshold: int = 120
+@export var network_enemy_pressure_threshold: int = 24
+@export var multiplayer_low_fps_threshold: int = 58
 
 var _elapsed := 999.0
 
@@ -60,13 +63,15 @@ func _apply_resonance_budget(scene: Node, low: bool, medium: bool) -> void:
 	var resonance := scene.find_child("GravityResonanceManager", true, false)
 	if resonance == null:
 		return
-	_set_if_present(resonance, "max_gravity_sources", 5 if low else (7 if medium else 9))
-	_set_if_present(resonance, "maximum_resonance_zones", 1 if low else 2)
-	_set_if_present(resonance, "max_projectiles_per_zone", 10 if low else (16 if medium else 24))
-	_set_if_present(resonance, "max_bodies_per_zone", 12 if low else (20 if medium else 28))
-	_set_if_present(resonance, "resonance_visual_quality", 1 if low else 2)
-	_set_if_present(resonance, "max_visual_particles_per_zone", 6 if low else (12 if medium else 20))
-	_set_if_present(resonance, "visual_ring_segments", 32 if low else (44 if medium else 56))
+	var networked := _is_network_active()
+	var effective_low := low or networked
+	_set_if_present(resonance, "max_gravity_sources", 5 if effective_low else (7 if medium else 9))
+	_set_if_present(resonance, "maximum_resonance_zones", 1 if effective_low else 2)
+	_set_if_present(resonance, "max_projectiles_per_zone", 10 if effective_low else (16 if medium else 24))
+	_set_if_present(resonance, "max_bodies_per_zone", 12 if effective_low else (20 if medium else 28))
+	_set_if_present(resonance, "resonance_visual_quality", 1 if effective_low else 2)
+	_set_if_present(resonance, "max_visual_particles_per_zone", 6 if effective_low else (12 if medium else 20))
+	_set_if_present(resonance, "visual_ring_segments", 32 if effective_low else (44 if medium else 56))
 
 
 func _apply_time_budget(scene: Node, low: bool) -> void:
@@ -103,10 +108,11 @@ func _apply_vfx_budget(scene: Node, low: bool, medium: bool) -> void:
 	var vfx := scene.find_child("OrbitalVFXDirector", true, false)
 	if vfx == null:
 		return
-	_set_if_present(vfx, "visual_quality", 1 if low else 2)
-	_set_if_present(vfx, "low_performance_mode", low)
-	_set_if_present(vfx, "max_active_bursts", 5 if low else (8 if medium else 12))
-	_set_if_present(vfx, "max_particles_per_burst", 16 if low else (28 if medium else 44))
+	var effective_low := low or _is_network_active()
+	_set_if_present(vfx, "visual_quality", 1 if effective_low else 2)
+	_set_if_present(vfx, "low_performance_mode", effective_low)
+	_set_if_present(vfx, "max_active_bursts", 5 if effective_low else (8 if medium else 12))
+	_set_if_present(vfx, "max_particles_per_burst", 16 if effective_low else (28 if medium else 44))
 
 
 func _apply_enemy_ai_budget(scene: Node, low: bool, medium: bool) -> void:
@@ -181,32 +187,34 @@ func _apply_prediction_budget(low: bool, medium: bool) -> void:
 	var player := get_tree().get_first_node_in_group("Player")
 	if player == null:
 		return
+	var effective_low := low or _is_network_active()
 	var aim := player.get_node_or_null("ProjectileAimPredictor")
 	if aim != null:
-		_set_if_present(aim, "prediction_steps", 58 if low else (74 if medium else 88))
-		_set_if_present(aim, "substeps", 1 if low else 2)
-		_set_if_present(aim, "ghost_count", 0 if low else (1 if medium else 2))
-		_set_if_present(aim, "max_draw_segments", 42 if low else (58 if medium else 72))
-		_set_if_present(aim, "prediction_recalculate_interval", 0.09 if low else (0.07 if medium else 0.055))
-		_set_if_present(aim, "pressure_hide_threshold", 72 if low else (96 if medium else 112))
+		_set_if_present(aim, "prediction_steps", 58 if effective_low else (96 if medium else 110))
+		_set_if_present(aim, "substeps", 1 if effective_low else 2)
+		_set_if_present(aim, "ghost_count", 0)
+		_set_if_present(aim, "max_draw_segments", 42 if effective_low else (96 if medium else 110))
+		_set_if_present(aim, "prediction_recalculate_interval", 0.09 if effective_low else (0.06 if medium else 0.045))
+		_set_if_present(aim, "pressure_hide_threshold", 72 if effective_low else (104 if medium else 128))
 	var trajectory := player.get_node_or_null("OrbitalTrajectoryPredictor")
 	if trajectory != null:
-		_set_if_present(trajectory, "prediction_steps", 72 if low else (92 if medium else 112))
-		_set_if_present(trajectory, "max_gravity_sources", 3 if low else 4)
-		_set_if_present(trajectory, "max_branch_count", 1 if low else (2 if medium else 3))
-		_set_if_present(trajectory, "max_draw_segments", 52 if low else (68 if medium else 84))
-		_set_if_present(trajectory, "prediction_recalculate_interval", 0.1 if low else (0.075 if medium else 0.06))
-		_set_if_present(trajectory, "pressure_hide_threshold", 84 if low else (108 if medium else 128))
+		_set_if_present(trajectory, "prediction_steps", 72 if effective_low else (92 if medium else 112))
+		_set_if_present(trajectory, "max_gravity_sources", 3 if effective_low else 4)
+		_set_if_present(trajectory, "max_branch_count", 1 if effective_low else (2 if medium else 3))
+		_set_if_present(trajectory, "max_draw_segments", 52 if effective_low else (68 if medium else 84))
+		_set_if_present(trajectory, "prediction_recalculate_interval", 0.1 if effective_low else (0.075 if medium else 0.06))
+		_set_if_present(trajectory, "pressure_hide_threshold", 84 if effective_low else (108 if medium else 128))
 
 
 func _apply_projectile_visual_budget(low: bool, medium: bool) -> void:
 	var pressure := _group_count(&"Projectiles")
-	if not low and pressure < projectile_pressure_threshold:
+	var effective_low := low or _is_network_active()
+	if not effective_low and pressure < projectile_pressure_threshold:
 		return
-	var vector_cap := 8 if low else (16 if medium else 22)
-	var rail_cap := 10 if low else (18 if medium else 26)
-	var soft_cap := 44 if low else (58 if medium else 70)
-	var hard_cap := 82 if low else (106 if medium else 128)
+	var vector_cap := 8 if effective_low else (16 if medium else 22)
+	var rail_cap := 10 if effective_low else (18 if medium else 26)
+	var soft_cap := 44 if effective_low else (58 if medium else 70)
+	var hard_cap := 82 if effective_low else (106 if medium else 128)
 	for projectile in get_tree().get_nodes_in_group("Projectiles"):
 		var node := projectile as Node
 		if node == null or not is_instance_valid(node):
@@ -223,10 +231,14 @@ func _update_auto_quality() -> void:
 	var fps := Engine.get_frames_per_second()
 	var projectile_pressure := _group_count(&"Projectiles") + _group_count(&"enemy_projectiles")
 	var enemy_pressure := _group_count(&"enemies")
-	if projectile_pressure >= projectile_pressure_threshold or enemy_pressure >= enemy_pressure_threshold:
+	var networked := _is_network_active()
+	var projectile_threshold := network_projectile_pressure_threshold if networked else projectile_pressure_threshold
+	var enemy_threshold := network_enemy_pressure_threshold if networked else enemy_pressure_threshold
+	var low_fps_threshold := multiplayer_low_fps_threshold if networked else auto_low_fps_threshold
+	if projectile_pressure >= projectile_threshold or enemy_pressure >= enemy_threshold:
 		quality_tier = QualityTier.LOW
 		return
-	if fps > 0 and fps < auto_low_fps_threshold and quality_tier > QualityTier.LOW:
+	if fps > 0 and fps < low_fps_threshold and quality_tier > QualityTier.LOW:
 		quality_tier = QualityTier.LOW
 	elif fps >= auto_recover_fps_threshold and quality_tier == QualityTier.LOW:
 		quality_tier = QualityTier.MEDIUM
@@ -242,6 +254,10 @@ func _group_count(group_name: StringName) -> int:
 	if RuntimeRegistry != null:
 		return RuntimeRegistry.get_count(group_name)
 	return get_tree().get_nodes_in_group(group_name).size()
+
+
+func _is_network_active() -> bool:
+	return NetworkSession != null and NetworkSession.has_method("is_network_active") and bool(NetworkSession.call("is_network_active"))
 
 
 func get_budget_debug_state() -> Dictionary:

@@ -70,7 +70,7 @@ func _predicted_player_position() -> Vector2:
 		return global_position
 
 	var player_velocity: Variant = _player.get("velocity")
-	if not player_velocity is Vector2:
+	if not (player_velocity is Vector2):
 		player_velocity = Vector2.ZERO
 	return _player.global_position + player_velocity * lead_time
 

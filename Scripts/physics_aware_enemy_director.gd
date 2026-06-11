@@ -52,6 +52,13 @@ const FIELD_TARGET_GROUPS: Array[StringName] = [&"Player", &"enemies", &"Project
 @export var parasite_amplification_radius: float = 420.0
 @export var parasite_amplification_strength: float = 180.0
 
+@export_group("Player Skill Reactions")
+@export var slingshot_reaction_radius: float = 920.0
+@export var slingshot_reaction_min_score: float = 0.48
+@export var slingshot_evade_force: float = 360.0
+@export var slingshot_intercept_force: float = 260.0
+@export var slingshot_orbit_force: float = 220.0
+
 var _player: Node2D = null
 var _tracked: Dictionary = {}
 var _scan_elapsed := 0.0
@@ -221,6 +228,8 @@ func _update_enemy_physics(delta: float) -> void:
 			&"relativistic_sniper": impulse = _relativistic_sniper_impulse(enemy_2d, data)
 			&"gravity_parasite": impulse = _gravity_parasite_impulse(enemy_2d, data, delta)
 			_:                   impulse = _drifter_impulse(enemy_2d)
+
+		impulse += _slingshot_reaction_impulse(enemy_2d, profile)
 		
 		_apply_limited_impulse(enemy_2d, profile, impulse, delta)
 		_tracked[id] = data  # keep modified data (timers etc.)
@@ -308,6 +317,39 @@ func _drifter_impulse(enemy: Node2D) -> Vector2:
 	var to_source := source.global_position - enemy.global_position
 	if to_source.length_squared() <= 0.001: return Vector2.ZERO
 	return to_source.normalized().orthogonal() * orbit_tangent_force * 0.25
+
+
+func _slingshot_reaction_impulse(enemy: Node2D, profile: StringName) -> Vector2:
+	if not is_instance_valid(enemy) or not is_instance_valid(_player):
+		return Vector2.ZERO
+	if not _player.has_method("get_slingshot_debug_state"):
+		return Vector2.ZERO
+
+	var state_value: Variant = _player.call("get_slingshot_debug_state")
+	if not (state_value is Dictionary):
+		return Vector2.ZERO
+	var state: Dictionary = state_value
+	var score := maxf(float(state.get("score", 0.0)), float(state.get("last_score", 0.0)))
+	var age := float(state.get("last_age", 999.0))
+	if score < slingshot_reaction_min_score or age > 1.15:
+		return Vector2.ZERO
+
+	var offset := enemy.global_position - _player.global_position
+	var distance := maxf(offset.length(), 0.001)
+	if distance > slingshot_reaction_radius:
+		return Vector2.ZERO
+
+	var radial := offset / distance
+	var tangent := radial.orthogonal()
+	var falloff := 1.0 - clampf(distance / slingshot_reaction_radius, 0.0, 1.0)
+	var pressure := falloff * clampf(score, 0.0, 1.0)
+	if profile == &"relativistic_sniper" or profile == &"anchor_unit":
+		return radial * slingshot_evade_force * pressure
+	if profile == &"orbit_hunter":
+		return tangent * slingshot_orbit_force * pressure - radial * slingshot_intercept_force * pressure * 0.35
+	if profile == &"gravity_parasite":
+		return -radial * slingshot_intercept_force * pressure * 0.55
+	return radial * slingshot_evade_force * pressure * 0.35
 
 # ==================== UTILITY FUNCTIONS ====================
 

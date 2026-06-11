@@ -4,8 +4,8 @@ class_name GameplayTeachingDirector
 ## Lightweight run messaging: first-contact fantasy, readable law prompts,
 ## and death lessons. Kept separate from player/combat systems.
 
-@export var opening_duration: float = 30.0
-@export var prompt_interval: float = 5.2
+@export var opening_duration: float = 18.0
+@export var prompt_interval: float = 3.2
 @export var death_lesson_duration: float = 2.15
 @export var max_projectile_warning_count: int = 90
 
@@ -19,12 +19,11 @@ var _death_lesson_time := 0.0
 var _prompt_index := 0
 var _death_mode := false
 var _opening_prompts := [
-	"VECTOR ANOMALY ONLINE",
-	"THRUST INTO A WELL, THEN TURN SIDEWAYS",
-	"SLINGSHOT: TANGENT, SPEED, DISTANCE",
-	"DRAG TO AIM; TIME BUYS ONE CLEAN ANGLE",
-	"BEAMS BEND THE FIELD BEFORE THEY KILL",
-	"READ THE LAW, THEN BREAK IT",
+	"ORBIT MASS -> SLINGSHOT -> SURVIVE",
+	"GRAVITY BENDS YOU AND EVERY SHOT",
+	"NEAR MISS + SPEED = POWER",
+	"READ THE BIG FIELD RINGS",
+	"CHANGE WEAPONS TO CHANGE PHYSICS",
 ]
 
 @onready var _root: Control = $Root
@@ -152,6 +151,10 @@ func _show_prompt(text: String, color: Color) -> void:
 	_prompt_label.text = text
 	_prompt_label.modulate = color
 	_root.visible = true
+	_prompt_label.pivot_offset = _prompt_label.size * 0.5
+	var tween := create_tween()
+	tween.tween_property(_prompt_label, "scale", Vector2(1.08, 1.08), 0.08)
+	tween.tween_property(_prompt_label, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _upcoming_boss_hint() -> String:

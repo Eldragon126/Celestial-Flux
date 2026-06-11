@@ -23,6 +23,10 @@ signal breacher_distortion_pulsed(data: Dictionary)
 @export var distortion_radius: float = 680.0
 @export var max_targets_per_attack: int = 42
 @export var projectile_speed: float = 880.0
+@export_group("Desktop Breach")
+@export var enable_desktop_breach_window: bool = true
+@export var desktop_breach_window_size: Vector2i = Vector2i(460, 260)
+@export var desktop_breach_window_lifetime: float = 3.6
 
 var _core: Polygon2D = null
 var _hull: Polygon2D = null
@@ -34,6 +38,7 @@ var _target_buffer: Array[Node2D] = []
 var _attack_sequence: int = 0
 var _breach_angle: float = 0.0
 var _edge_slot: int = 0
+var _desktop_breach_window: Window = null
 
 
 func _ready() -> void:
@@ -48,6 +53,8 @@ func _exit_tree() -> void:
 	for construct in _active_constructs:
 		if construct != null and is_instance_valid(construct):
 			construct.queue_free()
+	if _desktop_breach_window != null and is_instance_valid(_desktop_breach_window):
+		_desktop_breach_window.queue_free()
 
 
 func _boss_physics(delta: float) -> void:
@@ -182,6 +189,7 @@ func _attack_unstable_wormhole(center: Vector2) -> void:
 
 
 func _attack_outside_space_breach(center: Vector2) -> void:
+	_open_desktop_breach_window(center)
 	var root := Node2D.new()
 	root.name = "BreacherOutsideSpaceSection"
 	root.z_index = 45
@@ -204,11 +212,51 @@ func _attack_outside_space_breach(center: Vector2) -> void:
 			direction.rotated(-0.22 + float(i) * 0.22) * 460.0,
 			direction.rotated(-0.1 + float(i) * 0.14) * 680.0,
 		])
-		root.add_child(limb) # THIS LINE WAS INDENTED
+		root.add_child(limb)
 	_active_constructs.append(root)
 	get_tree().create_timer(3.6).timeout.connect(Callable(self, "_queue_free_if_valid").bind(root))
 	_apply_breach_slam(center, direction)
 	_create_fracture(center)
+
+
+func _open_desktop_breach_window(center: Vector2) -> bool:
+	if not enable_desktop_breach_window or not _is_desktop_os():
+		return false
+	if _desktop_breach_window != null and is_instance_valid(_desktop_breach_window):
+		_desktop_breach_window.queue_free()
+
+	var window := Window.new()
+	window.name = "BreacherDesktopWindow"
+	window.title = "VECTOR BREACH"
+	window.size = desktop_breach_window_size
+	window.always_on_top = true
+	window.unresizable = false
+	var screen_size := DisplayServer.screen_get_size()
+	window.position = Vector2i(
+		clampi(screen_size.x - desktop_breach_window_size.x - 48, 0, maxi(screen_size.x - desktop_breach_window_size.x, 0)),
+		clampi(64 + (_edge_slot % 3) * 82, 0, maxi(screen_size.y - desktop_breach_window_size.y, 0))
+	)
+	get_tree().root.add_child(window)
+	_desktop_breach_window = window
+
+	var backdrop := ColorRect.new()
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = Color(0.025, 0.0, 0.055, 0.96)
+	window.add_child(backdrop)
+
+	var label := Label.new()
+	label.text = "BOUNDARY BREACH\nTHE BOSS IS OUTSIDE THE ARENA"
+	label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_color_override("font_color", Color(1.0, 0.72, 0.26, 1.0))
+	window.add_child(label)
+
+	var timer := get_tree().create_timer(maxf(desktop_breach_window_lifetime, 0.5))
+	timer.timeout.connect(Callable(self, "_queue_free_if_valid").bind(window))
+	_pulse_distortion(&"desktop_window_breach")
+	return true
 
 
 func _attack_timeline_slam(center: Vector2) -> void:
@@ -350,7 +398,7 @@ func _create_attack_telegraph(position: Vector2, radius: float, color: Color, at
 	ring.antialiased = true
 	ring.width = 3.0
 	ring.default_color = _safe_color(color, 0.72)
-	ring.points = _circle_points(60, radius)
+	ring.points = _circle_points(radius, 60)
 	root.add_child(ring)
 	var line := Line2D.new()
 	line.antialiased = true
@@ -384,7 +432,7 @@ func _build_body() -> void:
 	_core = Polygon2D.new()
 	_core.name = "BreacherCore"
 	_core.color = Color(0.52, 0.9, 1.0, 1.0)
-	_core.polygon = _circle_points(11, 58.0)
+	_core.polygon = _circle_points(58.0, 11)
 	add_child(_core)
 
 	_eye_ring = Line2D.new()
@@ -393,7 +441,7 @@ func _build_body() -> void:
 	_eye_ring.antialiased = true
 	_eye_ring.width = 3.0
 	_eye_ring.default_color = Color(1.0, 0.82, 0.24, 0.86)
-	_eye_ring.points = _circle_points(40, 86.0)
+	_eye_ring.points = _circle_points(86.0, 40)
 	add_child(_eye_ring)
 
 	for i in range(4):
@@ -457,8 +505,10 @@ func _player_axis() -> Vector2:
 	if player == null:
 		return Vector2.RIGHT
 	var velocity_value: Variant = player.get("velocity")
-	if velocity_value is Vector2 and velocity_value.length_squared() > 1.0:
-		return velocity_value.normalized()
+	if velocity_value is Vector2:
+		var velocity_vector := velocity_value as Vector2
+		if velocity_vector.length_squared() > 1.0:
+			return velocity_vector.normalized()
 	var direction := player.global_position - global_position
 	if direction.length_squared() <= 0.001:
 		return Vector2.RIGHT
@@ -486,6 +536,13 @@ func _request_camera_shake(amount: float) -> void:
 func _queue_free_if_valid(node: Node) -> void:
 	if node != null and is_instance_valid(node):
 		node.queue_free()
+	if node == _desktop_breach_window:
+		_desktop_breach_window = null
+
+
+func _is_desktop_os() -> bool:
+	var os_name := OS.get_name()
+	return os_name == "Windows" or os_name == "macOS" or os_name == "Linux" or os_name == "FreeBSD"
 
 
 func _attack_color(attack_id: StringName) -> Color:
@@ -510,7 +567,7 @@ func _safe_color(color: Color, alpha_cap: float) -> Color:
 	return Color(color.r, color.g, color.b, alpha)
 
 
-func _circle_points(count: int, radius: float) -> PackedVector2Array:
+func _circle_points(radius: float, count: int) -> PackedVector2Array:
 	var points := PackedVector2Array()
 	for i in range(maxi(count, 3)):
 		var angle := TAU * float(i) / float(maxi(count, 3))

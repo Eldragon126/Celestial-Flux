@@ -162,7 +162,7 @@ func _cache_player() -> void:
 	var found: Node = tree.get_first_node_in_group(&"Player")
 	if found == null or not is_instance_valid(found):
 		return
-	if not found is Node2D:
+	if not (found is Node2D):
 		return
 	_player = found as Node2D
 

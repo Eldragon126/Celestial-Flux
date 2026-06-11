@@ -35,8 +35,8 @@ signal frame_dragging_anchor_applied(data: Dictionary)
 @export var powerup_burst_radius: float = 180.0
 @export var powerup_visual_radius_cap: float = 300.0
 @export var fusion_ring_radius_cap: float = 280.0
-@export_range(0.0, 0.42, 0.01) var powerup_ring_alpha_cap: float = 0.13
-@export_range(0.0, 0.42, 0.01) var powerup_echo_alpha_cap: float = 0.16
+@export_range(0.0, 0.42, 0.01) var powerup_ring_alpha_cap: float = 0.1
+@export_range(0.0, 0.42, 0.01) var powerup_echo_alpha_cap: float = 0.11
 
 @export_group("Law Fusion")
 @export var enable_law_fusions: bool = true
@@ -59,6 +59,9 @@ signal frame_dragging_anchor_applied(data: Dictionary)
 @export var apex_vector_release_force: float = 520.0
 @export var apex_vector_damage: float = 12.0
 @export var apex_vector_max_targets: int = 24
+@export var apex_vector_visual_cooldown: float = 1.1
+@export var apex_vector_visual_radius_cap: float = 220.0
+@export_range(0.0, 0.42, 0.01) var apex_vector_ring_alpha_cap: float = 0.09
 
 @export_group("Barycentric Tether")
 @export var barycentric_tick_interval: float = 0.08
@@ -78,6 +81,7 @@ var _stacks: Dictionary = {}
 var _timed_effects: Dictionary = {}
 var _time_pulse_ready := 0.0
 var _next_slingshot_convergence_time := 0.0
+var _next_apex_visual_time := 0.0
 var _apex_vector_charge := 0
 
 # instance_id -> data
@@ -1204,7 +1208,7 @@ func _release_apex_vector(data: Dictionary, stacks: int) -> void:
 	}
 	_emit_law_fusion(&"apex_vector_core", payload)
 	apex_vector_released.emit(payload)
-	_spawn_fusion_ring(position, radius * 0.76, Color(0.3, 0.88, 0.78, 0.38))
+	_spawn_apex_vector_ring(position, radius)
 
 
 func _affect_apex_vector_targets(
@@ -1676,6 +1680,20 @@ func _emit_law_fusion(
 	_last_fusion_time = _now_seconds()
 
 	law_fusion_triggered.emit(fusion_id, fusion_data)
+
+
+func _spawn_apex_vector_ring(center: Vector2, radius: float) -> void:
+	var now := _now_seconds()
+	if now < _next_apex_visual_time:
+		return
+	_next_apex_visual_time = now + maxf(apex_vector_visual_cooldown, 0.05)
+
+	var clamped_radius := minf(radius * 0.52, apex_vector_visual_radius_cap)
+	_spawn_fusion_ring(
+		center,
+		clamped_radius,
+		Color(0.18, 0.74, 1.0, apex_vector_ring_alpha_cap)
+	)
 
 
 func _spawn_fusion_ring(

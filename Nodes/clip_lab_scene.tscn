@@ -1,0 +1,47 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://Scripts/clip_lab_director.gd" id="1_clip"]
+[ext_resource type="PackedScene" path="res://Nodes/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://Nodes/black_hole.tscn" id="3_blackhole"]
+[ext_resource type="Script" path="res://Scripts/orbital_juice_manager.gd" id="4_juice"]
+[ext_resource type="Script" path="res://Scripts/time_dilation_manager.gd" id="5_time"]
+[ext_resource type="PackedScene" path="res://Nodes/planet_1.tscn" id="6_planet"]
+
+[node name="ClipLabScene" type="Node2D"]
+script = ExtResource("1_clip")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(0, 0)
+
+[node name="BlackHole" parent="." instance=ExtResource("3_blackhole")]
+position = Vector2(1560, -840)
+
+[node name="PlanetA" parent="." instance=ExtResource("6_planet")]
+position = Vector2(-520, 220)
+
+[node name="PlanetB" parent="." instance=ExtResource("6_planet")]
+position = Vector2(660, -360)
+
+[node name="PlanetC" parent="." instance=ExtResource("6_planet")]
+position = Vector2(1180, 540)
+
+[node name="OrbitalJuiceManager" type="Node2D" parent="." groups=["Orbital_Juice_Manager"]]
+script = ExtResource("4_juice")
+enable_debug_balance_overlay = false
+enable_wave_game = false
+enable_secret_bosses = false
+enable_late_game_instability = false
+enable_spacetime_tear_spawns = false
+enable_reality_collapse = false
+enable_stress_test_tools = false
+enable_dev_hotkeys = false
+spawn_showcase_content = false
+resonance_visual_quality = 2
+low_performance_mode = false
+
+[node name="TimeDilationManager" type="Node" parent="."]
+process_mode = 3
+script = ExtResource("5_time")
+use_global_time_scale = true
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]

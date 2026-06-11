@@ -92,10 +92,10 @@ enum MusicMode { NONE, WAVE, BOSS, INTERMISSION }
 @export var boss_every_waves = 5
 @export var max_regular_enemies = 10
 @export var wave_soft_timeout: float = 145.0
-@export var minimum_regular_wave_duration: float = 54.0
+@export var minimum_regular_wave_duration: float = 64.0
 @export var pacing_reinforcement_interval: float = 12.0
 @export var pacing_reinforcement_count: int = 2
-@export var max_pacing_reinforcement_batches: int = 2
+@export var max_pacing_reinforcement_batches: int = 3
 @export var external_enemies_block_wave: bool = false
 @export var clear_external_enemies_on_wave_clear: bool = true
 @export var recovery_wave_interval: int = 4
@@ -1394,8 +1394,13 @@ func _play_wave_music_for_wave(wave: int) -> void:
 		return
 	_set_music_mode(MusicMode.WAVE, stream, wave_music_volume_db)
 
-func _play_intermission_music_for_wave(_wave_number: int) -> void:
-	_stop_all_music()
+func _play_intermission_music_for_wave(wave_number: int) -> void:
+	var stream := _active_music_stream
+	if stream == null:
+		stream = _music_for_regular_wave(wave_number)
+	if stream == null:
+		return
+	_set_music_mode(MusicMode.INTERMISSION, stream, intermission_music_volume_db)
 
 func _play_boss_music_for_wave(wave: int, scene: PackedScene) -> void:
 	var stream: AudioStream = _boss_music_by_wave.get(wave, null)
@@ -1444,6 +1449,7 @@ func _set_music_mode(mode: int, stream: AudioStream, volume_db: float) -> void:
 	var inactive_player := $WaveMusic if active_player == $BossWaveMusic else $BossWaveMusic
 	inactive_player.stop()
 	inactive_player.stream_paused = false
+	var continuing_same_stream := active_player.stream == stream and active_player.playing
 	if active_player.stream != stream:
 		active_player.stop()
 		active_player.stream = stream
@@ -1452,8 +1458,9 @@ func _set_music_mode(mode: int, stream: AudioStream, volume_db: float) -> void:
 		active_player.stream_paused = true
 		return
 	active_player.stream_paused = false
-	active_player.play()
-	_play_music_intro_for_player(active_player)
+	if not continuing_same_stream:
+		active_player.play()
+		_play_music_intro_for_player(active_player)
 
 func _resume_current_music_mode() -> void:
 	if not music_enabled or _active_music_stream == null or _music_mode == MusicMode.NONE:

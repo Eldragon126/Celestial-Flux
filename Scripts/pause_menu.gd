@@ -61,6 +61,7 @@ var _mod_reload_feedback_time: float = 0.0
 var _menu_base_scale := Vector2.ONE
 var _ui_audio_player: AudioStreamPlayer = null
 var _next_settings_sound_time := 0.0
+var _button_tweens: Dictionary = {}
 
 
 func _ready() -> void:
@@ -79,6 +80,7 @@ func _ready() -> void:
 	_update_modding_menu()
 	_update_multiplayer_menu()
 	_update_weapon_menu()
+	call_deferred("_setup_button_tweens")
 
 
 func _process(_delta: float) -> void:
@@ -259,6 +261,62 @@ func _play_settings_sound() -> void:
 		return
 	_next_settings_sound_time = now + 0.12
 	_play_ui_sound(UI_SETTINGS_CHANGED_STREAM, -13.0, 1.0)
+
+
+func _setup_button_tweens() -> void:
+	var buttons: Array[Button] = []
+	_collect_buttons(self, buttons)
+	for button in buttons:
+		button.pivot_offset = button.size * 0.5
+		var hover_callable := Callable(self, "_on_pause_button_hovered").bind(button)
+		if not button.mouse_entered.is_connected(hover_callable):
+			button.mouse_entered.connect(hover_callable)
+		var focus_callable := Callable(self, "_on_pause_button_hovered").bind(button)
+		if not button.focus_entered.is_connected(focus_callable):
+			button.focus_entered.connect(focus_callable)
+		var exit_callable := Callable(self, "_on_pause_button_unhovered").bind(button)
+		if not button.mouse_exited.is_connected(exit_callable):
+			button.mouse_exited.connect(exit_callable)
+		var blur_callable := Callable(self, "_on_pause_button_unhovered").bind(button)
+		if not button.focus_exited.is_connected(blur_callable):
+			button.focus_exited.connect(blur_callable)
+		var press_callable := Callable(self, "_on_pause_button_pressed_feedback").bind(button)
+		if not button.pressed.is_connected(press_callable):
+			button.pressed.connect(press_callable)
+
+
+func _collect_buttons(root: Node, output: Array[Button]) -> void:
+	for child in root.get_children():
+		if child is Button:
+			output.append(child as Button)
+		_collect_buttons(child, output)
+
+
+func _on_pause_button_hovered(button: Button) -> void:
+	_tween_pause_button(button, Vector2(1.035, 1.08), Color(1.0, 1.0, 1.0, 1.0), 0.12)
+
+
+func _on_pause_button_unhovered(button: Button) -> void:
+	_tween_pause_button(button, Vector2.ONE, Color(1.0, 1.0, 1.0, 1.0), 0.16)
+
+
+func _on_pause_button_pressed_feedback(button: Button) -> void:
+	_tween_pause_button(button, Vector2(0.97, 0.95), Color(0.72, 1.0, 0.96, 1.0), 0.07)
+
+
+func _tween_pause_button(button: Button, scale_value: Vector2, color: Color, duration: float) -> void:
+	if button == null or not is_instance_valid(button):
+		return
+	var id := button.get_instance_id()
+	var old_tween_value: Variant = _button_tweens.get(id, null)
+	var old_tween: Tween = old_tween_value as Tween
+	if old_tween != null:
+		old_tween.kill()
+	var tween := create_tween()
+	_button_tweens[id] = tween
+	tween.set_ignore_time_scale(true)
+	tween.tween_property(button, "scale", scale_value, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(button, "modulate", color, duration)
 
 
 func _connect_buttons() -> void:

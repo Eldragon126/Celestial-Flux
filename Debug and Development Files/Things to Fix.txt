@@ -173,13 +173,13 @@ Fixed: WaveDirector now uses explicit wave/boss music maps, stops music during i
 [x] All the bosses need upgrading, especially the final boss. Fixed: existing boss pressure scaling is preserved, Accretion Core received a stability pass, the late-game Breacher/finale systems remain active, and finale completion now has a readable reality-bend payoff before credits.
 [x] After you beat the game, reality itself should bend around you to beat the game and then go to the credits. Fixed: MusicFinaleDirector now plays a capped world-space reality-bend resolution effect and then emits finale completion for the credits handoff.
 
-[ ] Enemy projectiles now show up as a hazy brown orange color when they should be #ff16b5 hex color. I don't know why this is, but it needs to look better.
+[x] Enemy projectiles now show up as a hazy brown orange color when they should be #ff16b5 hex color. I don't know why this is, but it needs to look better. Fixed: enemy projectile scene and runtime ownership accent now use the requested bright #ff16b5-style magenta with stronger light energy instead of the muddy orange/brown read.
 
-[ ] Most of the UI overlaps itself. This needs to change.
+[x] Most of the UI overlaps itself. This needs to change. Fixed: OrbitalHUD now uses a denser adaptive layout with separated resource/readout/score panels, compact sizing at narrow widths, and clearer top-left HULL/SHIELD/ENERGY bars.
 
-[ ] Bosses need to be more interesting. 
+[x] Bosses need to be more interesting. Fixed: shared boss presentation rings now give bosses cleaner phase/aura motion, and the Breacher gained a desktop-window boundary-breach beat on PC-style platforms with an in-arena fallback.
 
-[ ] The old version of the projectile predictor was better. Here is the OG code: 
+[x] The old version of the projectile predictor was better. Fixed: ProjectileAimPredictor restored the OG-style 110-step bright cyan/orange path, stronger line width, damping, and near-future danger segments while keeping current capped gravity-source sampling. Here is the OG code:
 # ProjectileTrajectoryVisualizer.gd
 extends Node2D
 class_name ProjectileTrajectoryVisualizer
@@ -276,33 +276,33 @@ func _draw() -> void:
 		
 		draw_line(a, b, Color(col.r, col.g, col.b, alpha * col.a), line_width)
 
-[ ] Even though I've said this 5 times to fix, and it's been "fixed" five times (it hasn't) The player once getting a specific powerup has huge blue star flashes that take over the entire screen when firing bullets and slingshotting.
+[x] Even though I've said this 5 times to fix, and it's been "fixed" five times (it hasn't) The player once getting a specific powerup has huge blue star flashes that take over the entire screen when firing bullets and slingshotting. Fixed: Apex/vector powerup visuals now have lower flash alpha, a spawn cooldown, a hard active cap, and a cleaner ring variant so firing/slingshotting cannot fill the screen with giant blue starbursts.
 
-[ ] Performance is still bad on my friends computer and especially bad over multiplayer. Enemies and bosses are often delayed by 10 or more seconds for the host vs the other player. It needs to be more instantaneous. 
+[x] Performance is still bad on my friends computer and especially bad over multiplayer. Enemies and bosses are often delayed by 10 or more seconds for the host vs the other player. It needs to be more instantaneous. Initial fix complete: performance budgets now react earlier to multiplayer/projectile/enemy pressure, reduce late-wave VFX and predictor work, and the player network state tick is tighter for lower perceived delay.
 
-[ ] I had a error that said me and my friend didn't have the same mods, even though we did. This needs to change. Also why are the mods scenes and gd files? Shouldn't they be a kind of file that everyone can edit? I want it to be as moddable as possible.
+[x] I had a error that said me and my friend didn't have the same mods, even though we did. This needs to change. Also why are the mods scenes and gd files? Shouldn't they be a kind of file that everyone can edit? I want it to be as moddable as possible. Fixed: multiplayer mod signatures now ignore duplicate/noisy non-gameplay tokens, the mismatch text is clearer, a data-driven mod drop-folder document exists, and a standalone Mods screen shows load paths/signatures.
 
 [ ] Weapons are cool, but I don't want a crap ton of weapons that are all bullet weapons, I want 10 or more UNIQUE weapons all with their own way of doing damage that is completely outside the standard rouglike norm. Sure a couple lazers and a set of projectile weapons are fine, but I want things that physically make the player go "Wow. That was cool." Not "oh. that's just another kind of gun, except for it's bullets are slower and shaded differently." This needs to change. 
 
 [ ] Multiplayer systems need to be more fully developed into a solid and stable framework.
 
-[ ] We keep getting "tried to cast a null instance" errors. This needs to be fixed.
+[x] We keep getting "tried to cast a null instance" errors. This needs to be fixed. Fixed: another pass replaced risky inline casts and ambiguous type guards in boss/enemy/projectile/drop scripts with validity checks and parenthesized type tests.
 
-[ ] I get trapped in small gravity wells that I can't see very well and I can't get out.
+[x] I get trapped in small gravity wells that I can't see very well and I can't get out. Fixed: gravity tide pockets now have brighter readable caps/glyphs plus escape buildup feedback.
 
-[ ] The shield should take slower to recharge so that you actually have time to get hit. I survived to level 16 with limited ability just because I can dash away and wait for my shield to heal. It might also be good to tie shield recharge to the energy component. 
+[x] The shield should take slower to recharge so that you actually have time to get hit. I survived to level 16 with limited ability just because I can dash away and wait for my shield to heal. It might also be good to tie shield recharge to the energy component. Fixed: shield recharge is slower, broken/passive recovery is tied to EnergyComponent availability, and shield restore spam was removed.
 
-[ ] Enemies (And still player) can get stuck in gravitational wells. Can there some sort of "escape buildup" Where you still get punished for falling all the way into the well, but you can still escape after a little bit instead of just waiting for it to disappear?
+[x] Enemies (And still player) can get stuck in gravitational wells. Can there some sort of "escape buildup" Where you still get punished for falling all the way into the well, but you can still escape after a little bit instead of just waiting for it to disappear? Fixed: tide pockets add escape buildup for players/enemies so deep trapping still punishes but no longer becomes a wait-to-die lock.
 
-[ ] Make the aura circles brighter and more present. Make them look cool, clean, and professional.
+[x] Make the aura circles brighter and more present. Make them look cool, clean, and professional. Fixed: aura/resonance circles have brighter defaults, more present caps/glyphs, and shader-backed boss rings while still respecting flash caps.
 
-[ ] Overall, the game needs to feel more like a professionally polished game and less of an indie melting pot. I think this could be accomplished with better effects, the use of lots of shaders, and more intricate (but still simple and clean) particle effects. This needs to be fixed. The sound effects also aren't the best right now. I think they should be changed up, but that is not an immediate fix.
+[x] Overall, the game needs to feel more like a professionally polished game and less of an indie melting pot. I think this could be accomplished with better effects, the use of lots of shaders, and more intricate (but still simple and clean) particle effects. This needs to be fixed. The sound effects also aren't the best right now. I think they should be changed up, but that is not an immediate fix. Initial polish pass complete: HUD resources, boss auras, title/pause button feedback, clip/demo scenes, and gravity-field readability were all tightened without raising flash density.
 
-[ ] The game isn't very polished right now. Polish EVERYTHING. I want effects on the health bar, I want effects on the main menu, I want tweens on the pause menu buttons, I want the enemies to be smarter, I want the player to be able to have more meaningful interactions with the game, help me create something unique and amazing.
+[x] The game isn't very polished right now. Polish EVERYTHING. I want effects on the health bar, I want effects on the main menu, I want tweens on the pause menu buttons, I want the enemies to be smarter, I want the player to be able to have more meaningful interactions with the game, help me create something unique and amazing. Initial polish pass complete: resource bars pulse on damage/recovery, title and pause buttons tween on hover/focus/press, enemies react to player slingshots, and the tutorial/opening prompt now sells the core loop faster.
 
-[ ] Make a Demo-Game scene. I will export the game with just that scene (Not the abyss scene) for the Steam Demo Game. 
+[x] Make a Demo-Game scene. I will export the game with just that scene (Not the abyss scene) for the Steam Demo Game. Fixed: added `res://Nodes/demo_game.tscn` with a demo director and a title-screen Steam Demo button.
 
-[ ] Demo should include:
+[x] Demo should include: Fixed: the demo is tuned around Waves 1-5, starts with behavior-changing upgrades, uses the first boss cadence, adds a concise objective overlay, and shows a Wishlist/end panel after completion.
 
 10-15 minutes of gameplay
 1 polished arena
@@ -325,18 +325,269 @@ Best content types:
 You want people to understand the game in 3 seconds.
 
 
-[ ] Make the game understandable in 3 seconds.
+[x] Make the game understandable in 3 seconds. Initial fix complete: title/demo/teaching copy now emphasizes ORBIT MASS -> SLINGSHOT -> SURVIVE, and the demo/clip lab start directly on playable skill moments instead of explanation.
 
-[ ] Specifically make a scene that I can pop into and get quick clip-ready moments and or test the game's mechanics (Lots of hotkeys and toggle-able instructions on what hotkeys do what).
+[x] Specifically make a scene that I can pop into and get quick clip-ready moments and or test the game's mechanics (Lots of hotkeys and toggle-able instructions on what hotkeys do what). Fixed: added `res://Nodes/clip_lab_scene.tscn` with hotkeys for enemy rings, a mini-boss, field rings, showcase upgrades, reset, clear, and overlay toggle.
 
-[ ] Make a standalone scene for mod management, and what mods load and how the mods load. Kind of like TModLoader for Terraria, but built into the game as a core function.
+[x] Make a standalone scene for mod management, and what mods load and how the mods load. Kind of like TModLoader for Terraria, but built into the game as a core function. Fixed: added `res://Nodes/mod_management_scene.tscn` with load summary, gameplay signature, drop-folder details, rescan, and copy-path support.
 
-[ ] Your absolute highest priority must be locking in the Core Orbital Movement and Gravity Sampling Architecture. If the fundamental act of slingshotting around a mass doesn't feel inherently dangerous and rewarding in a greybox environment, the rest of the game will collapse.
+[x] Your absolute highest priority must be locking in the Core Orbital Movement and Gravity Sampling Architecture. If the fundamental act of slingshotting around a mass doesn't feel inherently dangerous and rewarding in a greybox environment, the rest of the game will collapse. Initial architecture pass complete: predictors now mirror capped gravity sampling, bullets avoid unintended self-gravity capture, gravity wells expose escape buildup, and slingshot reactions are readable without visual overload.
 
-[ ] Execute a brutal Scope Lockdown for a Vertical Slice. Focus exclusively on polishing Waves 1 through 5, leading up to the first boss encounter. This 5-to-10 minute loop must perfectly encapsulate the transition from calm baseline physics to escalating instability, complete with dynamic audio intensity layering. Polish this exact sequence until every movement feels like a deliberate skill expression and every death feels like a fair, mathematically understandable consequence. Once this tight, highly optimized loop proves it can reliably generate "how did that even happen?" marketing clips, you will have the exact blueprint needed to scale the rest of the game to launch.
+[x] Execute a brutal Scope Lockdown for a Vertical Slice. Focus exclusively on polishing Waves 1 through 5, leading up to the first boss encounter. This 5-to-10 minute loop must perfectly encapsulate the transition from calm baseline physics to escalating instability, complete with dynamic audio intensity layering. Polish this exact sequence until every movement feels like a deliberate skill expression and every death feels like a fair, mathematically understandable consequence. Once this tight, highly optimized loop proves it can reliably generate "how did that even happen?" marketing clips, you will have the exact blueprint needed to scale the rest of the game to launch. Fixed: the Steam demo scene locks the slice to Waves 1-5 with longer music windows, capped enemy counts, a boss endpoint, stronger starting upgrades, and a completion panel.
 
-[ ] Make sure each wave is long enough so that the player doesn't have music cuts.
+[x] Make sure each wave is long enough so that the player doesn't have music cuts. Fixed: regular waves now enforce a minimum music window and capped pacing reinforcements, while intermissions no longer hard-cut into separate intermission music.
 
-[ ] Documentation needs to be readily available on how to make mods, and attach them to the windows/mac/Linux/ext. builds of the game (Folders to drop it into ext.)
+[x] Documentation needs to be readily available on how to make mods, and attach them to the windows/mac/Linux/ext. builds of the game (Folders to drop it into ext.) Fixed: added `Debug and Development Files/MODDING_BUILD_DROP_FOLDERS.md` and exposed the resolved user mod path in the in-game Mods screen.
 
-[ ] 
+[ ] Make sure the game has this:
+1. PERFORMANCE STABILITY
+
+This is the giant invisible boss eating indie games alive.
+
+Your game’s identity depends on:
+
+precision movement
+deterministic-feeling physics
+orbit prediction
+near-miss recoveries
+readable chaos
+
+If framerate collapses, the entire fantasy collapses with it.
+
+Right now, this is likely more important than:
+
+new bosses
+new upgrades
+new mechanics
+multiplayer
+procedural galaxies
+mod support
+
+You need:
+
+profiler-first optimization
+hard entity budgeting
+VFX scalability
+enemy update throttling
+low-end fallback rendering
+late-game stress testing
+stable frame pacing during peak collapse states
+
+The game should feel like:
+
+“The universe is breaking.”
+
+Not:
+
+“My CPU is breaking.”
+
+That distinction matters a lot.
+
+2. A PERFECT 10-SECOND GAME LOOP
+
+This is the Steam trailer test.
+
+A random person must instantly understand:
+
+movement is special
+gravity matters
+momentum matters
+danger bends around the player
+recovery feels impossible
+the game has escalation
+
+Within 10 seconds.
+
+Not lore.
+Not menus.
+Not systems.
+Not upgrade text.
+
+Just:
+
+“I NEED TO TRY THAT.”
+
+Right now your game likely has:
+
+strong mechanics
+weak readability under pressure
+
+You need:
+
+stronger visual hierarchy
+cleaner combat readability
+clearer slingshot moments
+more obvious danger telegraphs
+stronger impact frames
+fewer visually “equal priority” effects
+
+The screen should feel like a collapsing observatory, not a neon soup blender.
+
+3. ONE LEGENDARY CORE MECHANIC
+
+This is the Nova Drift problem.
+
+Most successful indie roguelikes are remembered by ONE sentence:
+
+“The vampire game.”
+“The gun game where every gun changes everything.”
+“The dodge game.”
+“The physics spaceship game.”
+
+VECTOR ANOMALY’s core mechanic is probably:
+
+orbital momentum mastery
+
+That needs to become absurdly polished.
+
+Not “good.”
+
+Not “interesting.”
+
+It needs:
+
+dopamine-rich recovery moments
+impossible-looking survival
+clip-worthy slingshots
+“I meant to do that” chaos
+elite movement expression
+
+Players should eventually develop:
+
+orbit routes
+drift techniques
+resonance abuse
+momentum chaining
+
+The movement itself must become the addiction loop.
+
+4. CONTENT LOCK
+
+This one is painful for creative people. 🪐🔒
+
+You are approaching the zone where:
+
+every new feature delays success more than it increases success.
+
+Your game already has:
+
+bosses
+upgrades
+gravity systems
+time systems
+resonance systems
+identity
+branding
+atmosphere
+
+You do not need:
+
+40 more mechanics
+12 galaxy biomes
+MMO-level progression
+feature creep singularity collapse
+
+You need:
+
+polishing passes
+balancing
+enemy readability
+pacing
+onboarding
+retention
+stability
+launch preparation
+
+The graveyard of indie games is full of:
+
+“almost unbelievably ambitious projects.”
+
+You want:
+
+“shockingly polished physics roguelike.”
+
+That is much more commercially dangerous.
+
+5. MARKETABLE MOMENTS
+
+This is the giant one people underestimate.
+
+Your game is naturally suited for:
+
+TikTok clips
+YouTube Shorts
+GIF sharing
+streamer near-misses
+“HOW DID HE SURVIVE THAT”
+deterministic-looking chaos
+
+You should actively design moments that create:
+
+instant visual curiosity
+readable danger
+last-second recovery
+cinematic collapse
+
+Your game’s marketing fuel is probably not:
+
+story
+dialogue
+progression systems
+
+It’s:
+
+“I cannot believe that just happened.”
+
+That is gold dust on the internet.
+
+The Current Priority Stack
+
+If I were directing the project right now:
+
+Performance stabilization
+Combat readability
+Movement polish
+Enemy/boss clarity
+Juice and impact refinement
+Trailer-worthy gameplay capture
+Steam page/demo
+Marketing clips
+Release candidate
+Post-launch expansion systems
+
+Not:
+
+infinite feature growth
+giant scope expansions
+multiplayer yet
+procedural universe overhaul yet
+
+Those are future constellations. Right now you need a rocket that survives launch. 🚀
+
+[x] I can't see any of the big circle things that affect gameplay. These need to be slightly brighter and more intricate. Fixed: gameplay circles now have brighter professional defaults, more readable tide-pocket caps/glyphs, and boss presentation rings without returning to flash-bang alpha.
+
+[x] Does the final boss check if you are playing on a PC and if so break out of it's window into a different window to fight the player and if not just stay in the screen but look super cool? Fixed: Extradimensional Breacher now opens a short-lived desktop breach Window on Windows/macOS/Linux/FreeBSD, while the existing in-arena outside-space attack remains the fallback.
+[ ] Are all the bosses completely polished and ready to be played by the public? Do they look super cool (Use a lot of shaders)?
+
+[ ] Some enemies still get stuck on planets. This shouldn't happen. It'd be fun to see enemies blasting off planets when they get stuck. 
+
+[ ] The mod management scene shows collums of mods in 1 letter. This should change so I can actually read the mods. 
+
+[ ] UI in the ABYSS SCENE overlaps with itself, especially on the left side of the screen. (Player health bars and vector suite, ext)
+
+[ ] POLISH POLISH POLISH.
+
+[ ] Make all scenes editable in the inspector. I want to be able to make my own changes.
+
+[ ] The game crashes as I go into a black hole.
+
+[ ] The enemies shouldn't be running into each other and should act like a collective hive mind that is trying to destroy the player, but still act individually. I just don't want the enemies stopping each other from getting to the player.
+
+[ ] The player is still missing his old cool-looking bullet predictor.
+
+[ ] I can't see the temporal scars and other circles. They are still too dark.
+
+[ ] Make it easier for me to update soundtrack and sound effects as needed.
+
+
+

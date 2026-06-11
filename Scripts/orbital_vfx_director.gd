@@ -15,12 +15,13 @@ class_name OrbitalVFXDirector
 @export var low_performance_mode: bool = false
 @export var max_active_bursts: int = 14
 @export var max_particles_per_burst: int = 48
-@export var max_burst_alpha: float = 0.46
+@export var max_burst_alpha: float = 0.34
 @export var chaos_clutter_threshold: float = 0.58
 @export var chaos_sample_interval: float = 0.2
 @export var prewarm_bursts_per_template: int = 4
 @export var max_pooled_bursts_per_template: int = 8
 @export var burst_player_focus_radius: float = 1320.0
+@export var player_centered_burst_cooldown: float = 0.18
 
 @export_group("Templates")
 @export var time_afterimage_template_path: NodePath = ^"Templates/TimeAfterimageBurst"
@@ -39,6 +40,7 @@ var _active_bursts: Array[GPUParticles2D] = []
 var _burst_pools: Dictionary = {}
 var _chaos_intensity: float = 0.0
 var _chaos_sample_elapsed: float = 999.0
+var _next_player_centered_burst_time: float = 0.0
 
 @onready var _burst_root: Node2D = $Bursts
 @onready var _time_template: GPUParticles2D = get_node_or_null(time_afterimage_template_path) as GPUParticles2D
@@ -266,6 +268,11 @@ func _can_spawn_burst(template: GPUParticles2D, intensity: float, position: Vect
 		return false
 	if not _burst_in_player_focus(position, intensity):
 		return false
+	if _is_player_centered_burst(position, intensity):
+		var now := Time.get_ticks_msec() / 1000.0
+		if now < _next_player_centered_burst_time:
+			return false
+		_next_player_centered_burst_time = now + maxf(player_centered_burst_cooldown, 0.02)
 	return _active_bursts.size() < _active_burst_cap()
 
 
@@ -279,6 +286,15 @@ func _burst_in_player_focus(position: Vector2, intensity: float) -> bool:
 		return true
 	var focus_radius: float = burst_player_focus_radius * lerpf(0.78, 1.15, clampf(intensity, 0.0, 1.0))
 	return player_2d.global_position.distance_squared_to(position) <= focus_radius * focus_radius
+
+
+func _is_player_centered_burst(position: Vector2, intensity: float) -> bool:
+	if intensity >= 0.72 or _player == null or not is_instance_valid(_player):
+		return false
+	var player_2d := _player as Node2D
+	if player_2d == null or player_2d.is_queued_for_deletion():
+		return false
+	return player_2d.global_position.distance_squared_to(position) <= 90.0 * 90.0
 
 
 func _particle_amount(base_amount: int, intensity: float) -> int:

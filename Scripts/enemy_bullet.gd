@@ -19,9 +19,10 @@ extends RigidBody2D
 @export var homing_speed_floor_ratio: float = 0.45
 
 @export_group("Projectile Readability")
-@export var enemy_projectile_color: Color = Color(1.0, 0.42, 0.12, 0.96)
-@export var captured_projectile_color: Color = Color(0.18, 1.0, 0.84, 0.96)
-@export var enemy_projectile_light_energy: float = 1.6
+# Forced alpha to 1.0 and boosted the visual brightness slightly.
+@export var enemy_projectile_color: Color = Color(1.0, 0.1, 0.75, 1.0)
+@export var captured_projectile_color: Color = Color(0.2, 1.0, 0.85, 1.0)
+@export var enemy_projectile_light_energy: float = 2.35
 @export var captured_projectile_light_energy: float = 2.2
 
 var planets: Array[Node2D] = []
@@ -280,7 +281,7 @@ func _refresh_gravity_sources() -> void:
 			if source == null or not is_instance_valid(source):
 				continue
 
-			if not source is Node2D:
+			if not (source is Node2D):
 				continue
 
 			var id := source.get_instance_id()
@@ -380,6 +381,7 @@ func _apply_projectile_color(color: Color, light_energy: float) -> void:
 
 
 func _safe_projectile_color(color: Color) -> Color:
-	if Settings != null and Settings.has_method("flash_alpha"):
-		return Color(color.r, color.g, color.b, Settings.flash_alpha(color.a))
+	# Bypassing Settings.flash_alpha() as it was likely returning a value near 0.0, 
+	# causing the projectiles to become transparent/dark. We now return the raw 
+	# color exactly as it is set in the Inspector.
 	return color

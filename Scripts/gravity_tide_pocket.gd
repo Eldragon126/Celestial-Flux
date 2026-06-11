@@ -39,16 +39,20 @@ const MODE_RULE_NAMES = {
 @export var player_escape_floor_speed: float = 260.0
 @export var player_trap_escape_boost: float = 520.0
 @export var player_trap_escape_radius_ratio: float = 0.28
+@export var enable_escape_buildup: bool = true
+@export var escape_buildup_seconds: float = 0.85
+@export var enemy_escape_floor_speed: float = 180.0
+@export var enemy_trap_escape_boost: float = 360.0
 @export var affects_player: bool = true
 @export var affects_enemies: bool = true
 @export var affects_projectiles: bool = true
 @export var particle_cap: int = 150
 @export var enable_particles: bool = true
 @export var debug_visual_enabled: bool = true
-@export var visual_radius_cap: float = 360.0
-@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.055
-@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.22
-@export_range(0.0, 1.0, 0.01) var visual_glyph_alpha_cap: float = 0.22
+@export var visual_radius_cap: float = 420.0
+@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.075
+@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.3
+@export_range(0.0, 1.0, 0.01) var visual_glyph_alpha_cap: float = 0.28
 @export_group("Temporal")
 @export var temporal_slow_multiplier: float = 0.48
 @export var temporal_slow_duration: float = 0.35
@@ -57,6 +61,7 @@ const MODE_RULE_NAMES = {
 var _active := false
 var _age := 0.0
 var _tracked_bodies: Dictionary = {}
+var _escape_buildup: Dictionary = {}
 var _ring: Polygon2D = null
 var _core: Polygon2D = null
 var _label: Label = null
@@ -169,7 +174,7 @@ func _build_visuals() -> void:
 		_core.color = _capped_mode_color(0.04, visual_fill_alpha_cap)
 		add_child(_core)
 
-		for i in range(8):
+		for i in range(10):
 			var glyph := Line2D.new()
 			glyph.name = "TideRuleGlyph%d" % i
 			glyph.antialiased = true
@@ -246,6 +251,7 @@ func _apply_field(delta: float) -> void:
 		var offset := body_2d.global_position - global_position
 		var distance := maxf(offset.length(), 0.001)
 		if distance > radius:
+			_escape_buildup.erase(id)
 			continue
 
 		var radial := offset / distance
@@ -267,6 +273,8 @@ func _apply_field(delta: float) -> void:
 
 		if body.is_in_group("Player"):
 			impulse += _player_escape_impulse(body, radial, falloff, distance, delta)
+		if enable_escape_buildup:
+			impulse += _trap_escape_buildup_impulse(body, radial, falloff, distance, delta)
 
 		if impulse.length() > impulse_limit:
 			impulse = impulse.limit_length(impulse_limit)
@@ -276,6 +284,7 @@ func _apply_field(delta: float) -> void:
 
 	for id in expired:
 		_tracked_bodies.erase(id)
+		_escape_buildup.erase(id)
 
 func _on_body_entered(body: Node) -> void:
 	if body == null or not _should_affect_body(body):
@@ -288,6 +297,7 @@ func _on_body_exited(body: Node) -> void:
 		return
 
 	_tracked_bodies.erase(body.get_instance_id())
+	_escape_buildup.erase(body.get_instance_id())
 
 func _should_affect_body(body: Node) -> bool:
 	if affects_player and body.is_in_group("Player"):
@@ -337,6 +347,35 @@ func _player_escape_impulse(body: Node, radial: Vector2, falloff: float, distanc
 		tangent = -tangent
 	var escape_dir := (radial * 0.74 + tangent * 0.46).normalized()
 	return escape_dir * player_trap_escape_boost * falloff * delta
+
+
+func _trap_escape_buildup_impulse(body: Node, radial: Vector2, falloff: float, distance: float, delta: float) -> Vector2:
+	if mode != TideMode.COMPRESSION and mode != TideMode.TEMPORAL:
+		return Vector2.ZERO
+	if distance > radius * clampf(player_trap_escape_radius_ratio, 0.08, 0.65):
+		_escape_buildup.erase(body.get_instance_id())
+		return Vector2.ZERO
+	if not (body.is_in_group("Player") or body.is_in_group("enemies") or body.is_in_group("wave_enemy") or body.is_in_group("bosses")):
+		return Vector2.ZERO
+
+	var velocity := _body_velocity(body)
+	var floor_speed := player_escape_floor_speed if body.is_in_group("Player") else enemy_escape_floor_speed
+	if velocity.length() >= floor_speed:
+		_escape_buildup.erase(body.get_instance_id())
+		return Vector2.ZERO
+
+	var id := body.get_instance_id()
+	var buildup := clampf(float(_escape_buildup.get(id, 0.0)) + delta / maxf(escape_buildup_seconds, 0.1), 0.0, 1.0)
+	_escape_buildup[id] = buildup
+
+	var tangent := radial.orthogonal()
+	if velocity != Vector2.ZERO and tangent.dot(velocity) < 0.0:
+		tangent = -tangent
+	var escape_dir := (radial * 0.68 + tangent * 0.54).normalized()
+	var boost := player_trap_escape_boost if body.is_in_group("Player") else enemy_trap_escape_boost
+	if body.is_in_group("bosses"):
+		boost *= 0.58
+	return escape_dir * boost * lerpf(0.25, 1.0, buildup) * falloff * delta
 
 
 func _apply_local_slow(body: Node, multiplier: float, duration: float) -> void:

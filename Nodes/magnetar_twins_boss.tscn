@@ -1,20 +1,20 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://ddlth588g4tt4"]
 
-[ext_resource type="Script" path="res://Scripts/Bosses/magnetar_twins_boss.gd" id="1_magnetar"]
+[ext_resource type="Script" uid="uid://bsopohsotnepc" path="res://Scripts/Bosses/magnetar_twins_boss.gd" id="1_magnetar"]
 
-[node name="MagnetarTwinsBoss" type="CharacterBody2D" groups=["Objects_With_Gravity", "bosses", "enemies", "planets", "wave_enemy"]]
+[node name="MagnetarTwinsBoss" type="CharacterBody2D" unique_id=1489804059 groups=["Objects_With_Gravity", "bosses", "enemies", "planets", "wave_enemy"]]
 script = ExtResource("1_magnetar")
 
-[node name="NorthMagnetarLobe" type="Polygon2D" parent="."]
+[node name="NorthMagnetarLobe" type="Polygon2D" parent="." unique_id=1007092292]
 z_index = -2
 color = Color(0.26, 0.86, 1, 0.52)
 
-[node name="SouthMagnetarLobe" type="Polygon2D" parent="."]
+[node name="SouthMagnetarLobe" type="Polygon2D" parent="." unique_id=1182821017]
 z_index = -2
 color = Color(1, 0.18, 0.72, 0.52)
 
-[node name="MagnetarHull" type="Polygon2D" parent="."]
+[node name="MagnetarHull" type="Polygon2D" parent="." unique_id=454881628]
 color = Color(0.08, 0.06, 0.18, 1)
 
-[node name="MagnetarCore" type="Polygon2D" parent="."]
+[node name="MagnetarCore" type="Polygon2D" parent="." unique_id=1365040890]
 color = Color(0.96, 0.25, 0.92, 1)

@@ -13,9 +13,15 @@ signal shield_restored(amount: float, current_energy: float, max_capacity: float
 @export var max_capacity: float = 125.0
 @export var starting_energy: float = -1.0
 
-@export var recharge_delay: float = 1.45
-@export var passive_regen_rate: float = 24.0
-@export var break_recover_delay: float = 2.45
+@export var recharge_delay: float = 2.35
+@export var passive_regen_rate: float = 12.0
+@export var break_recover_delay: float = 3.2
+
+@export_group("Energy Recharge Link")
+@export var require_energy_for_recharge: bool = true
+@export_range(0.0, 1.0, 0.01) var minimum_energy_recharge_ratio: float = 0.16
+@export var energy_cost_per_shield_point: float = 0.8
+@export var broken_reboot_energy_multiplier: float = 1.35
 
 # Shader parameter name
 @export var shader_time_parameter: String = "time_multiplier"
@@ -107,7 +113,12 @@ func _recharge_shield(delta: float) -> void:
 
 		if _break_remaining <= 0.0:
 			is_broken = false
-			restore_shield(max_capacity * 0.24)
+			var reboot_amount := _consume_recharge_energy(max_capacity * 0.18, broken_reboot_energy_multiplier)
+			if reboot_amount <= 0.0:
+				is_broken = true
+				_break_remaining = 0.35
+				return
+			restore_shield(reboot_amount)
 
 		return
 
@@ -133,11 +144,12 @@ func _recharge_shield(delta: float) -> void:
 	else:
 		_gravity_distortion_strength = 0.0
 
-	current_energy = minf(
-		current_energy +
-		passive_regen_rate * distortion_multiplier * delta,
-		max_capacity
-	)
+	var requested_restore := passive_regen_rate * distortion_multiplier * delta
+	var allowed_restore := _consume_recharge_energy(requested_restore, 1.0)
+	if allowed_restore <= 0.0:
+		return
+
+	current_energy = minf(current_energy + allowed_restore, max_capacity)
 
 # =====================================================
 # == BREAK
@@ -184,6 +196,53 @@ func restore_shield(amount: float) -> float:
 		_play_hit_effect()
 
 	return restored
+
+
+func _consume_recharge_energy(shield_points: float, multiplier: float) -> float:
+	if shield_points <= 0.0:
+		return 0.0
+	if not require_energy_for_recharge:
+		return shield_points
+
+	var energy := _energy_component()
+	if energy == null:
+		return shield_points
+
+	var max_value: Variant = energy.get("max_energy")
+	var current_value: Variant = energy.get("current_energy")
+	if not (max_value is float or max_value is int) or not (current_value is float or current_value is int):
+		return shield_points
+
+	var max_energy := maxf(float(max_value), 1.0)
+	var current := maxf(float(current_value), 0.0)
+	if current / max_energy < minimum_energy_recharge_ratio:
+		return 0.0
+
+	var energy_cost := maxf(energy_cost_per_shield_point * maxf(multiplier, 0.0), 0.0)
+	if energy_cost <= 0.0:
+		return shield_points
+
+	var affordable_points := current / energy_cost
+	var restored_points := minf(shield_points, affordable_points)
+	if restored_points <= 0.0:
+		return 0.0
+
+	var spend_amount := restored_points * energy_cost
+	if energy.has_method("spend"):
+		var spent: Variant = energy.call("spend", spend_amount)
+		if (spent is float or spent is int) and float(spent) <= 0.0:
+			return 0.0
+	else:
+		energy.set("current_energy", maxf(current - spend_amount, 0.0))
+
+	return restored_points
+
+
+func _energy_component() -> Node:
+	var owner := get_parent()
+	if owner == null:
+		return null
+	return owner.get_node_or_null("EnergyComponent")
 
 # =====================================================
 # == TEMPORARY BONUS

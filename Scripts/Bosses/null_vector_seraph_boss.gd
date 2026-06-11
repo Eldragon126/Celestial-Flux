@@ -91,7 +91,7 @@ func _build_body() -> void:
 		_body_core.color = Color(0.64, 0.86, 1.0, 1.0)
 		add_child(_body_core)
 	if _body_core.polygon.is_empty():
-		_body_core.polygon = _circle_points(8, 34.0)
+		_body_core.polygon = _circle_points(34.0, 8)
 
 	if not has_node("CollisionPolygon2D"):
 		var collision = CollisionPolygon2D.new()
@@ -135,7 +135,7 @@ func _apply_rotating_lanes(delta: float) -> void:
 		var lateral = absf(offset.dot(lane_dir.orthogonal()))
 		if lateral <= lane_width:
 			var player_velocity: Variant = player.get("velocity")
-			if not player_velocity is Vector2:
+			if not (player_velocity is Vector2):
 				return
 			player.set("velocity", player_velocity + lane_dir * lane_force * delta)
 			return
@@ -216,7 +216,7 @@ func _telegraph() -> void:
 	tween.tween_property(_body_core, "scale", Vector2(1.34, 1.34), 0.12)
 	tween.tween_property(_body_core, "scale", Vector2.ONE, 0.22)
 
-func _circle_points(count: int, radius: float) -> PackedVector2Array:
+func _circle_points(radius: float, count: int) -> PackedVector2Array:
 	var points = PackedVector2Array()
 	for i in range(count):
 		var angle = TAU * float(i) / float(count)

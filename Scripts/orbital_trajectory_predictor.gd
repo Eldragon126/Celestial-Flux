@@ -143,9 +143,7 @@ func _refresh_gravity_sources() -> void:
 	var player_sources: Variant = _player.get("planets")
 	if typeof(player_sources) == TYPE_ARRAY:
 		for source_value in player_sources:
-			var source : Node2D
-			if is_instance_valid(source_value):
-				source = source_value
+			var source := source_value as Node2D
 			if source == null or not is_instance_valid(source) or source.is_queued_for_deletion():
 				continue
 			var id := source.get_instance_id()

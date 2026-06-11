@@ -81,7 +81,7 @@ func _build_body() -> void:
 		_aura.color = Color(0.12, 0.86, 1.0, 0.11)
 		add_child(_aura)
 	if _aura != null and _aura.polygon.is_empty():
-		_aura.polygon = _circle_points(64, 170.0)
+		_aura.polygon = _circle_points(170.0, 64)
 
 	var shell := get_node_or_null("AccretionShell") as Polygon2D
 	if shell == null:
@@ -90,7 +90,7 @@ func _build_body() -> void:
 		shell.color = Color(0.12, 0.08, 0.24, 1.0)
 		add_child(shell)
 	if shell.polygon.is_empty():
-		shell.polygon = _circle_points(12, 118.0)
+		shell.polygon = _circle_points(118.0, 12)
 
 	if has_node("AccretionCore"):
 		_core = get_node("AccretionCore") as Polygon2D
@@ -100,7 +100,7 @@ func _build_body() -> void:
 		_core.color = Color(0.04, 0.95, 0.84, 1.0)
 		add_child(_core)
 	if _core != null and _core.polygon.is_empty():
-		_core.polygon = _circle_points(10, 56.0)
+		_core.polygon = _circle_points(56.0, 10)
 
 	if not has_node("CollisionPolygon2D"):
 		var collision = CollisionPolygon2D.new()
@@ -118,7 +118,7 @@ func _pull_player(delta: float) -> void:
 		return
 
 	var player_velocity: Variant = player.get("velocity")
-	if not player_velocity is Vector2:
+	if not (player_velocity is Vector2):
 		return
 	var pull = offset.normalized() * gravity_strength * mass / maxf(distance * distance, 1600.0)
 	player.set("velocity", player_velocity + pull * delta)
@@ -192,7 +192,7 @@ func _telegraph_pulse() -> void:
 	tween.parallel().tween_property(_aura, "color:a", 0.28, 0.28)
 	tween.tween_property(_aura, "color:a", 0.11, 0.24)
 
-func _circle_points(count: int, radius: float) -> PackedVector2Array:
+func _circle_points(radius: float, count: int) -> PackedVector2Array:
 	var points = PackedVector2Array()
 	for i in range(count):
 		var angle = TAU * float(i) / float(count)

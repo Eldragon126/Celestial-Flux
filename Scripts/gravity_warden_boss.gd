@@ -232,7 +232,7 @@ func _pull_player(delta: float) -> void:
 		return
 
 	var player_velocity = _player.get("velocity")
-	if not player_velocity is Vector2:
+	if not (player_velocity is Vector2):
 		return
 
 	var channel_bonus := 1.35 if _is_gravity_channeling() else 1.0
@@ -317,7 +317,7 @@ func _on_ram_damage_area_body_entered(body: Node) -> void:
 		body.take_damage(14.0 + 5.0 * float(_phase))
 
 		var body_velocity: Variant = body.get("velocity")
-		if not body_velocity is Vector2:
+		if not (body_velocity is Vector2):
 			return
 		var push = (body_2d.global_position - global_position).normalized()
 		body.set("velocity", body_velocity + push * 520.0)

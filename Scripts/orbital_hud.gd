@@ -40,6 +40,8 @@ var _shield_resource_label: Label
 var _shield_resource_bar: ProgressBar
 var _energy_resource_label: Label
 var _energy_resource_bar: ProgressBar
+var _resource_panel: PanelContainer
+var _readout_panel: PanelContainer
 var _score_panel: PanelContainer
 var _score_label: Label
 var _score_detail_label: Label
@@ -67,6 +69,8 @@ var _threat_refresh_elapsed := 999.0
 var _score_pulse_time := 0.0
 var _challenge_code := "--"
 var _last_score_snapshot: Dictionary = {}
+var _resource_previous_values: Dictionary = {}
+var _resource_pulse_tweens: Dictionary = {}
 
 # Cache the current intensity to avoid repeated get_shader_parameter calls
 var _current_vignette_intensity: float = 0.0
@@ -106,6 +110,7 @@ func _process(delta: float) -> void:
 	_update_nav_arrows(gravity_strength)
 	_update_threat_arrows(delta)
 	_apply_accessibility_settings()
+	_layout_hud()
 
 
 # ============================
@@ -126,6 +131,7 @@ func _build_hud() -> void:
 	_build_powerup_notice()
 	_build_nav_arrows()
 	_build_orbit_telemetry()
+	_layout_hud()
 
 
 func _build_vignette() -> void:
@@ -155,20 +161,20 @@ func _build_vignette() -> void:
 
 
 func _build_resource_bars() -> void:
-	var panel := PanelContainer.new()
-	panel.name = "ResourceBarsPanel"
-	panel.offset_left = 18.0
-	panel.offset_top = 18.0
-	panel.custom_minimum_size = Vector2(390.0, 104.0)
-	panel.add_theme_stylebox_override(
+	_resource_panel = PanelContainer.new()
+	_resource_panel.name = "ResourceBarsPanel"
+	_resource_panel.offset_left = 18.0
+	_resource_panel.offset_top = 18.0
+	_resource_panel.custom_minimum_size = Vector2(390.0, 104.0)
+	_resource_panel.add_theme_stylebox_override(
 		"panel",
 		_make_hud_panel_style(Color(0.006, 0.012, 0.02, 0.86), Color(0.24, 0.92, 1.0, 0.58))
 	)
-	_hud_root.add_child(panel)
+	_hud_root.add_child(_resource_panel)
 
 	var rows := VBoxContainer.new()
 	rows.add_theme_constant_override("separation", 4)
-	panel.add_child(rows)
+	_resource_panel.add_child(rows)
 
 	_health_resource_label = _make_resource_label("HULL 100/100")
 	_health_resource_bar = _make_resource_bar(Color(1.0, 0.22, 0.14, 0.96), 20.0)
@@ -204,21 +210,21 @@ func _make_resource_bar(fill_color: Color, height: float) -> ProgressBar:
 
 
 func _build_readout_panel() -> void:
-	var panel = PanelContainer.new()
-	panel.name = "VectorReadoutPanel"
-	panel.offset_left = 18.0
-	panel.offset_top = 138.0
-	panel.custom_minimum_size = Vector2(330.0, 336.0)
-	_hud_root.add_child(panel)
+	_readout_panel = PanelContainer.new()
+	_readout_panel.name = "VectorReadoutPanel"
+	_readout_panel.offset_left = 18.0
+	_readout_panel.offset_top = 138.0
+	_readout_panel.custom_minimum_size = Vector2(330.0, 336.0)
+	_hud_root.add_child(_readout_panel)
 	
-	panel.add_theme_stylebox_override(
+	_readout_panel.add_theme_stylebox_override(
 		"panel",
 		_make_hud_panel_style(Color(0.006, 0.012, 0.02, 0.82), Color(0.18, 0.88, 0.72, 0.58))
 	)
 	
 	var rows = VBoxContainer.new()
 	rows.add_theme_constant_override("separation", 7)
-	panel.add_child(rows)
+	_readout_panel.add_child(rows)
 
 	var header := Label.new()
 	header.text = "VECTOR SUITE"
@@ -574,12 +580,39 @@ func _apply_resource_bar(
 	if label == null or bar == null:
 		return
 	bar.max_value = maxf(maximum, 1.0)
+	_pulse_resource_bar(resource_name, bar, current, maximum, color)
 	bar.value = clampf(current, 0.0, bar.max_value)
 	label.text = "%s %d/%d" % [resource_name, int(round(current)), int(round(maximum))]
 	label.modulate = _readability_color(color)
 	var fill := bar.get_theme_stylebox("fill") as StyleBoxFlat
 	if fill != null:
 		fill.bg_color = color
+
+
+func _pulse_resource_bar(resource_name: String, bar: ProgressBar, current: float, maximum: float, color: Color) -> void:
+	var previous_value: Variant = _resource_previous_values.get(resource_name, null)
+	_resource_previous_values[resource_name] = current
+	if not (previous_value is float or previous_value is int):
+		return
+	var previous := float(previous_value)
+	var delta := current - previous
+	var threshold := maxf(3.0, maxf(maximum, 1.0) * 0.025)
+	if absf(delta) < threshold:
+		return
+
+	var old_tween_value: Variant = _resource_pulse_tweens.get(resource_name, null)
+	var old_tween := old_tween_value as Tween
+	if old_tween != null:
+		old_tween.kill()
+
+	var impact_color := Color(1.0, 0.18, 0.1, 1.0) if delta < 0.0 else Color(0.42, 1.0, 0.78, 1.0)
+	var tween := create_tween()
+	_resource_pulse_tweens[resource_name] = tween
+	bar.pivot_offset = bar.size * 0.5
+	bar.modulate = impact_color
+	bar.scale = Vector2(1.03, 1.28)
+	tween.tween_property(bar, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(bar, "modulate", _readability_color(color), 0.24)
 
 
 # ============================
@@ -1451,6 +1484,98 @@ func _apply_accessibility_settings(force: bool = false) -> void:
 		return
 	_last_ui_scale = scale_value
 	_hud_root.scale = Vector2.ONE * scale_value
+	_layout_hud()
+
+
+func _layout_hud() -> void:
+	if _hud_root == null:
+		return
+	var scale_value := maxf(_last_ui_scale, 0.75)
+	var viewport_size := get_viewport().get_visible_rect().size / scale_value
+	var margin := 18.0
+	var compact_width := viewport_size.x < 960.0
+	var compact_height := viewport_size.y < 660.0
+	var resource_width := clampf(viewport_size.x * (0.46 if compact_width else 0.30), 292.0, 390.0)
+	var resource_height := 104.0
+
+	if _resource_panel != null:
+		_resource_panel.custom_minimum_size = Vector2(resource_width, resource_height)
+		_set_top_left_rect(_resource_panel, margin, margin, resource_width, resource_height)
+		_resize_resource_bars(maxf(resource_width - 40.0, 220.0))
+
+	if _readout_panel != null:
+		var readout_top := margin + resource_height + 16.0
+		var readout_width := minf(resource_width, 330.0)
+		var readout_height := 336.0
+		if compact_height:
+			readout_height = clampf(viewport_size.y - readout_top - 156.0, 210.0, 300.0)
+		_readout_panel.custom_minimum_size = Vector2(readout_width, readout_height)
+		_set_top_left_rect(_readout_panel, margin, readout_top, readout_width, readout_height)
+
+	if _score_panel != null:
+		var score_width := clampf(viewport_size.x * (0.45 if compact_width else 0.28), 300.0, 364.0)
+		var score_height := 126.0
+		if compact_width:
+			_set_center_bottom_rect(_score_panel, minf(viewport_size.x - margin * 2.0, 364.0), 18.0, score_height)
+		else:
+			_set_top_right_rect(_score_panel, margin, margin + (142.0 if compact_width else 2.0), score_width, score_height)
+
+	if _powerup_notice_label != null:
+		var notice_width := minf(520.0, viewport_size.x - margin * 2.0)
+		if compact_width:
+			_set_center_bottom_rect(_powerup_notice_label, notice_width, 156.0, 38.0)
+		else:
+			_set_center_top_rect(_powerup_notice_label, notice_width, 72.0, 38.0)
+
+
+func _resize_resource_bars(width: float) -> void:
+	for bar in [_health_resource_bar, _shield_resource_bar, _energy_resource_bar]:
+		if bar != null:
+			bar.custom_minimum_size.x = width
+
+
+func _set_top_left_rect(control: Control, left: float, top: float, width: float, height: float) -> void:
+	control.anchor_left = 0.0
+	control.anchor_top = 0.0
+	control.anchor_right = 0.0
+	control.anchor_bottom = 0.0
+	control.offset_left = left
+	control.offset_top = top
+	control.offset_right = left + width
+	control.offset_bottom = top + height
+
+
+func _set_top_right_rect(control: Control, right: float, top: float, width: float, height: float) -> void:
+	control.anchor_left = 1.0
+	control.anchor_top = 0.0
+	control.anchor_right = 1.0
+	control.anchor_bottom = 0.0
+	control.offset_left = -right - width
+	control.offset_top = top
+	control.offset_right = -right
+	control.offset_bottom = top + height
+
+
+func _set_center_top_rect(control: Control, width: float, top: float, height: float) -> void:
+	control.anchor_left = 0.5
+	control.anchor_top = 0.0
+	control.anchor_right = 0.5
+	control.anchor_bottom = 0.0
+	control.offset_left = -width * 0.5
+	control.offset_top = top
+	control.offset_right = width * 0.5
+	control.offset_bottom = top + height
+
+
+func _set_center_bottom_rect(control: Control, width: float, bottom: float, height: float) -> void:
+	control.anchor_left = 0.5
+	control.anchor_top = 1.0
+	control.anchor_right = 0.5
+	control.anchor_bottom = 1.0
+	control.offset_left = -width * 0.5
+	control.offset_top = -bottom - height
+	control.offset_right = width * 0.5
+	control.offset_bottom = -bottom
 
 
 func _readability_color(color: Color) -> Color:

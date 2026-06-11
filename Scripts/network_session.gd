@@ -904,7 +904,7 @@ func _profile_compatibility_error(profile: Dictionary) -> String:
 	var remote_signature := String(profile.get("mod_signature", ""))
 	var local_signature := _local_mod_signature()
 	if not remote_signature.is_empty() and remote_signature != local_signature:
-		return "JOIN FAILED: mod catalog mismatch"
+		return "JOIN FAILED: gameplay mod signature mismatch"
 	return ""
 
 
@@ -915,7 +915,7 @@ func _run_config_compatibility_error(config: Dictionary) -> String:
 	var remote_signature := String(config.get("mod_signature", ""))
 	var local_signature := _local_mod_signature()
 	if not remote_signature.is_empty() and remote_signature != local_signature:
-		return "JOIN FAILED: host mod catalog mismatch"
+		return "JOIN FAILED: host gameplay mod signature mismatch"
 	return ""
 
 
@@ -979,7 +979,11 @@ func _local_mod_signature() -> String:
 		_collect_mod_signature_tokens(root, tokens)
 	tokens.sort()
 	var packed := PackedStringArray()
+	var seen_tokens := {}
 	for token in tokens:
+		if seen_tokens.has(token):
+			continue
+		seen_tokens[token] = true
 		packed.append(token)
 	return ("mods:%s" % "|".join(packed)).sha256_text().substr(0, 16)
 

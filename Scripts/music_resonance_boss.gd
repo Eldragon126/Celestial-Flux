@@ -74,7 +74,7 @@ func _build_editable_body() -> void:
 		_body_poly.color = Color(0.22, 0.7, 1.0, 0.78)
 		add_child(_body_poly)
 	if _body_poly.polygon.is_empty():
-		_body_poly.polygon = _circle_points(12, 104.0)
+		_body_poly.polygon = _circle_points(104.0, 12)
 
 	_core_poly = get_node_or_null("ResonanceCore") as Polygon2D
 	if _core_poly == null:
@@ -83,7 +83,7 @@ func _build_editable_body() -> void:
 		_core_poly.color = Color(0.84, 1.0, 0.95, 1.0)
 		add_child(_core_poly)
 	if _core_poly.polygon.is_empty():
-		_core_poly.polygon = _circle_points(8, 44.0)
+		_core_poly.polygon = _circle_points(44.0, 8)
 
 	_rings.clear()
 	for child in get_children():
@@ -106,7 +106,7 @@ func _build_editable_body() -> void:
 	if not has_node("CollisionPolygon2D"):
 		var collision := CollisionPolygon2D.new()
 		collision.name = "CollisionPolygon2D"
-		collision.polygon = _circle_points(12, 106.0)
+		collision.polygon = _circle_points(106.0, 12)
 		add_child(collision)
 
 
@@ -182,13 +182,13 @@ func _update_visuals(delta: float) -> void:
 		if ring == null:
 			continue
 		var radius := 128.0 + float(i) * 42.0 + _collapse_charge * 24.0
-		ring.points = _circle_points(72, radius)
+		ring.points = _circle_points(radius, 72)
 		ring.rotation += delta * (0.42 + float(i) * 0.18) * (-1.0 if i % 2 == 0 else 1.0)
 	if _core_poly != null:
 		_core_poly.scale = Vector2.ONE * (1.0 + sin(Time.get_ticks_msec() / 140.0) * 0.035)
 
 
-func _circle_points(count: int, radius: float) -> PackedVector2Array:
+func _circle_points(radius: float, count: int) -> PackedVector2Array:
 	var points := PackedVector2Array()
 	for i in range(count):
 		var angle := TAU * float(i) / float(count)
