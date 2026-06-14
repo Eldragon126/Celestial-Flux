@@ -173,6 +173,25 @@ func _apply_new_director_budget(scene: Node, low: bool, medium: bool) -> void:
 	var wave := scene.find_child("WaveDirector", true, false)
 	if wave != null:
 		_set_if_present(wave, "max_regular_enemies", 7 if low else (8 if medium else 10))
+	var heat_map := scene.find_child("GravityHeatMapOverlay", true, false)
+	if heat_map != null:
+		_set_if_present(heat_map, "sample_columns", 25 if low else (33 if medium else 39))
+		_set_if_present(heat_map, "sample_rows", 17 if low else (21 if medium else 25))
+		_set_if_present(heat_map, "refresh_interval", 0.12 if low else (0.09 if medium else 0.075))
+		_set_if_present(heat_map, "max_gravity_sources", 6 if low else (9 if medium else 12))
+		_set_if_present(heat_map, "max_contour_segments", 520 if low else (760 if medium else 980))
+		_set_if_present(heat_map, "max_gradient_vectors", 48 if low else (72 if medium else 95))
+	for hazard in get_tree().get_nodes_in_group("gravity_wave_maker"):
+		var node := hazard as Node
+		if node == null or not is_instance_valid(node):
+			continue
+		_set_if_present(node, "number_of_points", 18 if low else (22 if medium else 28))
+		_set_if_present(node, "max_active_groups", 2 if low else 3)
+	for hazard in get_tree().get_nodes_in_group("pulsating_gravity_spawner"):
+		var node := hazard as Node
+		if node == null or not is_instance_valid(node):
+			continue
+		_set_if_present(node, "max_active_fields", 1 if low else 2)
 
 
 func _apply_player_budget(low: bool) -> void:
@@ -265,4 +284,6 @@ func get_budget_debug_state() -> Dictionary:
 		"enabled": enabled,
 		"quality": quality_tier,
 		"fps": Engine.get_frames_per_second(),
+		"projectile_pressure": _group_count(&"Projectiles") + _group_count(&"enemy_projectiles"),
+		"enemy_pressure": _group_count(&"enemies"),
 	}

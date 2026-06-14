@@ -35,7 +35,7 @@ const NETWORKED_PLAYER_HOOKS := [
 	&"projectile_hit",
 	&"coop_combo_triggered",
 ]
-const LOCAL_VISUAL_ACTIONS := [&"emit_hud_badge", &"play_sfx", &"request_music_layer"]
+const LOCAL_VISUAL_ACTIONS := [&"emit_hud_badge", &"play_sfx", &"request_music_layer", &"apply_shader_pack", &"apply_texture_pack"]
 
 @export var enabled: bool = true
 @export var reconnect_interval: float = 0.5
@@ -355,6 +355,14 @@ func _condition_matches(condition: Dictionary, data: Dictionary) -> bool:
 			return _run_flag_matches("run_modifier", str(condition.get("value", condition.get("modifier", ""))))
 		&"multiplayer_peer_count_at_least":
 			return _multiplayer_peer_count() >= int(condition.get("value", 1))
+		&"level_tag":
+			return _run_flag_matches("level_tag", str(condition.get("value", condition.get("tag", ""))))
+		&"mod_loaded":
+			return _mod_loaded(str(condition.get("mod_id", condition.get("id", condition.get("value", "")))))
+		&"content_tag":
+			return _data_has_tag(data, str(condition.get("value", condition.get("tag", ""))))
+		&"player_speed_above":
+			return _player_speed() >= float(condition.get("value", 0.0))
 	return false
 
 
@@ -402,6 +410,22 @@ func _apply_entry_effects(entry: Dictionary, _hook_id: StringName, data: Diction
 			&"spawn_celestial_body":
 				applied = _record_mod_event(action, effect, entry, data)
 			&"spawn_physics_drop":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"request_level_transition":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"offer_level":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"spawn_enemy_profile":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"spawn_boss_profile":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"apply_shader_pack":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"apply_texture_pack":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"set_arena_law":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"queue_mod_story_event":
 				applied = _record_mod_event(action, effect, entry, data)
 			_:
 				applied = false
@@ -482,10 +506,10 @@ func _apply_hud_badge(effect: Dictionary, entry: Dictionary, data: Dictionary) -
 
 func _apply_play_sfx(effect: Dictionary, entry: Dictionary, data: Dictionary) -> bool:
 	var sfx_entry := _resolve_registry_entry(&"sfx", str(effect.get("sfx_id", effect.get("content_id", ""))))
-	var stream_path := str(effect.get("stream", sfx_entry.get("stream", sfx_entry.get("audio", "")))).strip_edges()
+	var stream_path := _resolve_audio_stream_path(effect, entry, sfx_entry)
 	if stream_path.is_empty():
 		return false
-	var stream := load(stream_path) as AudioStream
+	var stream := _load_audio_stream(stream_path)
 	if stream == null:
 		return false
 	var root := get_tree().current_scene
@@ -503,6 +527,101 @@ func _apply_play_sfx(effect: Dictionary, entry: Dictionary, data: Dictionary) ->
 	_audio_players.append(player)
 	_record_mod_event(&"play_sfx", effect, entry, data)
 	return true
+
+
+func _resolve_audio_stream_path(effect: Dictionary, entry: Dictionary, sfx_entry: Dictionary) -> String:
+	var raw_path := str(effect.get("stream", effect.get("audio", ""))).strip_edges()
+	var context := entry
+	if raw_path.is_empty() and not sfx_entry.is_empty():
+		raw_path = str(sfx_entry.get("stream", sfx_entry.get("audio", ""))).strip_edges()
+		context = sfx_entry
+	if raw_path.is_empty():
+		return ""
+	if _registry != null and _registry.has_method("resolve_mod_path"):
+		return str(_registry.call("resolve_mod_path", raw_path, context)).strip_edges()
+	return _resolve_relative_path(raw_path, context)
+
+
+func _load_audio_stream(path: String) -> AudioStream:
+	var clean_path := path.strip_edges()
+	if clean_path.is_empty():
+		return null
+	var loaded := load(clean_path)
+	if loaded is AudioStream:
+		return loaded as AudioStream
+	if not FileAccess.file_exists(clean_path):
+		return null
+	var extension := clean_path.get_extension().to_lower()
+	match extension:
+		"mp3":
+			return AudioStreamMP3.load_from_file(clean_path)
+		"ogg":
+			return AudioStreamOggVorbis.load_from_file(clean_path)
+		"wav":
+			return _load_wav_stream(clean_path)
+	return null
+
+
+func _load_wav_stream(path: String) -> AudioStreamWAV:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return null
+	if file.get_length() < 44:
+		file.close()
+		return null
+	var riff := file.get_buffer(4).get_string_from_ascii()
+	file.get_32()
+	var wave := file.get_buffer(4).get_string_from_ascii()
+	if riff != "RIFF" or wave != "WAVE":
+		file.close()
+		return null
+
+	var audio_format := 0
+	var channel_count := 0
+	var sample_rate := 0
+	var bits_per_sample := 0
+	var pcm_data := PackedByteArray()
+	while file.get_position() + 8 <= file.get_length():
+		var chunk_id := file.get_buffer(4).get_string_from_ascii()
+		var chunk_size := int(file.get_32())
+		var chunk_end := mini(int(file.get_position()) + chunk_size, int(file.get_length()))
+		if chunk_id == "fmt " and chunk_size >= 16:
+			audio_format = int(file.get_16())
+			channel_count = int(file.get_16())
+			sample_rate = int(file.get_32())
+			file.get_32()
+			file.get_16()
+			bits_per_sample = int(file.get_16())
+		elif chunk_id == "data" and chunk_size > 0:
+			pcm_data = file.get_buffer(chunk_size)
+		file.seek(mini(chunk_end + (chunk_size % 2), int(file.get_length())))
+	file.close()
+
+	if audio_format != 1 or pcm_data.is_empty():
+		return null
+	if channel_count < 1 or channel_count > 2 or sample_rate <= 0:
+		return null
+	var stream := AudioStreamWAV.new()
+	stream.mix_rate = sample_rate
+	stream.stereo = channel_count == 2
+	if bits_per_sample == 8:
+		stream.format = AudioStreamWAV.FORMAT_8_BITS
+	elif bits_per_sample == 16:
+		stream.format = AudioStreamWAV.FORMAT_16_BITS
+	else:
+		return null
+	stream.data = pcm_data
+	return stream
+
+
+func _resolve_relative_path(raw_path: String, context: Dictionary) -> String:
+	var clean_path := raw_path.strip_edges().replace("\\", "/")
+	if clean_path.is_empty() or clean_path.begins_with("res://") or clean_path.begins_with("user://") or clean_path.begins_with("/") or clean_path.substr(1, 1) == ":":
+		return clean_path
+	var source_dir := str(context.get("manifest_source_dir", context.get("source_dir", ""))).strip_edges().replace("\\", "/")
+	if source_dir.is_empty():
+		return clean_path
+	return "%s/%s" % [source_dir.trim_suffix("/"), clean_path.trim_prefix("/")]
 
 
 func _record_mod_event(action: StringName, effect: Dictionary, entry: Dictionary, data: Dictionary) -> bool:
@@ -707,6 +826,38 @@ func _multiplayer_peer_count() -> int:
 	return 1
 
 
+func _mod_loaded(mod_id: String) -> bool:
+	if _registry == null or mod_id.strip_edges().is_empty():
+		return false
+	if _registry.has_method("get_manifest"):
+		var manifest_value: Variant = _registry.call("get_manifest", StringName(mod_id.strip_edges()))
+		return manifest_value is Dictionary and not (manifest_value as Dictionary).is_empty()
+	return false
+
+
+func _data_has_tag(data: Dictionary, tag: String) -> bool:
+	var clean_tag := tag.strip_edges()
+	if clean_tag.is_empty():
+		return false
+	var tags_value: Variant = data.get("tags", [])
+	if not (tags_value is Array):
+		return false
+	var tags := tags_value as Array
+	for value in tags:
+		if str(value).strip_edges() == clean_tag:
+			return true
+	return false
+
+
+func _player_speed() -> float:
+	if _player == null or not is_instance_valid(_player):
+		return 0.0
+	var velocity: Variant = _player.get("velocity")
+	if velocity is Vector2:
+		return (velocity as Vector2).length()
+	return 0.0
+
+
 func _is_remote_projectile_hit(data: Dictionary) -> bool:
 	if NetworkSession == null or not NetworkSession.is_network_active():
 		return false
@@ -782,6 +933,14 @@ func _effect_notice(action: StringName, effect: Dictionary, entry: Dictionary) -
 			return "%s: LAW" % entry_name
 		&"offer_weapon":
 			return "%s: WEAPON" % entry_name
+		&"offer_level", &"request_level_transition":
+			return "%s: LEVEL" % entry_name
+		&"spawn_enemy_profile", &"spawn_boss_profile":
+			return "%s: ENCOUNTER" % entry_name
+		&"apply_shader_pack", &"apply_texture_pack":
+			return "%s: VISUAL PACK" % entry_name
+		&"set_arena_law":
+			return "%s: ARENA LAW" % entry_name
 	return entry_name
 
 

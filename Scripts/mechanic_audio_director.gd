@@ -49,6 +49,7 @@ const ENERGY_EXHAUSTED_STREAM := preload("res://Assets/Sound Effects/sfx_energy_
 @export var minimum_cue_gap: float = 0.09
 @export var source_refresh_interval: float = 1.0
 @export var bus_name: StringName = &"Player Sound Effects"
+@export_file("*.json") var audio_manifest_path: String = "res://Assets/Audio/vector_anomaly_audio_manifest.json"
 
 @export_group("Volumes")
 @export var time_cue_volume_db: float = -13.0
@@ -84,10 +85,12 @@ var _next_drop_collect_cue := 0.0
 var _next_thrust_cue := 0.0
 var _next_resource_warning_cue := 0.0
 var _source_refresh_elapsed := 999.0
+var _sfx_overrides: Dictionary = {}
 
 
 func _ready() -> void:
 	add_to_group("mechanic_audio_director")
+	_load_audio_manifest_overrides()
 	call_deferred("_connect_sources")
 
 
@@ -611,126 +614,161 @@ func _play_zone_cue(zone_data: Dictionary, volume_offset: float, intensified: bo
 	_play_positional_cue(stream, position, resonance_cue_volume_db + volume_offset, pitch + intensity * 0.18)
 
 
+func _load_audio_manifest_overrides() -> void:
+	_sfx_overrides.clear()
+	if audio_manifest_path.strip_edges().is_empty() or not FileAccess.file_exists(audio_manifest_path):
+		return
+	var file := FileAccess.open(audio_manifest_path, FileAccess.READ)
+	if file == null:
+		return
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not (parsed is Dictionary):
+		return
+	var manifest: Dictionary = parsed
+	var sfx_value: Variant = manifest.get("sfx", {})
+	var sfx: Dictionary = sfx_value if sfx_value is Dictionary else {}
+	for key in sfx.keys():
+		var stream := _load_audio_stream(String(sfx[key]))
+		if stream != null:
+			_sfx_overrides[StringName(str(key))] = stream
+
+
+func _load_audio_stream(path: String) -> AudioStream:
+	var clean_path := path.strip_edges()
+	if clean_path.is_empty():
+		return null
+	var resource := load(clean_path)
+	return resource as AudioStream
+
+
+func _override_stream(key: StringName, fallback: AudioStream) -> AudioStream:
+	var value: Variant = _sfx_overrides.get(key, null)
+	if value is AudioStream:
+		return value
+	return fallback
+
+
 func _zone_stream(zone_name: StringName, intensified: bool) -> AudioStream:
 	match zone_name:
 		&"slipstream":
-			return RESONANCE_SLIPSTREAM_STREAM
+			return _override_stream(&"resonance.slipstream", RESONANCE_SLIPSTREAM_STREAM)
 		&"harmonic_orbit":
-			return RESONANCE_HARMONIC_STREAM
+			return _override_stream(&"resonance.harmonic_orbit", RESONANCE_HARMONIC_STREAM)
 		&"temporal_scar":
-			return TIME_POCKET_ENTER_STREAM
+			return _override_stream(&"resonance.temporal_scar", TIME_POCKET_ENTER_STREAM)
 		&"inversion":
-			return INSTABILITY_CHANGED_STREAM
-	return RESONANCE_INTENSIFY_STREAM if intensified else RESONANCE_CREATED_STREAM
+			return _override_stream(&"resonance.inversion", INSTABILITY_CHANGED_STREAM)
+	return _override_stream(&"resonance.intensify", RESONANCE_INTENSIFY_STREAM) if intensified else _override_stream(&"resonance.created", RESONANCE_CREATED_STREAM)
 
 
 func _instability_stream(event_id: StringName, started: bool) -> AudioStream:
 	match event_id:
 		&"gravity_tide":
-			return TIDE_POCKET_STREAM
+			return _override_stream(&"arena.gravity_tide", TIDE_POCKET_STREAM)
 		&"slipstream_surge":
-			return RESONANCE_SLIPSTREAM_STREAM if not started else SLINGSHOT_GREAT_STREAM
+			return _override_stream(&"arena.slipstream_surge.start", SLINGSHOT_GREAT_STREAM) if started else _override_stream(&"arena.slipstream_surge.telegraph", RESONANCE_SLIPSTREAM_STREAM)
 		&"collapsing_orbit_lane":
-			return COLLAPSE_LANE_STREAM
+			return _override_stream(&"arena.collapsing_orbit_lane", COLLAPSE_LANE_STREAM)
 		&"resonance_storm":
-			return RESONANCE_INTENSIFY_STREAM
+			return _override_stream(&"arena.resonance_storm", RESONANCE_INTENSIFY_STREAM)
 		&"spacetime_fracture":
-			return TIME_DILATION_BREAK_STREAM if not started else WORMHOLE_PULSE_STREAM
+			return _override_stream(&"arena.spacetime_fracture.start", WORMHOLE_PULSE_STREAM) if started else _override_stream(&"arena.spacetime_fracture.telegraph", TIME_DILATION_BREAK_STREAM)
 		&"momentum_inversion":
-			return INSTABILITY_CHANGED_STREAM if not started else BOSS_ATTACK_STREAM
-	return TIME_POCKET_ENTER_STREAM if not started else TIME_POCKET_EXIT_STREAM
+			return _override_stream(&"arena.momentum_inversion.start", BOSS_ATTACK_STREAM) if started else _override_stream(&"arena.momentum_inversion.telegraph", INSTABILITY_CHANGED_STREAM)
+	return _override_stream(&"time.pocket_exit", TIME_POCKET_EXIT_STREAM) if started else _override_stream(&"time.pocket_enter", TIME_POCKET_ENTER_STREAM)
 
 
 func _drop_stream(drop_type: int) -> AudioStream:
 	match drop_type:
 		PhysicsDrop.DropType.MOMENTUM_ORB:
-			return MOMENTUM_SURGE_STREAM
+			return _override_stream(&"drop.momentum_orb", MOMENTUM_SURGE_STREAM)
 		PhysicsDrop.DropType.GRAVITY_RESIDUE:
-			return TIDE_POCKET_STREAM
+			return _override_stream(&"drop.gravity_residue", TIDE_POCKET_STREAM)
 		PhysicsDrop.DropType.TEMPORAL_CHARGE:
-			return TIME_POCKET_ENTER_STREAM
+			return _override_stream(&"drop.temporal_charge", TIME_POCKET_ENTER_STREAM)
 		PhysicsDrop.DropType.INSTABILITY_SHARD:
-			return RARE_EVENT_STREAM
+			return _override_stream(&"drop.instability_shard", RARE_EVENT_STREAM)
 		PhysicsDrop.DropType.ANOMALY_SEED:
-			return WORMHOLE_SWIRL_STREAM
+			return _override_stream(&"drop.anomaly_seed", WORMHOLE_SWIRL_STREAM)
 		PhysicsDrop.DropType.CELESTIAL_CORE:
-			return LATE_GAME_OVERFOLD_STREAM
-	return RESONANCE_CREATED_STREAM
+			return _override_stream(&"drop.celestial_core", LATE_GAME_OVERFOLD_STREAM)
+	return _override_stream(&"resonance.created", RESONANCE_CREATED_STREAM)
 
 
 func _impossible_event_stream(event_id: StringName) -> AudioStream:
 	match event_id:
 		&"collapse_lane":
-			return COLLAPSE_LANE_STREAM
+			return _override_stream(&"impossible.collapse_lane", COLLAPSE_LANE_STREAM)
 		&"gravity_braid":
-			return TIDE_POCKET_STREAM
+			return _override_stream(&"impossible.gravity_braid", TIDE_POCKET_STREAM)
 		&"temporal_splinter":
-			return TIME_DILATION_BREAK_STREAM
+			return _override_stream(&"impossible.temporal_splinter", TIME_DILATION_BREAK_STREAM)
 		&"resonance_overfold":
-			return LATE_GAME_OVERFOLD_STREAM
-	return RARE_EVENT_STREAM
+			return _override_stream(&"impossible.resonance_overfold", LATE_GAME_OVERFOLD_STREAM)
+	return _override_stream(&"rare.event", RARE_EVENT_STREAM)
 
 
 func _recovery_stream(opportunity_id: StringName) -> AudioStream:
 	match opportunity_id:
 		&"emergency_wormhole_exit":
-			return WORMHOLE_PULSE_STREAM
+			return _override_stream(&"recovery.emergency_wormhole_exit", WORMHOLE_PULSE_STREAM)
 		&"time_dilation_dodge_window":
-			return TIME_POCKET_ENTER_STREAM
+			return _override_stream(&"recovery.time_dilation_dodge_window", TIME_POCKET_ENTER_STREAM)
 		&"resonance_rebound":
-			return RESONANCE_HARMONIC_STREAM
+			return _override_stream(&"recovery.resonance_rebound", RESONANCE_HARMONIC_STREAM)
 		&"momentum_conservation_chain":
-			return MOMENTUM_SURGE_STREAM
-	return SLINGSHOT_GREAT_STREAM
+			return _override_stream(&"recovery.momentum_conservation_chain", MOMENTUM_SURGE_STREAM)
+	return _override_stream(&"slingshot.great", SLINGSHOT_GREAT_STREAM)
 
 
 func _ambient_event_stream(event_id: StringName) -> AudioStream:
 	match event_id:
 		&"tide_slipstream", &"gravity_tide":
-			return TIDE_POCKET_STREAM
+			return _override_stream(&"ambient.gravity_tide", TIDE_POCKET_STREAM)
 		&"volatile_moon":
-			return VOLATILE_MOON_STREAM
+			return _override_stream(&"ambient.volatile_moon", VOLATILE_MOON_STREAM)
 		&"nebula_shear":
-			return NEBULA_SHEAR_STREAM
+			return _override_stream(&"ambient.nebula_shear", NEBULA_SHEAR_STREAM)
 		&"collapse_lane", &"collapsing_orbit_lane":
-			return COLLAPSE_LANE_STREAM
+			return _override_stream(&"ambient.collapse_lane", COLLAPSE_LANE_STREAM)
 		&"wormhole_shear":
-			return WORMHOLE_SWIRL_STREAM
+			return _override_stream(&"ambient.wormhole_shear", WORMHOLE_SWIRL_STREAM)
 		&"temporal_pocket":
-			return TIME_POCKET_ENTER_STREAM
+			return _override_stream(&"time.pocket_enter", TIME_POCKET_ENTER_STREAM)
 		&"rupture_pulse", &"finale_storm":
-			return LATE_GAME_OVERFOLD_STREAM
-	return RARE_EVENT_STREAM
+			return _override_stream(&"ambient.finale_storm", LATE_GAME_OVERFOLD_STREAM)
+	return _override_stream(&"rare.event", RARE_EVENT_STREAM)
 
 
 func _breacher_attack_stream(attack_id: StringName) -> AudioStream:
 	match attack_id:
 		&"moving_singularity":
-			return SINGULARITY_BOSS_TELEGRAPH_STREAM
+			return _override_stream(&"boss.attack.moving_singularity", SINGULARITY_BOSS_TELEGRAPH_STREAM)
 		&"moon_fragment_orbit":
-			return ORBIT_BOSS_TELEGRAPH_STREAM
+			return _override_stream(&"boss.attack.moon_fragment_orbit", ORBIT_BOSS_TELEGRAPH_STREAM)
 		&"slipstream_corridor":
-			return RESONANCE_SLIPSTREAM_STREAM
+			return _override_stream(&"boss.attack.slipstream_corridor", RESONANCE_SLIPSTREAM_STREAM)
 		&"unstable_wormhole":
-			return WORMHOLE_SWIRL_STREAM
+			return _override_stream(&"boss.attack.unstable_wormhole", WORMHOLE_SWIRL_STREAM)
 		&"timeline_slam":
-			return TIME_DILATION_BREAK_STREAM
+			return _override_stream(&"boss.attack.timeline_slam", TIME_DILATION_BREAK_STREAM)
 		&"outside_space_breach":
-			return OVERFOLD_BOSS_TELEGRAPH_STREAM
-	return FRACTURE_BOSS_TELEGRAPH_STREAM
+			return _override_stream(&"boss.attack.outside_space_breach", OVERFOLD_BOSS_TELEGRAPH_STREAM)
+	return _override_stream(&"boss.telegraph.fracture", FRACTURE_BOSS_TELEGRAPH_STREAM)
 
 
 func _boss_telegraph_stream(boss: Node) -> AudioStream:
 	var boss_name := boss.name.to_lower()
 	if boss_name.contains("singularity") or boss_name.contains("seraph") or boss_name.contains("accretion"):
-		return SINGULARITY_BOSS_TELEGRAPH_STREAM
+		return _override_stream(&"boss.telegraph.singularity", SINGULARITY_BOSS_TELEGRAPH_STREAM)
 	if boss_name.contains("rift") or boss_name.contains("fracture") or boss_name.contains("polymorph"):
-		return FRACTURE_BOSS_TELEGRAPH_STREAM
+		return _override_stream(&"boss.telegraph.fracture", FRACTURE_BOSS_TELEGRAPH_STREAM)
 	if boss_name.contains("centrifuge") or boss_name.contains("orbit") or boss_name.contains("warden"):
-		return ORBIT_BOSS_TELEGRAPH_STREAM
+		return _override_stream(&"boss.telegraph.orbit", ORBIT_BOSS_TELEGRAPH_STREAM)
 	if boss_name.contains("breacher") or boss_name.contains("overfold"):
-		return OVERFOLD_BOSS_TELEGRAPH_STREAM
-	return BOSS_TELEGRAPH_STREAM
+		return _override_stream(&"boss.telegraph.overfold", OVERFOLD_BOSS_TELEGRAPH_STREAM)
+	return _override_stream(&"boss.telegraph.default", BOSS_TELEGRAPH_STREAM)
 
 
 func _event_position(data: Dictionary) -> Vector2:

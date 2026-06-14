@@ -9,6 +9,8 @@ extends CanvasLayer
 @export var g_warning_level: float = 850.0
 @export var nearest_field_notice_radius: float = 760.0
 @export var enable_player_orbit_telemetry: bool = false
+@export var hud_safe_margin: float = 18.0
+@export var left_panel_gap: float = 20.0
 
 var _player: Node2D
 var _resonance_manager: Node
@@ -166,6 +168,7 @@ func _build_resource_bars() -> void:
 	_resource_panel.offset_left = 18.0
 	_resource_panel.offset_top = 18.0
 	_resource_panel.custom_minimum_size = Vector2(390.0, 104.0)
+	_resource_panel.clip_contents = true
 	_resource_panel.add_theme_stylebox_override(
 		"panel",
 		_make_hud_panel_style(Color(0.006, 0.012, 0.02, 0.86), Color(0.24, 0.92, 1.0, 0.58))
@@ -215,6 +218,7 @@ func _build_readout_panel() -> void:
 	_readout_panel.offset_left = 18.0
 	_readout_panel.offset_top = 138.0
 	_readout_panel.custom_minimum_size = Vector2(330.0, 336.0)
+	_readout_panel.clip_contents = true
 	_hud_root.add_child(_readout_panel)
 	
 	_readout_panel.add_theme_stylebox_override(
@@ -224,6 +228,7 @@ func _build_readout_panel() -> void:
 	
 	var rows = VBoxContainer.new()
 	rows.add_theme_constant_override("separation", 7)
+	rows.clip_contents = true
 	_readout_panel.add_child(rows)
 
 	var header := Label.new()
@@ -935,6 +940,9 @@ func _update_weapon_lens() -> void:
 	var fire_mode := StringName(state.get("fire_mode", &"projectile"))
 	var cost := float(state.get("cost_per_second", 0.0)) if fire_mode == &"beam" else float(state.get("cost_per_shot", 0.0))
 	var cost_label := "/s" if fire_mode == &"beam" else "/shot"
+	if fire_mode == &"field":
+		cost = float(state.get("cost_per_use", 0.0))
+		cost_label = "/use"
 	var color: Color = state.get("color", Color(0.34, 1.0, 0.86, 1.0))
 	var ready := bool(state.get("ready", energy_percent > 0.12))
 	var state_label := "FIRING" if active else ("READY" if ready else "LOW ENERGY")
@@ -1492,11 +1500,11 @@ func _layout_hud() -> void:
 		return
 	var scale_value := maxf(_last_ui_scale, 0.75)
 	var viewport_size := get_viewport().get_visible_rect().size / scale_value
-	var margin := 18.0
+	var margin := maxf(hud_safe_margin, 10.0)
 	var compact_width := viewport_size.x < 960.0
 	var compact_height := viewport_size.y < 660.0
-	var resource_width := clampf(viewport_size.x * (0.46 if compact_width else 0.30), 292.0, 390.0)
-	var resource_height := 104.0
+	var resource_width := clampf(viewport_size.x * (0.44 if compact_width else 0.29), 286.0, 382.0)
+	var resource_height := 98.0 if compact_height else 104.0
 
 	if _resource_panel != null:
 		_resource_panel.custom_minimum_size = Vector2(resource_width, resource_height)
@@ -1504,13 +1512,17 @@ func _layout_hud() -> void:
 		_resize_resource_bars(maxf(resource_width - 40.0, 220.0))
 
 	if _readout_panel != null:
-		var readout_top := margin + resource_height + 16.0
-		var readout_width := minf(resource_width, 330.0)
-		var readout_height := 336.0
+		var readout_top := margin + resource_height + left_panel_gap
+		var readout_width := minf(resource_width, 318.0)
+		var readout_height := 318.0
 		if compact_height:
-			readout_height = clampf(viewport_size.y - readout_top - 156.0, 210.0, 300.0)
+			readout_height = clampf(viewport_size.y - readout_top - 126.0, 178.0, 268.0)
+		else:
+			readout_height = minf(readout_height, maxf(viewport_size.y - readout_top - margin, 220.0))
 		_readout_panel.custom_minimum_size = Vector2(readout_width, readout_height)
 		_set_top_left_rect(_readout_panel, margin, readout_top, readout_width, readout_height)
+		_resize_readout_bars(maxf(readout_width - 42.0, 190.0))
+		_set_readout_compact(compact_height or compact_width)
 
 	if _score_panel != null:
 		var score_width := clampf(viewport_size.x * (0.45 if compact_width else 0.28), 300.0, 364.0)
@@ -1526,6 +1538,24 @@ func _layout_hud() -> void:
 			_set_center_bottom_rect(_powerup_notice_label, notice_width, 156.0, 38.0)
 		else:
 			_set_center_top_rect(_powerup_notice_label, notice_width, 72.0, 38.0)
+
+
+func _set_readout_compact(compact: bool) -> void:
+	var font_size := 10 if compact else 12
+	for label in [_speed_label, _g_label, _field_label, _time_label, _horizon_label, _chaos_label, _slingshot_label, _combo_label, _weapon_label]:
+		if label != null:
+			label.add_theme_font_size_override("font_size", font_size)
+	for label in [_time_label, _horizon_label]:
+		if label != null:
+			label.visible = not compact
+	if _chaos_label != null:
+		_chaos_label.visible = not compact
+
+
+func _resize_readout_bars(width: float) -> void:
+	for bar in [_speed_bar, _g_bar, _slingshot_bar, _weapon_bar]:
+		if bar != null:
+			bar.custom_minimum_size.x = width
 
 
 func _resize_resource_bars(width: float) -> void:

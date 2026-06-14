@@ -17,6 +17,12 @@ const WORMHOLE_PAIR_SCENE = preload("res://Nodes/wormhole_pair.tscn")
 @export var max_targets_per_window: int = 24
 @export var opportunity_duration: float = 4.2
 @export var min_wave: int = 2
+@export_group("Success Rewards")
+@export var success_energy_restore: float = 62.0
+@export var success_shield_restore: float = 22.0
+@export var success_cooldown_refund: float = 4.0
+@export var success_drop_count: int = 2
+@export var success_drop_spread_radius: float = 72.0
 
 var _player: Node2D = null
 var _health_component: Node = null
@@ -109,8 +115,11 @@ func _update_active_windows(delta: float) -> void:
 		if age >= duration:
 			var resolved_data: Dictionary = entry.get("data", {}).duplicate(true)
 			resolved_data["danger_after"] = _danger_score()
-			resolved_data["success"] = _recovery_window_succeeded(entry)
+			var success := _recovery_window_succeeded(entry)
+			resolved_data["success"] = success
 			resolved_data["resolved_position"] = _player.global_position if _player != null else global_position
+			if success:
+				_apply_success_reward(resolved_data)
 			recovery_opportunity_resolved.emit(StringName(entry.get("id", &"unknown")), resolved_data)
 			_active_windows.remove_at(i)
 
@@ -275,6 +284,52 @@ func _recovery_window_succeeded(entry: Dictionary) -> bool:
 	var escape_distance := _player.global_position.distance_to(start_position)
 	var danger_after := _danger_score()
 	return danger_after < 0.58 or escape_distance > threat_radius * 0.72 or _player_velocity().length() < lethal_collision_speed * 0.58
+
+
+func _apply_success_reward(data: Dictionary) -> void:
+	_cooldown_remaining = maxf(_cooldown_remaining - success_cooldown_refund, 0.0)
+	var restored_energy := _restore_player_energy(success_energy_restore)
+	var restored_shield := _restore_player_shield(success_shield_restore)
+	if success_drop_count > 0 and _player != null and is_instance_valid(_player):
+		PowerupLibrary.try_spawn_energy_droplets(
+			_player.get_parent(),
+			_player.global_position,
+			success_drop_count,
+			1.0,
+			success_drop_spread_radius,
+			maxf(success_energy_restore / float(maxi(success_drop_count, 1)), 1.0)
+		)
+	if RunProgress != null:
+		RunProgress.arena_flags["recovery_windows_resolved"] = int(RunProgress.arena_flags.get("recovery_windows_resolved", 0)) + 1
+		RunProgress.arena_flags["last_recovery_reward"] = {
+			"id": String(data.get("id", "")),
+			"energy": restored_energy,
+			"shield": restored_shield,
+			"wave": _current_wave(),
+			"time": _now_seconds(),
+		}
+
+
+func _restore_player_energy(amount: float) -> float:
+	if amount <= 0.0 or _player == null or not is_instance_valid(_player):
+		return 0.0
+	var energy := _player.get_node_or_null("EnergyComponent")
+	if energy != null and energy.has_method("restore"):
+		var restored: Variant = energy.call("restore", amount)
+		if restored is float or restored is int:
+			return float(restored)
+	return 0.0
+
+
+func _restore_player_shield(amount: float) -> float:
+	if amount <= 0.0 or _player == null or not is_instance_valid(_player):
+		return 0.0
+	var shield := _player.get_node_or_null("Shield")
+	if shield != null and shield.has_method("restore_shield"):
+		var restored: Variant = shield.call("restore_shield", amount)
+		if restored is float or restored is int:
+			return float(restored)
+	return 0.0
 
 
 func _player_alive() -> bool:

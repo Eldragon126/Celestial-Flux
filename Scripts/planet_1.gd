@@ -21,6 +21,10 @@ enum PlanetKind { AUTO, BLUE_DENSE, RED_VOLATILE, CYAN_LENS, VIOLET_TEMPORAL }
 @export var max_planet_glow_radius: float = 280.0
 @export var planet_glow_radius_multiplier: float = 1.35
 @export_range(0.0, 1.0, 0.01) var planet_glow_energy: float = 0.26
+@export var enable_orbital_visual_rings: bool = true
+@export var gravity_ring_radius_multiplier: float = 1.18
+@export_range(0.0, 1.0, 0.01) var gravity_ring_alpha: float = 0.18
+@export_range(0.0, 1.0, 0.01) var fracture_ring_alpha: float = 0.34
 
 var mass: float
 var radius: float
@@ -39,6 +43,9 @@ var _starting_radius: float = 0.0
 var _fracture_flash: float = 0.0
 var _last_fracture_scar_time: float = -999.0
 var _collapsed := false
+var _gravity_ring: Line2D = null
+var _fracture_ring: Line2D = null
+var _visual_time: float = 0.0
 
 # Centralized configuration for all planet types
 const PLANET_CONFIGS: Dictionary = {
@@ -113,6 +120,7 @@ func _ready() -> void:
 	# =========================
 	draw_circle_polygon(64, radius)
 	_apply_planet_type_visuals(type_data)
+	_ensure_orbital_visuals()
 
 	# =========================
 	# UPDATE COLLISION
@@ -141,13 +149,14 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if _fracture_flash <= 0.0 or not polygon:
-		return
-	_fracture_flash = maxf(_fracture_flash - delta * 2.8, 0.0)
-	var flash := Color(1.0, 0.72, 0.28, 1.0)
-	# Assumes polygon's base modulate is WHITE; if it's supposed to return to a specific color, 
-	# modulate should lerp back to Color.WHITE.
-	polygon.modulate = Color.WHITE.lerp(flash, _fracture_flash)
+	_visual_time += delta
+	_update_orbital_visuals(delta)
+	if _fracture_flash > 0.0 and polygon:
+		_fracture_flash = maxf(_fracture_flash - delta * 2.8, 0.0)
+		var flash := Color(1.0, 0.72, 0.28, 1.0)
+		polygon.modulate = Color.WHITE.lerp(flash, _fracture_flash)
+	elif polygon:
+		polygon.modulate = polygon.modulate.lerp(Color.WHITE, clampf(delta * 4.0, 0.0, 1.0))
 
 
 # ==========================================
@@ -199,6 +208,7 @@ func _apply_planet_type_visuals(type_data: Dictionary) -> void:
 	polygon.color = _readability_color(base_col)
 
 	_update_planet_glow()
+	_update_orbital_visuals(0.0)
 
 # ==========================================
 # CORE LOGIC
@@ -247,6 +257,7 @@ func draw_circle_polygon(points_nb: int, circle_radius: float) -> void:
 
 	polygon.polygon = points
 	polygon.uv = uvs
+	_update_orbital_visuals(0.0)
 
 
 func _update_collision_radius() -> void:
@@ -304,6 +315,77 @@ func _world_effect_radius(value: float, hard_cap: float) -> float:
 	if Settings != null and Settings.has_method("world_effect_radius"):
 		return Settings.world_effect_radius(value, hard_cap)
 	return clampf(value, 0.0, maxf(hard_cap, 1.0))
+
+
+func _ensure_orbital_visuals() -> void:
+	if not enable_orbital_visual_rings:
+		return
+	if _gravity_ring == null:
+		_gravity_ring = Line2D.new()
+		_gravity_ring.name = "GravityWellReadabilityRing"
+		_gravity_ring.closed = true
+		_gravity_ring.antialiased = true
+		_gravity_ring.width = 1.6
+		_gravity_ring.z_index = -1
+		add_child(_gravity_ring)
+	if _fracture_ring == null:
+		_fracture_ring = Line2D.new()
+		_fracture_ring.name = "FractureReadabilityRing"
+		_fracture_ring.closed = true
+		_fracture_ring.antialiased = true
+		_fracture_ring.width = 2.2
+		_fracture_ring.z_index = 2
+		_fracture_ring.visible = false
+		add_child(_fracture_ring)
+
+
+func _update_orbital_visuals(delta: float) -> void:
+	if not enable_orbital_visual_rings or _collapsed:
+		if _gravity_ring != null:
+			_gravity_ring.visible = false
+		if _fracture_ring != null:
+			_fracture_ring.visible = false
+		return
+	_ensure_orbital_visuals()
+	if _gravity_ring == null or _fracture_ring == null:
+		return
+	var base_color := polygon.color if polygon != null else Color(0.2, 0.9, 1.0, 1.0)
+	var ring_radius := _world_effect_radius(radius * gravity_ring_radius_multiplier, max_planet_glow_radius)
+	var pulse := 0.5 + 0.5 * sin(_visual_time * 1.7 + float(get_instance_id() % 29))
+	_gravity_ring.points = _ring_points(ring_radius, 44, pulse * 0.012)
+	_gravity_ring.width = lerpf(1.2, 2.1, pulse)
+	_gravity_ring.default_color = Color(base_color.r, base_color.g, base_color.b, _world_visual_alpha(gravity_ring_alpha * lerpf(0.72, 1.0, pulse), 0.18))
+	_gravity_ring.rotation += delta * 0.08
+	_gravity_ring.visible = true
+
+	var damage_ratio := 1.0 - clampf(current_spacetime_stability / maxf(max_spacetime_stability, 1.0), 0.0, 1.0)
+	if damage_ratio <= 0.025:
+		_fracture_ring.visible = false
+		return
+	var fracture_radius := _world_effect_radius(radius * lerpf(0.92, 1.08, damage_ratio), max_planet_glow_radius)
+	_fracture_ring.points = _ring_points(fracture_radius, 30, 0.045 + damage_ratio * 0.045)
+	_fracture_ring.width = lerpf(1.6, 3.2, damage_ratio)
+	_fracture_ring.default_color = Color(1.0, 0.56, 0.18, _world_visual_alpha(fracture_ring_alpha * damage_ratio, fracture_ring_alpha))
+	_fracture_ring.rotation -= delta * lerpf(0.1, 0.34, damage_ratio)
+	_fracture_ring.visible = true
+
+
+func _ring_points(circle_radius: float, count: int, wobble: float) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var safe_count := maxi(count, 8)
+	for i in range(safe_count):
+		var angle := TAU * float(i) / float(safe_count)
+		var radius_offset := 1.0 + sin(angle * 6.0 + _visual_time * 1.9) * wobble
+		points.append(Vector2(cos(angle), sin(angle)) * circle_radius * radius_offset)
+	return points
+
+
+func _world_visual_alpha(alpha: float, hard_cap: float) -> float:
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		return Settings.world_visual_alpha(alpha, hard_cap)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return minf(Settings.flash_alpha(alpha), hard_cap)
+	return minf(alpha, hard_cap)
 
 
 func _emit_fracture(hit_position: Vector2, source_label: StringName, stability_ratio: float) -> void:

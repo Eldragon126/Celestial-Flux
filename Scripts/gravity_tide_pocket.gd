@@ -50,9 +50,9 @@ const MODE_RULE_NAMES = {
 @export var enable_particles: bool = true
 @export var debug_visual_enabled: bool = true
 @export var visual_radius_cap: float = 420.0
-@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.075
-@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.3
-@export_range(0.0, 1.0, 0.01) var visual_glyph_alpha_cap: float = 0.28
+@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.095
+@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.42
+@export_range(0.0, 1.0, 0.01) var visual_glyph_alpha_cap: float = 0.38
 @export_group("Temporal")
 @export var temporal_slow_multiplier: float = 0.48
 @export var temporal_slow_duration: float = 0.35

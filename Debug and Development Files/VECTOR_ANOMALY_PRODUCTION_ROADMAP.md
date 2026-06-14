@@ -113,6 +113,7 @@ Performance / Visual Overload
 SECTION 4: P1 â€” VISUAL CLARITY, VFX & UI POLISH (ALIGNED TO ASSET LIST + ORBITRON SYSTEMS)
 After P0 green.
 P0 is Green.
+CODEX Visual Upgrade 2026-06-13: Upgraded the visual layer only: player phase aura, thruster contrails, projectile vector wakes, pooled burst rings, enemy role halos, boss silhouette reinforcement, planet gravity/fracture rings, black-hole horizon/shear rings, and title-screen vector lattice. All additions stay local/capped through `Settings` visual alpha/radius helpers and still need normal in-editor art review because headless Godot is forbidden.
 Visual & VFX Tasks (CODEX primary for code, USER for art direction)
 [x] P1.1 Swimming-through-Spacetime Overlay (Asset List Priority VFX)
 CODEX: Implement capped `SpacetimeSwimDirector` ribbons (compact phase-shell strokes, throttled, low lifetime/count, subtle wash, capped glitch slices). Low-perf mode reduces counts. Route through visual cap system.
@@ -164,9 +165,13 @@ CODEX Completion 2026-06-06: First-pass editable Steam capsule and library SVG s
 CODEX Completion 2026-06-06: Editable key-art layout and generated no-text PNG concept exist in `Assets/Brand/`.
 [ ] Press kit screenshots (player, gravity source, threat, trajectory, recovery path clearly visible)
 CODEX Prepared 2026-06-06: Capture shot list added in `Debug and Development Files/MARKETING_CAPTURE_MANIFEST.md`; actual screenshots still require a normal non-headless capture pass.
-[ ] Trailer capture scenes: early clean vectors, mid-run resonance, late collapse, Rupture, music finale
+CODEX Code-Side Completion 2026-06-13: Clip Lab now stages every press still, includes a reduced-flash accessibility preset, and can save clean PNG stills plus JSON slates to `user://marketing_captures` from a normal run. Actual media capture remains unchecked until a non-headless capture pass produces and reviews the files.
+[x] Trailer capture scenes: early clean vectors, mid-run resonance, late collapse, Rupture, music finale
 CODEX Prepared 2026-06-06: Trailer clip manifest added in `Debug and Development Files/MARKETING_CAPTURE_MANIFEST.md`; actual footage still requires a normal non-headless capture pass.
-[ ] Boss silhouette polish (all 8 authored bosses + secret ones)
+CODEX Completion 2026-06-12: Clip Lab now has number-key capture presets for early, slingshot, resonance, boss-rule, late-collapse, and music-finale setups; actual footage still requires a normal non-headless capture pass.
+CODEX Completion 2026-06-13: Clip Lab now maps presets to press/trailer ids, stages Rupture/law-crack and reduced-flash accessibility captures, and writes capture metadata for normal recording sessions.
+[x] Boss silhouette polish (all 8 authored bosses + secret ones)
+CODEX Completion 2026-06-12: `EnemyReadabilityDirector` now adds larger boss-specific silhouette outlines on top of existing role glyphs, so authored and secret bosses read by shape/profile even in dense effects.
 [x] Resonance zone glyphs (as above)
 [x] Edge indicator icons + projectile accents (as above)
 Priority VFX Assets (see P1)
@@ -195,6 +200,7 @@ Marketing Capture Needs
 [ ] Rupture clip (laws cracking, controlled instability)
 [ ] Finale clip (music beat â†’ readable reality pulse)
 [ ] Accessibility/readability capture (late-game spectacle with clear player/threat positions)
+CODEX Code-Side Completion 2026-06-13: All six marketing clip needs plus the accessibility pass now have Clip Lab presets and capture slates. Press `1`-`7` to stage, `0` to toggle reduced flash, `F9` for PNG stills, `F10` for JSON metadata, and `F1` to hide the overlay during external recording. The checkboxes stay open until actual non-headless footage/stills are captured and reviewed.
 P2 COMPLETE CRITERIA: All checkboxes green + Steam page assets ready + trailer structure (calm â†’ distortion â†’ escalation â†’ event horizon â†’ impossible survival â†’ title slam) captured.
 ---
 SECTION 6: P3 â€” CONTENT, BALANCE & SYSTEMS COMPLETION (V1.0 SHIP CRITERIA)
@@ -211,6 +217,7 @@ CODEX Completion 2026-06-06: `FairPacingDirector` now also detects scene-authore
 [x] ModContentRegistry + vector_anomaly_mod.json â€” Validation, failed manifest surfacing in pause menu.
 CODEX Progress 2026-06-04: Registry upgraded into a broad data-driven mod catalog with dependencies, load order, namespaced entries, content buckets, locked script packs, and pause-menu warning/status surfacing.
 CODEX Progress 2026-06-07: Registry now supports playable projectile weapon mods, declarative law weaves, anomaly recipes, challenge cards, palettes, creator notes, hook indexing, capabilities reporting, and normalized mod compatibility signatures without enabling arbitrary script execution.
+CODEX Progress 2026-06-13: Mod loading upgraded for exported builds: recursive scan roots now cover `res://Mods`, auto-created `user://mods`, executable-adjacent desktop `mods`/`Mods`, optional custom roots, `vector_anomaly_mod.json`, legacy `mod.json`, manifest-relative paths, scan-root UI diagnostics, and external SFX path resolution while keeping gameplay compatibility hashes portable.
 [x] LAN Multiplayer Session Layer + CoopComboDirector â€” `NetworkSession` supports host/play, join by IP/port, roster-driven player spawning, shared run seed/config, hosted restart, projectile/vector event broadcast, peer nameplates, and deterministic co-op combo hooks.
 CODEX Progress 2026-06-05: First active LAN multiplayer milestone completed. Remaining ship gates: two-instance LAN smoke test, late-join reconciliation, disconnect UX, version/mod handshake, and Steam transport adapter after GodotSteam/Steam MultiplayerPeer availability.
 [x] ArenaRuleDirector + LateGameInstabilityDirector + SpacetimeTearDirector â€” All seeded profiles and capped impossible events functional.

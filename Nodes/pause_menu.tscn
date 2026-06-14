@@ -6,10 +6,10 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_g8hx7"]
 shader = ExtResource("3_g8hx7")
-shader_parameter/lineas = 5000
-shader_parameter/velocidad = 0.5
+shader_parameter/lineas = 500000
+shader_parameter/velocidad = 1.2
 shader_parameter/ondulacion = 1.0
-shader_parameter/frecuencia = 8.0
+shader_parameter/frecuencia = 4.0
 shader_parameter/color_a = Color(0, 1, 1, 0.41568628)
 shader_parameter/color_b = Color(0, 0.12941177, 0.5176471, 0.35686275)
 shader_parameter/color_neon = Color(0, 0.85, 1, 1)
@@ -77,6 +77,7 @@ anchor_right = 1.008
 anchor_bottom = 1.024
 offset_right = -0.4321289
 offset_bottom = -0.104003906
+color = Color(1, 1, 1, 0.28235295)
 
 [node name="MenuPanel" type="PanelContainer" parent="." unique_id=2083408165]
 process_mode = 3
@@ -252,7 +253,7 @@ clip_text = true
 custom_minimum_size = Vector2(440, 64)
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
-text = "No manifests found. Drop vector_anomaly_mod.json into res://Mods or user://mods."
+text = "No manifests found. Drop vector_anomaly_mod.json or mod.json into user mods, res://Mods, or the exported game's mods folder."
 autowrap_mode = 3
 clip_text = true
 

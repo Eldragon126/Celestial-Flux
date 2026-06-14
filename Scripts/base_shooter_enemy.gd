@@ -11,6 +11,9 @@ const ENEMY_BULLET_SCENE := preload("res://Nodes/enemy_bullet.tscn")
 @export var drag: float = 0.5
 @export var gravity_refresh_interval: float = 0.45
 @export var max_gravity_sources: int = 4
+@export var planet_escape_clearance: float = 52.0
+@export var planet_escape_force: float = 620.0
+@export var planet_escape_spin: float = 220.0
 
 var Player: Node = null
 var planets: Array[Node2D] = []
@@ -64,6 +67,7 @@ func _process(delta: float) -> void:
 
 	# Apply physics
 	velocity += grav_accel * delta
+	velocity += _planet_escape_velocity(delta)
 	velocity *= pow(drag, delta * 60.0)
 	velocity = velocity.limit_length(max_speed)
 
@@ -153,3 +157,36 @@ func _refresh_planets() -> void:
 				continue
 			seen[id] = true
 			planets.append(source_2d)
+
+
+func _planet_escape_velocity(delta: float) -> Vector2:
+	var impulse := Vector2.ZERO
+	for planet in planets:
+		if planet == null or not is_instance_valid(planet):
+			continue
+		var radius := _planet_radius(planet)
+		var escape_radius := radius + planet_escape_clearance
+		var offset := global_position - planet.global_position
+		var distance := maxf(offset.length(), 0.001)
+		if distance >= escape_radius:
+			continue
+		var outward := offset / distance
+		var tangent := outward.orthogonal()
+		if Player != null and is_instance_valid(Player):
+			var player_2d := Player as Node2D
+			if player_2d != null and tangent.dot(player_2d.global_position - global_position) < 0.0:
+				tangent = -tangent
+		var pressure := 1.0 - clampf(distance / escape_radius, 0.0, 1.0)
+		set_meta(&"planet_escape_blastoff", pressure)
+		impulse += (outward * planet_escape_force + tangent * planet_escape_spin) * pressure * delta
+	return impulse
+
+
+func _planet_radius(planet: Node2D) -> float:
+	var radius_value: Variant = planet.get("radius")
+	if radius_value is float or radius_value is int:
+		return maxf(float(radius_value), 24.0)
+	var collision := planet.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		return maxf((collision.shape as CircleShape2D).radius, 24.0)
+	return 150.0

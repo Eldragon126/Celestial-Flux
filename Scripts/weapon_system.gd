@@ -37,6 +37,16 @@ const WEAPON_IDS: Array[StringName] = [
 	&"singularity_kite",
 	&"inertia_maul",
 	&"harmonic_bloom",
+	&"singularity_bell",
+	&"gravity_loom",
+	&"orbital_lasso",
+	&"kinetic_ram",
+	&"temporal_bloom",
+	&"phase_guillotine",
+	&"event_horizon_veil",
+	&"mass_siphon",
+	&"inversion_chime",
+	&"resonance_anvil",
 	&"positron_beam",
 	&"gravity_wave_beam",
 	&"chronal_refraction_beam",
@@ -72,6 +82,16 @@ const WEAPON_NAMES := {
 	&"singularity_kite": "Singularity Kite",
 	&"inertia_maul": "Inertia Maul",
 	&"harmonic_bloom": "Harmonic Bloom",
+	&"singularity_bell": "Singularity Bell",
+	&"gravity_loom": "Gravity Loom",
+	&"orbital_lasso": "Orbital Lasso",
+	&"kinetic_ram": "Kinetic Ram",
+	&"temporal_bloom": "Temporal Bloom",
+	&"phase_guillotine": "Phase Guillotine",
+	&"event_horizon_veil": "Event Horizon Veil",
+	&"mass_siphon": "Mass Siphon",
+	&"inversion_chime": "Inversion Chime",
+	&"resonance_anvil": "Resonance Anvil",
 	&"positron_beam": "Positron Beam",
 	&"gravity_wave_beam": "Gravity Wave Beam",
 	&"chronal_refraction_beam": "Chronal Refraction Beam",
@@ -712,6 +732,142 @@ const EXTRA_WEAPON_DEFINITIONS := {
 		},
 	},
 }
+const FIELD_WEAPON_DEFINITIONS := {
+	&"singularity_bell": {
+		"display_name": "Singularity Bell",
+		"fire_mode": &"field",
+		"energy_per_use": 26.0,
+		"fire_interval": 0.74,
+		"radius": 390.0,
+		"damage": 18.0,
+		"force": -920.0,
+		"zone_type": GravityResonanceManager.ZoneType.COMPRESSION,
+		"scar_type": GravityScarManager.ScarType.CURVATURE,
+		"role": "ring-collapse gravity bell",
+		"color": Color(0.18, 0.82, 1.0, 1.0),
+	},
+	&"gravity_loom": {
+		"display_name": "Gravity Loom",
+		"fire_mode": &"field",
+		"energy_per_use": 20.0,
+		"fire_interval": 0.58,
+		"radius": 330.0,
+		"damage": 8.0,
+		"force": 520.0,
+		"zone_type": GravityResonanceManager.ZoneType.HARMONIC_ORBIT,
+		"scar_type": GravityScarManager.ScarType.HARMONIC_FRACTURE,
+		"role": "weaves enemies into orbit lanes",
+		"color": Color(0.66, 1.0, 0.36, 1.0),
+	},
+	&"orbital_lasso": {
+		"display_name": "Orbital Lasso",
+		"fire_mode": &"field",
+		"energy_per_use": 18.0,
+		"fire_interval": 0.44,
+		"radius": 300.0,
+		"damage": 10.0,
+		"force": 760.0,
+		"zone_type": GravityResonanceManager.ZoneType.SLIPSTREAM,
+		"scar_type": GravityScarManager.ScarType.VELOCITY_SHEAR,
+		"role": "hooks targets around an aim anchor",
+		"color": Color(0.24, 1.0, 0.82, 1.0),
+	},
+	&"kinetic_ram": {
+		"display_name": "Kinetic Ram",
+		"fire_mode": &"field",
+		"energy_per_use": 16.0,
+		"fire_interval": 0.36,
+		"radius": 260.0,
+		"damage": 24.0,
+		"force": 980.0,
+		"zone_type": GravityResonanceManager.ZoneType.SLIPSTREAM,
+		"scar_type": GravityScarManager.ScarType.VELOCITY_SHEAR,
+		"role": "player-velocity shock ram",
+		"color": Color(1.0, 0.72, 0.24, 1.0),
+	},
+	&"temporal_bloom": {
+		"display_name": "Temporal Bloom",
+		"fire_mode": &"field",
+		"energy_per_use": 28.0,
+		"fire_interval": 0.82,
+		"radius": 360.0,
+		"damage": 9.0,
+		"force": 0.0,
+		"slow": 0.44,
+		"slow_duration": 0.72,
+		"zone_type": GravityResonanceManager.ZoneType.TEMPORAL_SCAR,
+		"scar_type": GravityScarManager.ScarType.TEMPORAL_RIP,
+		"role": "opens a readable slow-time flower",
+		"color": Color(0.62, 0.68, 1.0, 1.0),
+	},
+	&"phase_guillotine": {
+		"display_name": "Phase Guillotine",
+		"fire_mode": &"field",
+		"energy_per_use": 24.0,
+		"fire_interval": 0.66,
+		"radius": 460.0,
+		"damage": 36.0,
+		"force": 640.0,
+		"zone_type": GravityResonanceManager.ZoneType.INVERSION,
+		"scar_type": GravityScarManager.ScarType.INVERSION_WAKE,
+		"role": "line-slices space along aim",
+		"color": Color(1.0, 0.35, 0.62, 1.0),
+	},
+	&"event_horizon_veil": {
+		"display_name": "Event Horizon Veil",
+		"fire_mode": &"field",
+		"energy_per_use": 22.0,
+		"fire_interval": 0.5,
+		"radius": 280.0,
+		"damage": 6.0,
+		"force": 860.0,
+		"zone_type": GravityResonanceManager.ZoneType.INVERSION,
+		"scar_type": GravityScarManager.ScarType.CURVATURE,
+		"role": "projectile-bending defensive veil",
+		"color": Color(0.38, 0.54, 1.0, 1.0),
+	},
+	&"mass_siphon": {
+		"display_name": "Mass Siphon",
+		"fire_mode": &"field",
+		"energy_per_use": 18.0,
+		"fire_interval": 0.62,
+		"radius": 340.0,
+		"damage": 14.0,
+		"force": -640.0,
+		"energy_restore": 1.8,
+		"zone_type": GravityResonanceManager.ZoneType.COMPRESSION,
+		"scar_type": GravityScarManager.ScarType.CURVATURE,
+		"role": "pulls mass into recoverable energy",
+		"color": Color(0.28, 1.0, 0.58, 1.0),
+	},
+	&"inversion_chime": {
+		"display_name": "Inversion Chime",
+		"fire_mode": &"field",
+		"energy_per_use": 21.0,
+		"fire_interval": 0.52,
+		"radius": 350.0,
+		"damage": 12.0,
+		"force": 980.0,
+		"zone_type": GravityResonanceManager.ZoneType.INVERSION,
+		"scar_type": GravityScarManager.ScarType.INVERSION_WAKE,
+		"role": "clean outward gravity inversion",
+		"color": Color(1.0, 0.42, 0.16, 1.0),
+	},
+	&"resonance_anvil": {
+		"display_name": "Resonance Anvil",
+		"fire_mode": &"field",
+		"energy_per_use": 30.0,
+		"fire_interval": 0.9,
+		"radius": 420.0,
+		"damage": 30.0,
+		"force": 1040.0,
+		"zone_type": GravityResonanceManager.ZoneType.HARMONIC_ORBIT,
+		"scar_type": GravityScarManager.ScarType.HARMONIC_FRACTURE,
+		"role": "slams targets into orbital fracture",
+		"color": Color(1.0, 0.9, 0.26, 1.0),
+	},
+}
+const FIELD_WEAPON_TARGET_GROUPS: Array[StringName] = [&"enemies", &"wave_enemy", &"bosses", &"enemy_projectiles", &"Projectiles"]
 const IMPACT_RING_WIDTH: float = 2.0
 
 @export_node_path("Node2D") var player_path: NodePath = ^".."
@@ -741,6 +897,8 @@ const IMPACT_RING_WIDTH: float = 2.0
 @export var gravity_wave_energy_per_second: float = 22.0
 @export var chronal_energy_per_second: float = 30.0
 @export var minimum_beam_tick_cost: float = 2.2
+@export var field_weapon_max_targets: int = 36
+@export var field_weapon_visual_lifetime: float = 0.22
 
 @export_group("Projectile Cadence")
 @export var vector_bolt_fire_interval: float = 0.18
@@ -755,6 +913,7 @@ const IMPACT_RING_WIDTH: float = 2.0
 @export var event_horizon_shard_fire_interval: float = 0.92
 @export var projectile_spawn_offset: float = 70.0
 @export var projectile_side_offset: float = 24.0
+@export var projectile_prediction_collision_radius: float = 14.0
 @export var projectile_minimum_energy_buffer: float = 0.0
 
 @export_group("Projectile Profiles")
@@ -855,6 +1014,8 @@ var _powerup_inventory: Node = null
 var _pause_menu: Node = null
 var _query_shape := RectangleShape2D.new()
 var _query_params := PhysicsShapeQueryParameters2D.new()
+var _field_target_buffer: Array[Node2D] = []
+var _field_visual_root: Node2D = null
 var _active_weapon_id: StringName = &"vector_bolt"
 var _weapon_ids: Array[StringName] = []
 var _weapon_catalog: Dictionary = {}
@@ -882,6 +1043,7 @@ func _ready() -> void:
 	_configure_query()
 	_ensure_visual_nodes()
 	_initialize_weapon_catalog()
+	_connect_network_session()
 	select_weapon(selected_weapon_index)
 	set_process_unhandled_input(true)
 	set_physics_process(true)
@@ -919,6 +1081,8 @@ func try_primary_fire() -> bool:
 		return false
 	if _is_beam_weapon(_active_weapon_id):
 		return true
+	if _is_field_weapon(_active_weapon_id):
+		return _fire_field_weapon()
 	if _is_projectile_weapon(_active_weapon_id):
 		_fire_projectile_weapon()
 		return true
@@ -932,6 +1096,8 @@ func force_cease_fire() -> void:
 func get_current_fire_interval() -> float:
 	if _is_beam_weapon(_active_weapon_id):
 		return 0.03
+	if _is_field_weapon(_active_weapon_id):
+		return _field_fire_interval(_active_weapon_id)
 	return _projectile_fire_interval(_active_weapon_id)
 
 
@@ -979,16 +1145,19 @@ func get_weapon_debug_state() -> Dictionary:
 	var max_energy := _max_energy()
 	var cost := _energy_cost_for_weapon(_active_weapon_id)
 	var is_beam := _is_beam_weapon(_active_weapon_id)
+	var is_field := _is_field_weapon(_active_weapon_id)
 	var is_projectile := _is_projectile_weapon(_active_weapon_id)
 	var interval := get_current_fire_interval()
-	var cooldown_remaining := maxf(interval - (_now_seconds() - _last_projectile_fire_time), 0.0) if is_projectile else 0.0
+	var cooldown_remaining := maxf(interval - (_now_seconds() - _last_projectile_fire_time), 0.0) if is_projectile or is_field else 0.0
+	var field_cost := _field_energy_cost(_active_weapon_id)
 	return {
 		"weapon_id": _active_weapon_id,
 		"display_name": _display_name(_active_weapon_id),
 		"index": selected_weapon_index,
 		"count": _weapon_ids.size(),
-		"fire_mode": &"beam" if is_beam else &"projectile",
+		"fire_mode": &"beam" if is_beam else (&"field" if is_field else &"projectile"),
 		"is_projectile": is_projectile,
+		"is_field": is_field,
 		"beam_active": _beam_active,
 		"cooldown_remaining": cooldown_remaining,
 		"cooldown_percent": 1.0 - clampf(cooldown_remaining / maxf(interval, 0.001), 0.0, 1.0),
@@ -998,6 +1167,7 @@ func get_weapon_debug_state() -> Dictionary:
 		"energy_percent": energy / maxf(max_energy, 1.0),
 		"cost_per_second": cost,
 		"cost_per_shot": _projectile_energy_cost(_active_weapon_id),
+		"cost_per_use": field_cost,
 		"ready": cooldown_remaining <= 0.001 and energy >= _minimum_energy_for_weapon(_active_weapon_id),
 		"role": _weapon_role(_active_weapon_id),
 		"color": _weapon_color(_active_weapon_id),
@@ -1038,6 +1208,11 @@ func _register_builtin_weapon(weapon_id: StringName) -> void:
 	if EXTRA_WEAPON_DEFINITIONS.has(weapon_id):
 		var definition: Dictionary = EXTRA_WEAPON_DEFINITIONS[weapon_id]
 		entry.merge(definition.duplicate(true), true)
+		entry["builtin"] = true
+		entry["base_weapon_id"] = weapon_id
+	if FIELD_WEAPON_DEFINITIONS.has(weapon_id):
+		var field_definition: Dictionary = FIELD_WEAPON_DEFINITIONS[weapon_id]
+		entry.merge(field_definition.duplicate(true), true)
 		entry["builtin"] = true
 		entry["base_weapon_id"] = weapon_id
 	_register_weapon_entry(weapon_id, entry)
@@ -1164,6 +1339,235 @@ func _fire_projectile_weapon() -> bool:
 		"fire_mode": &"projectile",
 	})
 	return true
+
+
+func _fire_field_weapon() -> bool:
+	_resolve_player()
+	if _player == null or not is_instance_valid(_player) or _is_player_dead():
+		return false
+	if _is_gameplay_blocked():
+		return false
+
+	var now := _now_seconds()
+	var interval := _field_fire_interval(_active_weapon_id)
+	if now - _last_projectile_fire_time < interval:
+		return false
+
+	var use_cost := _field_energy_cost(_active_weapon_id)
+	if use_cost > 0.0 and not _spend_energy(use_cost):
+		weapon_energy_failed.emit(_active_weapon_id, use_cost, _current_energy())
+		return false
+
+	var direction := _aim_direction()
+	var origin := _player.global_position + direction * 82.0
+	var entry := _field_weapon_entry(_active_weapon_id)
+	var hits := _apply_field_weapon_effect(_active_weapon_id, entry, origin, direction, true)
+	_last_projectile_fire_time = now
+
+	if _powerup_inventory != null and is_instance_valid(_powerup_inventory) and _powerup_inventory.has_method("trigger_player_action"):
+		_powerup_inventory.call("trigger_player_action")
+
+	_broadcast_field_weapon(_active_weapon_id, origin, direction, entry)
+	weapon_fired.emit(_active_weapon_id, {
+		"origin": origin,
+		"direction": direction,
+		"targets": hits,
+		"energy_spent": use_cost,
+		"fire_mode": &"field",
+	})
+	return true
+
+
+func _apply_field_weapon_effect(
+	weapon_id: StringName,
+	entry: Dictionary,
+	origin: Vector2,
+	direction: Vector2,
+	spawn_visual: bool
+) -> int:
+	var radius := maxf(float(entry.get("radius", 280.0)), 40.0)
+	var damage := maxf(float(entry.get("damage", 0.0)), 0.0)
+	var force := float(entry.get("force", 0.0))
+	var anchor := origin + direction * radius * 0.58
+	if weapon_id == &"kinetic_ram":
+		anchor = origin + direction * radius
+	if weapon_id == &"phase_guillotine":
+		anchor = origin + direction * radius * 0.72
+
+	var targets := _collect_field_targets(origin, radius)
+	var hits := 0
+	for target in targets:
+		if target == null or not is_instance_valid(target) or target.is_queued_for_deletion():
+			continue
+		if _is_player_owned(target):
+			continue
+		if not _target_in_field_shape(weapon_id, target, origin, direction, radius):
+			continue
+		_apply_field_target_impulse(weapon_id, entry, target, origin, direction, anchor, force)
+		_apply_field_target_damage(target, damage)
+		var slow := float(entry.get("slow", 1.0))
+		if slow < 0.999:
+			CombatStatus.apply_local_time_scale(target, clampf(slow, 0.2, 1.0), maxf(float(entry.get("slow_duration", 0.35)), 0.05))
+		if weapon_id == &"mass_siphon":
+			_restore_energy(maxf(float(entry.get("energy_restore", 0.0)), 0.0))
+		hits += 1
+
+	_stamp_field_zone(weapon_id, entry, origin, direction, radius)
+	if spawn_visual:
+		_spawn_field_weapon_visual(weapon_id, origin, direction, radius, _weapon_color(weapon_id))
+	return hits
+
+
+func _apply_field_target_impulse(
+	weapon_id: StringName,
+	entry: Dictionary,
+	target: Node2D,
+	origin: Vector2,
+	direction: Vector2,
+	anchor: Vector2,
+	force: float
+) -> void:
+	var impulse := Vector2.ZERO
+	match weapon_id:
+		&"singularity_bell", &"mass_siphon":
+			impulse = (origin - target.global_position).normalized() * absf(force)
+		&"gravity_loom":
+			var radial := target.global_position - origin
+			if radial.length_squared() <= 0.001:
+				radial = direction
+			impulse = radial.normalized().orthogonal() * absf(force)
+		&"orbital_lasso":
+			impulse = (anchor - target.global_position).normalized() * absf(force)
+			target.set_meta(&"orbital_lasso_anchor", anchor)
+		&"kinetic_ram":
+			var player_velocity := _body_velocity(_player)
+			var ram_dir := player_velocity.normalized() if player_velocity.length_squared() > 1.0 else direction
+			impulse = ram_dir * absf(force)
+			if _player != null:
+				CombatStatus.add_velocity(_player, -ram_dir * 70.0)
+		&"phase_guillotine":
+			var lateral := direction.orthogonal()
+			var side := signf((target.global_position - origin).dot(lateral))
+			side = 1.0 if absf(side) < 0.001 else side
+			impulse = direction * absf(force) * 0.42 + lateral * side * absf(force) * 0.58
+		&"event_horizon_veil", &"inversion_chime":
+			impulse = (target.global_position - origin).normalized() * absf(force)
+		&"resonance_anvil":
+			var source := _nearest_gravity_source_for_position(target.global_position)
+			if source != null:
+				impulse = (source.global_position - target.global_position).normalized() * absf(force)
+				target.set_meta(&"resonance_anvil_target", source.global_position)
+			else:
+				impulse = direction * absf(force)
+		_:
+			impulse = direction * force
+	if impulse.length_squared() > 0.001:
+		var multiplier := 1.35 if target.is_in_group("enemy_projectiles") or target.is_in_group("Projectiles") else 1.0
+		CombatStatus.add_velocity(target, impulse * multiplier)
+	target.set_meta(&"field_weapon_pressure", String(weapon_id))
+
+
+func _target_in_field_shape(weapon_id: StringName, target: Node2D, origin: Vector2, direction: Vector2, radius: float) -> bool:
+	if weapon_id != &"phase_guillotine" and weapon_id != &"kinetic_ram":
+		return true
+	var offset := target.global_position - origin
+	var along := offset.dot(direction)
+	if along < -24.0 or along > radius * 1.24:
+		return false
+	var lateral := absf(offset.dot(direction.orthogonal()))
+	var width := 86.0 if weapon_id == &"phase_guillotine" else 130.0
+	return lateral <= width
+
+
+func _apply_field_target_damage(target: Node, damage: float) -> void:
+	if damage <= 0.0 or target == null or not is_instance_valid(target):
+		return
+	if target.has_method("take_damage") and _is_hostile_target(target):
+		target.call("take_damage", damage)
+
+
+func _collect_field_targets(center: Vector2, radius: float) -> Array[Node2D]:
+	_field_target_buffer.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius(
+			FIELD_WEAPON_TARGET_GROUPS,
+			center,
+			radius,
+			field_weapon_max_targets,
+			false,
+			_field_target_buffer
+		)
+		return _field_target_buffer
+	var seen := {}
+	var radius_squared := radius * radius
+	for group_name in FIELD_WEAPON_TARGET_GROUPS:
+		for node in get_tree().get_nodes_in_group(group_name):
+			if _field_target_buffer.size() >= field_weapon_max_targets:
+				return _field_target_buffer
+			var body := node as Node2D
+			if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
+				continue
+			var id := body.get_instance_id()
+			if seen.has(id):
+				continue
+			seen[id] = true
+			if body.global_position.distance_squared_to(center) <= radius_squared:
+				_field_target_buffer.append(body)
+	return _field_target_buffer
+
+
+func _stamp_field_zone(weapon_id: StringName, entry: Dictionary, origin: Vector2, direction: Vector2, radius: float) -> void:
+	var zone_type := int(entry.get("zone_type", GravityResonanceManager.ZoneType.COMPRESSION))
+	var scar_type := int(entry.get("scar_type", GravityScarManager.ScarType.CURVATURE))
+	var zone_position := origin
+	if weapon_id == &"phase_guillotine" or weapon_id == &"kinetic_ram":
+		zone_position = origin + direction * radius * 0.5
+	var resonance := _get_resonance_manager()
+	if resonance != null and resonance.has_method("create_manual_resonance_zone"):
+		resonance.call(
+			"create_manual_resonance_zone",
+			zone_position,
+			radius * 0.72,
+			zone_type,
+			0.42,
+			0.62
+		)
+	var scars := _get_gravity_scar_manager()
+	if scars != null and scars.has_method("create_gravity_scar"):
+		scars.call(
+			"create_gravity_scar",
+			zone_position,
+			radius * 0.66,
+			scar_type,
+			0.36,
+			14.0,
+			weapon_id
+		)
+
+
+func _spawn_field_weapon_visual(weapon_id: StringName, origin: Vector2, direction: Vector2, radius: float, color: Color) -> void:
+	_ensure_field_visual_root()
+	if _field_visual_root == null:
+		return
+	var line := Line2D.new()
+	line.name = "FieldWeaponPulse_%s" % String(weapon_id)
+	line.top_level = true
+	line.antialiased = true
+	line.z_index = 36
+	line.width = 3.0
+	line.default_color = Color(color.r, color.g, color.b, _visual_alpha(0.34))
+	if weapon_id == &"phase_guillotine" or weapon_id == &"kinetic_ram":
+		line.global_position = origin
+		line.points = PackedVector2Array([Vector2.ZERO, direction * radius])
+	else:
+		line.closed = true
+		line.points = _circle_points(48, radius)
+		line.global_position = origin
+	_field_visual_root.add_child(line)
+	var tween := create_tween()
+	tween.tween_property(line, "scale", Vector2.ONE * 1.18, field_weapon_visual_lifetime)
+	tween.parallel().tween_property(line, "modulate:a", 0.0, field_weapon_visual_lifetime)
+	tween.finished.connect(line.queue_free)
 
 
 func _spawn_projectile_pattern(weapon_id: StringName, origin: Vector2, direction: Vector2) -> int:
@@ -1712,7 +2116,8 @@ func _projectile_prediction_state(weapon_id: StringName) -> Dictionary:
 	if not _is_projectile_weapon(weapon_id):
 		return {"is_projectile": false}
 	var color := _weapon_color(weapon_id)
-	var payload := _projectile_payload(weapon_id, 0, _projectile_count_for_weapon(weapon_id))
+	var shot_count := _projectile_count_for_weapon(weapon_id)
+	var payload := _projectile_payload(weapon_id, 0, shot_count)
 	return {
 		"is_projectile": true,
 		"weapon_id": weapon_id,
@@ -1722,10 +2127,54 @@ func _projectile_prediction_state(weapon_id: StringName) -> Dictionary:
 		"gravity_pull_radius": float(payload.get("gravity_pull_radius", 2000.0)),
 		"player_gravity_deadzone_radius": float(payload.get("player_gravity_deadzone_radius", 520.0)),
 		"spawn_offset": projectile_spawn_offset,
-		"collision_radius": 68.5 * _projectile_visual_scale_for_weapon(weapon_id),
+		"collision_radius": projectile_prediction_collision_radius * _projectile_visual_scale_for_weapon(weapon_id),
 		"prediction_color": Color(color.r, color.g, color.b, 0.62),
 		"danger_color": _projectile_trail_color_for_weapon(weapon_id),
+		"tracks": _projectile_prediction_tracks(weapon_id, shot_count),
 	}
+
+
+func _projectile_prediction_tracks(weapon_id: StringName, shot_count: int = -1) -> Array:
+	var tracks: Array = []
+	if shot_count <= 0:
+		shot_count = _projectile_count_for_weapon(weapon_id)
+	var base_direction := Vector2.RIGHT
+	var visual_scale := _projectile_visual_scale_for_weapon(weapon_id)
+	var fallback_color := _weapon_color(weapon_id)
+	var fallback_trail := _projectile_trail_color_for_weapon(weapon_id)
+	for shot_index in range(shot_count):
+		var shot_direction := _projectile_direction_for_index(weapon_id, base_direction, shot_index, shot_count)
+		if shot_direction.length_squared() <= 0.001:
+			shot_direction = base_direction
+		var side_offset := _projectile_side_offset_for_index(weapon_id, shot_direction, shot_index, shot_count)
+		var payload := _projectile_payload(weapon_id, shot_index, shot_count)
+		var core_color := _color_from_variant(payload.get("vector_core_color", fallback_color), fallback_color)
+		var trail_color := _color_from_variant(payload.get("vector_trail_fade_color", fallback_trail), fallback_trail)
+		var alpha := 0.72 if shot_index == 0 else 0.52
+		tracks.append({
+			"shot_index": shot_index,
+			"shot_count": shot_count,
+			"direction_offset": shot_direction.angle(),
+			"spawn_offset": projectile_spawn_offset,
+			"spawn_offset_vector": Vector2(projectile_spawn_offset, 0.0) + side_offset,
+			"projectile_speed": float(payload.get("initial_speed", _projectile_speed_for_weapon(weapon_id))),
+			"gravity_constant": float(payload.get("gravity_constant", _projectile_gravity_for_weapon(weapon_id))),
+			"gravity_radius": float(payload.get("gravity_pull_radius", 2000.0)),
+			"collision_radius": projectile_prediction_collision_radius * visual_scale,
+			"projectile_mass": 0.25,
+			"prediction_color": Color(core_color.r, core_color.g, core_color.b, alpha),
+			"danger_color": trail_color,
+			"ghost_color": Color(core_color.r, core_color.g, core_color.b, 0.20 if shot_index == 0 else 0.14),
+			"weapon_curve_force": float(payload.get("weapon_curve_force", 0.0)),
+			"weapon_curve_side": float(payload.get("weapon_curve_side", 0.0)),
+			"weapon_curve_frequency": float(payload.get("weapon_curve_frequency", 7.0)),
+			"phase_offset": float(payload.get("phase_offset", 0.0)),
+			"relativistic_rail_stacks": int(payload.get("relativistic_rail_stacks", 0)),
+			"relativistic_rail_acceleration": 640.0,
+			"relativistic_rail_speed_cap": 2850.0,
+			"line_width_scale": 1.0 if shot_index == 0 else 0.86,
+		})
+	return tracks
 
 
 func _projectile_count_for_weapon(weapon_id: StringName) -> int:
@@ -1885,6 +2334,20 @@ func _projectile_energy_cost(weapon_id: StringName) -> float:
 		&"event_horizon_shard":
 			return event_horizon_shard_energy_per_shot
 	return vector_bolt_energy_per_shot
+
+
+func _field_energy_cost(weapon_id: StringName) -> float:
+	var entry := _field_weapon_entry(weapon_id)
+	if entry.has("energy_per_use"):
+		return maxf(float(entry.get("energy_per_use", 0.0)), 0.0)
+	return 0.0
+
+
+func _field_fire_interval(weapon_id: StringName) -> float:
+	var entry := _field_weapon_entry(weapon_id)
+	if entry.has("fire_interval"):
+		return maxf(float(entry.get("fire_interval", 0.2)), 0.05)
+	return 0.35
 
 
 func _projectile_speed_for_weapon(weapon_id: StringName) -> float:
@@ -2052,6 +2515,8 @@ func _projectile_trail_color_for_weapon(weapon_id: StringName) -> Color:
 func _minimum_energy_for_weapon(weapon_id: StringName) -> float:
 	if _is_beam_weapon(weapon_id):
 		return minimum_beam_tick_cost
+	if _is_field_weapon(weapon_id):
+		return _field_energy_cost(weapon_id)
 	return maxf(_projectile_energy_cost(weapon_id), projectile_minimum_energy_buffer)
 
 
@@ -2223,9 +2688,10 @@ func _sync_projectile_predictor() -> void:
 	_set_if_present(predictor, "gravity_constant", state.get("gravity_constant", vector_bolt_gravity))
 	_set_if_present(predictor, "gravity_radius", state.get("gravity_pull_radius", 2000.0))
 	_set_if_present(predictor, "spawn_offset", state.get("spawn_offset", projectile_spawn_offset))
-	_set_if_present(predictor, "collision_radius", state.get("collision_radius", 68.5))
+	_set_if_present(predictor, "collision_radius", state.get("collision_radius", projectile_prediction_collision_radius))
 	_set_if_present(predictor, "prediction_color", state.get("prediction_color", vector_bolt_color))
 	_set_if_present(predictor, "danger_color", state.get("danger_color", _projectile_trail_color_for_weapon(_active_weapon_id)))
+	_set_if_present(predictor, "prediction_tracks", state.get("tracks", []))
 
 
 func _resolve_player() -> void:
@@ -2279,6 +2745,16 @@ func _ensure_visual_nodes() -> void:
 	_beam_root.visible = false
 
 
+func _ensure_field_visual_root() -> void:
+	if _field_visual_root != null and is_instance_valid(_field_visual_root):
+		return
+	_field_visual_root = Node2D.new()
+	_field_visual_root.name = "FieldWeaponVisuals"
+	_field_visual_root.top_level = true
+	_field_visual_root.z_index = 36
+	add_child(_field_visual_root)
+
+
 func _input_pressed(event: InputEvent, action_name: StringName, fallback_key: Key) -> bool:
 	if InputMap.has_action(action_name) and event.is_action_pressed(action_name):
 		return true
@@ -2291,6 +2767,13 @@ func _is_beam_weapon(weapon_id: StringName) -> bool:
 	if not entry.is_empty():
 		return StringName(str(entry.get("fire_mode", &"projectile"))) == &"beam"
 	return _is_builtin_beam_weapon(weapon_id)
+
+
+func _is_field_weapon(weapon_id: StringName) -> bool:
+	var entry := _weapon_entry(weapon_id)
+	if not entry.is_empty():
+		return StringName(str(entry.get("fire_mode", &"projectile"))) == &"field"
+	return FIELD_WEAPON_DEFINITIONS.has(weapon_id)
 
 
 func _is_projectile_weapon(weapon_id: StringName) -> bool:
@@ -2461,6 +2944,16 @@ func _weapon_entry(weapon_id: StringName) -> Dictionary:
 	return {}
 
 
+func _field_weapon_entry(weapon_id: StringName) -> Dictionary:
+	var entry := _weapon_entry(weapon_id)
+	if not entry.is_empty() and StringName(str(entry.get("fire_mode", &"projectile"))) == &"field":
+		return entry
+	var definition_value: Variant = FIELD_WEAPON_DEFINITIONS.get(weapon_id, {})
+	if definition_value is Dictionary:
+		return (definition_value as Dictionary).duplicate(true)
+	return {}
+
+
 func _catalog_base_weapon_id(weapon_id: StringName) -> StringName:
 	var entry := _weapon_entry(weapon_id)
 	if entry.is_empty() or bool(entry.get("builtin", false)):
@@ -2539,6 +3032,21 @@ func _color_from_variant(value: Variant, fallback: Color) -> Color:
 	return fallback
 
 
+func _vector2_from_variant(value: Variant) -> Vector2:
+	if value is Vector2:
+		return value
+	if value is Vector3:
+		return Vector2(value.x, value.y)
+	if value is Array:
+		var values := value as Array
+		if values.size() >= 2:
+			return Vector2(float(values[0]), float(values[1]))
+	if value is Dictionary:
+		var dict := value as Dictionary
+		return Vector2(float(dict.get("x", 0.0)), float(dict.get("y", 0.0)))
+	return Vector2.ZERO
+
+
 func _get_resonance_manager() -> Node:
 	var root := get_tree().current_scene
 	return root.find_child("GravityResonanceManager", true, false) if root != null else null
@@ -2552,6 +3060,25 @@ func _get_gravity_scar_manager() -> Node:
 func _get_anomaly_director() -> Node:
 	var root := get_tree().current_scene
 	return root.find_child("VectorAnomalyDirector", true, false) if root != null else null
+
+
+func _nearest_gravity_source_for_position(position: Vector2) -> Node2D:
+	var buffer: Array[Node2D] = []
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_nearest_gravity_sources(position, buffer, 1, 0.0, _player)
+		return buffer[0] if not buffer.is_empty() else null
+	var best: Node2D = null
+	var best_distance := INF
+	for group_name in [&"Objects_With_Gravity", &"planets"]:
+		for node in get_tree().get_nodes_in_group(group_name):
+			var source := node as Node2D
+			if source == null or not is_instance_valid(source) or source == _player or source.is_queued_for_deletion():
+				continue
+			var distance := source.global_position.distance_squared_to(position)
+			if distance < best_distance:
+				best_distance = distance
+				best = source
+	return best
 
 
 func _powerup_stack_count(powerup_id: StringName) -> int:
@@ -2584,6 +3111,48 @@ func _resolve_pause_menu() -> void:
 	if tree == null:
 		return
 	_pause_menu = tree.get_first_node_in_group("PauseMenu")
+
+
+func _connect_network_session() -> void:
+	if NetworkSession == null or not NetworkSession.has_signal("network_weapon_field_received"):
+		return
+	var callable := Callable(self, "_on_network_weapon_field_received")
+	if not NetworkSession.is_connected("network_weapon_field_received", callable):
+		NetworkSession.connect("network_weapon_field_received", callable)
+
+
+func _broadcast_field_weapon(weapon_id: StringName, origin: Vector2, direction: Vector2, entry: Dictionary) -> void:
+	if NetworkSession == null or not NetworkSession.has_method("broadcast_weapon_field_event"):
+		return
+	if _player == null or not is_instance_valid(_player) or not _is_local_player():
+		return
+	NetworkSession.call("broadcast_weapon_field_event", {
+		"weapon_id": String(weapon_id),
+		"origin": origin,
+		"direction": direction,
+		"radius": float(entry.get("radius", 280.0)),
+		"damage": float(entry.get("damage", 0.0)),
+		"force": float(entry.get("force", 0.0)),
+		"time": _now_seconds(),
+	}, _player)
+
+
+func _on_network_weapon_field_received(data: Dictionary) -> void:
+	if not _is_local_player():
+		return
+	if _player != null and is_instance_valid(_player):
+		var owner_value: Variant = _player.get("network_peer_id")
+		if (owner_value is int or owner_value is float) and int(owner_value) == int(data.get("owner_peer_id", 0)):
+			return
+	var weapon_id := StringName(str(data.get("weapon_id", "")))
+	if not _is_field_weapon(weapon_id):
+		return
+	var entry := _field_weapon_entry(weapon_id)
+	var origin := _vector2_from_variant(data.get("origin", data.get("position", Vector2.ZERO)))
+	var direction := _vector2_from_variant(data.get("direction", Vector2.RIGHT)).normalized()
+	if direction.length_squared() <= 0.001:
+		direction = Vector2.RIGHT
+	_apply_field_weapon_effect(weapon_id, entry, origin, direction, true)
 
 
 func _visual_alpha(alpha: float) -> float:

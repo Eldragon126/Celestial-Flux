@@ -34,6 +34,7 @@ var _configured_launch_speed := 0.0
 var _source_id := -1
 var _spawn_safe_until := 0.0
 var _ownership_visual_state: StringName = &""
+var _consumed_by_black_hole: bool = false
 
 
 func _ready() -> void:
@@ -103,6 +104,8 @@ func _auto_launch() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _consumed_by_black_hole or bool(get_meta(&"black_hole_consumed", false)):
+		return
 	_update_ownership_accent()
 	var time_scale := CombatStatus.get_time_scale(self)
 
@@ -203,7 +206,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _on_body_entered(body: Node) -> void:
-	if is_queued_for_deletion():
+	if is_queued_for_deletion() or _consumed_by_black_hole or bool(get_meta(&"black_hole_consumed", false)):
 		return
 
 	if _should_ignore_body(body):
@@ -249,6 +252,19 @@ func _on_body_entered(body: Node) -> void:
 
 
 func _on_timer_timeout() -> void:
+	queue_free()
+
+
+func consume_by_black_hole() -> void:
+	if _consumed_by_black_hole or is_queued_for_deletion():
+		return
+	_consumed_by_black_hole = true
+	set_meta(&"black_hole_consumed", true)
+	collision_layer = 0
+	collision_mask = 0
+	linear_velocity = Vector2.ZERO
+	angular_velocity = 0.0
+	freeze = true
 	queue_free()
 
 

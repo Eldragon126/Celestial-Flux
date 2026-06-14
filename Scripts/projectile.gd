@@ -29,6 +29,10 @@ signal projectile_hit(hit_data: Dictionary)
 @export var trail_focus_radius: float = 1640.0
 @export var trail_budget_refresh_interval: float = 0.18
 @export var preserve_trail_after_destroy: bool = true
+@export var enable_vector_wake: bool = true
+@export var vector_wake_length: float = 74.0
+@export var vector_wake_width: float = 4.2
+@export_range(0.0, 1.0, 0.01) var vector_wake_alpha_cap: float = 0.36
 
 @export_group("Vector Anomaly Upgrade Responses")
 @export var relativistic_rail_acceleration: float = 640.0
@@ -68,6 +72,8 @@ var planets: Array[Node2D] = []
 var _has_launched: bool = false
 var _rail_trail: CPUParticles2D = null
 var _vector_trail: CPUParticles2D = null
+var _vector_wake: Line2D = null
+var _vector_wake_core: Line2D = null
 var _rail_heat: float = 0.0
 var _visual_player: Node2D = null
 var _visual_budget_elapsed: float = 999.0
@@ -77,6 +83,8 @@ var _weapon_payload: Dictionary = {}
 var _pierced_body_ids: Dictionary = {}
 var _weapon_phase_offset: float = 0.0
 var _field_targets: Array[Node2D] = []
+var _destroying_projectile: bool = false
+var _wake_phase: float = 0.0
 
 # ========================
 # == LIFECYCLE ==
@@ -103,11 +111,14 @@ func _ready() -> void:
 		print("Projectile instantiated at ", global_position)
 
 func _physics_process(delta: float) -> void:
+	if bool(get_meta(&"black_hole_consumed", false)) or _destroying_projectile:
+		return
 	var total_grav_accel = Vector2.ZERO
 	_update_visual_budget(delta)
 	_apply_relativistic_rail(delta)
 	_apply_weapon_curve(delta)
 	_update_vector_trail(delta)
+	_update_vector_wake(delta)
 	_update_projectile_light()
 	if has_meta(&"orbital_satellite_owner"):
 		return
@@ -178,10 +189,12 @@ func _apply_launch_velocity(direction: Vector2) -> void:
 # == COLLISION & DAMAGE ==
 # ========================
 func _on_body_entered(body: Node) -> void:
-	if is_queued_for_deletion():
+	if is_queued_for_deletion() or _destroying_projectile or bool(get_meta(&"black_hole_consumed", false)):
 		return
 	
 	if body.is_in_group("Player"):
+		return
+	if _should_ignore_projectile_body(body):
 		return
 	if _already_hit_body(body):
 		return
@@ -190,6 +203,11 @@ func _on_body_entered(body: Node) -> void:
 	_emit_projectile_hit(body, rolled_damage)
 	_trigger_upgrade_impacts(body)
 	_apply_weapon_contact_effects(body)
+
+	if _is_hostile_projectile(body):
+		_destroy_hostile_projectile(body)
+		_destroy_projectile()
+		return
 	
 	if body.has_method("take_damage"):
 		body.take_damage(rolled_damage)
@@ -197,12 +215,39 @@ func _on_body_entered(body: Node) -> void:
 			return
 		_destroy_projectile()
 		return
-	elif body.is_in_group("obstacle") or body.is_in_group("Projectiles"):
+	elif body.is_in_group("obstacle"):
 		_destroy_projectile()
 		return
 	
 	if body.is_in_group("planets") or body.is_in_group("obstacles") or body is StaticBody2D:
 		_destroy_projectile()
+
+
+func _should_ignore_projectile_body(body: Node) -> bool:
+	if body == null or not is_instance_valid(body):
+		return true
+	if not body.is_in_group("Projectiles"):
+		return false
+	if body == self:
+		return true
+	if is_in_group("player_projectiles") and body.is_in_group("player_projectiles") and not body.is_in_group("enemy_projectiles"):
+		return true
+	return false
+
+
+func _is_hostile_projectile(body: Node) -> bool:
+	if body == null or not is_instance_valid(body):
+		return false
+	return body.is_in_group("enemy_projectiles") and not body.is_in_group("player_projectiles")
+
+
+func _destroy_hostile_projectile(body: Node) -> void:
+	if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
+		return
+	if body.has_method("consume_by_black_hole"):
+		body.call_deferred("consume_by_black_hole")
+	else:
+		body.call_deferred("queue_free")
 
 func _roll_damage() -> float:
 	var multiplier: float = 1.0
@@ -398,6 +443,9 @@ func _stamp_weapon_scar(position: Vector2) -> void:
 
 
 func _destroy_projectile() -> void:
+	if _destroying_projectile or is_queued_for_deletion():
+		return
+	_destroying_projectile = true
 	# Unparent particles so they gracefully fade out instead of instantly disappearing
 	var parent = get_parent()
 	if parent != null:
@@ -418,6 +466,19 @@ func _destroy_projectile() -> void:
 				_rail_trail.queue_free()
 			
 	queue_free()
+
+
+func consume_by_black_hole() -> void:
+	if _destroying_projectile or is_queued_for_deletion():
+		return
+	set_meta(&"black_hole_consumed", true)
+	collision_layer = 0
+	collision_mask = 0
+	linear_velocity = Vector2.ZERO
+	angular_velocity = 0.0
+	freeze = true
+	_destroy_projectile()
+
 
 func _exit_tree() -> void:
 	if RuntimeRegistry != null:
@@ -507,6 +568,7 @@ func _configure_windowkill_visuals() -> void:
 		light.texture_scale = maxf(light.texture_scale, 0.72)
 
 	_ensure_vector_trail()
+	_ensure_vector_wake()
 
 
 func _ensure_vector_trail() -> void:
@@ -558,6 +620,87 @@ func _update_vector_trail(_delta: float) -> void:
 	_vector_trail.emitting = can_emit
 	if can_emit:
 		_vector_trail.amount = _trail_amount(vector_trail_particle_cap)
+
+
+func _ensure_vector_wake() -> void:
+	if not enable_vector_wake:
+		return
+	if _vector_wake == null:
+		_vector_wake = Line2D.new()
+		_vector_wake.name = "VectorBoltWake"
+		_vector_wake.antialiased = true
+		_vector_wake.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		_vector_wake.end_cap_mode = Line2D.LINE_CAP_ROUND
+		_vector_wake.z_index = -3
+		add_child(_vector_wake)
+	if _vector_wake_core == null:
+		_vector_wake_core = Line2D.new()
+		_vector_wake_core.name = "VectorBoltWakeCore"
+		_vector_wake_core.antialiased = true
+		_vector_wake_core.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		_vector_wake_core.end_cap_mode = Line2D.LINE_CAP_ROUND
+		_vector_wake_core.z_index = -2
+		add_child(_vector_wake_core)
+
+
+func _update_vector_wake(delta: float) -> void:
+	if not enable_vector_wake:
+		_set_vector_wake_visible(false)
+		return
+	_ensure_vector_wake()
+	if _vector_wake == null or _vector_wake_core == null:
+		return
+	_wake_phase += delta
+	var speed := linear_velocity.length()
+	var visible := speed > 32.0 and _visual_in_focus and _visual_pressure < visual_pressure_hard_cap
+	_set_vector_wake_visible(visible)
+	if not visible:
+		return
+
+	var pressure := clampf(float(_visual_pressure) / maxf(float(visual_pressure_soft_cap), 1.0), 0.0, 1.0)
+	var heat := clampf(speed / maxf(initial_speed, 1.0), 0.0, 1.8)
+	var rail_ratio := clampf(float(get_meta(&"relativistic_speed_ratio", 0.0)), 0.0, 1.0)
+	var length := vector_wake_length * lerpf(0.76, 1.72, clampf(heat, 0.0, 1.0)) * lerpf(1.0, 1.38, rail_ratio)
+	var wave := sin(_wake_phase * 22.0 + float(get_instance_id() % 17)) * 3.6 * clampf(heat, 0.0, 1.0)
+	var wake_points := PackedVector2Array([
+		Vector2(-length, -wave * 0.25),
+		Vector2(-length * 0.48, wave),
+		Vector2(6.0, 0.0),
+	])
+	var core_points := PackedVector2Array([
+		Vector2(-length * 0.54, 0.0),
+		Vector2(8.0, 0.0),
+	])
+	_vector_wake.points = wake_points
+	_vector_wake_core.points = core_points
+	_vector_wake.width = vector_wake_width * lerpf(0.72, 1.38, clampf(heat, 0.0, 1.0))
+	_vector_wake_core.width = maxf(1.0, vector_wake_width * 0.36)
+
+	var accent := vector_trail_fade_color.lerp(Color(0.36, 1.0, 0.88, 1.0), clampf(rail_ratio + heat * 0.18, 0.0, 0.62))
+	var alpha := _safe_visual_alpha(vector_wake_alpha_cap * lerpf(1.0, 0.42, pressure), vector_wake_alpha_cap)
+	_vector_wake.default_color = Color(accent.r, accent.g, accent.b, alpha)
+	_vector_wake_core.default_color = Color(1.0, 1.0, 1.0, _safe_visual_alpha(0.22 * lerpf(1.0, 0.5, pressure), 0.24))
+
+
+func _set_vector_wake_visible(visible: bool) -> void:
+	if _vector_wake != null:
+		_vector_wake.visible = visible
+	if _vector_wake_core != null:
+		_vector_wake_core.visible = visible
+
+func _safe_visual_alpha(alpha: float, fallback_alpha: float = 1.0) -> float:
+	var resolved_alpha := alpha
+	if is_nan(resolved_alpha) or is_inf(resolved_alpha):
+		resolved_alpha = fallback_alpha
+
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		resolved_alpha = float(Settings.world_visual_alpha(resolved_alpha, fallback_alpha))
+
+	if is_nan(resolved_alpha) or is_inf(resolved_alpha):
+		resolved_alpha = fallback_alpha
+
+	return clampf(resolved_alpha, 0.0, 1.0)
+
 
 
 func _trigger_upgrade_impacts(body: Node) -> void:

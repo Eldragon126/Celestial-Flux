@@ -239,7 +239,8 @@ func _format_enemy_ai_state() -> String:
 			top_count = count
 			top_profile = String(key)
 
-	return "%d tracked %s %d" % [tracked, top_profile, top_count]
+	var skip_ratio := _safe_float(state.get("skip_ratio"), 0.0)
+	return "%d tracked %s %d skip %d%%" % [tracked, top_profile, top_count, int(round(skip_ratio * 100.0))]
 
 func _format_boss_state() -> String:
 	var boss := _get_active_boss()
@@ -387,7 +388,9 @@ func _format_budget_state() -> String:
 	var quality := int(_safe_float(state.get("quality"), 2.0))
 	var quality_text := "LOW" if quality <= 0 else ("MED" if quality == 1 else "HIGH")
 	var enabled := _safe_bool(state.get("enabled"), true)
-	return "%s %s fps %d" % ["ON" if enabled else "OFF", quality_text, int(_safe_float(state.get("fps"), 0.0))]
+	var projectiles := int(_safe_float(state.get("projectile_pressure"), 0.0))
+	var enemies := int(_safe_float(state.get("enemy_pressure"), 0.0))
+	return "%s %s fps %d P%d E%d" % ["ON" if enabled else "OFF", quality_text, int(_safe_float(state.get("fps"), 0.0)), projectiles, enemies]
 
 func _format_projectile_state() -> String:
 	var player_shots := _count_group(&"player_projectiles")

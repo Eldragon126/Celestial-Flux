@@ -1,0 +1,50 @@
+{
+  "music": {
+    "waves": {
+      "1": "res://Assets/Songs/The Abyss Intro.wav",
+      "2": "res://Assets/Songs/Whispers in the Void.mp3",
+      "3": "res://Assets/Songs/Cosmic Bass.wav",
+      "4": "res://Assets/Songs/The Abyss.wav",
+      "5": "res://Assets/Songs/ACasualSong.mp3"
+    },
+    "boss_waves": {
+      "5": "res://Assets/Songs/ACasualSong.mp3",
+      "15": "res://Assets/Songs/oTHER wORLDS.mp3",
+      "20": "res://Assets/Songs/Quantum Break.mp3",
+      "25": "res://Assets/Songs/Resonance.mp3",
+      "30": "res://Assets/Songs/[Err -42] invalid thread change.mp3",
+      "35": "res://Assets/Songs/The Arrival.mp3",
+      "40": "res://Assets/Songs/Cosmic Journey Epic.mp3"
+    },
+    "wave_playlist": [
+      "res://Assets/Songs/The Abyss.wav",
+      "res://Assets/Songs/Orbital Drift.mp3",
+      "res://Assets/Songs/Cosmic Bass.wav",
+      "res://Assets/Songs/Whispers in the Void.mp3",
+      "res://Assets/Songs/Interesting Song (1).mp3",
+      "res://Assets/Songs/The Long Drift.mp3"
+    ],
+    "intermission_playlist": [
+      "res://Assets/Songs/A New Thread Ambience.mp3",
+      "res://Assets/Songs/Dawn on A New Planet.mp3",
+      "res://Assets/Songs/The Universe Says Hello.mp3"
+    ]
+  },
+  "sfx": {
+    "resonance.created": "res://Assets/Sound Effects/sfx_resonance_created.mp3",
+    "resonance.intensify": "res://Assets/Sound Effects/sfx_resonance_intensify.mp3",
+    "resonance.slipstream": "res://Assets/Sound Effects/sfx_resonance_slipstream.mp3",
+    "resonance.harmonic_orbit": "res://Assets/Sound Effects/sfx_resonance_harmonic_orbit.mp3",
+    "resonance.temporal_scar": "res://Assets/Sound Effects/sfx_time_pocket_enter.mp3",
+    "arena.gravity_tide": "res://Assets/Sound Effects/sfx_tide_pocket_large.mp3",
+    "arena.collapsing_orbit_lane": "res://Assets/Sound Effects/sfx_collapse_lane_intense.mp3",
+    "time.pocket_enter": "res://Assets/Sound Effects/sfx_time_pocket_enter.mp3",
+    "time.pocket_exit": "res://Assets/Sound Effects/sfx_time_pocket_exit.mp3",
+    "boss.telegraph.default": "res://Assets/Sound Effects/sfx_boss_telegraph_high.mp3",
+    "boss.telegraph.fracture": "res://Assets/Sound Effects/sfx_fracture_boss_telegraph.mp3",
+    "boss.telegraph.orbit": "res://Assets/Sound Effects/sfx_orbit_boss_telegraph.mp3",
+    "boss.telegraph.overfold": "res://Assets/Sound Effects/sfx_overfold_boss_telegraph.mp3",
+    "boss.telegraph.singularity": "res://Assets/Sound Effects/sfx_singularity_boss_telegraph.mp3",
+    "rare.event": "res://Assets/Sound Effects/sfx_rare_event_distinct.mp3"
+  }
+}

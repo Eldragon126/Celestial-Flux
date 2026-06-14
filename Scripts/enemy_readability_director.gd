@@ -9,9 +9,18 @@ class_name EnemyReadabilityDirector
 @export var max_marked_enemies: int = 42
 @export var glyph_radius: float = 28.0
 @export var glyph_width: float = 2.4
+@export var enable_enemy_halos: bool = true
+@export var enemy_halo_radius: float = 36.0
+@export var enemy_halo_width: float = 1.4
+@export_range(0.0, 1.0, 0.01) var enemy_halo_alpha: float = 0.18
+@export var enable_boss_silhouettes: bool = true
+@export var boss_silhouette_radius: float = 92.0
+@export var boss_silhouette_width: float = 4.2
 
 var _elapsed := 999.0
 var _marked: Dictionary = {}
+var _enemy_halos: Dictionary = {}
+var _boss_outlines: Dictionary = {}
 var _enemy_buffer: Array[Node2D] = []
 var _live_ids: Dictionary = {}
 
@@ -46,7 +55,9 @@ func _refresh_enemy_glyphs() -> void:
 
 		var id := enemy_2d.get_instance_id()
 		_live_ids[id] = true
+		_ensure_enemy_halo(enemy_2d)
 		_ensure_glyph(enemy_2d)
+		_ensure_boss_silhouette(enemy_2d)
 		marked_this_pass += 1
 
 	for id in _marked.keys():
@@ -56,6 +67,20 @@ func _refresh_enemy_glyphs() -> void:
 		if is_instance_valid(marker):
 			marker.queue_free()
 		_marked.erase(id)
+	for id in _enemy_halos.keys():
+		if _live_ids.has(id):
+			continue
+		var halo = _enemy_halos[id]
+		if is_instance_valid(halo):
+			halo.queue_free()
+		_enemy_halos.erase(id)
+	for id in _boss_outlines.keys():
+		if _live_ids.has(id):
+			continue
+		var outline = _boss_outlines[id]
+		if is_instance_valid(outline):
+			outline.queue_free()
+		_boss_outlines.erase(id)
 
 
 func _fill_enemy_buffer() -> void:
@@ -89,9 +114,63 @@ func _ensure_glyph(enemy: Node2D) -> void:
 	_update_glyph(glyph, _profile_for_enemy(enemy))
 
 
+func _ensure_enemy_halo(enemy: Node2D) -> void:
+	if not enable_enemy_halos:
+		return
+	var id := enemy.get_instance_id()
+	var profile := _profile_for_enemy(enemy)
+	var existing := _enemy_halos.get(id, null) as Line2D
+	if existing != null and is_instance_valid(existing):
+		_update_enemy_halo(existing, profile, enemy.is_in_group("bosses"))
+		return
+	var halo := Line2D.new()
+	halo.name = "RoleSilhouetteHalo"
+	halo.closed = true
+	halo.antialiased = true
+	halo.width = enemy_halo_width
+	halo.z_index = 16
+	enemy.add_child(halo)
+	_enemy_halos[id] = halo
+	_update_enemy_halo(halo, profile, enemy.is_in_group("bosses"))
+
+
 func _update_glyph(glyph: Line2D, profile: StringName) -> void:
 	glyph.points = _points_for_profile(profile)
 	glyph.default_color = _color_for_profile(profile)
+
+
+func _update_enemy_halo(halo: Line2D, profile: StringName, is_boss: bool) -> void:
+	var radius := boss_silhouette_radius * 0.72 if is_boss else enemy_halo_radius
+	halo.points = _halo_points(profile, radius)
+	halo.width = enemy_halo_width * (1.7 if is_boss else 1.0)
+	var color := _color_for_profile(profile)
+	halo.default_color = Color(color.r, color.g, color.b, _safe_alpha(enemy_halo_alpha * (1.45 if is_boss else 1.0), 0.24))
+
+
+func _ensure_boss_silhouette(enemy: Node2D) -> void:
+	if not enable_boss_silhouettes or not enemy.is_in_group("bosses"):
+		return
+	var id := enemy.get_instance_id()
+	var profile := _profile_for_enemy(enemy)
+	var existing := _boss_outlines.get(id, null) as Line2D
+	if existing != null and is_instance_valid(existing):
+		_update_boss_silhouette(existing, profile)
+		return
+	var outline := Line2D.new()
+	outline.name = "BossSilhouetteOutline"
+	outline.closed = true
+	outline.antialiased = true
+	outline.width = boss_silhouette_width
+	outline.z_index = 17
+	enemy.add_child(outline)
+	_boss_outlines[id] = outline
+	_update_boss_silhouette(outline, profile)
+
+
+func _update_boss_silhouette(outline: Line2D, profile: StringName) -> void:
+	outline.points = _boss_points_for_profile(profile)
+	var color := _color_for_profile(profile)
+	outline.default_color = Color(color.r, color.g, color.b, _safe_alpha(0.42, 0.42))
 
 
 func _profile_for_enemy(enemy: Node) -> StringName:
@@ -108,6 +187,10 @@ func _profile_for_enemy(enemy: Node) -> StringName:
 		return &"echo"
 	if key.contains("phase_slip") or key.contains("phase"):
 		return &"phase"
+	if key.contains("maw") or key.contains("accretion"):
+		return &"drain"
+	if key.contains("rift") or key.contains("weaver") or key.contains("magnetar") or key.contains("resonance"):
+		return &"orbit"
 	if key.contains("harasser") or key.contains("wisp") or key.contains("seeker"):
 		return &"chaser"
 	if key.contains("warden") or key.contains("magnetar") or key.contains("accretion") or key.contains("paralytic") or key.contains("construct"):
@@ -138,6 +221,69 @@ func _points_for_profile(profile: StringName) -> PackedVector2Array:
 	return _regular_points(3, glyph_radius)
 
 
+func _boss_points_for_profile(profile: StringName) -> PackedVector2Array:
+	match profile:
+		&"line":
+			return PackedVector2Array([
+				Vector2(-boss_silhouette_radius * 1.15, 0.0),
+				Vector2(-boss_silhouette_radius * 0.32, -boss_silhouette_radius * 0.68),
+				Vector2(boss_silhouette_radius * 1.2, 0.0),
+				Vector2(-boss_silhouette_radius * 0.32, boss_silhouette_radius * 0.68),
+				Vector2(-boss_silhouette_radius * 1.15, 0.0),
+			])
+		&"drain":
+			return PackedVector2Array([
+				Vector2(0.0, -boss_silhouette_radius),
+				Vector2(boss_silhouette_radius * 0.82, -boss_silhouette_radius * 0.28),
+				Vector2(boss_silhouette_radius * 0.54, boss_silhouette_radius * 0.86),
+				Vector2(-boss_silhouette_radius * 0.54, boss_silhouette_radius * 0.86),
+				Vector2(-boss_silhouette_radius * 0.82, -boss_silhouette_radius * 0.28),
+				Vector2(0.0, -boss_silhouette_radius),
+			])
+		&"orbit":
+			return _regular_points(8, boss_silhouette_radius)
+		&"phase":
+			return PackedVector2Array([
+				Vector2(-boss_silhouette_radius, -boss_silhouette_radius * 0.42),
+				Vector2(-boss_silhouette_radius * 0.22, -boss_silhouette_radius),
+				Vector2(boss_silhouette_radius * 0.18, -boss_silhouette_radius * 0.28),
+				Vector2(boss_silhouette_radius, boss_silhouette_radius * 0.42),
+				Vector2(boss_silhouette_radius * 0.22, boss_silhouette_radius),
+				Vector2(-boss_silhouette_radius * 0.18, boss_silhouette_radius * 0.28),
+				Vector2(-boss_silhouette_radius, -boss_silhouette_radius * 0.42),
+			])
+		&"law":
+			return _regular_points(4, boss_silhouette_radius * 1.08)
+	return _regular_points(6, boss_silhouette_radius)
+
+
+func _halo_points(profile: StringName, radius: float) -> PackedVector2Array:
+	match profile:
+		&"line":
+			return PackedVector2Array([
+				Vector2(-radius * 1.08, 0.0),
+				Vector2(-radius * 0.22, -radius * 0.72),
+				Vector2(radius * 1.08, 0.0),
+				Vector2(-radius * 0.22, radius * 0.72),
+				Vector2(-radius * 1.08, 0.0),
+			])
+		&"phase":
+			return PackedVector2Array([
+				Vector2(-radius, -radius * 0.35),
+				Vector2(-radius * 0.08, -radius),
+				Vector2(radius, radius * 0.35),
+				Vector2(radius * 0.08, radius),
+				Vector2(-radius, -radius * 0.35),
+			])
+		&"orbit":
+			return _arc_points(radius, -PI * 0.92, PI * 0.92, 22)
+		&"drain":
+			return _regular_points(5, radius)
+		&"law":
+			return _regular_points(4, radius * 1.08)
+	return _regular_points(8, radius)
+
+
 func _color_for_profile(profile: StringName) -> Color:
 	match profile:
 		&"drain":
@@ -157,6 +303,14 @@ func _color_for_profile(profile: StringName) -> Color:
 		&"orbit":
 			return Color(0.34, 0.68, 1.0, 0.82)
 	return Color(0.64, 0.78, 0.86, 0.7)
+
+
+func _safe_alpha(alpha: float, hard_cap: float) -> float:
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		return Settings.world_visual_alpha(alpha, hard_cap)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return minf(Settings.flash_alpha(alpha), hard_cap)
+	return minf(alpha, hard_cap)
 
 
 func _regular_points(count: int, radius: float) -> PackedVector2Array:

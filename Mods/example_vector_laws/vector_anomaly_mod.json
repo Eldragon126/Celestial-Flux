@@ -3,7 +3,7 @@
   "display_name": "Example Vector Laws",
   "author": "Vector Anomaly Team",
   "version": 1,
-  "schema_version": 2,
+  "schema_version": 3,
   "description": "A safe sample content pack showing arena, enemy, audio, UI, and rule hooks.",
   "tags": ["sample", "physics", "law-pack"],
   "dependencies": [],
@@ -11,7 +11,7 @@
     {
       "id": "mirror_well_demo",
       "display_name": "Mirror Well Demo",
-      "scene": "res://Mods/example_vector_laws/mirror_well_demo.tscn",
+      "scene": "mirror_well_demo.tscn",
       "rules": {
         "gravity_bias": "inversion",
         "resonance_bias": "harmonic_orbit"
@@ -314,11 +314,57 @@
         "description": "A local-only palette suggestion for menus, cards, and workshop previews."
       }
     ],
+    "shader_packs": [
+      {
+        "id": "mirror_space_shader_pack",
+        "display_name": "Mirror Space Shader Pack",
+        "network_category": "local_visual",
+        "shader": "res://Scripts/gravity_time_overlay.gdshader",
+        "tags": ["shader-pack", "local-visual", "minecraft-style"],
+        "description": "A sample local-only shader pack entry. Future visual directors can consume it without affecting multiplayer compatibility."
+      }
+    ],
+    "levels": [
+      {
+        "id": "mirror_well_level",
+        "display_name": "Mirror Well Level",
+        "network_category": "deterministic_seed",
+        "scene": "mirror_well_demo.tscn",
+        "tags": ["custom-level", "gravity-puzzle"],
+        "rules": {
+          "arena_law": "mirror_well",
+          "recommended_waves": [1, 5]
+        },
+        "description": "A sample custom level entry that can be listed by creator tools and future level selectors."
+      }
+    ],
+    "enemy_packs": [
+      {
+        "id": "mirror_swarm_pack",
+        "display_name": "Mirror Swarm Pack",
+        "network_category": "deterministic_seed",
+        "tags": ["enemy-pack", "temporal"],
+        "entries": ["phase_slip_swarm_variant"],
+        "description": "A sample enemy pack grouping authored enemy profiles for future campaign or total-conversion mods."
+      }
+    ],
+    "total_conversions": [
+      {
+        "id": "mirror_calamity_trial",
+        "display_name": "Mirror Calamity Trial",
+        "network_category": "deterministic_seed",
+        "tags": ["total-conversion", "calamity-style"],
+        "campaigns": ["mirror_well_level"],
+        "enemy_packs": ["mirror_swarm_pack"],
+        "shader_packs": ["mirror_space_shader_pack"],
+        "description": "A safe catalog shape for large Terraria-Calamity-style expansions: levels, enemies, bosses, laws, shaders, and audio remain declarative until trusted directors consume them."
+      }
+    ],
     "creator_notes": [
       {
         "id": "mirror_pack_design_notes",
         "display_name": "Mirror Pack Design Notes",
-        "note": "This sample avoids scripts. Its weapons, recipe, challenge card, and palette are all declarative catalog entries that future directors can consume safely."
+        "note": "This sample avoids scripts. Its weapons, levels, enemy packs, shader pack, total-conversion entry, recipe, challenge card, and palette are all declarative catalog entries that future directors can consume safely."
       }
     ],
     "enemies": [
@@ -394,7 +440,7 @@
       {
         "id": "mirror_law_script_pack",
         "display_name": "Mirror Law Script Pack",
-        "script": "res://Mods/example_vector_laws/mirror_law_pack.gd",
+        "script": "mirror_law_pack.gd",
         "description": "Registered as locked by default; future trusted editor tooling may activate it."
       }
     ]

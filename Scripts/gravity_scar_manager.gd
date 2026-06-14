@@ -84,12 +84,12 @@ const ANY_SAMPLE_POSITION := Vector2(999999999.0, 999999999.0)
 @export var simple_polygon_visuals: bool = true
 @export var ring_segments: int = 42
 @export var max_particles_per_scar: int = 12
-@export var label_min_intensity: float = 0.32
+@export var label_min_intensity: float = 0.22
 @export var visual_player_focus_radius: float = 1550.0
-@export var visual_radius_cap: float = 320.0
-@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.035
-@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.18
-@export_range(0.0, 1.0, 0.01) var visual_seam_alpha_cap: float = 0.13
+@export var visual_radius_cap: float = 380.0
+@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.065
+@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.34
+@export_range(0.0, 1.0, 0.01) var visual_seam_alpha_cap: float = 0.26
 
 var _scars: Array[Dictionary] = []
 var _visuals: Dictionary = {}
@@ -730,7 +730,7 @@ func _update_visual(scar: Dictionary, delta: float) -> void:
 	var intensity := clampf(float(scar.get("intensity", 0.0)), 0.0, 1.0)
 	var scar_type := int(scar.get("type", ScarType.CURVATURE))
 	var color: Color = _scar_color(scar_type)
-	var alpha: float = lerpf(0.06, 0.46, intensity)
+	var alpha: float = lerpf(0.12, 0.62, intensity)
 	var axis: Vector2 = scar.get("axis", Vector2.RIGHT)
 	if axis.length_squared() <= 0.001:
 		axis = Vector2.RIGHT
@@ -740,10 +740,10 @@ func _update_visual(scar: Dictionary, delta: float) -> void:
 
 	if core != null:
 		core.polygon = _soft_circle_points(_visual_segments(16), visual_radius * 0.45)
-		core.color = Color(color.r, color.g, color.b, _visual_alpha(alpha * 0.09, visual_fill_alpha_cap))
+		core.color = Color(color.r, color.g, color.b, _visual_alpha(alpha * 0.12, visual_fill_alpha_cap))
 	if ring != null:
 		ring.points = _circle_points(_visual_segments(ring_segments), visual_radius)
-		ring.width = lerpf(1.1, 2.8, intensity)
+		ring.width = lerpf(1.4, 3.2, intensity)
 		ring.default_color = Color(color.r, color.g, color.b, _visual_alpha(alpha, visual_ring_alpha_cap))
 	if seam != null:
 		seam.rotation = axis.angle() - root.rotation
@@ -753,8 +753,8 @@ func _update_visual(scar: Dictionary, delta: float) -> void:
 			Vector2(visual_radius * 0.18, -sin(_local_time * 4.4) * visual_radius * 0.03),
 			Vector2(visual_radius * 0.86, 0.0),
 		])
-		seam.width = lerpf(1.0, 3.4, intensity)
-		seam.default_color = Color(1.0, 1.0, 1.0, _visual_alpha(alpha * 0.48, visual_seam_alpha_cap))
+		seam.width = lerpf(1.2, 3.8, intensity)
+		seam.default_color = Color(1.0, 1.0, 1.0, _visual_alpha(alpha * 0.58, visual_seam_alpha_cap))
 	if label != null:
 		label.visible = intensity >= label_min_intensity
 		label.text = "%s  %s" % [String(scar.get("display_name", "Scar")).to_upper(), String(scar.get("rule_name", "BEND"))]

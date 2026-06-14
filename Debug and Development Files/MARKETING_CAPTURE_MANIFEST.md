@@ -9,6 +9,7 @@ Purpose: keep Steam, trailer, and press assets grounded in real gameplay state. 
 - Record one full-quality pass and one reduced-flash readability pass for late-game footage.
 - Keep UI scale at 1.0 for primary capture, then repeat the accessibility shot with the production accessibility settings visible.
 - Use the final title/logo hook in `Scripts/title_screen.gd` and the branded assets in `Assets/Brand/`.
+- In Clip Lab, press `F9` to save a clean PNG still and paired JSON metadata to `user://marketing_captures`, or `F10` to write metadata only. The overlay hides for the saved frame so the capture remains usable.
 
 ## Press Kit Screenshots
 
@@ -31,6 +32,9 @@ Purpose: keep Steam, trailer, and press assets grounded in real gameplay state. 
 ## Capture Readiness
 
 - Brand/logo/capsule/key-art starter assets exist in `Assets/Brand/`.
+- Clip Lab has number-key capture presets: `1` early clean vectors, `2` slingshot mastery, `3` mid-run resonance, `4` boss rule mutation, `5` Rupture/law-crack readability, `6` music finale staging, and `7` reduced-flash late-game accessibility.
+- Clip Lab exposes `0` for reduced-flash capture toggling, `F9` for PNG stills, `F10` for JSON metadata, and `F1` to hide the capture overlay during manual video recording.
 - HUD edge indicators, resource bars, weapon readouts, mod status icons, and game-over glitch treatment are in-game.
 - Rupture, spacetime swim, tear, time-dilation break, gravity scar, and resonance visuals are capped through production readability paths.
 - Music/title/rupture/finale/credits hooks are wired; final mix/master approval remains a creative pass.
+- CODEX Completion 2026-06-13: `Scripts/clip_lab_director.gd` now maps every press/trailer capture requirement to an in-game preset, stages slingshot/apex, resonance, boss-rule, Rupture, finale, and reduced-flash late-game states, and writes capture slates for normal non-headless runs.

@@ -305,7 +305,7 @@ It emits intensity layers (`silence`, `drift`, `tension`, `overload`, `collapse`
 
 ## Mod Content Registry
 
-`ModContentRegistry` scans `res://Mods` and `user://mods` for `vector_anomaly_mod.json`. A manifest may declare:
+`ModContentRegistry` scans `res://Mods`, `user://mods`, and export-adjacent desktop `mods`/`Mods` folders for `vector_anomaly_mod.json` or legacy `mod.json`. Roots are recursive, the user mod folder is created automatically, and manifest-relative asset paths are resolved at runtime so a mod folder can move between packaged builds without rewriting local paths. A manifest may declare:
 
 - arenas, waves, upgrades, rules, powerups, weapons
 - enemies, bosses, arena events, celestial bodies, physics drops
@@ -314,13 +314,13 @@ It emits intensity layers (`silence`, `drift`, `tension`, `overload`, `collapse`
 - `law_weaves`, `anomaly_recipes`, and `challenge_cards`
 - tools, NPC behaviors, script packs, and workshop tags
 
-The registry stores manifest metadata, namespaced content dictionaries, a local-id index, a hook index, and a capability snapshot for future menus/editors. It does not instantiate scenes, run scripts, or grant permissions. This keeps the modding layer deterministic and safe while still exposing a large creative surface.
+The registry stores manifest metadata, source/install context, namespaced content dictionaries, a local-id index, a hook index, scan-root diagnostics, and a capability snapshot for future menus/editors. It does not instantiate scenes, run scripts, or grant permissions. This keeps the modding layer deterministic and safe while still exposing a large creative surface.
 
 Hookable content is the unique modding spine. `law_weaves`, `anomaly_recipes`, and `challenge_cards` declare safe hooks such as `wave_start`, `slingshot_apex`, `resonance_created`, `rare_event_started`, `music_beat`, and `coop_combo_triggered`. They combine normalized conditions (`min_wave`, `chaos_tier_at_least`, `has_weapon`, `slingshot_grade_at_least`, etc.) with declarative effects (`create_resonance_zone`, `offer_weapon`, `spawn_celestial_body`, `request_music_layer`, `tag_score_event`, etc.). Trusted directors can consume those entries through `get_hook_entries()` without giving mods script execution.
 
 Playable weapon mods now flow through the same registry. `WeaponSystem` reads `get_playable_weapon_entries()`, adds safe projectile entries to its weapon catalog, and supports mod patterns such as single, spread, parallel, braid, helix, ring, converge, scissor, and pinwheel. Weapon payload overrides are normalized so mod packs can create distinct projectile identities while still using the normal HUD, prediction, energy, projectile, and network event path.
 
-Manifest validation rejects malformed roots, missing ids, invalid versions, non-array content buckets, non-object entries, unsafe paths, invalid weapon payloads, unknown hooks, unknown condition/effect actions, and script references inside hookable entries. Failed manifests are stored in the registry snapshot and surfaced by the pause-menu Modding section. Script-like buckets are cataloged but locked unless script pack registration is explicitly enabled.
+Manifest validation rejects malformed roots, missing ids, invalid versions, non-array content buckets, non-object entries, parent-traversal paths, unsupported URI schemes, absolute machine paths, invalid weapon payloads, unknown hooks, unknown condition/effect actions, and script references inside hookable entries. Failed manifests are stored in the registry snapshot and surfaced by the pause-menu Modding section. Script-like buckets are cataloged but locked unless script pack registration is explicitly enabled.
 
 `get_compatibility_signature()` now includes normalized gameplay-affecting mod content, including playable weapon profiles and hookable entries, while excluding entries marked `local_visual`. `NetworkSession` uses that signature for the mod/version handshake boundary so mismatched co-op gameplay packs can fail cleanly before spawning players.
 
@@ -420,7 +420,7 @@ Pause and HUD scaling are separated: the pause panel scales around its center an
 
 The player projectile predictor now mirrors the projectile's capped gravity-source sampling, launch speed inheritance from momentum, and planet-hit behavior. If a shot would hit a planet, the predictor stops at impact because the actual projectile is destroyed there.
 
-Vector Bolt tuning is now larger/faster than the original baseline. `projectile.gd`, `projectile.tscn`, `ProjectileAimPredictor`, and `ProjectileTrajectoryVisualizer` must stay in lockstep: launch speed is 1080, collision preview radius is 68.5 around planets, source sampling is capped, and player/player-projectile gravity sources are excluded so baseline shots do not orbit the player. Orbital projectile behavior is intentional only when `PowerupInventory` captures hostile shots through Orbital Tether; those shots carry `intentional_orbital_capture` metadata and join `orbital_satellite_projectiles` until released.
+Vector Bolt tuning is now larger/faster than the original baseline. `projectile.gd`, `projectile.tscn`, `ProjectileAimPredictor`, and `ProjectileTrajectoryVisualizer` must stay in lockstep: launch speed is 1080, collision preview radius is 14.0 around planets to match the live `CollisionShape2D`, source sampling is capped, and player/player-projectile gravity sources are excluded so baseline shots do not orbit the player. Orbital projectile behavior is intentional only when `PowerupInventory` captures hostile shots through Orbital Tether; those shots carry `intentional_orbital_capture` metadata and join `orbital_satellite_projectiles` until released.
 
 Flash-heavy success feedback should use `Settings.flash_alpha()` or an explicit low alpha cap. Slingshot mastery, law fusion rings, powerup bursts, and VFX bursts all follow this rule so perfect movement can feel rewarding without becoming a full-screen flash.
 

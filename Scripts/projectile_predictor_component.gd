@@ -11,6 +11,8 @@ class_name ProjectileTrajectoryVisualizer
 @export var line_color: Color = Color(0.0, 0.85, 1.0, 0.75)
 @export var danger_color: Color = Color(1.0, 0.35, 0.1, 0.95)
 @export var line_width: float = 3.0
+@export_range(0.8, 1.0, 0.001) var stability_damping: float = 1.0
+@export var immediate_danger_segments: int = 25
 
 @export var gravity_groups: Array[StringName] = [&"Objects_With_Gravity", &"planets"]
 @export var source_refresh_interval: float = 0.08
@@ -56,6 +58,7 @@ func _simulate_path() -> void:
 		
 		vel += accel * time_step
 		pos += vel * time_step
+		vel *= stability_damping
 		
 		travelled += vel.length() * time_step
 		_points.append(pos)
@@ -90,7 +93,7 @@ func _calculate_gravity(pos: Vector2) -> Vector2:
 		var strength = constant_value * mass / (effective_dist * effective_dist)
 		total += offset.normalized() * strength
 
-	return total
+	return total / maxf(_projectile.mass, 0.001)
 
 
 func _refresh_gravity_sources() -> void:
@@ -145,8 +148,9 @@ func _draw() -> void:
 		
 		var t = float(i) / float(_points.size())
 		var alpha = 1.0 - t * 0.65
-		var col = danger_color if i > _points.size() - 18 else line_color
+		var col = danger_color if i <= immediate_danger_segments else line_color
 		
+		draw_line(a, b, Color(col.r, col.g, col.b, alpha * col.a * 0.24), line_width * 2.15)
 		draw_line(a, b, Color(col.r, col.g, col.b, alpha * col.a), line_width)
 		if i % 10 == 0:
 			draw_circle(b, line_width * 0.62, Color(line_color.r, line_color.g, line_color.b, alpha * 0.45))

@@ -4,6 +4,7 @@ signal accessibility_changed(settings: Dictionary)
 
 const SETTINGS_PATH := "user://settings.cfg"
 const SECTION_ACCESSIBILITY := "accessibility"
+const SECTION_INPUT := "input"
 const WORLD_ALPHA_CAP: float = 0.28
 const WORLD_FILL_ALPHA_CAP: float = 0.045
 const WORLD_LIGHT_ALPHA_CAP: float = 0.16
@@ -23,6 +24,11 @@ var ui_scale: float = 1.0
 var screen_shake_scale: float = 1.0
 var reduce_flash: bool = false
 var colorblind_mode: int = ColorblindMode.OFF
+var trackpad_direct_camera: bool = false
+var camera_follow_strength: float = 1.0
+var alternate_movement_enabled: bool = false
+var reverse_thrust_scale: float = 0.46
+var strafe_turn_assist: float = 0.22
 
 
 func _ready() -> void:
@@ -53,6 +59,36 @@ func set_colorblind_mode(value: int) -> void:
 	save_settings()
 
 
+func set_trackpad_direct_camera(value: bool) -> void:
+	trackpad_direct_camera = value
+	_emit_accessibility_changed()
+	save_settings()
+
+
+func set_camera_follow_strength(value: float) -> void:
+	camera_follow_strength = clampf(value, 0.25, 2.5)
+	_emit_accessibility_changed()
+	save_settings()
+
+
+func set_alternate_movement_enabled(value: bool) -> void:
+	alternate_movement_enabled = value
+	_emit_accessibility_changed()
+	save_settings()
+
+
+func set_reverse_thrust_scale(value: float) -> void:
+	reverse_thrust_scale = clampf(value, 0.15, 0.8)
+	_emit_accessibility_changed()
+	save_settings()
+
+
+func set_strafe_turn_assist(value: float) -> void:
+	strafe_turn_assist = clampf(value, 0.0, 0.6)
+	_emit_accessibility_changed()
+	save_settings()
+
+
 func load_settings() -> void:
 	var config := ConfigFile.new()
 	var err := config.load(SETTINGS_PATH)
@@ -68,6 +104,11 @@ func load_settings() -> void:
 		ColorblindMode.OFF,
 		ColorblindMode.TRITANOPIA
 	)
+	trackpad_direct_camera = bool(config.get_value(SECTION_INPUT, "trackpad_direct_camera", trackpad_direct_camera))
+	camera_follow_strength = clampf(float(config.get_value(SECTION_INPUT, "camera_follow_strength", camera_follow_strength)), 0.25, 2.5)
+	alternate_movement_enabled = bool(config.get_value(SECTION_INPUT, "alternate_movement_enabled", alternate_movement_enabled))
+	reverse_thrust_scale = clampf(float(config.get_value(SECTION_INPUT, "reverse_thrust_scale", reverse_thrust_scale)), 0.15, 0.8)
+	strafe_turn_assist = clampf(float(config.get_value(SECTION_INPUT, "strafe_turn_assist", strafe_turn_assist)), 0.0, 0.6)
 	_emit_accessibility_changed()
 
 
@@ -77,6 +118,11 @@ func save_settings() -> void:
 	config.set_value(SECTION_ACCESSIBILITY, "screen_shake_scale", screen_shake_scale)
 	config.set_value(SECTION_ACCESSIBILITY, "reduce_flash", reduce_flash)
 	config.set_value(SECTION_ACCESSIBILITY, "colorblind_mode", colorblind_mode)
+	config.set_value(SECTION_INPUT, "trackpad_direct_camera", trackpad_direct_camera)
+	config.set_value(SECTION_INPUT, "camera_follow_strength", camera_follow_strength)
+	config.set_value(SECTION_INPUT, "alternate_movement_enabled", alternate_movement_enabled)
+	config.set_value(SECTION_INPUT, "reverse_thrust_scale", reverse_thrust_scale)
+	config.set_value(SECTION_INPUT, "strafe_turn_assist", strafe_turn_assist)
 	config.save(SETTINGS_PATH)
 
 
@@ -138,6 +184,11 @@ func export_accessibility_settings() -> Dictionary:
 		"screen_shake_scale": screen_shake_scale,
 		"reduce_flash": reduce_flash,
 		"colorblind_mode": colorblind_mode,
+		"trackpad_direct_camera": trackpad_direct_camera,
+		"camera_follow_strength": camera_follow_strength,
+		"alternate_movement_enabled": alternate_movement_enabled,
+		"reverse_thrust_scale": reverse_thrust_scale,
+		"strafe_turn_assist": strafe_turn_assist,
 	}
 
 

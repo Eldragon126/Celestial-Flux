@@ -23,6 +23,8 @@ const PLANET_SCENE = preload("res://Nodes/planet_1.tscn")
 const NEBULA_SCENE = preload("res://Nodes/nebula_cloud.tscn")
 const UNSTABLE_MOON_SCENE = preload("res://Nodes/unstable_moon.tscn")
 const WORMHOLE_PAIR_SCENE = preload("res://Nodes/wormhole_pair.tscn")
+const GRAVITY_WAVE_MAKER_SCENE = preload("res://Nodes/gravity_wave_maker.tscn")
+const PULSATING_GRAVITY_SPAWNER_SCENE = preload("res://Nodes/pulsating_gravity_spawner.tscn")
 const GRAVITY_WARDEN_SCENE = preload("res://Nodes/gravity_warden_boss.tscn")
 const ACCRETION_CORE_SCENE = preload("res://Nodes/accretion_core_boss.tscn")
 const NULL_SERAPH_SCENE = preload("res://Nodes/null_vector_seraph_boss.tscn")
@@ -41,6 +43,12 @@ const EVENT_HORIZON_WARDEN_ENEMY_SCENE = preload("res://Nodes/event_horizon_ward
 const PHASE_SLIP_SWARM_SCENE = preload("res://Nodes/phase_slip_swarm.tscn")
 const ORBITAL_NULL_HARVESTER_SCENE = preload("res://Nodes/orbital_null_harvester.tscn")
 const RESONANCE_PARALYTIC_CONSTRUCT_SCENE = preload("res://Nodes/resonance_paralytic_construct.tscn")
+const PERIAPSIS_MANTIS_SCENE = preload("res://Nodes/periapsis_mantis.tscn")
+const VECTOR_TAX_COLLECTOR_SCENE = preload("res://Nodes/vector_tax_collector.tscn")
+const ORBIT_WEAVER_SCENE = preload("res://Nodes/orbit_weaver.tscn")
+const CAUSALITY_SHRIKE_SCENE = preload("res://Nodes/causality_shrike.tscn")
+const GRAVITY_UNDERTAKER_SCENE = preload("res://Nodes/gravity_undertaker.tscn")
+const PEBBLE_OF_RECKONING_SCRIPT = preload("res://Scripts/pebble_of_reckoning.gd")
 
 const SONG_A_NEW_THREAD_AMBIENCE = preload("res://Assets/Songs/A New Thread Ambience.mp3")
 const SONG_A_NEW_THREAD = preload("res://Assets/Songs/A New Thread.mp3")
@@ -109,11 +117,23 @@ enum MusicMode { NONE, WAVE, BOSS, INTERMISSION }
 @export var energy_drop_elite_bonus_wave: int = 6
 @export var energy_drop_spread_radius: float = 48.0
 
+@export_group("Wave Clear Rewards")
+@export var clear_reward_enabled: bool = true
+@export var clear_reward_speed_threshold: float = 1050.0
+@export var clear_reward_mastery_threshold: float = 0.82
+@export var clear_reward_energy: float = 38.0
+@export var clear_reward_shield: float = 14.0
+@export var pressure_clear_energy: float = 52.0
+@export var pressure_clear_shield: float = 24.0
+@export var pressure_health_threshold: float = 0.32
+@export var pressure_shield_threshold: float = 0.22
+
 @export_group("Music")
 @export var music_enabled: bool = true
 @export var wave_music_volume_db: float = -0.5
 @export var boss_music_volume_db: float = 0.0
 @export var intermission_music_volume_db: float = -4.0
+@export_file("*.json") var audio_manifest_path: String = "res://Assets/Audio/vector_anomaly_audio_manifest.json"
 
 @export_group("Spawn Safety")
 @export var far_planet_count: int = 3
@@ -125,6 +145,19 @@ enum MusicMode { NONE, WAVE, BOSS, INTERMISSION }
 @export var spawn_position_attempts: int = 18
 @export var enable_permanent_wormhole_pair: bool = false
 
+@export_group("Player Authored Run Hazards")
+@export var enable_gravity_wave_maker_hazards: bool = true
+@export var gravity_wave_maker_start_wave: int = 4
+@export var gravity_wave_maker_interval: int = 4
+@export var gravity_wave_maker_lifetime: float = 30.0
+@export var gravity_wave_maker_points: int = 24
+@export var gravity_wave_maker_max_groups: int = 3
+@export var enable_pulsating_gravity_spawner_hazards: bool = true
+@export var pulsating_gravity_spawner_start_wave: int = 3
+@export var pulsating_gravity_spawner_interval: int = 3
+@export var pulsating_gravity_spawner_lifetime: float = 42.0
+@export var pulsating_gravity_spawner_max_fields: int = 2
+
 @export_group("Interwave Galaxy Gates")
 @export var enable_interwave_galaxy_gates: bool = true
 @export var interwave_gate_start_wave: int = 2
@@ -133,6 +166,19 @@ enum MusicMode { NONE, WAVE, BOSS, INTERMISSION }
 @export var interwave_gate_far_min_radius: float = 3400.0
 @export var interwave_gate_far_max_radius: float = 4600.0
 @export var interwave_gate_planet_count: int = 2
+
+@export_group("Anomaly Easter Eggs")
+@export var enable_anomaly_easter_eggs: bool = true
+@export var trout_event_chance_per_minute: float = 0.006
+@export var trout_event_cooldown: float = 420.0
+@export var trout_duration: float = 6.2
+@export var trout_label_distance: float = 240.0
+@export var trout_sight_distance: float = 1150.0
+@export var pebble_event_chance_per_minute: float = 0.009
+@export var pebble_event_cooldown: float = 540.0
+@export var pebble_auto_vanish_seconds: float = 11.0
+@export var pebble_music_swell_seconds: float = 2.2
+@export_range(0.0, 1.0, 0.01) var boss_pause_dialogue_chance: float = 0.35
 
 var _player: Node2D = null
 var _level_root: Node = null
@@ -169,6 +215,19 @@ var _network_forced_wave_start: bool = false
 var _network_forced_wave_clear: bool = false
 var _wave_music_by_wave: Dictionary = {}
 var _boss_music_by_wave: Dictionary = {}
+var _trout_state: Dictionary = {}
+var _trout_cooldown_remaining: float = 0.0
+var _pebble_node: Node = null
+var _pebble_cooldown_remaining: float = 0.0
+var _fake_boss_active: bool = false
+var _fake_boss_restore_state: Dictionary = {}
+var _fake_boss_music_restored: bool = false
+var _boss_dialogue_label: Label = null
+var _boss_dialogue_tween: Tween = null
+var _last_pause_blocked: bool = false
+var _boss_pause_count: int = 0
+var _boss_pause_dialogue_used: bool = false
+var _boss_pause_dialogue_trigger_count: int = 0
 var _wave_music_tracks: Array[AudioStream] = [
 	SONG_THE_ABYSS,
 	SONG_ORBITAL_DRIFT,
@@ -240,6 +299,71 @@ func _configure_music_maps() -> void:
 		40: SONG_COSMIC_JOURNEY_EPIC,
 	}
 
+
+func _apply_audio_manifest() -> void:
+	if audio_manifest_path.strip_edges().is_empty() or not FileAccess.file_exists(audio_manifest_path):
+		return
+	var file := FileAccess.open(audio_manifest_path, FileAccess.READ)
+	if file == null:
+		return
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not (parsed is Dictionary):
+		return
+	var manifest: Dictionary = parsed
+	var music_value: Variant = manifest.get("music", manifest)
+	var music: Dictionary = music_value if music_value is Dictionary else {}
+	_apply_manifest_music_map(_wave_music_by_wave, music.get("waves", {}))
+	_apply_manifest_music_map(_boss_music_by_wave, music.get("boss_waves", {}))
+	_apply_manifest_playlist(_wave_music_tracks, music.get("wave_playlist", []))
+	_apply_manifest_playlist(_intermission_music_tracks, music.get("intermission_playlist", []))
+
+
+func _apply_manifest_music_map(target: Dictionary, source_value: Variant) -> void:
+	var source: Dictionary = source_value if source_value is Dictionary else {}
+	for key in source.keys():
+		var wave := _int_from_manifest_key(key)
+		if wave <= 0:
+			continue
+		var stream := _load_audio_stream(String(source[key]))
+		if stream != null:
+			target[wave] = stream
+
+
+func _apply_manifest_playlist(target: Array[AudioStream], source_value: Variant) -> void:
+	if not (source_value is Array):
+		return
+	var replacement: Array[AudioStream] = []
+	for path_value in source_value:
+		var stream := _load_audio_stream(String(path_value))
+		if stream != null:
+			replacement.append(stream)
+	if replacement.is_empty():
+		return
+	target.clear()
+	for stream in replacement:
+		target.append(stream)
+
+
+func _load_audio_stream(path: String) -> AudioStream:
+	var clean_path := path.strip_edges()
+	if clean_path.is_empty():
+		return null
+	var resource := load(clean_path)
+	return resource as AudioStream
+
+
+func _int_from_manifest_key(value: Variant) -> int:
+	if value is int or value is float:
+		return int(value)
+	var text := str(value).strip_edges()
+	if text.is_valid_int():
+		return int(text)
+	if text.is_valid_float():
+		return int(float(text))
+	return 0
+
+
 func _ready() -> void:
 	if RunProgress != null and int(RunProgress.run_seed) != 0:
 		_rng.seed = int(RunProgress.run_seed) ^ 0x5A71E
@@ -247,7 +371,9 @@ func _ready() -> void:
 		_rng.randomize()
 	_level_root = get_tree().current_scene
 	_configure_music_maps()
+	_apply_audio_manifest()
 	_build_ui()
+	_randomize_anomaly_cooldowns()
 	_stop_all_music()
 	_connect_network_session()
 	call_deferred("_connect_pause_menu")
@@ -258,6 +384,7 @@ func _process(delta: float) -> void:
 	if _pause_menu == null or not is_instance_valid(_pause_menu):
 		_connect_pause_menu()
 	_update_status(delta)
+	_update_anomaly_easter_eggs(delta)
 
 	if not _wave_running or _spawning:
 		return
@@ -367,6 +494,7 @@ func register_secret_boss(boss: Node, display_name: String) -> void:
 	if not _active_enemies.has(boss):
 		_active_enemies.append(boss)
 	_track_enemy_rewards(boss)
+	_reset_boss_pause_annoyance()
 
 	_boss_panel.visible = true
 	_boss_label.text = display_name
@@ -407,6 +535,7 @@ func _begin_next_wave() -> void:
 	_wave_elapsed = 0.0
 	_next_pacing_reinforcement_time = pacing_reinforcement_interval
 	_pacing_reinforcement_batches = 0
+	_clear_fake_boss_gag(false)
 	_clear_interwave_galaxy_gate()
 	if RunProgress:
 		RunProgress.sync_phase_from_wave(_wave)
@@ -478,6 +607,7 @@ func _spawn_boss_wave() -> void:
 	_boss = boss
 	_active_enemies.append(boss)
 	_track_enemy_rewards(boss)
+	_reset_boss_pause_annoyance()
 	_boss_panel.visible = true
 	_boss_label.text = _boss_display_name(boss_scene)
 
@@ -505,7 +635,7 @@ func _build_wave_roster() -> Array:
 		elif _wave == 4:
 			roster.append([BASE_SHOOTER_SCENE, HARASSER_SCENE, GRAVITY_LEECH_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, PARAMETRIC_2_SCENE, PHASE_SLIP_SWARM_SCENE][i % 7])
 		else:
-			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, ORBITER_DRONE_SCENE, GRAVITY_LEECH_SCENE, SEEKER_FRAGMENT_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, HARASSER_SCENE, SNIPER_SCENE, PARAMETRIC_1_SCENE, PARAMETRIC_2_SCENE, PARAMETRIC_4_SCENE, PARAMETRIC_5_SCENE, PHASE_SLIP_SWARM_SCENE, GRAVIMETRIC_ECHO_DRONE_SCENE][i % 15])
+			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, ORBITER_DRONE_SCENE, GRAVITY_LEECH_SCENE, SEEKER_FRAGMENT_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, HARASSER_SCENE, SNIPER_SCENE, PARAMETRIC_1_SCENE, PARAMETRIC_2_SCENE, PARAMETRIC_4_SCENE, PARAMETRIC_5_SCENE, PHASE_SLIP_SWARM_SCENE, GRAVIMETRIC_ECHO_DRONE_SCENE, VECTOR_TAX_COLLECTOR_SCENE, PERIAPSIS_MANTIS_SCENE, CAUSALITY_SHRIKE_SCENE, ORBIT_WEAVER_SCENE, GRAVITY_UNDERTAKER_SCENE][i % 20])
 
 	if _wave >= 3:
 		roster.insert(int(min(2, roster.size())), SHIELDER_SCENE)
@@ -513,12 +643,22 @@ func _build_wave_roster() -> Array:
 		roster.insert(int(min(4, roster.size())), SHIELD_BREAKER_SCENE)
 	if _wave >= 6:
 		roster.insert(int(min(5, roster.size())), PARAMETRIC_3_SCENE)
+	if _wave >= 6:
+		roster.insert(int(min(6, roster.size())), VECTOR_TAX_COLLECTOR_SCENE)
 	if _wave >= 7:
-		roster.insert(int(min(6, roster.size())), ORBITAL_NULL_HARVESTER_SCENE)
+		roster.insert(int(min(7, roster.size())), PERIAPSIS_MANTIS_SCENE)
+	if _wave >= 7:
+		roster.insert(int(min(8, roster.size())), ORBITAL_NULL_HARVESTER_SCENE)
 	if _wave >= 8:
-		roster.insert(int(min(7, roster.size())), EVENT_HORIZON_WARDEN_ENEMY_SCENE)
+		roster.insert(int(min(9, roster.size())), CAUSALITY_SHRIKE_SCENE)
 	if _wave >= 9:
-		roster.insert(int(min(8, roster.size())), RESONANCE_PARALYTIC_CONSTRUCT_SCENE)
+		roster.insert(int(min(10, roster.size())), EVENT_HORIZON_WARDEN_ENEMY_SCENE)
+	if _wave >= 10:
+		roster.insert(int(min(11, roster.size())), ORBIT_WEAVER_SCENE)
+	if _wave >= 11:
+		roster.insert(int(min(12, roster.size())), RESONANCE_PARALYTIC_CONSTRUCT_SCENE)
+	if _wave >= 12:
+		roster.insert(int(min(13, roster.size())), GRAVITY_UNDERTAKER_SCENE)
 
 	return roster
 
@@ -529,6 +669,8 @@ func _build_late_game_roster() -> Array:
 		PARAMETRIC_4_SCENE, PARAMETRIC_5_SCENE, SEEKER_FRAGMENT_SCENE, GRAVITY_LEECH_SCENE,
 		PHASE_SLIP_SWARM_SCENE, GRAVIMETRIC_ECHO_DRONE_SCENE, ORBITAL_NULL_HARVESTER_SCENE,
 		EVENT_HORIZON_WARDEN_ENEMY_SCENE, RESONANCE_PARALYTIC_CONSTRUCT_SCENE,
+		VECTOR_TAX_COLLECTOR_SCENE, PERIAPSIS_MANTIS_SCENE, CAUSALITY_SHRIKE_SCENE,
+		ORBIT_WEAVER_SCENE, GRAVITY_UNDERTAKER_SCENE,
 	]
 	var roster: Array = []
 	var count: int = mini(8 + int((_wave - RunProgress.LATE_GAME_START_WAVE) * 0.5), max_regular_enemies + 4)
@@ -601,6 +743,7 @@ func _on_wave_enemy_died(enemy: Node) -> void:
 		parent = _level_root
 	if parent == null:
 		return
+	_spawn_enemy_death_effect(enemy, enemy_2d.global_position)
 	var drop_count: int = _energy_drop_count_for_enemy(enemy)
 	PowerupLibrary.try_spawn_energy_droplets(
 		parent,
@@ -633,6 +776,38 @@ func _get_physics_drop_system() -> Node:
 	if _level_root != null:
 		_physics_drop_system = _level_root.find_child("PhysicsDropSystem", true, false)
 	return _physics_drop_system
+
+
+func _spawn_enemy_death_effect(enemy: Node, position: Vector2) -> void:
+	var vfx := _get_orbital_vfx_director()
+	if vfx == null or not vfx.has_method("spawn_enemy_death_burst"):
+		return
+	var rarity := 0.25 + clampf(float(_wave) / 40.0, 0.0, 0.35)
+	if _is_boss_enemy(enemy):
+		rarity = 1.0
+	vfx.call("spawn_enemy_death_burst", position, _body_velocity(enemy), _is_boss_enemy(enemy), rarity)
+
+
+func _get_orbital_vfx_director() -> Node:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return null
+	var director := scene.find_child("OrbitalVFXDirector", true, false)
+	if director != null and is_instance_valid(director):
+		return director
+	return get_tree().get_first_node_in_group("orbital_vfx_director")
+
+
+func _body_velocity(body: Node) -> Vector2:
+	if body == null or not is_instance_valid(body):
+		return Vector2.ZERO
+	var velocity_value: Variant = body.get("velocity")
+	if velocity_value is Vector2:
+		return velocity_value
+	var linear_velocity_value: Variant = body.get("linear_velocity")
+	if linear_velocity_value is Vector2:
+		return linear_velocity_value
+	return Vector2.ZERO
 
 func _spawn_battlefield_features() -> void:
 	var origin := _spawn_center()
@@ -719,8 +894,76 @@ func _seed_wave_hazards() -> void:
 	if _wave == 19:
 		_spawn_hazard(NEBULA_SCENE, "Wave19BoogieNebula", _spawn_position_for_index(_wave + 11))
 		_spawn_hazard(UNSTABLE_MOON_SCENE, "Wave19BoogieMoon", _spawn_position_for_index(_wave + 13))
+	_seed_player_authored_run_hazards()
 
 	_refresh_player_planet_cache()
+
+
+func _seed_player_authored_run_hazards() -> void:
+	if enable_pulsating_gravity_spawner_hazards and _wave_matches_interval(pulsating_gravity_spawner_start_wave, pulsating_gravity_spawner_interval):
+		var spawner := _spawn_hazard(
+			PULSATING_GRAVITY_SPAWNER_SCENE,
+			"Wave%dPulsatingGravitySpawner" % _wave,
+			_spawn_position_for_index(_wave + 23, true, far_planet_clearance)
+		)
+		_configure_pulsating_gravity_spawner(spawner)
+		_schedule_hazard_retire(spawner, pulsating_gravity_spawner_lifetime)
+	if enable_gravity_wave_maker_hazards and _wave_matches_interval(gravity_wave_maker_start_wave, gravity_wave_maker_interval):
+		var maker := _spawn_hazard(
+			GRAVITY_WAVE_MAKER_SCENE,
+			"Wave%dGravityWaveMaker" % _wave,
+			_spawn_position_for_index(_wave + 31, true, far_planet_clearance)
+		)
+		_configure_gravity_wave_maker(maker)
+		_schedule_hazard_retire(maker, gravity_wave_maker_lifetime)
+
+
+func _wave_matches_interval(start_wave: int, interval: int) -> bool:
+	if _wave < start_wave:
+		return false
+	if interval <= 0:
+		return _wave == start_wave
+	return (_wave - start_wave) % interval == 0
+
+
+func _configure_gravity_wave_maker(hazard: Node) -> void:
+	if hazard == null:
+		return
+	_set_if_present(hazard, &"number_of_points", gravity_wave_maker_points)
+	_set_if_present(hazard, &"max_active_groups", gravity_wave_maker_max_groups)
+	_set_if_present(hazard, &"run_lifetime_seconds", gravity_wave_maker_lifetime)
+	_set_if_present(hazard, &"spawn_interval", 1.95)
+	_set_if_present(hazard, &"max_expansion_scale", 7.4)
+	_set_if_present(hazard, &"base_mass", 95000.0)
+
+
+func _configure_pulsating_gravity_spawner(hazard: Node) -> void:
+	if hazard == null:
+		return
+	_set_if_present(hazard, &"max_active_fields", pulsating_gravity_spawner_max_fields)
+	_set_if_present(hazard, &"run_lifetime_seconds", pulsating_gravity_spawner_lifetime)
+	_set_if_present(hazard, &"min_spawn_interval", 5.4)
+	_set_if_present(hazard, &"max_spawn_interval", 9.2)
+
+
+func _schedule_hazard_retire(hazard: Node, lifetime: float) -> void:
+	if hazard == null or lifetime <= 0.0:
+		return
+	get_tree().create_timer(lifetime).timeout.connect(
+		Callable(self, "_queue_free_hazard_if_valid").bind(hazard),
+		CONNECT_ONE_SHOT
+	)
+
+
+func _queue_free_hazard_if_valid(hazard: Node) -> void:
+	if hazard != null and is_instance_valid(hazard) and not hazard.is_queued_for_deletion():
+		hazard.queue_free()
+
+
+func _set_if_present(target: Node, property_name: StringName, value: Variant) -> void:
+	if target == null or target.get(property_name) == null:
+		return
+	target.set(property_name, value)
 
 func _spawn_hazard(scene: PackedScene, node_name: String, global_pos: Vector2) -> Node:
 	var hazard = scene.instantiate()
@@ -904,6 +1147,7 @@ func _try_spawn_pacing_reinforcements() -> void:
 
 
 func _complete_wave(network_forced: bool = false) -> void:
+	_clear_fake_boss_gag(false)
 	if _is_network_client() and not network_forced:
 		_wave_running = false
 		_spawning = false
@@ -916,6 +1160,7 @@ func _complete_wave(network_forced: bool = false) -> void:
 	_banner_label.text = "WAVE %d CLEARED" % _wave
 	_boss_panel.visible = false
 	wave_cleared.emit(_wave)
+	_apply_wave_clear_reward()
 	_play_intermission_music_for_wave(_wave)
 	_broadcast_wave_state(&"cleared")
 
@@ -938,6 +1183,120 @@ func _complete_wave(network_forced: bool = false) -> void:
 	await get_tree().create_timer(rest).timeout
 	_clear_interwave_galaxy_gate()
 	_begin_next_wave()
+
+
+func _apply_wave_clear_reward() -> void:
+	if not clear_reward_enabled:
+		return
+	var player := _local_player()
+	if player == null:
+		return
+	var reward := _wave_clear_reward_for_player(player)
+	if reward.is_empty():
+		return
+	var energy_restored := _restore_player_energy(player, float(reward.get("energy", 0.0)))
+	var shield_restored := _restore_player_shield(player, float(reward.get("shield", 0.0)))
+	if energy_restored <= 0.0 and shield_restored <= 0.0:
+		return
+	var reason := String(reward.get("reason", "clear"))
+	if RunProgress != null:
+		RunProgress.arena_flags["last_wave_clear_reward"] = {
+			"wave": _wave,
+			"reason": reason,
+			"energy": energy_restored,
+			"shield": shield_restored,
+		}
+	if _banner_label != null:
+		_banner_label.text = "WAVE %d CLEARED - %s VECTOR" % [_wave, reason.to_upper()]
+
+
+func _wave_clear_reward_for_player(player: Node2D) -> Dictionary:
+	var health_ratio := _player_health_ratio(player)
+	var shield_ratio := _player_shield_ratio(player)
+	var under_pressure := health_ratio <= pressure_health_threshold or shield_ratio <= pressure_shield_threshold
+	if under_pressure:
+		return {
+			"reason": "recovery",
+			"energy": pressure_clear_energy,
+			"shield": pressure_clear_shield,
+		}
+	var speed := _player_speed(player)
+	var mastery_score := clampf(float(player.get("last_slingshot_score")) if player.get("last_slingshot_score") != null else 0.0, 0.0, 1.0)
+	if speed >= clear_reward_speed_threshold or mastery_score >= clear_reward_mastery_threshold:
+		return {
+			"reason": "flow",
+			"energy": clear_reward_energy,
+			"shield": clear_reward_shield,
+		}
+	return {}
+
+
+func _local_player() -> Node2D:
+	var player := MultiplayerTargeting.local_player(get_tree())
+	if player == null or not is_instance_valid(player):
+		player = _player
+	return player as Node2D
+
+
+func _restore_player_energy(player: Node2D, amount: float) -> float:
+	if player == null or amount <= 0.0:
+		return 0.0
+	var energy := player.get_node_or_null("EnergyComponent")
+	if energy != null and energy.has_method("restore"):
+		var restored: Variant = energy.call("restore", amount)
+		if restored is float or restored is int:
+			return float(restored)
+	return 0.0
+
+
+func _restore_player_shield(player: Node2D, amount: float) -> float:
+	if player == null or amount <= 0.0:
+		return 0.0
+	var shield := player.get_node_or_null("Shield")
+	if shield != null and shield.has_method("restore_shield"):
+		var restored: Variant = shield.call("restore_shield", amount)
+		if restored is float or restored is int:
+			return float(restored)
+	return 0.0
+
+
+func _player_health_ratio(player: Node2D) -> float:
+	if player == null:
+		return 1.0
+	var health := player.get_node_or_null("HealthComponent")
+	if health == null:
+		return 1.0
+	var current: Variant = health.get("current_health")
+	var maximum: Variant = health.get("max_health")
+	if (current is float or current is int) and (maximum is float or maximum is int):
+		return clampf(float(current) / maxf(float(maximum), 1.0), 0.0, 1.0)
+	return 1.0
+
+
+func _player_shield_ratio(player: Node2D) -> float:
+	if player == null:
+		return 1.0
+	var shield := player.get_node_or_null("Shield")
+	if shield == null:
+		return 1.0
+	var current: Variant = shield.get("current_energy")
+	var maximum: Variant = shield.get("max_capacity")
+	if (current is float or current is int) and (maximum is float or maximum is int):
+		return clampf(float(current) / maxf(float(maximum), 1.0), 0.0, 1.0)
+	return 1.0
+
+
+func _player_speed(player: Node2D) -> float:
+	if player == null:
+		return 0.0
+	var velocity_value: Variant = player.get("velocity")
+	if velocity_value is Vector2:
+		return (velocity_value as Vector2).length()
+	var linear_velocity_value: Variant = player.get("linear_velocity")
+	if linear_velocity_value is Vector2:
+		return (linear_velocity_value as Vector2).length()
+	return 0.0
+
 
 func _cleanup_tracking() -> void:
 	for index in range(_active_enemies.size() - 1, -1, -1):
@@ -1248,6 +1607,21 @@ func _build_ui() -> void:
 	_style_wave_progress_bar(_boss_bar, Color(1.0, 0.18, 0.08, 0.94))
 	boss_rows.add_child(_boss_bar)
 
+	_boss_dialogue_label = Label.new()
+	_boss_dialogue_label.name = "BossPauseDialogueLabel"
+	_boss_dialogue_label.anchor_left = 0.5
+	_boss_dialogue_label.anchor_right = 0.5
+	_boss_dialogue_label.offset_left = -410.0
+	_boss_dialogue_label.offset_right = 410.0
+	_boss_dialogue_label.offset_top = 96.0
+	_boss_dialogue_label.offset_bottom = 126.0
+	_boss_dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_boss_dialogue_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_boss_dialogue_label.add_theme_font_size_override("font_size", 13)
+	_boss_dialogue_label.modulate = Color(1.0, 0.74, 0.58, 0.0)
+	_boss_dialogue_label.visible = false
+	_canvas.add_child(_boss_dialogue_label)
+
 func _make_panel_style(bg: Color, border: Color) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
 	style.bg_color = bg
@@ -1291,6 +1665,457 @@ func _update_status(delta: float) -> void:
 	_last_status_wave = _wave
 	_last_status_threats = threat_count
 	_status_label.text = "Wave %d | Threats %d" % [_wave, threat_count]
+
+
+func _randomize_anomaly_cooldowns() -> void:
+	_trout_cooldown_remaining = _rng.randf_range(45.0, maxf(trout_event_cooldown * 0.45, 46.0))
+	_pebble_cooldown_remaining = _rng.randf_range(75.0, maxf(pebble_event_cooldown * 0.45, 76.0))
+
+
+func _update_anomaly_easter_eggs(delta: float) -> void:
+	if not enable_anomaly_easter_eggs:
+		return
+	_update_suspicious_trout(delta)
+	_update_pebble_gag(delta)
+	if _level_root == null or _player == null or not is_instance_valid(_player):
+		return
+	if not _wave_running or _spawning or _waves_halted:
+		return
+	_maybe_spawn_suspicious_trout(delta)
+	_maybe_spawn_pebble_of_reckoning(delta)
+
+
+func _maybe_spawn_suspicious_trout(delta: float) -> void:
+	if not _trout_state.is_empty():
+		return
+	_trout_cooldown_remaining = maxf(_trout_cooldown_remaining - delta, 0.0)
+	if _trout_cooldown_remaining > 0.0:
+		return
+	var chance := maxf(trout_event_chance_per_minute, 0.0) * delta / 60.0
+	if chance <= 0.0 or _rng.randf() >= chance:
+		return
+	_spawn_suspicious_trout()
+	_trout_cooldown_remaining = maxf(trout_event_cooldown, 30.0) * _rng.randf_range(0.82, 1.28)
+
+
+func _spawn_suspicious_trout() -> void:
+	var direction := Vector2.RIGHT if _rng.randf() < 0.5 else Vector2.LEFT
+	direction = direction.rotated(_rng.randf_range(-0.24, 0.24)).normalized()
+	var half_extents := _visible_world_half_extents()
+	var center := _camera_or_player_position()
+	var travel_radius := maxf(half_extents.x, half_extents.y) + 260.0
+	var cross_offset := direction.orthogonal() * _rng.randf_range(-half_extents.y * 0.66, half_extents.y * 0.66)
+	var start := center - direction * travel_radius + cross_offset
+	var end := center + direction * travel_radius + cross_offset + direction.orthogonal() * _rng.randf_range(-120.0, 120.0)
+	var trout := _build_suspicious_trout_visual()
+	trout.global_position = start
+	trout.rotation = direction.angle()
+	_level_root.add_child(trout)
+
+	_trout_state = {
+		"node": trout,
+		"label": trout.get_node_or_null("NameLabel"),
+		"start": start,
+		"end": end,
+		"age": 0.0,
+		"duration": maxf(trout_duration, 1.0),
+		"phase": _rng.randf_range(0.0, TAU),
+	}
+
+
+func _build_suspicious_trout_visual() -> Node2D:
+	var root := Node2D.new()
+	root.name = "SuspiciousTrout"
+	root.z_index = 84
+	root.set_meta(&"ignores_simulation", true)
+
+	var body := Polygon2D.new()
+	body.name = "Body"
+	body.color = _safe_world_color(Color(0.18, 1.0, 0.9, 0.78), 0.78)
+	body.polygon = PackedVector2Array([
+		Vector2(-46.0, 0.0),
+		Vector2(-24.0, -15.0),
+		Vector2(18.0, -12.0),
+		Vector2(48.0, 0.0),
+		Vector2(18.0, 12.0),
+		Vector2(-24.0, 15.0),
+	])
+	root.add_child(body)
+
+	var tail := Polygon2D.new()
+	tail.name = "Tail"
+	tail.color = _safe_world_color(Color(0.82, 0.28, 1.0, 0.72), 0.72)
+	tail.polygon = PackedVector2Array([
+		Vector2(-42.0, 0.0),
+		Vector2(-82.0, -22.0),
+		Vector2(-66.0, 0.0),
+		Vector2(-82.0, 22.0),
+	])
+	root.add_child(tail)
+
+	var fin := Polygon2D.new()
+	fin.name = "Fin"
+	fin.color = _safe_world_color(Color(0.96, 0.72, 1.0, 0.58), 0.58)
+	fin.polygon = PackedVector2Array([
+		Vector2(-4.0, -5.0),
+		Vector2(14.0, -32.0),
+		Vector2(24.0, -6.0),
+	])
+	root.add_child(fin)
+
+	var glow := Line2D.new()
+	glow.name = "TroutGlow"
+	glow.closed = true
+	glow.antialiased = true
+	glow.width = 5.0
+	glow.default_color = _safe_world_color(Color(0.25, 1.0, 0.98, 0.44), 0.44)
+	glow.points = PackedVector2Array([
+		Vector2(-48.0, 0.0),
+		Vector2(-26.0, -18.0),
+		Vector2(22.0, -15.0),
+		Vector2(54.0, 0.0),
+		Vector2(22.0, 15.0),
+		Vector2(-26.0, 18.0),
+	])
+	root.add_child(glow)
+
+	var eye := Polygon2D.new()
+	eye.name = "Eye"
+	eye.position = Vector2(30.0, -4.0)
+	eye.color = _safe_world_color(Color(1.0, 1.0, 0.82, 0.95), 0.95)
+	eye.polygon = _circle_points(3.0, 12)
+	root.add_child(eye)
+
+	var label := Label.new()
+	label.name = "NameLabel"
+	label.text = "Suspicious Trout"
+	label.position = Vector2(-62.0, -58.0)
+	label.size = Vector2(124.0, 22.0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 12)
+	label.modulate = Color(0.76, 1.0, 0.94, 0.0)
+	label.visible = false
+	root.add_child(label)
+	return root
+
+
+func _update_suspicious_trout(delta: float) -> void:
+	if _trout_state.is_empty():
+		return
+	var trout := _trout_state.get("node") as Node2D
+	if trout == null or not is_instance_valid(trout) or trout.is_queued_for_deletion():
+		_trout_state.clear()
+		return
+
+	var age := float(_trout_state.get("age", 0.0)) + delta
+	var duration := maxf(float(_trout_state.get("duration", trout_duration)), 0.1)
+	var start: Vector2 = _trout_state.get("start", trout.global_position)
+	var end: Vector2 = _trout_state.get("end", trout.global_position)
+	var direction := (end - start).normalized()
+	if direction == Vector2.ZERO:
+		direction = Vector2.RIGHT
+	var phase := float(_trout_state.get("phase", 0.0))
+	var progress := clampf(age / duration, 0.0, 1.0)
+	var swim := sin(age * 5.3 + phase) * 18.0
+	trout.global_position = start.lerp(end, progress) + direction.orthogonal() * swim
+	trout.rotation = direction.angle() + sin(age * 8.0 + phase) * 0.05
+	trout.scale = Vector2.ONE * (1.0 + sin(age * 6.1 + phase) * 0.025)
+	trout.modulate.a = clampf(minf(age / 0.32, (duration - age) / 0.88), 0.0, 1.0)
+	_update_trout_label(trout)
+	_unlock_trout_codex_if_seen(trout.global_position)
+
+	_trout_state["age"] = age
+	if age >= duration:
+		_spawn_tiny_ripple_distortion(trout.global_position, Color(0.18, 1.0, 0.92, 0.38))
+		trout.queue_free()
+		_trout_state.clear()
+
+
+func _update_trout_label(trout: Node2D) -> void:
+	var label := _trout_state.get("label") as Label
+	if label == null or not is_instance_valid(label):
+		return
+	if _player == null or not is_instance_valid(_player):
+		label.visible = false
+		return
+	var near := trout.global_position.distance_to(_player.global_position) <= trout_label_distance
+	label.visible = near
+	label.modulate.a = 0.9 if near else 0.0
+
+
+func _unlock_trout_codex_if_seen(position: Vector2) -> void:
+	if RunProgress == null or _player == null or not is_instance_valid(_player):
+		return
+	if _player.global_position.distance_to(position) > trout_sight_distance:
+		return
+	var entries_value: Variant = RunProgress.arena_flags.get("codex_entries", {})
+	var entries: Dictionary = entries_value if entries_value is Dictionary else {}
+	if entries.has("suspicious_trout"):
+		return
+	entries["suspicious_trout"] = {
+		"id": "suspicious_trout",
+		"title": "Suspicious Trout",
+		"body": "It is not part of the simulation. It refuses to elaborate.",
+		"unlocked": true,
+	}
+	RunProgress.arena_flags["codex_entries"] = entries
+	RunProgress.arena_flags["codex:suspicious_trout"] = true
+	_banner_label.text = "CODEX ENTRY: SUSPICIOUS TROUT"
+
+
+func _maybe_spawn_pebble_of_reckoning(delta: float) -> void:
+	if _boss != null or _fake_boss_active or _is_network_active():
+		return
+	if _pebble_node != null and is_instance_valid(_pebble_node):
+		return
+	_pebble_cooldown_remaining = maxf(_pebble_cooldown_remaining - delta, 0.0)
+	if _pebble_cooldown_remaining > 0.0:
+		return
+	var chance := maxf(pebble_event_chance_per_minute, 0.0) * delta / 60.0
+	if chance <= 0.0 or _rng.randf() >= chance:
+		return
+	_spawn_pebble_of_reckoning()
+	_pebble_cooldown_remaining = maxf(pebble_event_cooldown, 45.0) * _rng.randf_range(0.86, 1.34)
+
+
+func _spawn_pebble_of_reckoning() -> void:
+	var pebble := PEBBLE_OF_RECKONING_SCRIPT.new() as Node2D
+	if pebble == null:
+		return
+	pebble.name = "ThePebbleOfReckoning"
+	_level_root.add_child(pebble)
+	pebble.global_position = _push_position_out_of_planets(
+		_player.global_position + Vector2.RIGHT.rotated(_rng.randf_range(0.0, TAU)) * _rng.randf_range(420.0, 760.0),
+		92.0
+	)
+	if pebble.has_method("configure_lifetime"):
+		pebble.call("configure_lifetime", maxf(pebble_auto_vanish_seconds, 2.0))
+	_pebble_node = pebble
+	if pebble.has_signal("pebble_defeated"):
+		pebble.connect("pebble_defeated", Callable(self, "_on_pebble_defeated"), CONNECT_ONE_SHOT)
+	if pebble.has_signal("pebble_expired"):
+		pebble.connect("pebble_expired", Callable(self, "_on_pebble_expired"), CONNECT_ONE_SHOT)
+	_show_fake_boss_gag()
+
+
+func _show_fake_boss_gag() -> void:
+	if _fake_boss_active:
+		return
+	_fake_boss_active = true
+	_fake_boss_music_restored = false
+	_fake_boss_restore_state = {
+		"panel_visible": _boss_panel.visible,
+		"label": _boss_label.text,
+		"bar_max": _boss_bar.max_value,
+		"bar_value": _boss_bar.value,
+		"music_mode": _music_mode,
+		"music_stream": _active_music_stream,
+		"music_volume_db": _current_music_volume_db(),
+	}
+	_boss_panel.visible = true
+	_boss_label.text = "The Pebble of Reckoning"
+	_boss_bar.max_value = 1.0
+	_boss_bar.value = 1.0
+	_banner_label.text = "MINIBOSS COLLAPSE: THE PEBBLE OF RECKONING"
+	_play_transition_message("THE PEBBLE OF RECKONING", Color(1.0, 0.22, 0.12, 1.0))
+	_request_camera_shake(0.42)
+	_set_music_mode(MusicMode.BOSS, SONG_THE_ARRIVAL, boss_music_volume_db + 2.0)
+	if pebble_music_swell_seconds > 0.0:
+		get_tree().create_timer(pebble_music_swell_seconds).timeout.connect(
+			Callable(self, "_restore_fake_boss_music_once"),
+			CONNECT_ONE_SHOT
+		)
+
+
+func _update_pebble_gag(_delta: float) -> void:
+	if not _fake_boss_active:
+		return
+	if _pebble_node == null or not is_instance_valid(_pebble_node):
+		_clear_fake_boss_gag(false)
+		return
+	if _pebble_node.has_method("get_health_ratio"):
+		_boss_bar.value = _boss_bar.max_value * float(_pebble_node.call("get_health_ratio"))
+
+
+func _on_pebble_defeated(_lifetime_seconds: float) -> void:
+	_clear_fake_boss_gag(true)
+	_banner_label.text = "Its reign lasted 1.7 seconds."
+	_play_transition_message("Its reign lasted 1.7 seconds.", Color(1.0, 0.82, 0.36, 1.0))
+	_request_camera_shake(0.12)
+
+
+func _on_pebble_expired() -> void:
+	_clear_fake_boss_gag(false)
+
+
+func _clear_fake_boss_gag(defeated: bool) -> void:
+	if not _fake_boss_active:
+		return
+	_restore_fake_boss_music_once()
+	_boss_panel.visible = bool(_fake_boss_restore_state.get("panel_visible", false)) and _boss == null
+	_boss_label.text = String(_fake_boss_restore_state.get("label", "BOSS"))
+	_boss_bar.max_value = float(_fake_boss_restore_state.get("bar_max", 100.0))
+	_boss_bar.value = float(_fake_boss_restore_state.get("bar_value", _boss_bar.max_value))
+	if not defeated and _pebble_node != null and is_instance_valid(_pebble_node) and not _pebble_node.is_queued_for_deletion():
+		_pebble_node.queue_free()
+	_pebble_node = null
+	_fake_boss_active = false
+	_fake_boss_restore_state.clear()
+
+
+func _restore_fake_boss_music_once() -> void:
+	if _fake_boss_music_restored:
+		return
+	_fake_boss_music_restored = true
+	var mode := int(_fake_boss_restore_state.get("music_mode", MusicMode.NONE))
+	var stream := _fake_boss_restore_state.get("music_stream") as AudioStream
+	var volume := float(_fake_boss_restore_state.get("music_volume_db", _volume_for_music_mode(mode)))
+	if mode == MusicMode.NONE or stream == null:
+		_stop_all_music()
+	else:
+		_set_music_mode(mode, stream, volume)
+
+
+func _current_music_volume_db() -> float:
+	if _music_mode == MusicMode.NONE:
+		return 0.0
+	var player := _music_player_for_mode(_music_mode)
+	return player.volume_db if player != null else _volume_for_music_mode(_music_mode)
+
+
+func _volume_for_music_mode(mode: int) -> float:
+	if mode == MusicMode.BOSS:
+		return boss_music_volume_db
+	if mode == MusicMode.INTERMISSION:
+		return intermission_music_volume_db
+	if mode == MusicMode.WAVE:
+		return wave_music_volume_db
+	return 0.0
+
+
+func _reset_boss_pause_annoyance() -> void:
+	_boss_pause_count = 0
+	_boss_pause_dialogue_used = false
+	_boss_pause_dialogue_trigger_count = 0
+	if boss_pause_dialogue_chance > 0.0 and _rng.randf() <= boss_pause_dialogue_chance:
+		_boss_pause_dialogue_trigger_count = _rng.randi_range(1, 3)
+
+
+func _handle_boss_pause_opened() -> void:
+	if _boss == null or not is_instance_valid(_boss) or _fake_boss_active:
+		return
+	_boss_pause_count += 1
+	if _boss_pause_dialogue_used or _boss_pause_dialogue_trigger_count <= 0:
+		return
+	if _boss_pause_count < _boss_pause_dialogue_trigger_count:
+		return
+	_boss_pause_dialogue_used = true
+	if _boss_pause_count <= 1:
+		_show_boss_pause_dialogue("Coward.")
+	elif _boss_pause_count == 2:
+		_show_boss_pause_dialogue("Again?")
+	else:
+		_show_boss_pause_dialogue("I am literally collapsing spacetime and you are checking volume settings?")
+
+
+func _show_boss_pause_dialogue(text: String) -> void:
+	if _boss_dialogue_label == null:
+		return
+	_boss_dialogue_label.text = text
+	_boss_dialogue_label.visible = true
+	_boss_dialogue_label.modulate.a = 0.0
+	if _boss_dialogue_tween != null:
+		_boss_dialogue_tween.kill()
+	_boss_dialogue_tween = create_tween()
+	_boss_dialogue_tween.set_ignore_time_scale(true)
+	_boss_dialogue_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_boss_dialogue_tween.tween_property(_boss_dialogue_label, "modulate:a", 0.92, 0.16)
+	_boss_dialogue_tween.tween_interval(2.2)
+	_boss_dialogue_tween.tween_property(_boss_dialogue_label, "modulate:a", 0.0, 0.35)
+	_boss_dialogue_tween.finished.connect(func() -> void:
+		if _boss_dialogue_label != null:
+			_boss_dialogue_label.visible = false
+	)
+
+
+func _play_transition_message(message: String, color: Color) -> void:
+	if _level_root == null:
+		return
+	var transition := _level_root.find_child("RunTransitionDirector", true, false)
+	if transition != null and transition.has_method("play_transition"):
+		transition.call("play_transition", message, color)
+
+
+func _spawn_tiny_ripple_distortion(position: Vector2, color: Color) -> void:
+	if _level_root == null:
+		return
+	var root := Node2D.new()
+	root.name = "TinyRippleDistortion"
+	root.global_position = position
+	root.z_index = 78
+	_level_root.add_child(root)
+	for i in range(2):
+		var ring := Line2D.new()
+		ring.name = "RippleRing%d" % i
+		ring.closed = true
+		ring.antialiased = true
+		ring.width = 2.2 - float(i) * 0.65
+		ring.points = _circle_points(18.0 + float(i) * 9.0, 42)
+		ring.default_color = _safe_world_color(color, maxf(color.a - float(i) * 0.12, 0.08))
+		root.add_child(ring)
+	var tween := root.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(root, "scale", Vector2.ONE * 2.6, 0.62).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(root, "modulate:a", 0.0, 0.62)
+	tween.finished.connect(root.queue_free)
+
+
+func _request_camera_shake(amount: float) -> void:
+	var camera := get_viewport().get_camera_2d()
+	if camera == null and _player != null and is_instance_valid(_player):
+		camera = _player.get_node_or_null("Camera2D") as Camera2D
+	if camera == null:
+		return
+	var shake := camera.get_node_or_null("DamageCameraShake")
+	if shake != null and shake.has_method("add_trauma"):
+		shake.call("add_trauma", amount)
+
+
+func _visible_world_half_extents() -> Vector2:
+	var viewport_size := get_viewport().get_visible_rect().size
+	var camera := get_viewport().get_camera_2d()
+	var zoom := Vector2.ONE
+	if camera != null:
+		zoom = Vector2(maxf(camera.zoom.x, 0.01), maxf(camera.zoom.y, 0.01))
+	return Vector2(viewport_size.x / zoom.x, viewport_size.y / zoom.y) * 0.5
+
+
+func _camera_or_player_position() -> Vector2:
+	var camera := get_viewport().get_camera_2d()
+	if camera != null:
+		return camera.global_position
+	if _player != null and is_instance_valid(_player):
+		return _player.global_position
+	return global_position
+
+
+func _safe_world_color(color: Color, alpha: float) -> Color:
+	var safe_alpha := alpha
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		safe_alpha = Settings.world_visual_alpha(alpha, 0.5)
+	elif Settings != null and Settings.has_method("flash_alpha"):
+		safe_alpha = minf(Settings.flash_alpha(alpha), alpha)
+	return Color(color.r, color.g, color.b, safe_alpha)
+
+
+func _circle_points(radius: float, count: int) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var safe_count := maxi(count, 8)
+	for i in range(safe_count):
+		var angle := TAU * float(i) / float(safe_count)
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points
+
 
 func _clear_remaining_wave_enemies() -> void:
 	for enemy in get_tree().get_nodes_in_group("wave_enemy"):
@@ -1381,6 +2206,9 @@ func _connect_pause_menu() -> void:
 		_pause_menu.connect("pause_state_changed", callable)
 
 func _on_pause_state_changed(blocked: bool) -> void:
+	if blocked and not _last_pause_blocked:
+		_handle_boss_pause_opened()
+	_last_pause_blocked = blocked
 	_music_blocked_by_pause = blocked
 	if blocked:
 		$WaveMusic.stream_paused = true

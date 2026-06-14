@@ -9,6 +9,22 @@ class_name RunTransitionDirector
 @export var glitch_slice_count: int = 5
 @export var glitch_slice_alpha: float = 0.22
 @export var glitch_slice_height: float = 6.0
+@export var loading_tip_chance: float = 0.28
+@export var rare_fake_tip_ratio: float = 0.16
+
+const STANDARD_LOADING_TIPS: Array[Dictionary] = [
+	{"id": "tangent_survival", "text": "Keep tangent speed when gravity starts writing the route for you."},
+	{"id": "scar_readability", "text": "Gravity scars are warnings first and opportunities second."},
+	{"id": "collapse_distance", "text": "Distance is a resource. Spend it before the collapse spends it for you."},
+	{"id": "shield_momentum", "text": "A shield buys time. Momentum decides what that time is worth."},
+]
+
+const RARE_FAKE_LOADING_TIPS: Array[Dictionary] = [
+	{"id": "elsewhere", "text": "The safest place in a gravity collapse is somewhere else."},
+	{"id": "screaming_object", "text": "If an object is glowing red, purple, and screaming, avoid it."},
+	{"id": "orbit_confidence", "text": "Orbiting is just falling with confidence."},
+	{"id": "management_dodge", "text": "The enemies cannot kill you if you simply do not get hit. This tip was written by management."},
+]
 
 @onready var _root: Control = $Root
 @onready var _wash: ColorRect = $Root/Wash
@@ -17,12 +33,16 @@ class_name RunTransitionDirector
 
 var _tween: Tween = null
 var _glitch_slices: Array[ColorRect] = []
+var _tip_label: Label = null
+var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
 	add_to_group("run_transition_director")
 	layer = 94
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_seed_tip_rng()
+	_ensure_tip_label()
 	_build_glitch_slices()
 	_reset_visuals()
 	call_deferred("_connect_sources")
@@ -38,6 +58,7 @@ func play_transition(message: String, color: Color) -> void:
 	_root.visible = true
 	var with_glitch := _transition_should_glitch(message)
 	_configure_glitch_slices(color, with_glitch)
+	_configure_loading_tip(color)
 
 	if _tween != null:
 		_tween.kill()
@@ -46,6 +67,8 @@ func play_transition(message: String, color: Color) -> void:
 	_tween.tween_property(_wash, "color:a", wash_alpha, 0.12)
 	_tween.tween_property(_line, "color:a", line_alpha, 0.12)
 	_tween.tween_property(_label, "modulate:a", 1.0, 0.12)
+	if _tip_label != null and _tip_label.visible:
+		_tween.tween_property(_tip_label, "modulate:a", 0.82, 0.18)
 	for slice in _glitch_slices:
 		if slice.visible:
 			_tween.tween_property(slice, "color:a", _safe_transition_alpha(glitch_slice_alpha), 0.1)
@@ -55,6 +78,8 @@ func play_transition(message: String, color: Color) -> void:
 	_tween.tween_property(_wash, "color:a", 0.0, 0.32)
 	_tween.tween_property(_line, "color:a", 0.0, 0.28)
 	_tween.tween_property(_label, "modulate:a", 0.0, 0.28)
+	if _tip_label != null and _tip_label.visible:
+		_tween.tween_property(_tip_label, "modulate:a", 0.0, 0.28)
 	for slice in _glitch_slices:
 		if slice.visible:
 			_tween.tween_property(slice, "color:a", 0.0, 0.22)
@@ -98,6 +123,9 @@ func _reset_visuals() -> void:
 		_line.color.a = 0.0
 	if _label != null:
 		_label.modulate.a = 0.0
+	if _tip_label != null:
+		_tip_label.visible = false
+		_tip_label.modulate.a = 0.0
 	for slice in _glitch_slices:
 		if slice != null:
 			slice.visible = false
@@ -115,6 +143,62 @@ func _build_glitch_slices() -> void:
 		slice.visible = false
 		_root.add_child(slice)
 		_glitch_slices.append(slice)
+
+
+func _seed_tip_rng() -> void:
+	if RunProgress != null and int(RunProgress.run_seed) != 0:
+		_rng.seed = int(RunProgress.run_seed) ^ 0x71F5
+	else:
+		_rng.randomize()
+
+
+func _ensure_tip_label() -> void:
+	if _root == null:
+		return
+	_tip_label = _root.get_node_or_null("TipLabel") as Label
+	if _tip_label != null:
+		return
+	_tip_label = Label.new()
+	_tip_label.name = "TipLabel"
+	_tip_label.anchor_left = 0.5
+	_tip_label.anchor_right = 0.5
+	_tip_label.anchor_top = 1.0
+	_tip_label.anchor_bottom = 1.0
+	_tip_label.offset_left = -520.0
+	_tip_label.offset_right = 520.0
+	_tip_label.offset_top = -96.0
+	_tip_label.offset_bottom = -52.0
+	_tip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tip_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_tip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_tip_label.add_theme_font_size_override("font_size", 14)
+	_tip_label.modulate = Color(0.72, 0.95, 1.0, 0.0)
+	_tip_label.visible = false
+	_root.add_child(_tip_label)
+
+
+func _configure_loading_tip(color: Color) -> void:
+	if _tip_label == null:
+		return
+	var tip := _choose_loading_tip()
+	if tip.is_empty():
+		_tip_label.visible = false
+		_tip_label.modulate.a = 0.0
+		return
+	_tip_label.text = "TIP: %s" % tr(String(tip.get("text", "")))
+	_tip_label.modulate = Color(color.r, color.g, color.b, 0.0)
+	_tip_label.visible = true
+
+
+func _choose_loading_tip() -> Dictionary:
+	if _rng.randf() > clampf(loading_tip_chance, 0.0, 1.0):
+		return {}
+	var pool := STANDARD_LOADING_TIPS
+	if _rng.randf() <= clampf(rare_fake_tip_ratio, 0.0, 1.0):
+		pool = RARE_FAKE_LOADING_TIPS
+	if pool.is_empty():
+		return {}
+	return pool[_rng.randi_range(0, pool.size() - 1)]
 
 
 func _configure_glitch_slices(color: Color, enabled_glitch: bool) -> void:

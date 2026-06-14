@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/causality_shrike.gd" id="1_shrike"]
+
+[node name="CausalityShrike" type="CharacterBody2D" groups=["enemies", "wave_enemy"]]
+motion_mode = 1
+script = ExtResource("1_shrike")

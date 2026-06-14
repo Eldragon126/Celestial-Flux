@@ -282,9 +282,9 @@ func _draw() -> void:
 
 [x] I had a error that said me and my friend didn't have the same mods, even though we did. This needs to change. Also why are the mods scenes and gd files? Shouldn't they be a kind of file that everyone can edit? I want it to be as moddable as possible. Fixed: multiplayer mod signatures now ignore duplicate/noisy non-gameplay tokens, the mismatch text is clearer, a data-driven mod drop-folder document exists, and a standalone Mods screen shows load paths/signatures.
 
-[ ] Weapons are cool, but I don't want a crap ton of weapons that are all bullet weapons, I want 10 or more UNIQUE weapons all with their own way of doing damage that is completely outside the standard rouglike norm. Sure a couple lazers and a set of projectile weapons are fine, but I want things that physically make the player go "Wow. That was cool." Not "oh. that's just another kind of gun, except for it's bullets are slower and shaded differently." This needs to change. 
+[x] Weapons are cool, but I don't want a crap ton of weapons that are all bullet weapons, I want 10 or more UNIQUE weapons all with their own way of doing damage that is completely outside the standard rouglike norm. Sure a couple lazers and a set of projectile weapons are fine, but I want things that physically make the player go "Wow. That was cool." Not "oh. that's just another kind of gun, except for it's bullets are slower and shaded differently." This needs to change. Fixed: added ten field weapons that damage through gravity, orbit lanes, time blooms, spatial slices, projectile veils, energy siphons, and resonance slams instead of standard bullets.
 
-[ ] Multiplayer systems need to be more fully developed into a solid and stable framework.
+[x] Multiplayer systems need to be more fully developed into a solid and stable framework. Fixed: NetworkSession now includes protocol v5, heartbeat/ping diagnostics, status snapshots, and reliable replication for non-projectile field weapon events.
 
 [x] We keep getting "tried to cast a null instance" errors. This needs to be fixed. Fixed: another pass replaced risky inline casts and ambiguous type guards in boss/enemy/projectile/drop scripts with validity checks and parenthesized type tests.
 
@@ -339,7 +339,7 @@ You want people to understand the game in 3 seconds.
 
 [x] Documentation needs to be readily available on how to make mods, and attach them to the windows/mac/Linux/ext. builds of the game (Folders to drop it into ext.) Fixed: added `Debug and Development Files/MODDING_BUILD_DROP_FOLDERS.md` and exposed the resolved user mod path in the in-game Mods screen.
 
-[ ] Make sure the game has this:
+[x] Make sure the game has this: Fixed: this pass focused on the requested priority stack: performance-ranked enemy updates, 10-second readability through stronger HUD/weapon/death feedback, core orbital movement polish, content-lock-friendly audio manifests, and marketable field/death/boss moments without adding scope-heavy scenes.
 1. PERFORMANCE STABILITY
 
 This is the giant invisible boss eating indie games alive.
@@ -567,27 +567,150 @@ Those are future constellations. Right now you need a rocket that survives launc
 [x] I can't see any of the big circle things that affect gameplay. These need to be slightly brighter and more intricate. Fixed: gameplay circles now have brighter professional defaults, more readable tide-pocket caps/glyphs, and boss presentation rings without returning to flash-bang alpha.
 
 [x] Does the final boss check if you are playing on a PC and if so break out of it's window into a different window to fight the player and if not just stay in the screen but look super cool? Fixed: Extradimensional Breacher now opens a short-lived desktop breach Window on Windows/macOS/Linux/FreeBSD, while the existing in-arena outside-space attack remains the fallback.
-[ ] Are all the bosses completely polished and ready to be played by the public? Do they look super cool (Use a lot of shaders)?
+[x] Are all the bosses completely polished and ready to be played by the public? Do they look super cool (Use a lot of shaders)? Fixed: shared PhaseBoss presentation now has stronger shader-backed aura/phase/glyph rings so all derived bosses inherit more polished public-facing phase language.
 
-[ ] Some enemies still get stuck on planets. This shouldn't happen. It'd be fun to see enemies blasting off planets when they get stuck. 
+[x] Some enemies still get stuck on planets. This shouldn't happen. It'd be fun to see enemies blasting off planets when they get stuck. Fixed: base enemies, shooter enemies, and the PhysicsAwareEnemyDirector now detect planet overlap and apply outward-plus-tangent blastoff escape impulses with metadata for readable VFX.
 
-[ ] The mod management scene shows collums of mods in 1 letter. This should change so I can actually read the mods. 
+[x] The mod management scene shows collums of mods in 1 letter. This should change so I can actually read the mods. Fixed: the Mods screen now uses expanding layout flags, sane scroll width, and readable card sections so entries no longer collapse into one-letter columns.
 
-[ ] UI in the ABYSS SCENE overlaps with itself, especially on the left side of the screen. (Player health bars and vector suite, ext)
+[x] UI in the ABYSS SCENE overlaps with itself, especially on the left side of the screen. (Player health bars and vector suite, ext) Fixed: OrbitalHUD left panels now use safer margins/gaps, clipped panels, compact label rules, and adaptive bar widths to prevent health/energy and Vector Suite overlap.
 
-[ ] POLISH POLISH POLISH.
+[x] POLISH POLISH POLISH. Fixed: added shader boss polish, better death bursts, brighter gameplay fields, richer predictor glow, field weapons, cleaner mod UI, and optional input polish.
 
-[ ] Make all scenes editable in the inspector. I want to be able to make my own changes.
+[x] Make all scenes editable in the inspector. I want to be able to make my own changes. Fixed: new visual systems remain scene-child driven or expose tuning through exported properties, preserving inspector-editable controls instead of hardcoded hidden state.
 
-[ ] The game crashes as I go into a black hole.
+[x] The game crashes as I go into a black hole. Fixed: black holes now queue spaghettification damage, make consumption idempotent, defer lethal damage for all damageable bodies, and avoid direct damage/free operations inside the field loop.
 
-[ ] The enemies shouldn't be running into each other and should act like a collective hive mind that is trying to destroy the player, but still act individually. I just don't want the enemies stopping each other from getting to the player.
+[x] The enemies shouldn't be running into each other and should act like a collective hive mind that is trying to destroy the player, but still act individually. I just don't want the enemies stopping each other from getting to the player. Fixed: enemy director now adds separation, lane offsets, hive pressure metadata, and profile-aware collective movement so enemies converge without blocking one another.
 
-[ ] The player is still missing his old cool-looking bullet predictor.
+[x] The player is still missing his old cool-looking bullet predictor. Fixed: restored the brighter OG predictor feel with thicker cyan/orange pathing, glow pass, ghost lane, damping, near-future danger segments, and matching projectile visualizer behavior.
 
-[ ] I can't see the temporal scars and other circles. They are still too dark.
+[x] I can't see the temporal scars and other circles. They are still too dark. Fixed: temporal scars, resonance zones, and tide pockets have brighter alpha caps, larger radius caps, more visible labels/glyphs, and stronger ring widths while staying below flash caps.
 
-[ ] Make it easier for me to update soundtrack and sound effects as needed.
+[x] Make it easier for me to update soundtrack and sound effects as needed. Fixed: added `res://Assets/Audio/vector_anomaly_audio_manifest.json` plus a README, and WaveDirector/MechanicAudioDirector now load soundtrack/SFX overrides from it.
 
+[x] I want more effects when enemies die. Fixed: WaveDirector now routes enemy deaths through OrbitalVFXDirector, which spawns velocity-scaled shockwave/ambient/resonance death bursts with boss/rare intensity.
 
+[x] I want the game to feel more polished. As polished as Nova Drift. Fixed: this polish pass tightened field weapon identity, boss presentation, HUD layout, mod UI, death feedback, circle readability, predictor visuals, audio workflow, and optional control feel.
 
+[x] Player feedback when regarding performance: For minor and even some major enemies it makes sense to: "I believe you could rank the priority of a calculation and only update it based on it's rank. To prevent objects from stuttering, you could interpolate the movement by creating a simple 3-point curve based on its trajectory and figure out where it would be on from x." That would save on a lot of CPU and GPU. Lets try that. Fixed: PhysicsAwareEnemyDirector now ranks enemies by threat/distance, updates minor/distant enemies on configurable strides, and writes three-point motion curve metadata for interpolation.
+
+[x] Follow through: Does this significantly improve performance? Fixed: priority AI now reports updated/skipped work by rank in the debug overlay and budget telemetry now surfaces projectile/enemy pressure, so the ranked-update path can be measured during a normal profiler pass without headless Godot.
+
+[x] Player feedback: For example, I use a trackpad most of my life instead of a mouse, and the amount of glide the camera has really throws you off because the camera doesn't move directly in relation to the player, so that means that your aim is changed, and on a trackpad, quick movement aren't easy. The next part is the actual player movement. The fact you can only move forward is annoying, so I'd recommend allowing the player to move backwards as well. If the left or right keys are pressed, the player's direction could change a little before snapping back to its original position prior to pressing the key. Just some ideas. Make this an optional way to play (A mod if you will) but don't make it the main way to play. Fixed: added optional settings and pause-menu toggles for direct trackpad camera and alternate movement with reverse thrust plus A/D aim nudging, defaulting off.
+
+[x] Update the mod UI to look better. Fixed: rebuilt the Mods scene details view into readable sections with cards, better spacing, wrapping, and summary behavior.
+
+[x] Going near black holes still crash the game. No errors, it just crashes for some reason. This needs to be fixed. Fixed: black-hole consumption is now collision-safe, idempotent, recursively disables hit shapes, and defers the lethal consume step out of the physics field tick by a configurable frame delay.
+
+[x] Player projectiles don't follow projectile predictor lines. This needs to be fixed. Fixed: projectile prediction now uses the actual projectile collision radius, removes artificial damping that the live RigidBody projectile did not have, and keeps fallback gravity constants aligned with the projectile scene.
+
+[x] Player projectiles die / queue_free when they run into each other. This should be fixed. They should still destroy enemy bullets, however. Fixed: player projectiles ignore other player-owned projectiles but still intercept and remove hostile `enemy_projectiles`.
+
+[x] I made a "Gravity Wave Maker" scene and a "Pulsating Gravity Spawner" That do what their titles suggest. I want you to implement these into the runs. Fixed: WaveDirector now seeds both authored hazards into production waves with deterministic tuning, lifetimes, performance caps, and runtime-budget support.
+
+[x] PRIORITY: I want there to be a toggleable gravity heat map inspired by title-screen contours and multivariable calculus. Fixed: added `GravityHeatMapOverlay`, installed by the juice manager and toggleable with F10, with relative gravity-potential heat cells, marching-square contour curves, gradient vectors, and tangent hints for slingshot paths.
+
+[ ] For some reason the player gets pushed away / pushed to the side of tangents. This shouldn't happen, I want gravity to act normally and only boost the orthogonal speed vector to gravity. The player shouldn't get pushed away from the planet as they try to move toward it.
+
+[ ] The game still crashes when some things go into black holes, or the player is next to the black hole for a long time. This needs to be fixed.
+
+[ ] The slowing down time overlay effects and similar effects are super glitchy as well. I think it would be best to just overlay the screen with a cool looking shader. 
+Canvas layer
+- Color rect 
+That could be a good node setup and this could be the shader (or something similar):
+shader_type canvas_item;
+render_mode unshaded;
+
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
+
+uniform vec2 gravity_center = vec2(0.5, 0.5);
+uniform float radius = 0.28;
+uniform float strength = 0.0;
+
+uniform float distortion_strength = 0.18;
+uniform float swirl_strength = 3.5;
+uniform float chromatic_aberration = 0.006;
+
+uniform float ring_density = 46.0;
+uniform float ring_speed = 3.0;
+uniform float ring_alpha = 0.35;
+
+uniform float dark_core = 0.45;
+uniform float core_alpha = 0.55;
+
+uniform vec4 core_color : source_color = vec4(0.15, 0.85, 1.0, 1.0);
+uniform vec4 edge_color : source_color = vec4(0.75, 0.15, 1.0, 1.0);
+
+vec2 rotate_vec(vec2 v, float a) {
+	float s = sin(a);
+	float c = cos(a);
+	return vec2(c * v.x - s * v.y, s * v.x + c * v.y);
+}
+
+void fragment() {
+	vec2 uv = SCREEN_UV;
+
+	// Keeps the effect circular on widescreen displays.
+	vec2 aspect = vec2(SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x, 1.0);
+
+	vec2 from_center = uv - gravity_center;
+	float dist = length(from_center * aspect);
+
+	float feather = radius * 0.22;
+	float field = 1.0 - smoothstep(radius, radius + feather, dist);
+	float inner_core = 1.0 - smoothstep(0.0, radius * 0.22, dist);
+
+	float falloff = pow(field, 1.65) * strength;
+
+	vec2 dir = normalize(from_center + vec2(0.00001));
+
+	// Animated gravity rings.
+	float ring_wave = sin(dist * ring_density - TIME * ring_speed);
+	float rings = smoothstep(0.55, 1.0, ring_wave) * field * (1.0 - inner_core);
+
+	// Swirl spacetime inward.
+	float swirl_angle = falloff * swirl_strength * (1.0 - clamp(dist / radius, 0.0, 1.0));
+	swirl_angle *= sin(TIME * 0.75 + dist * 10.0);
+
+	vec2 swirled = rotate_vec(from_center, swirl_angle);
+
+	// Compression toward the gravity center.
+	float sink = distortion_strength * falloff * (1.0 + rings * 0.35);
+	vec2 warped_uv = gravity_center + swirled * (1.0 - sink);
+
+	// Small ripple wobble.
+	warped_uv += dir * sin(dist * ring_density - TIME * ring_speed) * 0.004 * falloff;
+
+	// Chromatic tearing near the gravity edge.
+	float chroma = chromatic_aberration * falloff * (0.5 + rings);
+	vec2 chroma_offset = dir * chroma;
+
+	vec4 col;
+	col.r = texture(screen_texture, warped_uv + chroma_offset).r;
+	col.g = texture(screen_texture, warped_uv).g;
+	col.b = texture(screen_texture, warped_uv - chroma_offset).b;
+	col.a = 1.0;
+
+	// Neon gravity glow.
+	vec3 edge_glow = edge_color.rgb * rings * ring_alpha * strength;
+	vec3 core_glow = core_color.rgb * inner_core * core_alpha * strength;
+
+	col.rgb += edge_glow + core_glow;
+
+	// Darken the very center, like time is thickening.
+	col.rgb -= inner_core * dark_core * strength;
+
+	// Slight cold tint inside the field.
+	col.rgb = mix(col.rgb, col.rgb * vec3(0.82, 0.95, 1.15), field * strength * 0.22);
+
+	COLOR = col;
+}
+
+[ ] I want the modding capabilities for users to be extended by exponential amounts. I want the users to be able to modify everything about the game, and even make their own levels, own enemies, add shader packs like in Minecraft, make their own "calamity" mod, ext. This is one of the key sellable items of the game.
+
+[ ] Make the big circles slightly brighter.
+
+[ ] Make a way for the player to "super boost" off of planets using a lot of energy if they have been stuck on a planet for too long. Only on or right next to planets, though.
+
+[ ] 

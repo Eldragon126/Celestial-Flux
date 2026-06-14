@@ -6,6 +6,7 @@ signal peer_roster_changed(roster: Array)
 signal network_run_started(config: Dictionary)
 signal network_wave_state_received(state: Dictionary)
 signal network_mod_hook_received(hook_id: StringName, entry_id: StringName, data: Dictionary)
+signal network_weapon_field_received(data: Dictionary)
 signal session_error(message: String)
 
 enum SessionMode {
@@ -18,12 +19,15 @@ enum SessionMode {
 
 const DEFAULT_PORT := 28942
 const DEFAULT_MAX_PEERS := 4
-const NETWORK_PROTOCOL_VERSION := 4
+const NETWORK_PROTOCOL_VERSION := 5
 const RUN_SCENE_PATH := "res://Nodes/the_abyss.tscn"
 const PLAYER_SCENE := preload("res://Nodes/player.tscn")
 const PROJECTILE_FALLBACK_SCENE_PATH := "res://Nodes/projectile.tscn"
 const MOD_MANIFEST_FILE_NAME := "vector_anomaly_mod.json"
+const MOD_MANIFEST_FILE_NAMES: Array[String] = ["vector_anomaly_mod.json", "mod.json"]
 const MOD_SCAN_ROOTS: Array[String] = ["res://Mods", "user://mods"]
+const MOD_EXTERNAL_ROOT_NAMES: Array[String] = ["mods", "Mods"]
+const MOD_SCAN_DEPTH_LIMIT := 4
 const LOCAL_ONLY_MOD_BUCKETS := ["mod_palettes", "creator_notes", "hud_badges", "sfx", "music"]
 const HOOKABLE_MOD_BUCKETS := ["law_weaves", "anomaly_recipes", "challenge_cards"]
 const GAMEPLAY_MOD_BUCKETS := [
@@ -109,13 +113,32 @@ var _run_in_progress := false
 var _base_spawn_position := Vector2(135.0, 227.0)
 var _last_error := ""
 var _status_label := "OFFLINE"
+var _last_heartbeat_sent := 0.0
+var _heartbeat_nonce := 1
+var _peer_ping_ms: Dictionary = {}
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	set_process(true)
 	_connect_multiplayer_signals()
 	_reset_roster()
 	_publish_status()
+
+
+func _process(_delta: float) -> void:
+	if not is_network_active():
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _last_heartbeat_sent < 1.0:
+		return
+	_last_heartbeat_sent = now
+	_heartbeat_nonce += 1
+	var sent_msec := Time.get_ticks_msec()
+	if multiplayer.is_server():
+		_rpc_heartbeat_ping.rpc(sent_msec, _heartbeat_nonce)
+	else:
+		_rpc_heartbeat_ping.rpc_id(1, sent_msec, _heartbeat_nonce)
 
 
 func host_and_play(player_name: String, port: int = DEFAULT_PORT, peer_limit: int = DEFAULT_MAX_PEERS) -> int:
@@ -200,6 +223,7 @@ func leave_session(publish: bool = true) -> void:
 	_run_config.clear()
 	_last_wave_state.clear()
 	_player_nodes_by_peer.clear()
+	_peer_ping_ms.clear()
 	_status_label = "OFFLINE"
 	_reset_roster()
 	if publish:
@@ -234,8 +258,19 @@ func get_status_snapshot() -> Dictionary:
 		"run_in_progress": _run_in_progress,
 		"network_protocol": NETWORK_PROTOCOL_VERSION,
 		"mod_signature": _local_mod_signature(),
+		"diagnostics": get_network_diagnostics(),
 		"steam_available": is_steam_multiplayer_available(),
 		"steam_message": get_steam_support_message(),
+	}
+
+
+func get_network_diagnostics() -> Dictionary:
+	return {
+		"peer_ping_ms": _peer_ping_ms.duplicate(true),
+		"run_seed": int(_run_config.get("seed", 0)),
+		"last_wave": int(_last_wave_state.get("wave", 0)),
+		"heartbeat_nonce": _heartbeat_nonce,
+		"protocol": NETWORK_PROTOCOL_VERSION,
 	}
 
 
@@ -376,6 +411,22 @@ func broadcast_vector_event(data: Dictionary, owner: Node) -> void:
 		_rpc_remote_vector_event.rpc(event_data)
 	else:
 		_rpc_client_vector_event.rpc_id(1, event_data)
+
+
+func broadcast_weapon_field_event(data: Dictionary, owner: Node) -> void:
+	if not is_network_active() or owner == null:
+		return
+	if not bool(owner.get("network_is_local")):
+		return
+	var owner_peer_id := int(owner.get("network_peer_id"))
+	if owner_peer_id != _effective_local_peer_id():
+		return
+	var event_data := _sanitize_weapon_field_event(data)
+	event_data["owner_peer_id"] = owner_peer_id
+	if multiplayer.is_server():
+		_rpc_remote_weapon_field_event.rpc(event_data)
+	else:
+		_rpc_client_weapon_field_event.rpc_id(1, event_data)
 
 
 func broadcast_mod_hook_event(hook_id: StringName, entry_id: StringName, data: Dictionary, owner: Node = null) -> void:
@@ -593,6 +644,23 @@ func _rpc_remote_vector_event(data: Dictionary) -> void:
 
 
 @rpc("any_peer", "call_remote", "reliable")
+func _rpc_client_weapon_field_event(data: Dictionary) -> void:
+	if not multiplayer.is_server():
+		return
+	var sanitized := _sanitize_weapon_field_event(data)
+	sanitized["owner_peer_id"] = multiplayer.get_remote_sender_id()
+	_emit_network_weapon_field(sanitized)
+	_rpc_remote_weapon_field_event.rpc(sanitized)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _rpc_remote_weapon_field_event(data: Dictionary) -> void:
+	if int(data.get("owner_peer_id", 0)) == _effective_local_peer_id():
+		return
+	_emit_network_weapon_field(_sanitize_weapon_field_event(data))
+
+
+@rpc("any_peer", "call_remote", "reliable")
 func _rpc_client_mod_hook_event(data: Dictionary) -> void:
 	if not multiplayer.is_server():
 		return
@@ -629,6 +697,24 @@ func _rpc_wave_state(state: Dictionary) -> void:
 func _rpc_session_rejected(message: String) -> void:
 	_fail_session(message)
 	leave_session()
+
+
+@rpc("any_peer", "call_remote", "unreliable")
+func _rpc_heartbeat_ping(sent_msec: int, nonce: int) -> void:
+	var sender := multiplayer.get_remote_sender_id()
+	if sender <= 0:
+		return
+	_rpc_heartbeat_pong.rpc_id(sender, sent_msec, nonce)
+
+
+@rpc("any_peer", "call_remote", "unreliable")
+func _rpc_heartbeat_pong(sent_msec: int, nonce: int) -> void:
+	var sender := multiplayer.get_remote_sender_id()
+	if sender <= 0:
+		return
+	_peer_ping_ms[sender] = maxi(Time.get_ticks_msec() - sent_msec, 0)
+	_heartbeat_nonce = maxi(_heartbeat_nonce, nonce)
+	_publish_status()
 
 
 func _publish_roster_to_clients() -> void:
@@ -975,8 +1061,8 @@ func _local_mod_signature() -> String:
 	if registry != null and registry.has_method("get_compatibility_signature"):
 		return String(registry.call("get_compatibility_signature"))
 	var tokens: Array[String] = []
-	for root in MOD_SCAN_ROOTS:
-		_collect_mod_signature_tokens(root, tokens)
+	for root in _fallback_mod_scan_roots():
+		_collect_mod_signature_tokens(root, tokens, 0)
 	tokens.sort()
 	var packed := PackedStringArray()
 	var seen_tokens := {}
@@ -1004,7 +1090,56 @@ func _find_mod_registry() -> Node:
 	return null
 
 
-func _collect_mod_signature_tokens(root_path: String, tokens: Array[String]) -> void:
+func _fallback_mod_scan_roots() -> Array[String]:
+	var roots: Array[String] = []
+	for root in MOD_SCAN_ROOTS:
+		_append_unique_mod_root(roots, root)
+	var executable_root := _export_executable_base_dir()
+	if not executable_root.is_empty():
+		for root_name in MOD_EXTERNAL_ROOT_NAMES:
+			_append_unique_mod_root(roots, _join_mod_path(executable_root, root_name))
+	return roots
+
+
+func _append_unique_mod_root(roots: Array[String], root_path: String) -> void:
+	var clean := root_path.strip_edges().replace("\\", "/")
+	if clean.is_empty():
+		return
+	var key := _mod_root_key(clean)
+	for existing in roots:
+		if _mod_root_key(existing) == key:
+			return
+	roots.append(clean)
+
+
+func _mod_root_key(path: String) -> String:
+	var clean := path.strip_edges().replace("\\", "/")
+	var os_name := OS.get_name().to_lower()
+	return clean.to_lower() if os_name == "windows" or os_name == "macos" else clean
+
+
+func _export_executable_base_dir() -> String:
+	if OS.has_feature("editor"):
+		return ""
+	var executable_path := OS.get_executable_path().strip_edges().replace("\\", "/")
+	if executable_path.is_empty():
+		return ""
+	return executable_path.get_base_dir()
+
+
+func _join_mod_path(base_path: String, child_path: String) -> String:
+	var clean_base := base_path.strip_edges().replace("\\", "/").trim_suffix("/")
+	var clean_child := child_path.strip_edges().replace("\\", "/").trim_prefix("/")
+	if clean_base.is_empty():
+		return clean_child
+	if clean_child.is_empty():
+		return clean_base
+	return "%s/%s" % [clean_base, clean_child]
+
+
+func _collect_mod_signature_tokens(root_path: String, tokens: Array[String], depth: int) -> void:
+	if depth > MOD_SCAN_DEPTH_LIMIT:
+		return
 	var dir := DirAccess.open(root_path)
 	if dir == null:
 		return
@@ -1016,8 +1151,8 @@ func _collect_mod_signature_tokens(root_path: String, tokens: Array[String]) -> 
 			continue
 		var child_path := "%s/%s" % [root_path.trim_suffix("/"), entry]
 		if dir.current_is_dir():
-			_append_manifest_signature_token("%s/%s" % [child_path, MOD_MANIFEST_FILE_NAME], tokens)
-		elif entry == MOD_MANIFEST_FILE_NAME:
+			_collect_mod_signature_tokens(child_path, tokens, depth + 1)
+		elif MOD_MANIFEST_FILE_NAMES.has(entry):
 			_append_manifest_signature_token(child_path, tokens)
 		entry = dir.get_next()
 	dir.list_dir_end()
@@ -1052,6 +1187,20 @@ func _sanitize_vector_event(data: Dictionary) -> Dictionary:
 		"radial_dir": _vector2_from_variant(data.get("radial_dir", Vector2.RIGHT)),
 		"speed_before": float(data.get("speed_before", 0.0)),
 		"speed_after": float(data.get("speed_after", 0.0)),
+		"time": float(data.get("time", Time.get_ticks_msec() / 1000.0)),
+	}
+
+
+func _sanitize_weapon_field_event(data: Dictionary) -> Dictionary:
+	return {
+		"weapon_id": String(data.get("weapon_id", "")),
+		"origin": _vector2_from_variant(data.get("origin", data.get("position", Vector2.ZERO))),
+		"position": _vector2_from_variant(data.get("position", data.get("origin", Vector2.ZERO))),
+		"direction": _vector2_from_variant(data.get("direction", Vector2.RIGHT)),
+		"radius": clampf(float(data.get("radius", 0.0)), 0.0, 2000.0),
+		"damage": clampf(float(data.get("damage", 0.0)), 0.0, 10000.0),
+		"force": clampf(float(data.get("force", 0.0)), -5000.0, 5000.0),
+		"owner_peer_id": _int_from_variant(data.get("owner_peer_id", 0), 0),
 		"time": float(data.get("time", Time.get_ticks_msec() / 1000.0)),
 	}
 
@@ -1092,6 +1241,13 @@ func _emit_network_mod_hook(data: Dictionary) -> void:
 	if String(hook_id).is_empty() or String(entry_id).is_empty():
 		return
 	network_mod_hook_received.emit(hook_id, entry_id, data.duplicate(true))
+
+
+func _emit_network_weapon_field(data: Dictionary) -> void:
+	var weapon_id := String(data.get("weapon_id", ""))
+	if weapon_id.is_empty():
+		return
+	network_weapon_field_received.emit(data.duplicate(true))
 
 
 func _manifest_gameplay_signature_tokens(manifest: Dictionary) -> Array[String]:

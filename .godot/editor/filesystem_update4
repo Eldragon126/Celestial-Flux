@@ -3,4 +3,5 @@ res://Scripts/playershield.gdshader
 res://Scripts/pause_menu.gdshader
 res://Scripts/planet_1.gdshader
 res://Scripts/player.gdshader
-res://Scripts/music_resonance_boss.gd
+res://Scripts/projectile.gd
+res://Scripts/gravity_leech.gd

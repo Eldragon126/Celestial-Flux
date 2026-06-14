@@ -13,23 +13,36 @@ signal dependency_warning(manifest_id: StringName, dependency_id: StringName, re
 signal mod_catalog_changed(snapshot: Dictionary)
 signal mod_hook_registered(hook_id: StringName, entry_id: StringName, manifest_id: StringName, entry: Dictionary)
 
-const MAX_SCHEMA_VERSION := 2
+const MAX_SCHEMA_VERSION := 3
+const DEFAULT_MANIFEST_FILE_NAME := "vector_anomaly_mod.json"
+const LEGACY_MANIFEST_FILE_NAMES := ["mod.json"]
+const DEFAULT_EXTERNAL_MOD_ROOT_NAMES := ["mods", "Mods"]
+const MAX_SCAN_DEPTH_LIMIT := 8
 const CONTENT_BUCKETS := [
 	"arenas",
+	"levels",
+	"level_packs",
 	"waves",
 	"upgrades",
 	"rules",
 	"powerups",
 	"weapons",
 	"enemies",
+	"enemy_packs",
 	"bosses",
+	"boss_packs",
 	"arena_events",
 	"celestial_bodies",
 	"physics_drops",
 	"materials",
+	"shader_packs",
+	"texture_packs",
 	"prefabs",
 	"entities",
 	"gamemodes",
+	"campaigns",
+	"total_conversions",
+	"expansion_packs",
 	"npc_behaviors",
 	"sfx",
 	"music",
@@ -54,10 +67,19 @@ const PATH_FIELDS := [
 	"icon",
 	"thumbnail",
 	"preview",
+	"shader",
+	"material",
+	"map",
+	"pack",
+	"manifest",
+	"cover_art",
 ]
 const SCRIPT_CONTENT_BUCKETS := ["script_packs", "tools", "npc_behaviors"]
 const HOOKABLE_CONTENT_BUCKETS := ["law_weaves", "anomaly_recipes", "challenge_cards"]
-const LOCAL_ONLY_CONTENT_BUCKETS := ["mod_palettes", "creator_notes", "hud_badges", "sfx", "music"]
+const LOCAL_ONLY_CONTENT_BUCKETS := ["mod_palettes", "creator_notes", "hud_badges", "sfx", "music", "shader_packs", "texture_packs"]
+const CREATOR_LEVEL_BUCKETS := ["arenas", "levels", "level_packs", "maps", "campaigns"]
+const CREATOR_ENTITY_BUCKETS := ["enemies", "enemy_packs", "bosses", "boss_packs", "entities", "prefabs"]
+const CREATOR_EXPANSION_BUCKETS := ["total_conversions", "expansion_packs", "gamemodes", "rules", "waves", "upgrades", "powerups"]
 const WEAPON_FIRE_MODES := ["catalog", "projectile", "beam"]
 const NETWORK_CATEGORIES := ["local_visual", "exported_state", "reliable_event", "deterministic_seed"]
 const WEAPON_PATTERN_MODES := ["single", "spread", "parallel", "braid", "helix", "ring", "converge", "scissor", "pinwheel"]
@@ -82,6 +104,12 @@ const MOD_HOOKS := [
 	"rupture_started",
 	"music_beat",
 	"coop_combo_triggered",
+	"level_loaded",
+	"arena_loaded",
+	"enemy_spawned",
+	"enemy_defeated",
+	"mod_pack_enabled",
+	"shader_pack_applied",
 ]
 const MOD_EFFECT_ACTIONS := [
 	"spawn_arena_event",
@@ -98,8 +126,16 @@ const MOD_EFFECT_ACTIONS := [
 	"tag_score_event",
 	"start_challenge_card",
 	"complete_challenge_card",
+	"request_level_transition",
+	"offer_level",
+	"spawn_enemy_profile",
+	"spawn_boss_profile",
+	"apply_shader_pack",
+	"apply_texture_pack",
+	"set_arena_law",
+	"queue_mod_story_event",
 ]
-const LOCAL_VISUAL_EFFECT_ACTIONS := ["emit_hud_badge", "play_sfx", "request_music_layer"]
+const LOCAL_VISUAL_EFFECT_ACTIONS := ["emit_hud_badge", "play_sfx", "request_music_layer", "apply_shader_pack", "apply_texture_pack"]
 const MOD_CONDITION_TYPES := [
 	"min_wave",
 	"max_wave",
@@ -116,6 +152,10 @@ const MOD_CONDITION_TYPES := [
 	"seed_tag",
 	"run_modifier",
 	"multiplayer_peer_count_at_least",
+	"level_tag",
+	"mod_loaded",
+	"content_tag",
+	"player_speed_above",
 ]
 const WEAPON_NUMERIC_FIELDS := [
 	"energy_per_shot",
@@ -250,10 +290,17 @@ const GRAVITY_SCAR_NAME_TO_ID := {
 @export var enabled: bool = true
 @export var load_res_mods: bool = true
 @export var load_user_mods: bool = true
+@export var load_executable_adjacent_mods: bool = true
+@export var load_additional_mod_roots: bool = true
+@export var allow_relative_asset_paths: bool = true
+@export_range(1, 8, 1) var recursive_scan_depth: int = 4
 @export var allow_script_pack_registration: bool = false
 @export var res_mod_root: String = "res://Mods"
 @export var user_mod_root: String = "user://mods"
-@export var manifest_file_name: String = "vector_anomaly_mod.json"
+@export var manifest_file_name: String = DEFAULT_MANIFEST_FILE_NAME
+@export var alternate_manifest_file_names: Array[String] = ["mod.json"]
+@export var executable_mod_root_names: Array[String] = ["mods", "Mods"]
+@export var additional_mod_roots: Array[String] = []
 
 var _manifests: Dictionary = {}
 var _failed_manifests: Dictionary = {}
@@ -263,6 +310,8 @@ var _content: Dictionary = {}
 var _content_index: Dictionary = {}
 var _hook_index: Dictionary = {}
 var _load_order: Array[StringName] = []
+var _scan_roots: Array[Dictionary] = []
+var _loaded_manifest_paths: Dictionary = {}
 
 
 func _ready() -> void:
@@ -280,13 +329,12 @@ func reload_registry() -> void:
 	_content_index.clear()
 	_hook_index.clear()
 	_load_order.clear()
+	_scan_roots.clear()
+	_loaded_manifest_paths.clear()
 	_reset_content_buckets()
 
 	if enabled:
-		if load_res_mods:
-			_scan_mod_root(res_mod_root)
-		if load_user_mods:
-			_scan_mod_root(user_mod_root)
+		_scan_configured_mod_roots()
 
 	_resolve_dependency_warnings()
 	_apply_manifest_enabled_state()
@@ -307,6 +355,8 @@ func get_registry_summary() -> Dictionary:
 		"hook_count": _hook_index.size(),
 		"hook_entry_count": _hook_entry_count(),
 		"load_order": _load_order.duplicate(),
+		"scan_roots": get_scan_roots(),
+		"install_paths": get_mod_install_paths(),
 	}
 	for bucket in CONTENT_BUCKETS:
 		summary[bucket] = (_content[bucket] as Dictionary).size()
@@ -323,6 +373,8 @@ func get_registry_snapshot() -> Dictionary:
 		"content_index": _content_index.duplicate(true),
 		"hook_index": _hook_index.duplicate(true),
 		"load_order": _load_order.duplicate(),
+		"scan_roots": get_scan_roots(),
+		"install_paths": get_mod_install_paths(),
 		"buckets": CONTENT_BUCKETS.duplicate(),
 		"capabilities": get_modding_capabilities(),
 	}
@@ -337,6 +389,35 @@ func get_entries(content_type: StringName) -> Array:
 	if not _content.has(key):
 		return []
 	return (_content[key] as Dictionary).values()
+
+
+func get_level_entries() -> Array:
+	return _entries_for_buckets(CREATOR_LEVEL_BUCKETS)
+
+
+func get_enemy_pack_entries() -> Array:
+	return _entries_for_buckets(CREATOR_ENTITY_BUCKETS)
+
+
+func get_shader_pack_entries() -> Array:
+	return _entries_for_buckets(["shader_packs", "texture_packs"])
+
+
+func get_total_conversion_entries() -> Array:
+	return _entries_for_buckets(["total_conversions", "expansion_packs"])
+
+
+func get_entries_for_creator_surface(surface: StringName) -> Array:
+	match str(surface):
+		"levels", "maps", "campaigns":
+			return get_level_entries()
+		"enemies", "bosses", "entities":
+			return get_enemy_pack_entries()
+		"shader_packs", "visuals":
+			return get_shader_pack_entries()
+		"total_conversions", "expansions", "calamity":
+			return get_total_conversion_entries()
+	return []
 
 
 func get_playable_weapon_entries() -> Array:
@@ -397,9 +478,35 @@ func get_modding_capabilities() -> Dictionary:
 		"weapon_patterns": WEAPON_PATTERN_MODES.duplicate(),
 		"network_categories": NETWORK_CATEGORIES.duplicate(),
 		"script_buckets": SCRIPT_CONTENT_BUCKETS.duplicate(),
+		"creator_surfaces": {
+			"levels": CREATOR_LEVEL_BUCKETS.duplicate(),
+			"entities": CREATOR_ENTITY_BUCKETS.duplicate(),
+			"expansions": CREATOR_EXPANSION_BUCKETS.duplicate(),
+			"shader_packs": ["shader_packs", "texture_packs"],
+			"calamity_style_mods": ["total_conversions", "expansion_packs", "campaigns", "boss_packs", "enemy_packs"],
+		},
 		"script_pack_registration_enabled": allow_script_pack_registration,
 		"safe_data_only": true,
+		"manifest_files": _manifest_file_names(),
+		"scan_roots": get_scan_roots(),
+		"install_paths": get_mod_install_paths(),
+		"relative_asset_paths": allow_relative_asset_paths,
+		"recursive_scan_depth": clampi(recursive_scan_depth, 1, MAX_SCAN_DEPTH_LIMIT),
 	}
+
+
+func _entries_for_buckets(buckets: Array) -> Array:
+	var entries := []
+	for bucket_value in buckets:
+		var bucket := str(bucket_value)
+		if not _content.has(bucket):
+			continue
+		for entry_value in (_content[bucket] as Dictionary).values():
+			if entry_value is Dictionary:
+				var entry := (entry_value as Dictionary)
+				if bool(entry.get("enabled", true)):
+					entries.append(entry.duplicate(true))
+	return entries
 
 
 func _hook_entry_count() -> int:
@@ -454,6 +561,39 @@ func get_manifest_load_order() -> Array[StringName]:
 
 func get_dependency_warnings() -> Dictionary:
 	return _dependency_warnings.duplicate(true)
+
+
+func get_scan_roots() -> Array:
+	var roots := []
+	for root_value in _scan_roots:
+		roots.append(root_value.duplicate(true))
+	return roots
+
+
+func get_mod_install_paths() -> Dictionary:
+	var executable_root := _executable_base_dir()
+	return {
+		"platform": OS.get_name(),
+		"user_mods": ProjectSettings.globalize_path(user_mod_root),
+		"bundled_mods": res_mod_root,
+		"executable_mods": _join_path(executable_root, "mods") if not executable_root.is_empty() else "",
+		"manifest_files": _manifest_file_names(),
+		"external_roots_enabled": load_executable_adjacent_mods,
+		"relative_paths_enabled": allow_relative_asset_paths,
+	}
+
+
+func resolve_entry_path(entry: Dictionary, field: String) -> String:
+	if not entry.has(field):
+		return ""
+	var value: Variant = entry.get(field)
+	if not (value is String):
+		return ""
+	return resolve_mod_path(str(value), entry)
+
+
+func resolve_mod_path(raw_path: String, context_value: Variant = {}) -> String:
+	return _resolve_manifest_path(raw_path, _context_from_value(context_value))
 
 
 func get_compatibility_signature() -> String:
@@ -573,51 +713,291 @@ func _stable_value_text(value: Variant) -> String:
 	return str(value)
 
 
-func _scan_mod_root(root_path: String) -> void:
-	var dir := DirAccess.open(root_path)
+func _manifest_file_names() -> Array[String]:
+	var names: Array[String] = []
+	var primary := manifest_file_name.strip_edges()
+	_append_unique_string(names, primary if not primary.is_empty() else DEFAULT_MANIFEST_FILE_NAME)
+	for name in alternate_manifest_file_names:
+		_append_unique_string(names, str(name).strip_edges())
+	for name in LEGACY_MANIFEST_FILE_NAMES:
+		_append_unique_string(names, str(name).strip_edges())
+	return names
+
+
+func _append_unique_string(values: Array[String], value: String) -> void:
+	var clean := value.strip_edges()
+	if clean.is_empty() or values.has(clean):
+		return
+	values.append(clean)
+
+
+func _ensure_mod_root(root_path: String) -> void:
+	var clean := _normalize_path_text(root_path)
+	if clean.is_empty():
+		return
+	var filesystem_path := ProjectSettings.globalize_path(clean) if _is_virtual_path(clean) else clean
+	if filesystem_path.is_empty():
+		return
+	DirAccess.make_dir_recursive_absolute(filesystem_path)
+
+
+func _scan_root_context(root_path: String, source_kind: String) -> Dictionary:
+	var clean := _normalize_path_text(root_path)
+	if clean.is_empty():
+		return {}
+	return {
+		"source_root": clean,
+		"source_kind": source_kind,
+		"display_path": _display_path(clean),
+		"exists": DirAccess.open(clean) != null,
+		"external_source": source_kind == "executable" or source_kind == "custom",
+		"manifest_files": _manifest_file_names(),
+		"recursive_depth": clampi(recursive_scan_depth, 1, MAX_SCAN_DEPTH_LIMIT),
+	}
+
+
+func _scan_root_has_path(root_path: String) -> bool:
+	var root_key := _path_key(root_path)
+	for value in _scan_roots:
+		if _path_key(str(value.get("source_root", ""))) == root_key:
+			return true
+	return false
+
+
+func _manifest_context(manifest_path: String, source_context: Dictionary) -> Dictionary:
+	var context := source_context.duplicate(true)
+	var manifest_dir := manifest_path.get_base_dir()
+	context["source_path"] = manifest_path
+	context["source_dir"] = manifest_dir
+	if str(context.get("source_root", "")).is_empty():
+		context["source_root"] = manifest_dir
+	if str(context.get("source_kind", "")).is_empty():
+		context["source_kind"] = _source_kind_for_path(manifest_path)
+	context["display_path"] = _display_path(manifest_path)
+	context["external_source"] = bool(context.get("external_source", not _is_virtual_path(manifest_path)))
+	return context
+
+
+func _validate_mod_path_text(path: String, location: String, errors: Array[String], _source_context: Dictionary = {}) -> void:
+	var clean := _normalize_path_text(path)
+	if clean.is_empty():
+		return
+	if _path_contains_parent_segment(clean):
+		errors.append("%s must not contain .." % location)
+	if _has_unsupported_scheme(clean):
+		errors.append("%s must use res://, user://, or a manifest-relative path" % location)
+	if _is_absolute_filesystem_path(clean):
+		errors.append("%s must be relative to the manifest, res://, or user://" % location)
+	if not allow_relative_asset_paths and not _is_virtual_path(clean):
+		errors.append("%s must use res:// or user://" % location)
+
+
+func _resolve_manifest_path(raw_path: String, source_context: Dictionary) -> String:
+	var clean := _normalize_path_text(raw_path)
+	if clean.is_empty() or _path_contains_parent_segment(clean) or _has_unsupported_scheme(clean):
+		return ""
+	if _is_virtual_path(clean) or _is_absolute_filesystem_path(clean):
+		return clean
+	var source_dir := str(source_context.get("source_dir", source_context.get("manifest_source_dir", ""))).strip_edges()
+	if source_dir.is_empty():
+		return clean
+	return _join_path(source_dir, clean)
+
+
+func _context_from_value(context_value: Variant) -> Dictionary:
+	if context_value is Dictionary:
+		var dictionary := context_value as Dictionary
+		return {
+			"source_path": str(dictionary.get("manifest_source_path", dictionary.get("source_path", ""))),
+			"source_dir": str(dictionary.get("manifest_source_dir", dictionary.get("source_dir", dictionary.get("manifest_dir", "")))),
+			"source_root": str(dictionary.get("manifest_source_root", dictionary.get("source_root", ""))),
+			"source_kind": str(dictionary.get("manifest_source_kind", dictionary.get("source_kind", ""))),
+			"display_path": str(dictionary.get("source_display_path", dictionary.get("display_path", ""))),
+			"external_source": bool(dictionary.get("external_source", false)),
+		}
+
+	var manifest_id := str(context_value).strip_edges()
+	if not manifest_id.is_empty():
+		var manifest := get_manifest(StringName(manifest_id))
+		if not manifest.is_empty():
+			return _context_from_value(manifest)
+	return {}
+
+
+func _normalize_path_text(path: String) -> String:
+	var clean := path.strip_edges().replace("\\", "/")
+	while clean.ends_with("/") and clean.length() > 1 and not clean.ends_with("://"):
+		clean = clean.trim_suffix("/")
+	return clean
+
+
+func _path_key(path: String) -> String:
+	var clean := _normalize_path_text(path)
+	var os_name := OS.get_name().to_lower()
+	return clean.to_lower() if os_name == "windows" or os_name == "macos" else clean
+
+
+func _join_path(base_path: String, child_path: String) -> String:
+	var clean_child := _normalize_path_text(child_path)
+	if clean_child.is_empty():
+		return _normalize_path_text(base_path)
+	if _is_virtual_path(clean_child) or _is_absolute_filesystem_path(clean_child):
+		return clean_child
+	var clean_base := _normalize_path_text(base_path)
+	if clean_base.is_empty():
+		return clean_child
+	return "%s/%s" % [clean_base, clean_child.trim_prefix("/")]
+
+
+func _display_path(path: String) -> String:
+	var clean := _normalize_path_text(path)
+	if clean.begins_with("user://"):
+		return ProjectSettings.globalize_path(clean)
+	return clean
+
+
+func _source_kind_for_path(path: String) -> String:
+	if path.begins_with("res://"):
+		return "bundled"
+	if path.begins_with("user://"):
+		return "user"
+	return "external"
+
+
+func _executable_base_dir() -> String:
+	if OS.has_feature("editor"):
+		return ""
+	var executable_path := _normalize_path_text(OS.get_executable_path())
+	if executable_path.is_empty():
+		return ""
+	return executable_path.get_base_dir()
+
+
+func _is_virtual_path(path: String) -> bool:
+	return path.begins_with("res://") or path.begins_with("user://")
+
+
+func _has_unsupported_scheme(path: String) -> bool:
+	var scheme_index := path.find("://")
+	if scheme_index < 0:
+		return false
+	return not _is_virtual_path(path)
+
+
+func _is_absolute_filesystem_path(path: String) -> bool:
+	var clean := _normalize_path_text(path)
+	return clean.begins_with("/") or clean.begins_with("//") or _looks_like_windows_drive_path(clean)
+
+
+func _looks_like_windows_drive_path(path: String) -> bool:
+	return path.length() >= 2 and path.substr(1, 1) == ":"
+
+
+func _path_contains_parent_segment(path: String) -> bool:
+	var clean := _normalize_path_text(path)
+	for segment in clean.split("/"):
+		if segment == "..":
+			return true
+	return false
+
+
+func _scan_configured_mod_roots() -> void:
+	if load_res_mods:
+		_scan_mod_root(res_mod_root, "bundled")
+	if load_user_mods:
+		_ensure_mod_root(user_mod_root)
+		_scan_mod_root(user_mod_root, "user")
+	if load_executable_adjacent_mods:
+		var executable_root := _executable_base_dir()
+		if not executable_root.is_empty():
+			for root_name in executable_mod_root_names:
+				var clean_name := str(root_name).strip_edges()
+				if clean_name.is_empty():
+					continue
+				_scan_mod_root(_join_path(executable_root, clean_name), "executable")
+	if load_additional_mod_roots:
+		for root_path in additional_mod_roots:
+			var clean_path := str(root_path).strip_edges()
+			if clean_path.is_empty():
+				continue
+			_scan_mod_root(clean_path, "custom")
+
+
+func _scan_mod_root(root_path: String, source_kind: String = "custom") -> void:
+	var scan_root := _scan_root_context(root_path, source_kind)
+	if scan_root.is_empty():
+		return
+	if _scan_root_has_path(str(scan_root.get("source_root", ""))):
+		return
+	var scan_index := _scan_roots.size()
+	_scan_roots.append(scan_root.duplicate(true))
+
+	var dir := DirAccess.open(str(scan_root.get("source_root", "")))
+	if dir == null:
+		scan_root["exists"] = false
+		_scan_roots[scan_index] = scan_root
+		return
+	scan_root["exists"] = true
+	_scan_roots[scan_index] = scan_root
+	_scan_directory_for_manifests(str(scan_root.get("source_root", "")), scan_root, 0)
+
+
+func _scan_directory_for_manifests(directory_path: String, source_context: Dictionary, depth: int) -> void:
+	if depth > clampi(recursive_scan_depth, 1, MAX_SCAN_DEPTH_LIMIT):
+		return
+	var dir := DirAccess.open(directory_path)
 	if dir == null:
 		return
 
+	var names := _manifest_file_names()
 	dir.list_dir_begin()
 	var entry := dir.get_next()
 	while not entry.is_empty():
 		if entry.begins_with("."):
 			entry = dir.get_next()
 			continue
-		var child_path := "%s/%s" % [root_path.trim_suffix("/"), entry]
+		var child_path := _join_path(directory_path, entry)
 		if dir.current_is_dir():
-			_load_manifest_path("%s/%s" % [child_path, manifest_file_name])
-		elif entry == manifest_file_name:
-			_load_manifest_path(child_path)
+			_scan_directory_for_manifests(child_path, source_context, depth + 1)
+		elif names.has(entry):
+			_load_manifest_path(child_path, source_context)
 		entry = dir.get_next()
 	dir.list_dir_end()
 
 
-func _load_manifest_path(path: String) -> void:
-	if not FileAccess.file_exists(path):
+func _load_manifest_path(path: String, source_context: Dictionary = {}) -> void:
+	var manifest_path := _normalize_path_text(path)
+	if manifest_path.is_empty():
 		return
-	var file := FileAccess.open(path, FileAccess.READ)
+	var path_key := _path_key(manifest_path)
+	if _loaded_manifest_paths.has(path_key):
+		return
+	_loaded_manifest_paths[path_key] = true
+	if not FileAccess.file_exists(manifest_path):
+		return
+	var file := FileAccess.open(manifest_path, FileAccess.READ)
 	if file == null:
-		_record_failed_manifest(path, "cannot_open")
+		_record_failed_manifest(manifest_path, "cannot_open")
 		return
 
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
 	file.close()
 	if typeof(parsed) != TYPE_DICTIONARY:
-		_record_failed_manifest(path, "invalid_json")
+		_record_failed_manifest(manifest_path, "invalid_json")
 		return
 
 	var manifest := parsed as Dictionary
-	var validation_errors := _validate_manifest(manifest)
+	var manifest_context := _manifest_context(manifest_path, source_context)
+	var validation_errors := _validate_manifest(manifest, manifest_context)
 	if not validation_errors.is_empty():
 		var reason := _join_errors(validation_errors)
-		_record_failed_manifest(path, reason)
+		_record_failed_manifest(manifest_path, reason)
 		return
 
 	var manifest_id := StringName(str(manifest.get("id", "")))
 	var manifest_key := str(manifest_id)
 	if _manifests.has(manifest_key):
-		_record_failed_manifest(path, "duplicate manifest id %s" % manifest_key)
+		_record_failed_manifest(manifest_path, "duplicate manifest id %s" % manifest_key)
 		return
 
 	var metadata := {
@@ -627,7 +1007,13 @@ func _load_manifest_path(path: String) -> void:
 		"schema_version": int(manifest.get("schema_version", 1)),
 		"author": str(manifest.get("author", "")),
 		"description": str(manifest.get("description", "")),
-		"source_path": path,
+		"source_path": manifest_path,
+		"source_dir": str(manifest_context.get("source_dir", "")),
+		"source_root": str(manifest_context.get("source_root", "")),
+		"source_kind": str(manifest_context.get("source_kind", "custom")),
+		"source_display_path": str(manifest_context.get("display_path", manifest_path)),
+		"manifest_file": manifest_path.get_file(),
+		"external_source": bool(manifest_context.get("external_source", false)),
 		"tags": _string_array(manifest.get("tags", [])),
 		"dependencies": _dependency_array(manifest.get("dependencies", [])),
 		"load_after": _string_array(manifest.get("load_after", [])),
@@ -639,11 +1025,11 @@ func _load_manifest_path(path: String) -> void:
 	for bucket in CONTENT_BUCKETS:
 		_register_content_array(manifest, manifest_id, bucket)
 
-	manifest_validated.emit(manifest_id, path)
-	manifest_loaded.emit(manifest_id, path)
+	manifest_validated.emit(manifest_id, manifest_path)
+	manifest_loaded.emit(manifest_id, manifest_path)
 
 
-func _validate_manifest(manifest: Dictionary) -> Array[String]:
+func _validate_manifest(manifest: Dictionary, source_context: Dictionary = {}) -> Array[String]:
 	var errors: Array[String] = []
 	var manifest_id := str(manifest.get("id", "")).strip_edges()
 	if manifest_id.is_empty():
@@ -673,7 +1059,7 @@ func _validate_manifest(manifest: Dictionary) -> Array[String]:
 			errors.append("%s must be an array" % bucket)
 			continue
 		var entries := entries_value as Array
-		_validate_entry_array(entries, bucket, errors)
+		_validate_entry_array(entries, bucket, errors, source_context)
 	return errors
 
 
@@ -692,7 +1078,7 @@ func _validate_dependencies(entries: Array, errors: Array[String]) -> void:
 			errors.append("dependencies[%d] missing id" % index)
 
 
-func _validate_entry_array(entries: Array, key: String, errors: Array[String]) -> void:
+func _validate_entry_array(entries: Array, key: String, errors: Array[String], source_context: Dictionary = {}) -> void:
 	for index in range(entries.size()):
 		var entry_value: Variant = entries[index]
 		if not (entry_value is Dictionary):
@@ -704,11 +1090,11 @@ func _validate_entry_array(entries: Array, key: String, errors: Array[String]) -
 			errors.append("%s[%d] missing id" % [key, index])
 		elif not _is_safe_identifier(entry_id):
 			errors.append("%s[%d] id contains unsafe characters" % [key, index])
-		_validate_entry_paths(entry, key, index, errors)
-		_validate_bucket_specific_entry(entry, key, index, errors)
+		_validate_entry_paths(entry, key, index, errors, source_context)
+		_validate_bucket_specific_entry(entry, key, index, errors, source_context)
 
 
-func _validate_entry_paths(entry: Dictionary, key: String, index: int, errors: Array[String]) -> void:
+func _validate_entry_paths(entry: Dictionary, key: String, index: int, errors: Array[String], source_context: Dictionary = {}) -> void:
 	for field in PATH_FIELDS:
 		if not entry.has(field):
 			continue
@@ -719,20 +1105,17 @@ func _validate_entry_paths(entry: Dictionary, key: String, index: int, errors: A
 			errors.append("%s[%d].%s must be a string path" % [key, index, field])
 			continue
 		var path := str(value)
-		if not (path.begins_with("res://") or path.begins_with("user://")):
-			errors.append("%s[%d].%s must use res:// or user://" % [key, index, field])
-		if path.contains(".."):
-			errors.append("%s[%d].%s must not contain .." % [key, index, field])
+		_validate_mod_path_text(path, "%s[%d].%s" % [key, index, field], errors, source_context)
 		if field == "script" and not SCRIPT_CONTENT_BUCKETS.has(key):
 			errors.append("%s[%d].script is only allowed in trusted script content buckets" % [key, index])
 
 
-func _validate_bucket_specific_entry(entry: Dictionary, key: String, index: int, errors: Array[String]) -> void:
+func _validate_bucket_specific_entry(entry: Dictionary, key: String, index: int, errors: Array[String], source_context: Dictionary = {}) -> void:
 	if key == "weapons":
 		_validate_weapon_entry(entry, index, errors)
 		return
 	if HOOKABLE_CONTENT_BUCKETS.has(key):
-		_validate_hookable_entry(entry, key, index, errors)
+		_validate_hookable_entry(entry, key, index, errors, source_context)
 		return
 	if key == "mod_palettes":
 		_validate_palette_entry(entry, key, index, errors)
@@ -768,11 +1151,11 @@ func _validate_weapon_entry(entry: Dictionary, index: int, errors: Array[String]
 		_validate_weapon_payload(payload_value as Dictionary, index, errors)
 
 
-func _validate_hookable_entry(entry: Dictionary, key: String, index: int, errors: Array[String]) -> void:
+func _validate_hookable_entry(entry: Dictionary, key: String, index: int, errors: Array[String], source_context: Dictionary = {}) -> void:
 	_validate_network_category_field(entry, key, index, errors)
 	_validate_hook_array(entry, key, index, errors)
 	_validate_condition_array(entry, key, index, errors)
-	_validate_effect_array(entry, key, index, errors)
+	_validate_effect_array(entry, key, index, errors, source_context)
 	for field in ["weight", "cooldown", "max_triggers"]:
 		if not entry.has(field):
 			continue
@@ -844,7 +1227,7 @@ func _validate_condition_array(entry: Dictionary, key: String, index: int, error
 			errors.append("%s[%d].conditions[%d].script is not allowed" % [key, index, condition_index])
 
 
-func _validate_effect_array(entry: Dictionary, key: String, index: int, errors: Array[String]) -> void:
+func _validate_effect_array(entry: Dictionary, key: String, index: int, errors: Array[String], source_context: Dictionary = {}) -> void:
 	var effects_value: Variant = entry.get("effects", [])
 	if not (effects_value is Array):
 		errors.append("%s[%d].effects must be an array" % [key, index])
@@ -863,6 +1246,16 @@ func _validate_effect_array(entry: Dictionary, key: String, index: int, errors: 
 			errors.append("%s[%d].effects[%d].action is not local_visual safe" % [key, index, effect_index])
 		if effect.has("script"):
 			errors.append("%s[%d].effects[%d].script is not allowed" % [key, index, effect_index])
+		for field in PATH_FIELDS:
+			if not effect.has(field):
+				continue
+			var path_value: Variant = effect.get(field)
+			if path_value == null or str(path_value).is_empty():
+				continue
+			if not (path_value is String):
+				errors.append("%s[%d].effects[%d].%s must be a string path" % [key, index, effect_index, field])
+				continue
+			_validate_mod_path_text(str(path_value), "%s[%d].effects[%d].%s" % [key, index, effect_index, field], errors, source_context)
 
 
 func _validate_weapon_payload(payload: Dictionary, index: int, errors: Array[String]) -> void:
@@ -1129,11 +1522,55 @@ func _color_from_variant(value: Variant, fallback: Color) -> Color:
 	return fallback
 
 
+func _resolved_path_map(entry: Dictionary, manifest_metadata: Dictionary) -> Dictionary:
+	var paths := {}
+	for field in PATH_FIELDS:
+		if not entry.has(field):
+			continue
+		var value: Variant = entry.get(field)
+		if value == null or not (value is String) or str(value).strip_edges().is_empty():
+			continue
+		var resolved := _resolve_manifest_path(str(value), manifest_metadata)
+		if not resolved.is_empty():
+			paths[field] = resolved
+	return paths
+
+
+func _resolved_effect_path_maps(entry: Dictionary, manifest_metadata: Dictionary) -> Array:
+	var resolved_effects := []
+	var effects_value: Variant = entry.get("effects", [])
+	if not (effects_value is Array):
+		return resolved_effects
+	var effects := effects_value as Array
+	for effect_index in range(effects.size()):
+		var effect_value: Variant = effects[effect_index]
+		if not (effect_value is Dictionary):
+			continue
+		var effect := effect_value as Dictionary
+		var effect_paths := {}
+		for field in PATH_FIELDS:
+			if not effect.has(field):
+				continue
+			var value: Variant = effect.get(field)
+			if value == null or not (value is String) or str(value).strip_edges().is_empty():
+				continue
+			var resolved := _resolve_manifest_path(str(value), manifest_metadata)
+			if not resolved.is_empty():
+				effect_paths[field] = resolved
+		if not effect_paths.is_empty():
+			effect_paths["effect_index"] = effect_index
+			effect_paths["action"] = str(effect.get("action", ""))
+			resolved_effects.append(effect_paths)
+	return resolved_effects
+
+
 func _register_content_array(manifest: Dictionary, manifest_id: StringName, key: String) -> void:
 	var entries_value: Variant = _manifest_bucket_entries(manifest, key)
 	if not (entries_value is Array):
 		return
 	var entries := entries_value as Array
+	var manifest_metadata_value: Variant = _manifests.get(str(manifest_id), {})
+	var manifest_metadata: Dictionary = manifest_metadata_value if manifest_metadata_value is Dictionary else {}
 	for entry_value in entries:
 		if not (entry_value is Dictionary):
 			continue
@@ -1160,6 +1597,15 @@ func _register_content_array(manifest: Dictionary, manifest_id: StringName, key:
 		entry["network_category"] = str(entry.get("network_category", _default_network_category(key)))
 		entry["activation_state"] = _weapon_activation_state(entry) if key == "weapons" else _entry_activation_state(key)
 		entry["script_execution_allowed"] = allow_script_pack_registration and SCRIPT_CONTENT_BUCKETS.has(key)
+		entry["manifest_source_path"] = str(manifest_metadata.get("source_path", ""))
+		entry["manifest_source_dir"] = str(manifest_metadata.get("source_dir", ""))
+		entry["manifest_source_root"] = str(manifest_metadata.get("source_root", ""))
+		entry["manifest_source_kind"] = str(manifest_metadata.get("source_kind", "custom"))
+		entry["source_display_path"] = str(manifest_metadata.get("source_display_path", ""))
+		entry["external_source"] = bool(manifest_metadata.get("external_source", false))
+		entry["resolved_paths"] = _resolved_path_map(entry, manifest_metadata)
+		if HOOKABLE_CONTENT_BUCKETS.has(key):
+			entry["resolved_effect_paths"] = _resolved_effect_path_maps(entry, manifest_metadata)
 
 		(_content[key] as Dictionary)[qualified_id] = entry
 		_content_index["%s:%s" % [key, local_id]] = qualified_id
@@ -1303,6 +1749,14 @@ func _string_array(value: Variant) -> Array[String]:
 func _entry_activation_state(bucket: String) -> StringName:
 	if HOOKABLE_CONTENT_BUCKETS.has(bucket):
 		return &"hookable"
+	if bucket == "shader_packs" or bucket == "texture_packs":
+		return &"visual_pack"
+	if CREATOR_LEVEL_BUCKETS.has(bucket):
+		return &"creator_level"
+	if CREATOR_ENTITY_BUCKETS.has(bucket):
+		return &"creator_entity"
+	if bucket == "total_conversions" or bucket == "expansion_packs":
+		return &"expansion"
 	if bucket == "mod_palettes":
 		return &"visual"
 	if bucket == "creator_notes":
@@ -1318,6 +1772,10 @@ func _default_network_category(bucket: String) -> String:
 	if LOCAL_ONLY_CONTENT_BUCKETS.has(bucket):
 		return "local_visual"
 	if HOOKABLE_CONTENT_BUCKETS.has(bucket):
+		return "deterministic_seed"
+	if bucket == "arenas" or bucket == "levels" or bucket == "level_packs" or bucket == "maps" or bucket == "campaigns":
+		return "deterministic_seed"
+	if bucket == "total_conversions" or bucket == "expansion_packs":
 		return "deterministic_seed"
 	if bucket == "arenas" or bucket == "waves" or bucket == "rules" or bucket == "arena_events":
 		return "deterministic_seed"

@@ -4,7 +4,7 @@ class_name SpacetimeSwimDirector
 signal spacetime_swim_triggered(data: Dictionary)
 signal spacetime_glitch_triggered(data: Dictionary)
 
-const SPACETIME_FABRIC_SHADER := preload("res://Scripts/spacetime_fabric.gdshader")
+const GRAVITY_TIME_OVERLAY_SHADER := preload("res://Scripts/gravity_time_overlay.gdshader")
 
 @export var enabled: bool = true
 @export var swim_lifetime: float = 0.42
@@ -13,6 +13,9 @@ const SPACETIME_FABRIC_SHADER := preload("res://Scripts/spacetime_fabric.gdshade
 @export var max_glitch_slices: int = 5
 @export var overlay_alpha_cap: float = 0.075
 @export var glitch_cooldown: float = 0.22
+@export var enable_swim_ribbons: bool = false
+@export var enable_glitch_slices: bool = false
+@export var enable_break_rings: bool = false
 @export var ribbon_point_count: int = 9
 @export var ribbon_length: float = 96.0
 @export var ribbon_width: float = 3.0
@@ -25,6 +28,12 @@ const SPACETIME_FABRIC_SHADER := preload("res://Scripts/spacetime_fabric.gdshade
 @export var fabric_crack_density: float = 7.0
 @export var fabric_line_width: float = 0.006
 @export var fabric_idle_alpha: float = 0.008
+@export_group("Overlay Shader")
+@export var overlay_shader_radius: float = 0.32
+@export var overlay_shader_distortion_strength: float = 0.16
+@export var overlay_shader_swirl_strength: float = 3.2
+@export var overlay_shader_chromatic_aberration: float = 0.0048
+@export var overlay_shader_ring_alpha: float = 0.28
 
 var _player: Node2D = null
 var _time_manager: Node = null
@@ -44,6 +53,7 @@ var _last_weapon_swim_time := -999.0
 var _last_glitch_time := -999.0
 var _fabric_material: ShaderMaterial = null
 var _fabric_elapsed: float = 999.0
+var _overlay_focus_position: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -185,9 +195,11 @@ func _trigger_swim(
 ) -> void:
 	if direction.length_squared() <= 0.001:
 		direction = Vector2.RIGHT
+	_overlay_focus_position = position
 	_swim_intensity = maxf(_swim_intensity, clampf(intensity, 0.0, 1.0))
 	_swim_until = maxf(_swim_until, _now_seconds() + maxf(duration, 0.05))
-	_spawn_ribbon(position, direction.normalized(), _swim_intensity, color)
+	if enable_swim_ribbons and max_swim_ribbons > 0:
+		_spawn_ribbon(position, direction.normalized(), _swim_intensity, color)
 	if with_glitch:
 		_trigger_glitch(_swim_intensity, color, 5)
 	spacetime_swim_triggered.emit({
@@ -204,9 +216,12 @@ func _trigger_glitch(intensity: float, color: Color, count: int) -> void:
 	if now - _last_glitch_time < glitch_cooldown:
 		return
 	_last_glitch_time = now
-	var available := maxi(max_glitch_slices - _glitch_slices.size(), 1)
-	for _i in range(mini(count, available)):
-		_spawn_glitch_slice(clampf(intensity, 0.0, 1.0), color)
+	_swim_intensity = maxf(_swim_intensity, clampf(intensity, 0.0, 1.0))
+	_swim_until = maxf(_swim_until, _now_seconds() + 0.28 + clampf(intensity, 0.0, 1.0) * 0.42)
+	if enable_glitch_slices and max_glitch_slices > 0:
+		var available = max(max_glitch_slices - _glitch_slices.size(), 0)
+		for _i in range(mini(count, available)):
+			_spawn_glitch_slice(clampf(intensity, 0.0, 1.0), color)
 	spacetime_glitch_triggered.emit({
 		"intensity": clampf(intensity, 0.0, 1.0),
 		"count": count,
@@ -221,6 +236,8 @@ func _update_swim(delta: float) -> void:
 		_swim_intensity = move_toward(_swim_intensity, 0.0, delta * 1.2)
 	if _swim_intensity <= 0.08 or _player == null:
 		return
+	if not enable_swim_ribbons or max_swim_ribbons <= 0:
+		return
 	_swim_elapsed += delta
 	if _swim_elapsed < maxf(swim_spawn_interval, 0.02):
 		return
@@ -229,6 +246,8 @@ func _update_swim(delta: float) -> void:
 
 
 func _spawn_ribbon(position: Vector2, direction: Vector2, intensity: float, color: Color) -> void:
+	if not enable_swim_ribbons or max_swim_ribbons <= 0:
+		return
 	if _ribbons.size() >= max_swim_ribbons:
 		var oldest := _ribbons.pop_front() as Dictionary
 		var old_value: Variant = oldest.get("node")
@@ -293,6 +312,8 @@ func _spawn_glitch_slice(intensity: float, color: Color) -> void:
 
 
 func _spawn_break_ring(position: Vector2, intensity: float, color: Color) -> void:
+	if not enable_break_rings or max_break_boundaries <= 0:
+		return
 	while _break_rings.size() >= max_break_boundaries and not _break_rings.is_empty():
 		var oldest := _break_rings.pop_front() as Dictionary
 		var old_value: Variant = oldest.get("node")
@@ -445,13 +466,16 @@ func _configure_fabric_material() -> void:
 		_fabric_material = null
 		return
 	_fabric_material = _overlay.material as ShaderMaterial
-	if _fabric_material == null or _fabric_material.shader != SPACETIME_FABRIC_SHADER:
+	if _fabric_material == null or _fabric_material.shader != GRAVITY_TIME_OVERLAY_SHADER:
 		_fabric_material = ShaderMaterial.new()
-		_fabric_material.shader = SPACETIME_FABRIC_SHADER
+		_fabric_material.shader = GRAVITY_TIME_OVERLAY_SHADER
 		_overlay.material = _fabric_material
-	_fabric_material.set_shader_parameter("crack_density", fabric_crack_density)
-	_fabric_material.set_shader_parameter("line_width", fabric_line_width)
-	_fabric_material.set_shader_parameter("red_bias", 0.14)
+	_fabric_material.set_shader_parameter("radius", overlay_shader_radius)
+	_fabric_material.set_shader_parameter("distortion_strength", overlay_shader_distortion_strength)
+	_fabric_material.set_shader_parameter("swirl_strength", overlay_shader_swirl_strength)
+	_fabric_material.set_shader_parameter("chromatic_aberration", overlay_shader_chromatic_aberration)
+	_fabric_material.set_shader_parameter("ring_density", 46.0 + fabric_crack_density * 1.8)
+	_fabric_material.set_shader_parameter("ring_alpha", overlay_shader_ring_alpha)
 	_set_fabric_intensity(0.0)
 
 
@@ -464,19 +488,46 @@ func _update_fabric_shader(delta: float, target_alpha: float) -> void:
 	_fabric_elapsed += delta
 	var normalized_alpha := clampf(target_alpha / maxf(overlay_alpha_cap, 0.001), 0.0, 1.0)
 	var shader_intensity := normalized_alpha * fabric_intensity_scale
+	_update_overlay_shader_center()
 	if _fabric_elapsed < maxf(fabric_update_interval, 0.02):
 		_set_fabric_intensity(shader_intensity)
 		return
 	_fabric_elapsed = 0.0
-	_fabric_material.set_shader_parameter("real_time", _now_seconds())
-	_fabric_material.set_shader_parameter("crack_density", fabric_crack_density)
-	_fabric_material.set_shader_parameter("line_width", fabric_line_width)
+	_fabric_material.set_shader_parameter("radius", overlay_shader_radius)
+	_fabric_material.set_shader_parameter("distortion_strength", overlay_shader_distortion_strength)
+	_fabric_material.set_shader_parameter("swirl_strength", overlay_shader_swirl_strength)
+	_fabric_material.set_shader_parameter("chromatic_aberration", overlay_shader_chromatic_aberration)
+	_fabric_material.set_shader_parameter("ring_density", 46.0 + fabric_crack_density * 1.8)
+	_fabric_material.set_shader_parameter("ring_alpha", overlay_shader_ring_alpha)
 	_set_fabric_intensity(shader_intensity)
 
 
 func _set_fabric_intensity(value: float) -> void:
 	if _fabric_material != null:
-		_fabric_material.set_shader_parameter("intensity", clampf(value, 0.0, 1.0))
+		_fabric_material.set_shader_parameter("strength", clampf(value, 0.0, 1.0))
+
+
+func _update_overlay_shader_center() -> void:
+	if _fabric_material == null:
+		return
+	var focus := _overlay_focus_position
+	if focus == Vector2.ZERO and _player != null and is_instance_valid(_player):
+		focus = _player.global_position
+	_fabric_material.set_shader_parameter("gravity_center", _screen_uv_for_world(focus))
+
+
+func _screen_uv_for_world(position: Vector2) -> Vector2:
+	var viewport := get_viewport()
+	if viewport == null:
+		return Vector2(0.5, 0.5)
+	var viewport_size := viewport.get_visible_rect().size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return Vector2(0.5, 0.5)
+	var screen_position := viewport.get_canvas_transform() * position
+	return Vector2(
+		clampf(screen_position.x / viewport_size.x, 0.0, 1.0),
+		clampf(screen_position.y / viewport_size.y, 0.0, 1.0)
+	)
 
 
 func _swim_points(direction: Vector2, intensity: float) -> PackedVector2Array:

@@ -9,6 +9,7 @@ signal anchor_field_applied(enemy: Node, position: Vector2, intensity: float)
 signal tidal_surge_triggered(enemy: Node, position: Vector2, radius: float)
 
 const FIELD_TARGET_GROUPS: Array[StringName] = [&"Player", &"enemies", &"Projectiles", &"enemy_projectiles", &"player_projectiles"]
+const ENEMY_SEPARATION_GROUPS: Array[StringName] = [&"enemies", &"wave_enemy"]
 
 @export var enabled: bool = true
 @export var scan_interval: float = 0.45
@@ -59,6 +60,23 @@ const FIELD_TARGET_GROUPS: Array[StringName] = [&"Player", &"enemies", &"Project
 @export var slingshot_intercept_force: float = 260.0
 @export var slingshot_orbit_force: float = 220.0
 
+@export_group("Collective Movement")
+@export var separation_radius: float = 96.0
+@export var separation_force: float = 430.0
+@export var hive_focus_radius: float = 820.0
+@export var lane_offset_strength: float = 170.0
+@export var planet_escape_clearance: float = 52.0
+@export var planet_escape_force: float = 1200.0
+@export var planet_escape_velocity_threshold: float = 160.0
+@export var blastoff_spin_force: float = 460.0
+
+@export_group("Ranked Update Budget")
+@export var enable_ranked_updates: bool = true
+@export var major_enemy_update_stride: int = 1
+@export var minor_enemy_update_stride: int = 2
+@export var distant_enemy_update_stride: int = 4
+@export var motion_curve_prediction_seconds: float = 0.18
+
 var _player: Node2D = null
 var _tracked: Dictionary = {}
 var _scan_elapsed := 0.0
@@ -69,6 +87,8 @@ var _enemy_scan_buffer: Array[Node2D] = []
 var _nearby_body_buffer: Array[Node2D] = []
 var _next_tracked: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
+var _last_priority_updates: Dictionary = {}
+var _last_priority_skips: Dictionary = {}
 
 func _ready() -> void:
 	add_to_group("physics_aware_enemy_director")
@@ -167,6 +187,11 @@ func _make_tracking_data(enemy: Node2D) -> Dictionary:
 		"next_anchor": 0.0,
 		"next_tide": _rng.randf_range(0.4, tide_interval),
 		"polarity": 1.0 if _rng.randf() > 0.5 else -1.0,
+		"think_phase": _rng.randi_range(0, 5),
+		"think_count": 0,
+		"priority": 1,
+		"last_curve_position": enemy.global_position,
+		"last_curve_velocity": Vector2.ZERO,
 	}
 
 func _classify_enemy(enemy: Node) -> StringName:
@@ -200,6 +225,8 @@ func _update_enemy_physics(delta: float) -> void:
 		return
 	
 	var expired: Array[int] = []
+	var priority_updates := {0: 0, 1: 0, 2: 0}
+	var priority_skips := {0: 0, 1: 0, 2: 0}
 	
 	for id in _tracked.keys():
 		var data = _tracked.get(id)
@@ -218,6 +245,16 @@ func _update_enemy_physics(delta: float) -> void:
 			expired.append(id)
 			continue
 		
+		data["think_count"] = int(data.get("think_count", 0)) + 1
+		_update_tracking_priority(enemy_2d, data)
+		_write_motion_curve_prediction(enemy_2d, data, delta)
+		var priority := clampi(int(data.get("priority", 1)), 0, 2)
+		if not _should_update_enemy_this_tick(data):
+			priority_skips[priority] = int(priority_skips.get(priority, 0)) + 1
+			_tracked[id] = data
+			continue
+		priority_updates[priority] = int(priority_updates.get(priority, 0)) + 1
+
 		var profile: StringName = data.get("profile", &"drifter")
 		var impulse := Vector2.ZERO
 		
@@ -230,12 +267,16 @@ func _update_enemy_physics(delta: float) -> void:
 			_:                   impulse = _drifter_impulse(enemy_2d)
 
 		impulse += _slingshot_reaction_impulse(enemy_2d, profile)
+		impulse += _collective_hive_impulse(enemy_2d, profile, data)
+		impulse += _planet_escape_impulse(enemy_2d, data)
 		
 		_apply_limited_impulse(enemy_2d, profile, impulse, delta)
 		_tracked[id] = data  # keep modified data (timers etc.)
 	
 	for id in expired:
 		_tracked.erase(id)
+	_last_priority_updates = priority_updates
+	_last_priority_skips = priority_skips
 
 # ==================== IMPULSE FUNCTIONS ====================
 
@@ -317,6 +358,81 @@ func _drifter_impulse(enemy: Node2D) -> Vector2:
 	var to_source := source.global_position - enemy.global_position
 	if to_source.length_squared() <= 0.001: return Vector2.ZERO
 	return to_source.normalized().orthogonal() * orbit_tangent_force * 0.25
+
+
+func _collective_hive_impulse(enemy: Node2D, profile: StringName, data: Dictionary) -> Vector2:
+	if not is_instance_valid(enemy) or not is_instance_valid(_player):
+		return Vector2.ZERO
+	var to_player := _player.global_position - enemy.global_position
+	var distance := maxf(to_player.length(), 0.001)
+	var player_dir := to_player / distance
+	var lane_side := float(data.get("polarity", 1.0))
+	var lane_falloff := clampf(1.0 - distance / maxf(hive_focus_radius, 1.0), 0.0, 1.0)
+	var lane := player_dir.orthogonal() * lane_side * lane_offset_strength * lane_falloff
+	if profile == &"relativistic_sniper" or profile == &"anchor_unit":
+		lane *= 0.55
+	var separation := _separation_impulse(enemy)
+	enemy.set_meta(&"hive_lane_side", lane_side)
+	enemy.set_meta(&"hive_focus_pressure", lane_falloff)
+	return lane + separation
+
+
+func _separation_impulse(enemy: Node2D) -> Vector2:
+	if separation_radius <= 0.0:
+		return Vector2.ZERO
+	_nearby_body_buffer.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius(
+			ENEMY_SEPARATION_GROUPS,
+			enemy.global_position,
+			separation_radius,
+			10,
+			true,
+			_nearby_body_buffer
+		)
+	else:
+		var radius_squared := separation_radius * separation_radius
+		for node in get_tree().get_nodes_in_group("enemies"):
+			var other := node as Node2D
+			if other == null or not is_instance_valid(other) or other == enemy:
+				continue
+			if other.global_position.distance_squared_to(enemy.global_position) <= radius_squared:
+				_nearby_body_buffer.append(other)
+				if _nearby_body_buffer.size() >= 10:
+					break
+	var impulse := Vector2.ZERO
+	for other in _nearby_body_buffer:
+		if other == null or not is_instance_valid(other) or other == enemy:
+			continue
+		var offset := enemy.global_position - other.global_position
+		var distance := maxf(offset.length(), 0.001)
+		var pressure := 1.0 - clampf(distance / separation_radius, 0.0, 1.0)
+		impulse += offset / distance * pressure
+	if impulse.length_squared() <= 0.001:
+		return Vector2.ZERO
+	return impulse.normalized() * separation_force
+
+
+func _planet_escape_impulse(enemy: Node2D, data: Dictionary) -> Vector2:
+	var source := _nearest_gravity_source(enemy)
+	if source == null:
+		return Vector2.ZERO
+	var radius := _gravity_source_radius(source)
+	var escape_radius := radius + planet_escape_clearance
+	var offset := enemy.global_position - source.global_position
+	var distance := maxf(offset.length(), 0.001)
+	if distance >= escape_radius:
+		if enemy.has_meta(&"planet_escape_blastoff"):
+			enemy.remove_meta(&"planet_escape_blastoff")
+		return Vector2.ZERO
+	var outward := offset / distance
+	var tangent := outward.orthogonal() * float(data.get("polarity", 1.0))
+	var pressure := 1.0 - clampf(distance / escape_radius, 0.0, 1.0)
+	var velocity := _body_velocity(enemy)
+	if velocity.dot(outward) < planet_escape_velocity_threshold:
+		enemy.set_meta(&"planet_escape_blastoff", pressure)
+		return outward * planet_escape_force * pressure + tangent * blastoff_spin_force * pressure
+	return outward * planet_escape_force * pressure * 0.45
 
 
 func _slingshot_reaction_impulse(enemy: Node2D, profile: StringName) -> Vector2:
@@ -452,6 +568,66 @@ func _nearest_gravity_source(enemy: Node2D) -> Node2D:
 			best = source
 	return best
 
+
+func _gravity_source_radius(source: Node2D) -> float:
+	if source == null or not is_instance_valid(source):
+		return 150.0
+	var radius_value: Variant = source.get("radius")
+	if radius_value is float or radius_value is int:
+		return maxf(float(radius_value), 24.0)
+	var collision := source.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		return maxf((collision.shape as CircleShape2D).radius, 24.0)
+	return 150.0
+
+
+func _update_tracking_priority(enemy: Node2D, data: Dictionary) -> void:
+	if not is_instance_valid(_player):
+		data["priority"] = 1
+		return
+	var distance_squared := enemy.global_position.distance_squared_to(_player.global_position)
+	var priority := 2
+	if enemy.is_in_group("bosses") or enemy.is_in_group("boss"):
+		priority = 0
+	elif distance_squared <= hive_focus_radius * hive_focus_radius:
+		priority = 0
+	elif distance_squared <= (hive_focus_radius * 1.8) * (hive_focus_radius * 1.8):
+		priority = 1
+	data["priority"] = priority
+	enemy.set_meta(&"director_priority_rank", priority)
+
+
+func _should_update_enemy_this_tick(data: Dictionary) -> bool:
+	if not enable_ranked_updates:
+		return true
+	var priority := int(data.get("priority", 1))
+	var stride := major_enemy_update_stride
+	if priority == 1:
+		stride = minor_enemy_update_stride
+	elif priority >= 2:
+		stride = distant_enemy_update_stride
+	stride = maxi(stride, 1)
+	if stride <= 1:
+		return true
+	return (int(data.get("think_count", 0)) + int(data.get("think_phase", 0))) % stride == 0
+
+
+func _write_motion_curve_prediction(enemy: Node2D, data: Dictionary, delta: float) -> void:
+	var previous_position: Vector2 = data.get("last_curve_position", enemy.global_position)
+	var velocity := _body_velocity(enemy)
+	if velocity.length_squared() <= 0.001 and delta > 0.0:
+		velocity = (enemy.global_position - previous_position) / delta
+	var prediction_time := maxf(motion_curve_prediction_seconds, delta)
+	var curve := PackedVector2Array([
+		previous_position,
+		enemy.global_position + velocity * prediction_time * 0.5,
+		enemy.global_position + velocity * prediction_time,
+	])
+	enemy.set_meta(&"priority_motion_curve", curve)
+	enemy.set_meta(&"priority_motion_velocity", velocity)
+	data["last_curve_position"] = enemy.global_position
+	data["last_curve_velocity"] = velocity
+
 func _refresh_gravity_sources() -> void:
 	_gravity_sources.clear()
 	if RuntimeRegistry != null and is_instance_valid(_player):
@@ -522,4 +698,20 @@ func get_ai_debug_state() -> Dictionary:
 		if typeof(data) == TYPE_DICTIONARY:
 			var p := String(data.get("profile", &"drifter"))
 			counts[p] = counts.get(p, 0) + 1
-	return {"tracked": _tracked.size(), "profiles": counts}
+	var updated_total := _sum_int_values(_last_priority_updates)
+	var skipped_total := _sum_int_values(_last_priority_skips)
+	var denominator := maxf(float(updated_total + skipped_total), 1.0)
+	return {
+		"tracked": _tracked.size(),
+		"profiles": counts,
+		"priority_updates": _last_priority_updates,
+		"priority_skips": _last_priority_skips,
+		"skip_ratio": float(skipped_total) / denominator,
+	}
+
+
+func _sum_int_values(values: Dictionary) -> int:
+	var total := 0
+	for value in values.values():
+		total += int(value)
+	return total

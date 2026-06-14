@@ -143,7 +143,9 @@ func _refresh_gravity_sources() -> void:
 	var player_sources: Variant = _player.get("planets")
 	if typeof(player_sources) == TYPE_ARRAY:
 		for source_value in player_sources:
-			var source := source_value as Node2D
+			var source : Node2D
+			if is_instance_valid(source_value):
+				source = source_value as Node2D
 			if source == null or not is_instance_valid(source) or source.is_queued_for_deletion():
 				continue
 			var id := source.get_instance_id()
@@ -336,13 +338,18 @@ func _apply_predicted_slingshot(
 	if gravity.length_squared() <= 0.001:
 		return velocity_value
 
-	var grav_dir := gravity.normalized()
-	var tangent := grav_dir.orthogonal()
+	var radial := position - source.global_position
+	if radial.length_squared() <= 0.001:
+		return velocity_value
+	var tangent := radial.normalized().orthogonal()
 	if tangent.dot(velocity_value) < 0.0:
 		tangent = -tangent
 
-	var accel_tangent := gravity.dot(velocity_value.normalized())
-	if accel_tangent > 0.0 and drag_enabled:
+	var tangential_speed := maxf(velocity_value.dot(tangent), 0.0)
+	var min_tangential_speed := _safe_player_float(&"slingshot_min_tangential_speed", 210.0)
+	if tangential_speed >= min_tangential_speed and drag_enabled:
+		var tangent_ratio := tangential_speed / maxf(velocity_value.length(), 1.0)
+		var accel_tangent := gravity.length() * clampf(tangent_ratio, 0.0, 1.0)
 		velocity_value += tangent * accel_tangent * (slingshot_factor + orbit_control_bonus) * time_step
 
 	return velocity_value

@@ -16,6 +16,8 @@ signal boss_defeated
 @export var boss_aura_radius: float = 132.0
 @export var boss_aura_color: Color = Color(1.0, 0.16, 0.44, 0.28)
 @export var boss_phase_color: Color = Color(1.0, 0.72, 0.22, 0.32)
+@export_range(0.0, 1.0, 0.01) var boss_shader_intensity: float = 0.42
+@export var boss_glyph_count: int = 12
 
 var current_phase = 0
 var player: Node2D = null
@@ -24,6 +26,7 @@ var attack_timer: Timer = null
 var _presentation_root: Node2D = null
 var _aura_ring: Line2D = null
 var _phase_ring: Line2D = null
+var _glyph_ring: Line2D = null
 var _presentation_time := 0.0
 
 func _ready() -> void:
@@ -133,6 +136,8 @@ func _build_presentation_visuals() -> void:
 
 	_aura_ring = _make_boss_ring("BossAuraRing", boss_aura_radius, 3.0, boss_aura_color)
 	_phase_ring = _make_boss_ring("BossPhaseRing", boss_aura_radius * 0.72, 2.0, boss_phase_color)
+	_glyph_ring = _make_boss_ring("BossGlyphRing", boss_aura_radius * 0.92, 1.5, Color(0.56, 0.92, 1.0, 0.24))
+	_glyph_ring.points = _glyph_points(boss_aura_radius * 0.9, boss_glyph_count)
 
 
 func _make_boss_ring(node_name: String, radius: float, width: float, color: Color) -> Line2D:
@@ -163,6 +168,10 @@ func _update_presentation_visuals(delta: float) -> void:
 		_phase_ring.scale = _phase_ring.scale.lerp(Vector2.ONE * (0.96 + phase_pressure * 0.08), clampf(delta * 4.0, 0.0, 1.0))
 		_phase_ring.modulate.a = lerpf(_phase_ring.modulate.a, 0.74, clampf(delta * 3.0, 0.0, 1.0))
 		_phase_ring.default_color = _safe_boss_color(boss_phase_color, lerpf(0.16, boss_phase_color.a, phase_pressure))
+	if _glyph_ring != null:
+		_glyph_ring.rotation += delta * (0.84 + phase_pressure * 0.42)
+		_glyph_ring.width = lerpf(1.0, 2.4, pulse)
+		_glyph_ring.default_color = _safe_boss_color(Color(0.54, 0.94, 1.0, 1.0), lerpf(0.12, 0.28, phase_pressure))
 
 
 func _circle_points(radius: float, count: int) -> PackedVector2Array:
@@ -171,6 +180,17 @@ func _circle_points(radius: float, count: int) -> PackedVector2Array:
 	for i in range(safe_count):
 		var angle := TAU * float(i) / float(safe_count)
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points
+
+
+func _glyph_points(radius: float, count: int) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var safe_count := maxi(count, 3)
+	for i in range(safe_count):
+		var angle := TAU * float(i) / float(safe_count)
+		var radial := Vector2(cos(angle), sin(angle))
+		points.append(radial * radius * 0.86)
+		points.append(radial * radius)
 	return points
 
 
@@ -190,11 +210,12 @@ shader_type canvas_item;
 
 void fragment() {
 	float scan = 0.5 + 0.5 * sin(TIME * 4.0 + UV.x * 18.0);
+	float phase = 0.5 + 0.5 * sin(TIME * 2.2 + UV.y * 28.0);
 	vec4 base = COLOR;
-	base.rgb += scan * 0.16;
+	base.rgb += (scan * 0.16 + phase * 0.1) * %f;
 	COLOR = base;
 }
-"""
+""" % boss_shader_intensity
 	var material := ShaderMaterial.new()
 	material.shader = shader
 	return material

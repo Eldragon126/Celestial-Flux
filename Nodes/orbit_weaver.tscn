@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/orbit_weaver.gd" id="1_weaver"]
+
+[node name="OrbitWeaver" type="CharacterBody2D" groups=["enemies", "wave_enemy"]]
+motion_mode = 1
+script = ExtResource("1_weaver")

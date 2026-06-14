@@ -15,6 +15,7 @@ const ENGINE_HUM_SCENE = preload("res://Nodes/player_engine_hum.tscn")
 const CAMERA_SHAKE_SCENE = preload("res://Nodes/player_damage_camera_shake.tscn")
 const SPARK_WATCHER_SCENE = preload("res://Nodes/projectile_spark_watcher.tscn")
 const DEBUG_BALANCE_OVERLAY_SCENE = preload("res://Nodes/debug_balance_overlay.tscn")
+const GRAVITY_HEAT_MAP_OVERLAY_SCENE = preload("res://Nodes/gravity_heat_map_overlay.tscn")
 const MOMENTUM_COMBAT_SCENE = preload("res://Nodes/momentum_combat_component.tscn")
 const GRAVITY_RESONANCE_SCENE = preload("res://Nodes/gravity_resonance_manager.tscn")
 const ORBITAL_VFX_DIRECTOR_SCENE = preload("res://Nodes/orbital_vfx_director.tscn")
@@ -82,6 +83,7 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var attach_planet_atmospheres = true
 @export var attach_projectile_sparks = true
 @export var attach_orbital_vfx = true
+@export var enable_gravity_heat_map_overlay = true
 @export var enable_debug_balance_overlay = true
 @export var enable_gravity_resonance = true
 @export var enable_gravity_scars = true
@@ -168,6 +170,8 @@ func _install_modular_additions() -> void:
 	var player := _primary_player_from_list(players)
 
 	_add_child_scene_once(level_root, HUD_SCENE, "OrbitalHUD")
+	if enable_gravity_heat_map_overlay:
+		_add_child_scene_once(level_root, GRAVITY_HEAT_MAP_OVERLAY_SCENE, "GravityHeatMapOverlay")
 	if attach_gameplay_teaching:
 		_add_child_scene_once(level_root, GAMEPLAY_TEACHING_SCENE, "GameplayTeachingDirector")
 	if attach_performance_budget:

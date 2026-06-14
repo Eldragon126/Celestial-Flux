@@ -8,6 +8,7 @@ signal momentum_projectile_spawned(projectile: Node, direction: Vector2)
 signal death_lesson_generated(lesson: String)
 signal player_hit_invulnerability_started(duration: float)
 signal damage_ignored_during_invulnerability(amount: float)
+signal planet_super_boost_activated(source: Node, impulse: Vector2, energy_spent: float)
 
 # ========================
 # == EXPORT VARIABLES ==
@@ -30,6 +31,7 @@ signal damage_ignored_during_invulnerability(amount: float)
 @export var drag_precision_alignment_rate: float = 5.2
 @export var drag_precision_brake_blend: float = 0.38
 @export var drag_gravity_turn_blend: float = 0.28
+@export_range(0.0, 1.0, 0.01) var drag_tangent_assist_min_ratio: float = 0.42
 @export var drag_slingshot_energy_recovery: float = 4.5
 @export var drag_precision_min_speed: float = 240.0
 
@@ -62,6 +64,16 @@ signal damage_ignored_during_invulnerability(amount: float)
 @export var energy_cost_per_work: float = 0.00001
 @export var minimum_thrust_energy_cost_per_second: float = 5.0
 @export var gravity_charge_per_work: float = 0.0001
+
+@export_group("Planet Super Boost")
+@export var super_boost_enabled: bool = true
+@export var super_boost_stuck_seconds: float = 1.1
+@export var super_boost_energy_cost: float = 520.0
+@export var super_boost_impulse: float = 1550.0
+@export var super_boost_clearance: float = 72.0
+@export var super_boost_stuck_speed_threshold: float = 260.0
+@export_range(0.0, 1.0, 0.01) var super_boost_tangent_bias: float = 0.18
+@export var super_boost_cooldown: float = 1.35
 
 @export_group("Shooting")
 @export var projectile_hold_fire_interval: float = 0.18
@@ -128,6 +140,9 @@ var _damage_invulnerable_until: float = -999.0
 var _invulnerability_flash_elapsed: float = 0.0
 var _death_in_progress: bool = false
 var _gravity_source_query: Array[Node2D] = []
+var _planet_stuck_time: float = 0.0
+var _planet_stuck_source_id: int = 0
+var _last_super_boost_time: float = -999.0
 var network_peer_id: int = 1
 var network_is_local: bool = true
 var network_display_name: String = "VECTOR"
@@ -217,6 +232,7 @@ func _physics_process(delta: float):
 
 	var gravity = calculate_gravity()
 	_update_slingshot_window(gravity)
+	_update_planet_stuck_state(delta)
 
 	handle_rotation(delta)
 
@@ -298,6 +314,10 @@ func handle_rotation(delta: float) -> void:
 			rotation = (-aim_direction).angle()
 	else:
 		rotation = (global_position - get_global_mouse_position()).angle() #This may look opposite, but it works correctly.
+	if Settings != null and bool(Settings.alternate_movement_enabled):
+		var side_input := _alternate_side_input()
+		if absf(side_input) > 0.001:
+			rotation += side_input * clampf(float(Settings.strafe_turn_assist), 0.0, 0.6)
 
 # ========================
 # == SLINGSHOT SYSTEM ==
@@ -342,8 +362,7 @@ func apply_slingshot(gravity: Vector2, delta: float):
 	var slingshot_score := float(quality_data.get("score", 0.0))
 	var quality_bonus := lerpf(0.9, 1.34, slingshot_score)
 	var speed_factor = clampf(tangential_speed / maxf(slingshot_speed_cap, 1.0), 0.28, 1.35)
-	var dive_bonus = clampf(inward_speed / 620.0, 0.0, 0.55)
-	var assist_strength = gravity.length() * (speed_factor + dive_bonus) * slingshot_gravity_boost_scale
+	var assist_strength = gravity.length() * speed_factor * slingshot_gravity_boost_scale
 	if assist_strength > 0:
 		impulse = tangent * assist_strength * (slingshot_factor + orbit_control_bonus) * quality_bonus * delta
 
@@ -413,15 +432,20 @@ func apply_regular_slingshot(gravity: Vector2, delta: float):
 	else:
 		current_max_speed = maxf(current_max_speed, slingshot_speed_cap)
 	
-	var grav_dir = gravity.normalized()
-	var tangent = grav_dir.orthogonal()
-	
+	var radial = global_position - closest_planet.global_position
+	if radial.length_squared() <= 0.001:
+		return
+
+	var radial_dir = radial.normalized()
+	var tangent = radial_dir.orthogonal()
+
 	if tangent.dot(velocity) < 0:
 		tangent = -tangent
-	
-	var accel_tangent = gravity.dot(velocity.normalized())
 
-	if accel_tangent > 0 and DRAG_enabled:
+	var tangential_speed := maxf(velocity.dot(tangent), 0.0)
+	if tangential_speed >= slingshot_min_tangential_speed and DRAG_enabled:
+		var tangent_ratio := tangential_speed / maxf(velocity.length(), 1.0)
+		var accel_tangent := gravity.length() * clampf(tangent_ratio, 0.0, 1.0)
 		var impulse = tangent * accel_tangent * (slingshot_factor + orbit_control_bonus) * delta
 		velocity += impulse
 		
@@ -445,11 +469,17 @@ func _on_slingshot_cooldown():
 # ========================
 
 func apply_thrust(delta):
-	if not Input.is_action_pressed("thrust"):
+	var forward_pressed := Input.is_action_pressed("thrust")
+	var reverse_pressed := Settings != null and bool(Settings.alternate_movement_enabled) and _alternate_reverse_pressed()
+	if not forward_pressed and not reverse_pressed:
 		return
 
 	var dir = -transform.x.normalized()
-	var force = dir * thrust_power
+	var thrust_scale := 1.0
+	if reverse_pressed and not forward_pressed:
+		dir = -dir
+		thrust_scale = clampf(float(Settings.reverse_thrust_scale), 0.15, 0.8)
+	var force = dir * thrust_power * thrust_scale
 
 	var predicted_velocity = velocity + force * delta
 	var displacement = ((velocity + predicted_velocity) * 0.5) * delta
@@ -485,6 +515,25 @@ func apply_thrust(delta):
 			scale *= clampf(remaining / falloff_band, 0.0, 1.0)
 
 		velocity += force * scale * delta
+
+
+func _alternate_reverse_pressed() -> bool:
+	return _input_action_or_key_pressed(&"back", KEY_S) or _input_action_or_key_pressed(&"move_down", KEY_DOWN)
+
+
+func _alternate_side_input() -> float:
+	var value := 0.0
+	if _input_action_or_key_pressed(&"left", KEY_A) or _input_action_or_key_pressed(&"move_left", KEY_LEFT):
+		value -= 1.0
+	if _input_action_or_key_pressed(&"right", KEY_D) or _input_action_or_key_pressed(&"move_right", KEY_RIGHT):
+		value += 1.0
+	return clampf(value, -1.0, 1.0)
+
+
+func _input_action_or_key_pressed(action_name: StringName, key: Key) -> bool:
+	if InputMap.has_action(action_name) and Input.is_action_pressed(action_name):
+		return true
+	return Input.is_key_pressed(key)
 
 func apply_gravity(gravity: Vector2, delta: float):
 	velocity += gravity * delta
@@ -562,11 +611,16 @@ func _apply_drag_precision_control(
 	if in_slingshot_band and is_instance_valid(closest_planet):
 		var radial = global_position - closest_planet.global_position
 		if radial.length_squared() > 0.001:
-			var tangent = radial.normalized().orthogonal()
+			var radial_dir = radial.normalized()
+			var tangent = radial_dir.orthogonal()
 			if tangent.dot(old_velocity) < 0.0:
 				tangent = -tangent
-			target_direction = tangent
-			blend = drag_gravity_turn_blend
+			var tangential_speed := maxf(old_velocity.dot(tangent), 0.0)
+			var tangent_ratio := tangential_speed / maxf(old_velocity.length(), 1.0)
+			var outward_speed := maxf(old_velocity.dot(radial_dir), 0.0)
+			if tangent_ratio >= drag_tangent_assist_min_ratio and tangential_speed > outward_speed * 0.72:
+				target_direction = tangent
+				blend = drag_gravity_turn_blend * clampf(tangent_ratio, 0.0, 1.0)
 
 	if thrusting:
 		var forward := -transform.x.normalized()
@@ -625,6 +679,125 @@ func boost(dir):
 
 	_dash_drag_suppressed = false
 	_update_drag_state()
+
+func _try_planet_super_boost() -> bool:
+	if not _can_planet_super_boost():
+		return false
+
+	var source := closest_planet as Node2D
+	var outward := global_position - source.global_position
+	if outward.length_squared() <= 0.001:
+		outward = -transform.x
+	outward = outward.normalized()
+
+	var tangent := outward.orthogonal()
+	if tangent.dot(velocity) < 0.0:
+		tangent = -tangent
+	var bias := clampf(super_boost_tangent_bias, 0.0, 0.65)
+	var boost_dir := (outward * (1.0 - bias) + tangent * bias).normalized()
+	var impulse := boost_dir * maxf(super_boost_impulse, 0.0)
+	var spent := float(energy_component.spend(super_boost_energy_cost)) if energy_component != null else 0.0
+	if spent < super_boost_energy_cost:
+		if energy_component != null:
+			energy_component.restore(spent)
+		return false
+
+	velocity = (velocity + impulse).limit_length(maxf(_get_current_hard_speed_cap(), dash_speed_cap + super_boost_impulse * 0.35))
+	current_max_speed = maxf(current_max_speed, dash_speed_cap + super_boost_impulse * 0.35)
+	_planet_stuck_time = 0.0
+	_last_super_boost_time = _now_seconds()
+	can_dash = false
+	_dash_drag_suppressed = true
+	_update_drag_state()
+
+	if powerup_inventory != null:
+		powerup_inventory.trigger_player_action()
+
+	planet_super_boost_activated.emit(source, impulse, spent)
+
+	if is_instance_valid(dash_timer):
+		dash_timer.start(maxf(super_boost_cooldown, 0.05))
+	_dash_drag_suppressed = false
+	_update_drag_state()
+	return true
+
+
+func _can_planet_super_boost() -> bool:
+	if not super_boost_enabled:
+		return false
+	if _now_seconds() - _last_super_boost_time < super_boost_cooldown:
+		return false
+	if _planet_stuck_time < super_boost_stuck_seconds:
+		return false
+	if energy_component == null or not energy_component.has_energy(super_boost_energy_cost):
+		return false
+	if not is_instance_valid(closest_planet):
+		return false
+	if not _is_boostable_planet(closest_planet):
+		return false
+	var source := closest_planet as Node2D
+	if source == null:
+		return false
+	var boost_radius := _gravity_source_radius(source) + maxf(super_boost_clearance, 0.0)
+	return closest_dist <= boost_radius
+
+
+func _update_planet_stuck_state(delta: float) -> void:
+	if not super_boost_enabled or not is_instance_valid(closest_planet) or not _is_boostable_planet(closest_planet):
+		_planet_stuck_time = 0.0
+		_planet_stuck_source_id = 0
+		return
+
+	var source := closest_planet as Node2D
+	if source == null:
+		_planet_stuck_time = 0.0
+		_planet_stuck_source_id = 0
+		return
+
+	var stuck_radius := _gravity_source_radius(source) + maxf(super_boost_clearance, 0.0)
+	var source_id := source.get_instance_id()
+	var close_enough := closest_dist <= stuck_radius
+	var slow_enough := velocity.length() <= super_boost_stuck_speed_threshold
+	var pressing_out := Input.is_action_pressed("thrust")
+
+	if close_enough and (slow_enough or pressing_out):
+		if _planet_stuck_source_id != source_id:
+			_planet_stuck_time = 0.0
+			_planet_stuck_source_id = source_id
+		_planet_stuck_time += delta
+	else:
+		_planet_stuck_time = maxf(_planet_stuck_time - delta * 1.8, 0.0)
+		if _planet_stuck_time <= 0.001:
+			_planet_stuck_source_id = 0
+
+
+func _is_boostable_planet(source: Node) -> bool:
+	if source == null or not is_instance_valid(source):
+		return false
+	if String(source.name).to_lower().contains("blackhole") or String(source.name).to_lower().contains("black_hole"):
+		return false
+	var script_value: Variant = source.get_script()
+	if script_value is Script:
+		var script_path := (script_value as Script).resource_path
+		if script_path.ends_with("black_hole.gd"):
+			return false
+	return source.is_in_group("planets") or source.is_in_group("Objects_With_Gravity")
+
+
+func _gravity_source_radius(source: Node2D) -> float:
+	if source == null or not is_instance_valid(source):
+		return 70.0
+	var radius_value: Variant = source.get("radius")
+	if radius_value is float or radius_value is int:
+		return maxf(float(radius_value), 24.0) * maxf(source.scale.x, source.scale.y)
+	var base_radius_value: Variant = source.get("base_radius")
+	if base_radius_value is float or base_radius_value is int:
+		return maxf(float(base_radius_value), 24.0) * maxf(source.scale.x, source.scale.y)
+	var collision := source.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		return maxf((collision.shape as CircleShape2D).radius, 24.0) * maxf(source.scale.x, source.scale.y)
+	return 70.0 * maxf(source.scale.x, source.scale.y)
+
 
 func _on_dash_timeout():
 	can_dash = true
@@ -706,7 +879,8 @@ func handle_input():
 		var now = Time.get_ticks_msec() / 1000.0
 
 		if now - last_thrust_release < 0.35 and can_dash:
-			boost(-transform.x.normalized())
+			if not _try_planet_super_boost():
+				boost(-transform.x.normalized())
 
 		last_thrust_release = now
 
@@ -730,10 +904,11 @@ func _handle_shoot_input() -> void:
 
 
 func _current_weapon_fire_interval() -> float:
+	var multiplier := clampf(float(get_meta(&"momentum_fire_interval_multiplier", 1.0)), 0.45, 1.25)
 	var weapon_system := get_node_or_null("WeaponSystem")
 	if weapon_system != null and weapon_system.has_method("get_current_fire_interval"):
-		return maxf(float(weapon_system.call("get_current_fire_interval")), 0.03)
-	return maxf(projectile_hold_fire_interval, 0.03)
+		return maxf(float(weapon_system.call("get_current_fire_interval")) * multiplier, 0.03)
+	return maxf(projectile_hold_fire_interval * multiplier, 0.03)
 
 
 func _sync_pause_menu_state(pause_menu: Node) -> void:
@@ -804,7 +979,10 @@ func update_camera(delta: float):
 	if Settings.input_type == false:
 		var target = (get_global_mouse_position() - global_position).normalized() * 180
 		var base_offset = camera.offset - _camera_feedback_offset
-		camera.offset = lerp(base_offset, target, 0.05) + _camera_feedback_offset
+		var follow_weight := clampf(0.05 * float(Settings.camera_follow_strength), 0.02, 0.18) if Settings != null else 0.05
+		if Settings != null and bool(Settings.trackpad_direct_camera):
+			follow_weight = 1.0
+		camera.offset = base_offset.lerp(target, follow_weight) + _camera_feedback_offset
 	else:
 		camera.offset = camera.offset.lerp(_camera_feedback_offset, clampf(delta * 8.0, 0.0, 1.0))
 
@@ -854,6 +1032,31 @@ func take_damage(amount: float):
 		health_component.take_damage(remaining)
 
 	_start_hit_invulnerability()
+
+
+func consume_by_black_hole() -> void:
+	if _death_in_progress:
+		return
+	set_meta(&"black_hole_consumed", true)
+	set_meta(&"last_death_context", &"black_hole")
+	_damage_invulnerable_until = -999.0
+	_last_damage_amount = 10000000.0
+	_last_damage_time = Time.get_ticks_msec() / 1000.0
+	velocity = Vector2.ZERO
+
+	if not network_is_local:
+		_death_in_progress = true
+		set_meta(&"death_in_progress", true)
+		_apply_remote_death_visuals()
+		return
+
+	if health_component != null and health_component.has_method("take_damage"):
+		health_component.call("take_damage", 10000000.0)
+		if health_component.has_method("is_dead") and bool(health_component.call("is_dead")) and not _death_in_progress:
+			call_deferred("_on_health_component_died")
+		return
+
+	take_damage(10000000.0)
 
 
 func is_damage_invulnerable() -> bool:

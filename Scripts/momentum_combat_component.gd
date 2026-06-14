@@ -106,6 +106,12 @@ signal flow_state_changed(active: bool, intensity: float)
 @export var flow_speed_ratio: float = 1.12
 @export var flow_speed_cap_bonus: float = 360.0
 
+@export_group("Flow Rewards")
+@export var flow_energy_restore_per_second: float = 3.2
+@export_range(0.55, 1.0, 0.01) var flow_fire_interval_multiplier: float = 0.82
+@export_range(0.45, 1.0, 0.01) var god_vector_fire_interval_multiplier: float = 0.72
+@export var flow_reward_min_intensity: float = 0.2
+
 @export_group("Mastery Feedback")
 @export var slingshot_visuals_enabled: bool = true
 @export var flow_visuals_enabled: bool = true
@@ -145,6 +151,7 @@ var _rng := RandomNumberGenerator.new()
 var _near_miss_targets: Array[Node2D] = []
 var _shockwave_targets: Array[Node2D] = []
 var _query_seen_ids: Dictionary = {}
+var _energy_component: Node = null
 
 # ========================
 # == LIFECYCLE ==
@@ -160,6 +167,7 @@ func _ready() -> void:
 	if debug_logging:
 		print("MomentumCombatComponent successfully attached to Player.")
 	
+	_energy_component = _player.get_node_or_null("EnergyComponent")
 	_rng.randomize()
 	_build_impact_area()
 	_build_flow_visuals()
@@ -564,6 +572,29 @@ func _update_flow_state(delta: float) -> void:
 	if next_active != _flow_active:
 		_flow_active = next_active
 		flow_state_changed.emit(_flow_active, _flow_intensity)
+	_publish_flow_gameplay_state()
+	_apply_flow_rewards(delta)
+
+func _publish_flow_gameplay_state() -> void:
+	if not is_instance_valid(_player):
+		return
+	var multiplier := 1.0
+	if _flow_active:
+		var target := god_vector_fire_interval_multiplier if _current_mastery_tier() == &"god_vector" else flow_fire_interval_multiplier
+		multiplier = lerpf(1.0, target, clampf(_flow_intensity, 0.0, 1.0))
+	_player.set_meta(&"momentum_flow_active", _flow_active)
+	_player.set_meta(&"momentum_flow_intensity", _flow_intensity)
+	_player.set_meta(&"momentum_fire_interval_multiplier", multiplier)
+
+func _apply_flow_rewards(delta: float) -> void:
+	if not _flow_active or _flow_intensity < flow_reward_min_intensity:
+		return
+	if _energy_component == null or not is_instance_valid(_energy_component):
+		_energy_component = _player.get_node_or_null("EnergyComponent") if is_instance_valid(_player) else null
+	if _energy_component == null or not _energy_component.has_method("restore"):
+		return
+	var restore_amount := flow_energy_restore_per_second * clampf(_flow_intensity, 0.0, 1.0) * delta
+	_energy_component.call("restore", restore_amount)
 
 func _extend_mastery_combo(reason: StringName, event_position: Vector2) -> void:
 	if _mastery_combo <= 0:

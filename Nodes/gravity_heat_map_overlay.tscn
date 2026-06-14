@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://bgwjgqdlkivi3"]
+
+[ext_resource type="Script" uid="uid://iycq348knu7c" path="res://Scripts/gravity_heat_map_overlay.gd" id="1_9tjxg"]
+
+[node name="GravityHeatMapOverlay" type="Node2D" unique_id=965194374]
+visible = false
+script = ExtResource("1_9tjxg")

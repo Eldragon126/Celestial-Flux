@@ -66,7 +66,6 @@ color = Color(0, 1, 1, 1)
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=840939834]
 libraries/ = SubResource("AnimationLibrary_15iuv")
-autoplay = &"ColorChange"
 
 [node name="PointLight2D" type="PointLight2D" parent="." unique_id=1047878657]
 energy = 0.5

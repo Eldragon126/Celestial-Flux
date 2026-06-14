@@ -6,12 +6,31 @@ const TITLE_TRACK_DARK_PULSE := preload("res://Assets/Songs/Title Screen New.mp3
 const STEAM_DEMO_SCENE := "res://Nodes/demo_game.tscn"
 const CLIP_LAB_SCENE := "res://Nodes/clip_lab_scene.tscn"
 const MOD_MANAGER_SCENE := "res://Nodes/mod_management_scene.tscn"
+const SECRET_LAW_BOSS_SCENE := preload("res://Nodes/secret_law_boss.tscn")
+const GRAVITY_MAW_BOSS_SCENE := preload("res://Nodes/gravity_maw_boss.tscn")
+const CHAOS_WISP_SCENE := preload("res://Nodes/chaos_wisp.tscn")
+const GRAVIMETRIC_ECHO_DRONE_SCENE := preload("res://Nodes/gravimetric_echo_drone.tscn")
+const EVENT_HORIZON_WARDEN_SCENE := preload("res://Nodes/event_horizon_warden.tscn")
+const ORBITAL_NULL_HARVESTER_SCENE := preload("res://Nodes/orbital_null_harvester.tscn")
+const RESONANCE_PARALYTIC_CONSTRUCT_SCENE := preload("res://Nodes/resonance_paralytic_construct.tscn")
+const PHASE_SLIP_SWARM_SCENE := preload("res://Nodes/phase_slip_swarm.tscn")
+const SHIELD_BREAKER_SCENE := preload("res://Nodes/shield_breaker_unit.tscn")
+const SEEKER_FRAGMENT_SCENE := preload("res://Nodes/seeker_fragment.tscn")
 
 @export var version_string: String = "v1.0.4.6"
 @export var secret_completion_check_interval: float = 0.25
 @export var alternate_title_music: bool = true
 @export var use_brand_logo_texture: bool = false #keep this false. I don't want the logo to be there.
 @export var logo_texture_path: String = "res://Assets/Brand/vector_anomaly_epic_logo_generated.png"
+
+@export_group("Super Secret")
+@export var super_secret_enabled: bool = true
+@export var super_secret_wait_seconds: float = 300.0
+@export var super_secret_spawn_radius: float = 1680.0
+@export var super_secret_elite_count: int = 18
+@export var super_secret_boss_health_multiplier: float = 2.35
+@export var super_secret_enemy_health_multiplier: float = 1.85
+@export var super_secret_speed_multiplier: float = 1.24
 
 @export_group("Multiplayer")
 @export var multiplayer_default_port: int = 28942
@@ -27,6 +46,10 @@ const MOD_MANAGER_SCENE := "res://Nodes/mod_management_scene.tscn"
 var _secret_mode_active := false
 var _secret_completion_announced := false
 var _secret_completion_elapsed := 0.0
+var _super_secret_elapsed := 0.0
+var _super_secret_triggered := false
+var _super_secret_mode_active := false
+var _super_secret_completion_announced := false
 var _dark_title_variant := false
 var _multiplayer_button: Button = null
 var _mp_panel: PanelContainer = null
@@ -42,6 +65,9 @@ var _demo_button: Button = null
 var _clip_lab_button: Button = null
 var _mod_manager_button: Button = null
 var _menu_button_tweens: Dictionary = {}
+var _title_lattice: Node2D = null
+var _title_lattice_lines: Array[Line2D] = []
+var _title_lattice_elapsed: float = 0.0
 
 
 func _ready() -> void:
@@ -59,6 +85,7 @@ func _ready() -> void:
 	_update_button_visibility()
 	_update_version_label()
 	_apply_title_brand()
+	_build_title_lattice()
 	_build_production_buttons()
 	_build_multiplayer_ui()
 	_normalize_title_menu_density()
@@ -68,16 +95,19 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if not _secret_mode_active or _secret_completion_announced:
-		return
+	if _secret_mode_active and not _secret_completion_announced:
+		_secret_completion_elapsed += delta
+		if _secret_completion_elapsed >= secret_completion_check_interval:
+			_secret_completion_elapsed = 0.0
+			if _secret_enemy_groups_empty():
+				_announce_secret_completed()
 
-	_secret_completion_elapsed += delta
-	if _secret_completion_elapsed < secret_completion_check_interval:
-		return
-	_secret_completion_elapsed = 0.0
-
-	if _secret_enemy_groups_empty():
-		_announce_secret_completed()
+	if _super_secret_mode_active and not _super_secret_completion_announced:
+		_secret_completion_elapsed += delta
+		if _secret_completion_elapsed >= secret_completion_check_interval:
+			_secret_completion_elapsed = 0.0
+			if _secret_enemy_groups_empty():
+				_announce_super_secret_completed()
 
 
 func _on_audio_stream_player_finished() -> void:
@@ -85,10 +115,12 @@ func _on_audio_stream_player_finished() -> void:
 		animation_player.pause()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _starfield_backdrop != null and _starfield_backdrop.material != null:
 		_starfield_backdrop.material.set_shader_parameter("real_time", Time.get_ticks_msec() / 1000.0)
+	_update_title_lattice(delta)
 	_update_dark_title_pulse()
+	_update_super_secret_watch(delta)
 	if Input.is_action_just_pressed("Confirm") and Input.is_key_pressed(KEY_SHIFT):
 		if RunProgress.has_anchor:
 			_begin_continue()
@@ -614,9 +646,66 @@ func _load_title_texture(path: String) -> Texture2D:
 	return ImageTexture.create_from_image(image)
 
 
+func _build_title_lattice() -> void:
+	if _title_lattice != null:
+		return
+	_title_lattice = Node2D.new()
+	_title_lattice.name = "TitleVectorLattice"
+	_title_lattice.z_index = -1
+	add_child(_title_lattice)
+	move_child(_title_lattice, 1)
+	for i in range(14):
+		var line := Line2D.new()
+		line.name = "VectorLatticeLine%d" % i
+		line.antialiased = true
+		line.width = 1.2 if i % 3 != 0 else 1.8
+		line.default_color = Color(0.22, 0.9, 1.0, 0.08)
+		_title_lattice.add_child(line)
+		_title_lattice_lines.append(line)
+
+
+func _update_title_lattice(delta: float) -> void:
+	if _title_lattice == null:
+		return
+	_title_lattice_elapsed += delta
+	var viewport_size := get_viewport_rect().size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return
+	var center := viewport_size * 0.5
+	var span := maxf(viewport_size.x, viewport_size.y) * 1.18
+	for i in range(_title_lattice_lines.size()):
+		var line := _title_lattice_lines[i]
+		if line == null or not is_instance_valid(line):
+			continue
+		var normalized := (float(i) / maxf(float(_title_lattice_lines.size() - 1), 1.0)) * 2.0 - 1.0
+		var angle := -0.55 + normalized * 0.38 + sin(_title_lattice_elapsed * 0.18 + float(i)) * 0.04
+		var normal := Vector2(cos(angle), sin(angle)).orthogonal()
+		var direction := Vector2(cos(angle), sin(angle))
+		var offset := normal * normalized * viewport_size.y * 0.52
+		var drift := direction * sin(_title_lattice_elapsed * (0.38 + float(i % 4) * 0.04) + float(i) * 0.7) * 18.0
+		line.points = PackedVector2Array([
+			center + offset + drift - direction * span,
+			center + offset + drift + direction * span,
+		])
+		var pulse := 0.5 + 0.5 * sin(_title_lattice_elapsed * 0.9 + float(i) * 0.6)
+		var color := Color(0.16, 0.86, 1.0, _safe_title_alpha(lerpf(0.035, 0.12, pulse), 0.12))
+		if i % 5 == 0:
+			color = Color(0.72, 0.42, 1.0, _safe_title_alpha(lerpf(0.025, 0.09, pulse), 0.1))
+		line.default_color = color
+
+
+func _safe_title_alpha(alpha: float, hard_cap: float) -> float:
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		return Settings.world_visual_alpha(alpha, hard_cap)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return minf(Settings.flash_alpha(alpha), hard_cap)
+	return minf(alpha, hard_cap)
+
+
 func _on_secret_button_pressed() -> void:
 	if get_tree().get_first_node_in_group("Player") != null:
-		_secret_mode_active = true
+		if not _secret_completion_announced:
+			_secret_mode_active = true
 		return
 
 	var player := preload("res://Nodes/player.tscn")
@@ -630,6 +719,10 @@ func _on_secret_button_pressed() -> void:
 	_secret_mode_active = true
 	_secret_completion_announced = false
 	_secret_completion_elapsed = 0.0
+	_super_secret_elapsed = 0.0
+	_super_secret_triggered = false
+	_super_secret_mode_active = false
+	_super_secret_completion_announced = false
 
 
 func _secret_enemy_groups_empty() -> bool:
@@ -642,6 +735,7 @@ func _secret_enemy_groups_empty() -> bool:
 func _announce_secret_completed() -> void:
 	_secret_completion_announced = true
 	_secret_mode_active = false
+	_super_secret_elapsed = 0.0
 	if audio_player != null:
 		audio_player.stop()
 	var secret_player := get_node_or_null("SecretCompleted") as AudioStreamPlayer
@@ -653,3 +747,166 @@ func _announce_secret_completed() -> void:
 			_title_logo.visible = false
 		title_label.visible = true
 		title_label.text = "SECRET COMPLETED"
+	if RunProgress != null:
+		RunProgress.arena_flags["title_secret_completed"] = true
+
+
+func _update_super_secret_watch(delta: float) -> void:
+	if not super_secret_enabled or _super_secret_triggered:
+		return
+	if not _secret_completion_announced or _super_secret_mode_active:
+		return
+	var player := _active_title_player()
+	if player == null:
+		_super_secret_elapsed = 0.0
+		return
+	_super_secret_elapsed += delta
+	if _super_secret_elapsed >= super_secret_wait_seconds:
+		_begin_super_secret_level(player)
+
+
+func _begin_super_secret_level(player: Node2D) -> void:
+	if player == null or _super_secret_triggered:
+		return
+	_super_secret_triggered = true
+	_super_secret_mode_active = true
+	_super_secret_completion_announced = false
+	_secret_completion_elapsed = 0.0
+	if RunProgress != null:
+		RunProgress.arena_flags["title_super_secret_level"] = true
+		RunProgress.challenge_modifiers["title_super_secret_health"] = super_secret_enemy_health_multiplier
+		RunProgress.challenge_modifiers["title_super_secret_speed"] = super_secret_speed_multiplier
+	if audio_player != null:
+		audio_player.stop()
+		audio_player.stream = TITLE_TRACK_DARK_PULSE
+		audio_player.play()
+	_dark_title_variant = false
+	if animation_player != null:
+		animation_player.stop()
+	var title_label := get_node_or_null("CenterContainer/Label") as Label
+	if title_label != null:
+		if _title_logo != null:
+			_title_logo.visible = false
+		title_label.visible = true
+		title_label.text = "SUPER SECRET LEVEL"
+		title_label.add_theme_color_override("font_color", Color(1.0, 0.28, 0.86, 1.0))
+	_spawn_super_secret_boss_wave(player)
+	_spawn_super_secret_elites(player)
+
+
+func _spawn_super_secret_boss_wave(player: Node2D) -> void:
+	var boss_specs := [
+		{"scene": SECRET_LAW_BOSS_SCENE, "name": "SuperSecretVectorShade", "variant": 0, "display": "SUPER VECTOR SHADE", "angle": -0.25},
+		{"scene": SECRET_LAW_BOSS_SCENE, "name": "SuperSecretChronalMirror", "variant": 1, "display": "SUPER CHRONAL MIRROR", "angle": PI * 0.72},
+		{"scene": GRAVITY_MAW_BOSS_SCENE, "name": "SuperSecretGravityMaw", "variant": -1, "display": "SUPER GRAVITY MAW", "angle": PI * 1.38},
+	]
+	for spec in boss_specs:
+		var scene := spec.get("scene") as PackedScene
+		if scene == null:
+			continue
+		var boss := scene.instantiate()
+		if boss == null:
+			continue
+		boss.name = str(spec.get("name", "SuperSecretBoss"))
+		if boss.get("secret_variant") != null and int(spec.get("variant", -1)) >= 0:
+			boss.set("secret_variant", int(spec.get("variant", 0)))
+		if boss.get("display_name") != null:
+			boss.set("display_name", str(spec.get("display", "SUPER SECRET")))
+		_tune_super_secret_enemy(boss, true)
+		add_child(boss)
+		var boss_2d := boss as Node2D
+		if boss_2d != null:
+			boss_2d.global_position = player.global_position + Vector2.from_angle(float(spec.get("angle", 0.0))) * super_secret_spawn_radius
+		_mark_title_secret_enemy(boss)
+
+
+func _spawn_super_secret_elites(player: Node2D) -> void:
+	var roster: Array[PackedScene] = [
+		CHAOS_WISP_SCENE,
+		GRAVIMETRIC_ECHO_DRONE_SCENE,
+		EVENT_HORIZON_WARDEN_SCENE,
+		ORBITAL_NULL_HARVESTER_SCENE,
+		RESONANCE_PARALYTIC_CONSTRUCT_SCENE,
+		PHASE_SLIP_SWARM_SCENE,
+		SHIELD_BREAKER_SCENE,
+		SEEKER_FRAGMENT_SCENE,
+	]
+	for i in range(maxi(super_secret_elite_count, 0)):
+		var scene := roster[i % roster.size()]
+		var enemy := scene.instantiate()
+		if enemy == null:
+			continue
+		enemy.name = "SuperSecretElite%d" % i
+		_tune_super_secret_enemy(enemy, false)
+		add_child(enemy)
+		var enemy_2d := enemy as Node2D
+		if enemy_2d != null:
+			var angle := TAU * float(i) / maxf(float(super_secret_elite_count), 1.0) + 0.21 * float(i % 3)
+			var radius := super_secret_spawn_radius * randf_range(0.58, 0.96)
+			enemy_2d.global_position = player.global_position + Vector2.from_angle(angle) * radius
+		_mark_title_secret_enemy(enemy)
+
+
+func _tune_super_secret_enemy(enemy: Node, is_boss: bool) -> void:
+	var health_multiplier := super_secret_boss_health_multiplier if is_boss else super_secret_enemy_health_multiplier
+	for field in [&"max_health", &"contact_damage", &"damage", &"projectile_speed", &"gravity_strength", &"rule_force", &"pull_force", &"move_speed", &"max_speed"]:
+		var value: Variant = enemy.get(field)
+		if value is float or value is int:
+			var multiplier := health_multiplier if field == &"max_health" else super_secret_speed_multiplier
+			if field == &"contact_damage" or field == &"damage" or field == &"gravity_strength" or field == &"rule_force" or field == &"pull_force":
+				multiplier = lerpf(super_secret_speed_multiplier, health_multiplier, 0.42)
+			enemy.set(field, float(value) * multiplier)
+	var attack_interval_value: Variant = enemy.get(&"attack_interval")
+	if attack_interval_value is float or attack_interval_value is int:
+		enemy.set(&"attack_interval", maxf(float(attack_interval_value) * 0.72, 0.35))
+	var projectile_count_value: Variant = enemy.get(&"projectile_count")
+	if projectile_count_value is int:
+		enemy.set(&"projectile_count", int(projectile_count_value) + 5)
+	elif projectile_count_value is float:
+		enemy.set(&"projectile_count", int(projectile_count_value) + 5)
+
+
+func _mark_title_secret_enemy(enemy: Node) -> void:
+	if enemy == null:
+		return
+	if not enemy.is_in_group("enemies"):
+		enemy.add_to_group("enemies")
+	if not enemy.is_in_group("wave_enemy"):
+		enemy.add_to_group("wave_enemy")
+	enemy.set_meta(&"title_super_secret_enemy", true)
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(enemy, &"enemies")
+		RuntimeRegistry.register_node(enemy, &"wave_enemy")
+
+
+func _announce_super_secret_completed() -> void:
+	_super_secret_completion_announced = true
+	_super_secret_mode_active = false
+	if audio_player != null:
+		audio_player.stop()
+	_dark_title_variant = false
+	if animation_player != null:
+		animation_player.stop()
+	var secret_player := get_node_or_null("SecretCompleted") as AudioStreamPlayer
+	if secret_player != null and not secret_player.playing:
+		secret_player.play()
+	var title_label := get_node_or_null("CenterContainer/Label") as Label
+	if title_label != null:
+		if _title_logo != null:
+			_title_logo.visible = false
+		title_label.visible = true
+		title_label.text = "SUPER SECRET COMPLETED"
+		title_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.22, 1.0))
+	if RunProgress != null:
+		RunProgress.arena_flags["title_super_secret_completed"] = true
+
+
+func _active_title_player() -> Node2D:
+	var player := get_tree().get_first_node_in_group("Player") as Node2D
+	if player == null or not is_instance_valid(player) or player.is_queued_for_deletion():
+		return null
+	if player.has_method("is_death_in_progress") and bool(player.call("is_death_in_progress")):
+		return null
+	if bool(player.get_meta(&"death_in_progress", false)):
+		return null
+	return player

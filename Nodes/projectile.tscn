@@ -31,6 +31,7 @@ max_contacts_reported = 2
 linear_damp_mode = 1
 angular_damp_mode = 1
 script = ExtResource("1_a85iw")
+gravity_constant = 100.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=740035178]
 shape = SubResource("CircleShape2D_dgwo2")

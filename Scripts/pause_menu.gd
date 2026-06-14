@@ -38,6 +38,8 @@ const SECTION_ACCENTS := {
 @onready var shake_slider: HSlider = find_child("ShakeSlider", true, false) as HSlider
 @onready var reduce_flash_check: CheckBox = find_child("ReduceFlashCheck", true, false) as CheckBox
 @onready var color_mode_option: OptionButton = find_child("ColorModeOption", true, false) as OptionButton
+@onready var trackpad_camera_check: CheckBox = find_child("TrackpadCameraCheck", true, false) as CheckBox
+@onready var alternate_movement_check: CheckBox = find_child("AlternateMovementCheck", true, false) as CheckBox
 @onready var seed_label: Label = find_child("SeedLabel", true, false) as Label
 @onready var copy_seed_button: Button = find_child("CopySeedButton", true, false) as Button
 @onready var mod_summary_label: Label = find_child("ModSummaryLabel", true, false) as Label
@@ -75,6 +77,7 @@ func _ready() -> void:
 	_setup_ui_audio()
 	_connect_buttons()
 	_apply_section_accents()
+	_ensure_optional_input_rows()
 	_setup_accessibility_controls()
 	_apply_menu_scale()
 	_update_modding_menu()
@@ -365,6 +368,47 @@ func _setup_accessibility_controls() -> void:
 		if not color_mode_option.item_selected.is_connected(_on_color_mode_selected):
 			color_mode_option.item_selected.connect(_on_color_mode_selected)
 
+	if trackpad_camera_check != null:
+		trackpad_camera_check.button_pressed = bool(Settings.trackpad_direct_camera)
+		if not trackpad_camera_check.toggled.is_connected(_on_trackpad_camera_toggled):
+			trackpad_camera_check.toggled.connect(_on_trackpad_camera_toggled)
+
+	if alternate_movement_check != null:
+		alternate_movement_check.button_pressed = bool(Settings.alternate_movement_enabled)
+		if not alternate_movement_check.toggled.is_connected(_on_alternate_movement_toggled):
+			alternate_movement_check.toggled.connect(_on_alternate_movement_toggled)
+
+
+func _ensure_optional_input_rows() -> void:
+	var rows := find_child("MenuRows", true, false) as VBoxContainer
+	if rows == null:
+		return
+	if trackpad_camera_check == null:
+		trackpad_camera_check = _make_pause_checkbox_row(rows, "TRACKPAD DIRECT CAMERA", "TrackpadCameraCheck")
+	if alternate_movement_check == null:
+		alternate_movement_check = _make_pause_checkbox_row(rows, "ALT MOVEMENT: BACK / A-D AIM NUDGE", "AlternateMovementCheck")
+
+
+func _make_pause_checkbox_row(parent: VBoxContainer, label_text: String, checkbox_name: String) -> CheckBox:
+	var row := HBoxContainer.new()
+	row.name = "%sRow" % checkbox_name.trim_suffix("Check")
+	row.add_theme_constant_override("separation", 10)
+	parent.add_child(row)
+
+	var label := Label.new()
+	label.text = label_text
+	label.clip_text = true
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_font_size_override("font_size", 14)
+	label.modulate = Color(0.76, 0.94, 0.95, 0.92)
+	row.add_child(label)
+
+	var checkbox := CheckBox.new()
+	checkbox.name = checkbox_name
+	checkbox.focus_mode = Control.FOCUS_ALL
+	row.add_child(checkbox)
+	return checkbox
+
 
 func _on_resume_pressed() -> void:
 	if active:
@@ -485,7 +529,7 @@ func _format_mod_entries(registry: Node) -> String:
 	var load_order_value: Variant = snapshot.get("load_order", [])
 	var load_order: Array = load_order_value if load_order_value is Array else []
 	if manifests.is_empty() and failed.is_empty():
-		return "No manifests found. Drop vector_anomaly_mod.json into res://Mods or user://mods."
+		return "No manifests found. Drop vector_anomaly_mod.json or mod.json into user mods, res://Mods, or the exported game's mods folder."
 	var lines: Array[String] = []
 	for manifest_id_value in load_order:
 		var manifest_id := String(manifest_id_value)
@@ -501,6 +545,10 @@ func _format_mod_entries(registry: Node) -> String:
 			str(manifest.get("version", "1")),
 			" by %s" % author if not author.is_empty() else "",
 		])
+		var source_kind := str(manifest.get("source_kind", "")).strip_edges()
+		var source_path := str(manifest.get("source_display_path", manifest.get("source_path", ""))).strip_edges()
+		if not source_kind.is_empty() and not source_path.is_empty():
+			lines.append("    %s | %s" % [source_kind.to_upper(), source_path])
 		var counts := _manifest_content_counts(content, manifest_id)
 		if not counts.is_empty():
 			lines.append("    %s" % _format_content_counts(counts))
@@ -518,6 +566,21 @@ func _format_mod_entries(registry: Node) -> String:
 		])
 	for path in failed.keys():
 		lines.append("! %s: %s" % [str(path), str(failed[path])])
+	var scan_roots_value: Variant = snapshot.get("scan_roots", [])
+	var scan_roots: Array = scan_roots_value if scan_roots_value is Array else []
+	if not scan_roots.is_empty():
+		lines.append("")
+		lines.append("Scan roots:")
+		for root_value in scan_roots:
+			if not (root_value is Dictionary):
+				continue
+			var root: Dictionary = root_value
+			var marker := "OK" if bool(root.get("exists", false)) else "MISS"
+			lines.append("    [%s] %s: %s" % [
+				marker,
+				str(root.get("source_kind", "custom")).to_upper(),
+				str(root.get("display_path", root.get("source_root", ""))),
+			])
 	return _join_lines(lines)
 
 
@@ -679,6 +742,16 @@ func _on_color_mode_selected(index: int) -> void:
 	if color_mode_option == null:
 		return
 	Settings.set_colorblind_mode(color_mode_option.get_item_id(index))
+	_play_settings_sound()
+
+
+func _on_trackpad_camera_toggled(enabled: bool) -> void:
+	Settings.set_trackpad_direct_camera(enabled)
+	_play_settings_sound()
+
+
+func _on_alternate_movement_toggled(enabled: bool) -> void:
+	Settings.set_alternate_movement_enabled(enabled)
 	_play_settings_sound()
 
 

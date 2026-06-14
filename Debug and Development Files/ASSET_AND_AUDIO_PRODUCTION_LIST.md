@@ -11,7 +11,10 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 - CODEX Completion 2026-06-06: The title screen now defaults to the generated Vector Anomaly logo texture while preserving a text fallback; capture-ready brand starter assets remain in `Assets/Brand/`.
 - Press kit screenshots that clearly show player, gravity source, threat, trajectory, and recovery path.
 - Trailer capture scenes for early clean vectors, mid-run resonance, late collapse, Rupture, and the music finale.
+- CODEX Completion 2026-06-12: Clip Lab now includes number-key capture presets for early clean vectors, slingshot mastery, mid-run resonance, boss-rule mutation, late collapse, and music finale staging. Actual recording still requires a normal non-headless run.
+- CODEX Completion 2026-06-13: Clip Lab now includes a seventh reduced-flash accessibility preset plus `F9` PNG capture and `F10` JSON capture-slate export to `user://marketing_captures`, so press stills and trailer slates can be produced from a normal run without headless Godot.
 - Boss silhouette polish for Gravity Warden, Accretion Core, Null Vector Seraph, Magnetar Twins, Tidal Rift Weaver, The Polymorph, Centrifuge Marshal, and The Resonance Singularity.
+- CODEX Completion 2026-06-12: Boss readability now has a shared silhouette-outline pass in `EnemyReadabilityDirector`, covering authored bosses and secret bosses without baking non-editable art into scenes.
 - Resonance zone glyphs for compression, slipstream, inversion, temporal scar, and harmonic orbit.
 - Edge indicator icons for gravity sources, enemies, bosses, rare events, and active co-op peers.
 - Projectile ownership accents for player shots, enemy shots, boss shots, captured satellites, and resonance-bent projectiles.
@@ -29,6 +32,7 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 - Space tear portal effect for future enemy emergence events.
 - Reduced-flash variants for all high-energy bursts.
 - CODEX Progress 2026-06-06: Time-dilation break and law-crack/Rupture glitch effects are hooked through capped director visuals.
+- CODEX Completion 2026-06-13: Production visual upgrade pass added phase-aware player aura/contrails, sharper projectile wakes, pooled VFX burst rings, enemy profile halos, boss silhouette reinforcement, planet gravity/fracture rings, black-hole horizon/shear rings, and a low-alpha animated title lattice. All new bright world visuals route through existing `Settings` alpha/radius caps.
 
 ## UI And Menu Assets
 
@@ -81,6 +85,7 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 - Finale clip: music beat causing a readable reality pulse.
 - Accessibility/readability capture: late-game spectacle that still shows where the player and threats are.
 - CODEX Prepared 2026-06-06: Shot and clip requirements are formalized in `Debug and Development Files/MARKETING_CAPTURE_MANIFEST.md`; actual media capture requires a normal non-headless run.
+- CODEX Completion 2026-06-13: The Clip Lab preset map now covers the hook, mastery, resonance, boss-rule, Rupture, finale, and reduced-flash accessibility capture needs, with clean still capture and metadata export available during normal play.
 
 ## Implementation Notes
 

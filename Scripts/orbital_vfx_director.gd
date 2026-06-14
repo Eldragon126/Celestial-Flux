@@ -22,6 +22,15 @@ class_name OrbitalVFXDirector
 @export var max_pooled_bursts_per_template: int = 8
 @export var burst_player_focus_radius: float = 1320.0
 @export var player_centered_burst_cooldown: float = 0.18
+@export_group("Burst Rings")
+@export var enable_burst_rings: bool = true
+@export var burst_ring_min_intensity: float = 0.28
+@export var max_active_burst_rings: int = 12
+@export var max_pooled_burst_rings: int = 18
+@export var burst_ring_lifetime: float = 0.34
+@export var burst_ring_radius: float = 58.0
+@export var burst_ring_width: float = 2.6
+@export_range(0.0, 1.0, 0.01) var burst_ring_alpha_cap: float = 0.26
 
 @export_group("Templates")
 @export var time_afterimage_template_path: NodePath = ^"Templates/TimeAfterimageBurst"
@@ -38,6 +47,8 @@ var _event_horizon: Node = null
 var _momentum: Node = null
 var _active_bursts: Array[GPUParticles2D] = []
 var _burst_pools: Dictionary = {}
+var _active_rings: Array[Dictionary] = []
+var _ring_pool: Array[Line2D] = []
 var _chaos_intensity: float = 0.0
 var _chaos_sample_elapsed: float = 999.0
 var _next_player_centered_burst_time: float = 0.0
@@ -60,6 +71,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_prune_finished_bursts()
+	_update_burst_rings(delta)
 	_update_chaos_intensity(delta)
 
 
@@ -210,6 +222,21 @@ func _on_wave_cleared(_wave: int) -> void:
 	_spawn_burst(_ambient_template, player_2d.global_position, 0.42, Color(0.35, 1.0, 0.88, 1.0))
 
 
+func spawn_enemy_death_burst(position: Vector2, velocity: Vector2 = Vector2.ZERO, is_boss: bool = false, rarity: float = 0.0) -> void:
+	var speed_intensity := clampf(velocity.length() / 1400.0, 0.0, 0.55)
+	var intensity := clampf(0.34 + speed_intensity + rarity * 0.2 + (0.28 if is_boss else 0.0), 0.24, 0.92)
+	var core_color := Color(0.34, 1.0, 0.86, 1.0)
+	var accent_color := Color(1.0, 0.68, 0.22, 1.0)
+	if is_boss:
+		core_color = Color(1.0, 0.28, 0.16, 1.0)
+		accent_color = Color(0.55, 0.9, 1.0, 1.0)
+	_spawn_burst(_shockwave_template, position, intensity, core_color)
+	var offset := velocity.normalized() * 22.0 if velocity.length_squared() > 1.0 else Vector2.ZERO
+	_spawn_burst(_ambient_template, position + offset, intensity * 0.72, accent_color)
+	if is_boss or rarity > 0.45:
+		_spawn_burst(_resonance_template, position - offset * 0.5, intensity * 0.8, Color(1.0, 0.9, 0.32, 1.0))
+
+
 func _on_powerup_applied(_definition: PowerupDefinition, _stacks: int) -> void:
 	var player_2d := _player as Node2D
 	if player_2d == null:
@@ -259,6 +286,7 @@ func _spawn_burst(template: GPUParticles2D, position: Vector2, intensity: float,
 	burst.restart()
 	burst.emitting = true
 	_active_bursts.append(burst)
+	_spawn_burst_ring(position, intensity, color)
 
 
 func _can_spawn_burst(template: GPUParticles2D, intensity: float, position: Vector2) -> bool:
@@ -319,6 +347,112 @@ func _burst_modulate(color: Color, intensity: float) -> Color:
 	if Settings != null and Settings.has_method("flash_alpha"):
 		alpha = Settings.flash_alpha(alpha)
 	return Color(color.r, color.g, color.b, alpha)
+
+
+func _spawn_burst_ring(position: Vector2, intensity: float, color: Color) -> void:
+	if not enable_burst_rings or intensity < burst_ring_min_intensity:
+		return
+	if visual_quality <= 0 or (low_performance_mode and intensity < 0.62):
+		return
+	if _active_rings.size() >= max_active_burst_rings:
+		return
+	var ring := _acquire_burst_ring()
+	if ring == null:
+		return
+	var clamped := clampf(intensity, 0.0, 1.0)
+	var radius := burst_ring_radius * lerpf(0.68, 1.65, clamped)
+	if Settings != null and Settings.has_method("world_effect_radius"):
+		radius = Settings.world_effect_radius(radius, 180.0)
+	ring.global_position = position
+	ring.scale = Vector2.ONE
+	ring.points = _ring_points(radius, 36 if visual_quality >= 2 else 22)
+	ring.width = burst_ring_width * lerpf(0.72, 1.42, clamped)
+	ring.default_color = Color(color.r, color.g, color.b, _safe_ring_alpha(burst_ring_alpha_cap * clamped, burst_ring_alpha_cap))
+	ring.visible = true
+	_active_rings.append({
+		"node": ring,
+		"age": 0.0,
+		"lifetime": burst_ring_lifetime * lerpf(0.78, 1.32, clamped),
+		"base_width": ring.width,
+		"color": color,
+		"alpha": burst_ring_alpha_cap * clamped,
+	})
+
+
+func _update_burst_rings(delta: float) -> void:
+	for idx in range(_active_rings.size() - 1, -1, -1):
+		var entry := _active_rings[idx]
+		var ring_value: Variant = entry.get("node")
+		if ring_value == null or not is_instance_valid(ring_value):
+			_active_rings.remove_at(idx)
+			continue
+		var ring := ring_value as Line2D
+		if ring == null:
+			_active_rings.remove_at(idx)
+			continue
+		var age := float(entry.get("age", 0.0)) + delta
+		var lifetime := maxf(float(entry.get("lifetime", burst_ring_lifetime)), 0.04)
+		var t := clampf(age / lifetime, 0.0, 1.0)
+		var color_value: Variant = entry.get("color", Color.WHITE)
+		var color := Color.WHITE
+		if color_value is Color:
+			color = color_value
+		var base_alpha := float(entry.get("alpha", burst_ring_alpha_cap))
+		ring.scale = Vector2.ONE * lerpf(1.0, 1.72, t)
+		ring.width = float(entry.get("base_width", burst_ring_width)) * lerpf(1.0, 0.18, t)
+		ring.default_color = Color(color.r, color.g, color.b, _safe_ring_alpha(base_alpha * pow(1.0 - t, 1.4), burst_ring_alpha_cap))
+		entry["age"] = age
+		_active_rings[idx] = entry
+		if age >= lifetime:
+			_release_burst_ring(ring)
+			_active_rings.remove_at(idx)
+
+
+func _acquire_burst_ring() -> Line2D:
+	for ring in _ring_pool:
+		if ring != null and is_instance_valid(ring) and not ring.visible:
+			return ring
+	if _ring_pool.size() >= max_pooled_burst_rings:
+		return null
+	var ring := Line2D.new()
+	ring.name = "PooledBurstRing"
+	ring.closed = true
+	ring.antialiased = true
+	ring.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	ring.end_cap_mode = Line2D.LINE_CAP_ROUND
+	ring.z_index = 41
+	ring.visible = false
+	_burst_root.add_child(ring)
+	_ring_pool.append(ring)
+	return ring
+
+
+func _release_burst_ring(ring: Line2D) -> void:
+	if ring == null or not is_instance_valid(ring):
+		return
+	ring.visible = false
+	ring.scale = Vector2.ONE
+	if ring.get_parent() == null:
+		_burst_root.add_child(ring)
+	elif ring.get_parent() != _burst_root:
+		ring.reparent(_burst_root)
+
+
+func _ring_points(radius: float, segments: int) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var count := maxi(segments, 8)
+	for i in range(count):
+		var angle := TAU * float(i) / float(count)
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points
+
+
+func _safe_ring_alpha(alpha: float, hard_cap: float) -> float:
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		return Settings.world_visual_alpha(alpha, hard_cap)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return minf(Settings.flash_alpha(alpha), hard_cap)
+	return minf(alpha, hard_cap)
 
 
 func _prune_finished_bursts() -> void:

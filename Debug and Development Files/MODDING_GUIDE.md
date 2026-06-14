@@ -6,16 +6,28 @@ The design goal is unusual flexibility without runtime chaos: mod packs describe
 
 ## Where Mods Live
 
-`ModContentRegistry` scans two roots:
+`ModContentRegistry` scans export-safe roots:
 
-- `res://Mods`
-- `user://mods`
+- `res://Mods` for bundled development/build packs
+- `user://mods` for the per-platform writable mod folder
+- `mods` and `Mods` beside the exported executable on desktop builds
+- Any explicitly configured `additional_mod_roots`
 
-Each mod can place `vector_anomaly_mod.json` directly in the root or inside its own folder.
+The user mod folder is created automatically. Each root is scanned recursively, so a mod can live directly in the root or inside nested author/collection folders.
+
+Preferred manifest name:
+
+- `vector_anomaly_mod.json`
+
+Legacy alias still accepted:
+
+- `mod.json`
 
 The reference pack lives at:
 
 - `res://Mods/example_vector_laws/vector_anomaly_mod.json`
+
+Asset paths inside manifests can use `res://`, `user://`, or manifest-relative paths such as `assets/sfx/mirror_hit.ogg`. Relative paths are resolved against the manifest folder at runtime, which keeps the same mod folder portable between Windows, macOS, Linux, and desktop portable builds.
 
 ## Safety Boundary
 
@@ -29,10 +41,12 @@ This gives the game a huge future mod surface without turning early mod loading 
 
 The registry supports root-level arrays and nested `content` arrays for these buckets:
 
-- `arenas`, `waves`, `upgrades`, `rules`
-- `powerups`, `weapons`, `enemies`, `bosses`
+- `arenas`, `levels`, `level_packs`, `maps`, `campaigns`
+- `waves`, `upgrades`, `rules`, `powerups`, `weapons`
+- `enemies`, `enemy_packs`, `bosses`, `boss_packs`
 - `arena_events`, `celestial_bodies`, `physics_drops`
-- `materials`, `prefabs`, `entities`, `gamemodes`, `npc_behaviors`
+- `materials`, `shader_packs`, `texture_packs`, `prefabs`, `entities`, `gamemodes`
+- `total_conversions`, `expansion_packs`, `npc_behaviors`
 - `sfx`, `music`, `hud_badges`, `maps`, `tools`
 - `law_weaves`, `anomaly_recipes`, `challenge_cards`
 - `mod_palettes`, `creator_notes`
@@ -48,7 +62,7 @@ Every entry needs a stable local `id`. The registry stores it as a namespaced `q
   "display_name": "Example Vector Laws",
   "author": "Vector Anomaly Team",
   "version": 1,
-  "schema_version": 2,
+  "schema_version": 3,
   "description": "A safe sample content pack.",
   "tags": ["sample", "physics"],
   "dependencies": [
@@ -226,7 +240,18 @@ Every new content type should declare how it affects multiplayer and challenges:
 
 `NetworkSession` hashes the normalized mod registry compatibility signature, including gameplay-affecting weapon and hookable entries, so mismatched gameplay mod packs can fail cleanly before co-op starts. Entries marked `local_visual` are intentionally excluded from the compatibility signature. The title-screen/pre-run fallback also filters manifest hashes to gameplay-affecting entries, so local palettes, music, creator notes, and HUD cosmetics do not falsely block a LAN join.
 
-Hookable entries marked `local_visual` may only request local-safe effect actions: `emit_hud_badge`, `play_sfx`, or `request_music_layer`.
+Hookable entries marked `local_visual` may only request local-safe effect actions: `emit_hud_badge`, `play_sfx`, `request_music_layer`, `apply_shader_pack`, or `apply_texture_pack`.
+
+## Larger Creator Surfaces
+
+The registry now exposes first-class creator surfaces for large mods:
+
+- Custom levels and campaigns: `levels`, `level_packs`, `maps`, `campaigns`
+- Enemy and boss libraries: `enemies`, `enemy_packs`, `bosses`, `boss_packs`, `entities`, `prefabs`
+- Minecraft-style visual packs: `shader_packs`, `texture_packs`, local-only by default
+- Calamity-style expansions: `total_conversions`, `expansion_packs`
+
+These entries are cataloged and compatibility-tagged now, while trusted directors and editor tools can consume them incrementally. The default boundary is still safe and deterministic: no arbitrary scripts run unless trusted script pack registration is explicitly enabled.
 
 ## Registry API
 
@@ -242,10 +267,19 @@ Useful calls:
 - `get_entry(content_type, entry_id)`
 - `get_hook_entries(hook_id)`
 - `get_playable_weapon_entries()`
+- `get_level_entries()`
+- `get_enemy_pack_entries()`
+- `get_shader_pack_entries()`
+- `get_total_conversion_entries()`
+- `get_entries_for_creator_surface(surface)`
 - `get_manifest(manifest_id)`
 - `get_manifest_load_order()`
 - `get_dependency_warnings()`
 - `get_compatibility_signature()`
+- `get_scan_roots()`
+- `get_mod_install_paths()`
+- `resolve_mod_path(path, context)`
+- `resolve_entry_path(entry, field)`
 
 Useful signals:
 
@@ -274,8 +308,8 @@ The registry rejects manifests when:
 - a known content bucket is not an array
 - an entry is not an object
 - an entry is missing `id`
-- path fields such as `scene`, `resource`, `script`, `stream`, or `icon` are not `res://` or `user://`
-- path fields contain `..`
+- path fields such as `scene`, `resource`, `script`, `stream`, or `icon` are not `res://`, `user://`, or manifest-relative
+- path fields contain `..`, unsupported URI schemes, or absolute filesystem paths
 - a `script` path appears outside trusted script buckets
 - weapon fire modes, patterns, payload values, or named resonance/scar types are invalid
 - hookable entries use unknown hooks, condition types, or effect actions
@@ -287,6 +321,8 @@ Missing required dependencies disable the manifest and its content. Optional dep
 
 ## Current Runtime Status
 
-The registry, sample manifest, pause-menu status readout, compatibility signature, playable projectile weapon loading, safe hook activation, and LAN hook replay are code-side foundations now. Hookable law weaves, recipes, and challenge cards can apply bounded live effects through `ModHookDirector`, while higher-level requests are recorded for trusted directors instead of spawning arbitrary scenes.
+The registry, sample manifest, mod-manager scan-root readout, pause-menu status readout, compatibility signature, playable projectile weapon loading, safe hook activation, and LAN hook replay are code-side foundations now. Hookable law weaves, recipes, and challenge cards can apply bounded live effects through `ModHookDirector`, while higher-level requests are recorded for trusted directors instead of spawning arbitrary scenes.
+
+Export portability is now part of the contract: the runtime scans `user://mods`, optional executable-adjacent folders, bundled `res://Mods`, and nested mod directories; accepts `vector_anomaly_mod.json` plus the legacy `mod.json`; resolves manifest-relative asset paths without baking local machine paths into multiplayer compatibility hashes; and lets mod SFX load from exported external folders when the file type is supported by Godot's runtime audio streams.
 
 That separation is intentional. It lets the game grow toward a wild modding ecosystem while keeping V1 runtime behavior deterministic, inspectable, multiplayer-aware, and production-safe.
