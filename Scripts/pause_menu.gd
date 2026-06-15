@@ -24,6 +24,9 @@ const SECTION_ACCENTS := {
 @export var title_scene_path: String = "res://Nodes/title_screen.tscn"
 @export var run_scene_path: String = "res://Nodes/the_abyss.tscn"
 
+@export_group("Tutorial")
+@export var disable_pause_in_tutorial: bool = true
+
 @export_group("Pulse")
 @export var enable_pulse: bool = true
 @export var pulse_strength: float = 0.022
@@ -76,9 +79,11 @@ func _ready() -> void:
 	music_player.volume_db = -80.0
 	_setup_ui_audio()
 	_connect_buttons()
-	_apply_section_accents()
+	_apply_pause_readability_palette()
+	_configure_weapon_status_label()
 	_ensure_optional_input_rows()
 	_setup_accessibility_controls()
+	_apply_pause_readability_palette()
 	_apply_menu_scale()
 	_update_modding_menu()
 	_update_multiplayer_menu()
@@ -89,6 +94,9 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	var real_delta := get_process_delta_time()
 	shader_time += real_delta
+	if (active or is_transitioning) and _pause_disabled_for_current_scene():
+		_force_unpause()
+		return
 
 	if has_node("SineWaveBack") and $SineWaveBack.material is ShaderMaterial:
 		$SineWaveBack.material.set_shader_parameter("real_time", shader_time)
@@ -104,6 +112,10 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("Menu") and _pause_disabled_for_current_scene():
+		_force_unpause()
+		get_viewport().set_input_as_handled()
+		return
 	if not active and not is_transitioning:
 		return
 	if event.is_action_pressed("Menu"):
@@ -116,6 +128,10 @@ func is_gameplay_blocked() -> bool:
 
 
 func toggle_pause() -> void:
+	if _pause_disabled_for_current_scene():
+		if active or is_transitioning:
+			_force_unpause()
+		return
 	if is_transitioning:
 		return
 	if not active:
@@ -244,9 +260,73 @@ func _apply_section_accents() -> void:
 			continue
 		var accent_value: Variant = SECTION_ACCENTS[node_name]
 		var accent: Color = accent_value if accent_value is Color else Color(0.62, 0.92, 1.0, 0.96)
+		accent = _readability_color(accent)
 		label.add_theme_color_override("font_color", accent)
 		label.add_theme_color_override("font_outline_color", Color(accent.r, accent.g, accent.b, 0.22))
 		label.add_theme_constant_override("outline_size", 4)
+
+
+func _apply_pause_readability_palette() -> void:
+	_apply_section_accents()
+	var accent := _readability_color(Color(0.0, 0.86, 1.0, 0.5))
+	var hot := _readability_color(Color(0.78, 1.0, 0.38, 0.88))
+	var quiet := _readability_color(Color(0.52, 0.72, 0.82, 0.34))
+	var background := get_node_or_null("SineWaveBack") as ColorRect
+	if background != null and background.material is ShaderMaterial:
+		var mat := background.material as ShaderMaterial
+		mat.set_shader_parameter("color_a", _readability_color(Color(0.0, 1.0, 1.0, 0.42)))
+		mat.set_shader_parameter("color_b", _readability_color(Color(0.18, 0.0, 0.36, 0.36)))
+		mat.set_shader_parameter("color_neon", _readability_color(Color(0.92, 0.86, 1.0, 0.9)))
+	if menu_panel != null:
+		menu_panel.add_theme_stylebox_override(
+			"panel",
+			_make_readability_style(Color(0.006, 0.012, 0.024, 0.94), accent, 2)
+		)
+	var buttons: Array[Button] = []
+	_collect_buttons(self, buttons)
+	for button in buttons:
+		_apply_button_readability_style(button, accent, hot, quiet)
+
+
+func _apply_button_readability_style(button: Button, accent: Color, hot: Color, quiet: Color) -> void:
+	if button == null:
+		return
+	button.add_theme_stylebox_override("normal", _make_readability_style(Color(0.012, 0.05, 0.075, 0.88), accent, 1))
+	button.add_theme_stylebox_override("hover", _make_readability_style(Color(0.016, 0.09, 0.13, 0.94), Color(accent.r, accent.g, accent.b, 0.74), 1))
+	button.add_theme_stylebox_override("pressed", _make_readability_style(Color(0.0, 0.14, 0.18, 1.0), hot, 1))
+	button.add_theme_stylebox_override("disabled", _make_readability_style(Color(0.022, 0.026, 0.038, 0.72), quiet, 1))
+
+
+func _make_readability_style(bg: Color, border: Color, width: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_color = border
+	style.set_border_width_all(width)
+	style.set_corner_radius_all(6)
+	style.content_margin_left = 14.0
+	style.content_margin_right = 14.0
+	style.content_margin_top = 8.0
+	style.content_margin_bottom = 8.0
+	return style
+
+
+func _readability_color(color: Color) -> Color:
+	if Settings != null and Settings.has_method("apply_readability_color"):
+		return Settings.apply_readability_color(color)
+	return color
+
+
+func _pause_disabled_for_current_scene() -> bool:
+	if not disable_pause_in_tutorial or get_tree() == null:
+		return false
+	var scene := get_tree().current_scene
+	if scene != null:
+		var scene_name := String(scene.name).to_lower()
+		var scene_path := String(scene.scene_file_path).to_lower()
+		if scene.is_in_group("tutorial") or scene_name.contains("tutorial") or scene_path.ends_with("playable_tutorial.tscn"):
+			return true
+	var tutorial_node := get_tree().get_first_node_in_group("tutorial")
+	return tutorial_node != null
 
 
 func _play_ui_sound(stream: AudioStream, volume_db: float = -12.0, pitch: float = 1.0) -> void:
@@ -337,6 +417,14 @@ func _connect_buttons() -> void:
 		weapon_previous_button.pressed.connect(_on_weapon_previous_pressed)
 	if weapon_next_button != null and not weapon_next_button.pressed.is_connected(_on_weapon_next_pressed):
 		weapon_next_button.pressed.connect(_on_weapon_next_pressed)
+
+
+func _configure_weapon_status_label() -> void:
+	if weapon_status_label == null:
+		return
+	weapon_status_label.clip_text = false
+	weapon_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	weapon_status_label.custom_minimum_size = Vector2(maxf(weapon_status_label.custom_minimum_size.x, 440.0), 62.0)
 
 
 func _setup_accessibility_controls() -> void:
@@ -504,10 +592,11 @@ func _update_modding_menu() -> void:
 
 
 func _format_mod_summary(summary: Dictionary) -> String:
-	return "MODS %d | CONTENT %d | OFF %d | WARN %d | FAIL %d" % [
+	return "MODS %d | CONTENT %d | OFF %d | TOGGLED %d | WARN %d | FAIL %d" % [
 		int(summary.get("manifest_count", 0)),
 		int(summary.get("content_total", 0)),
 		int(summary.get("disabled", 0)),
+		int(summary.get("user_disabled", 0)),
 		int(summary.get("dependency_warnings", 0)),
 		int(summary.get("failed", 0)),
 	]
@@ -537,7 +626,12 @@ func _format_mod_entries(registry: Node) -> String:
 			continue
 		var manifest_value: Variant = manifests[manifest_id]
 		var manifest: Dictionary = manifest_value if manifest_value is Dictionary else {}
+		var user_disabled := bool(manifest.get("user_disabled", false))
 		var status := "OK" if bool(manifest.get("enabled", true)) else "OFF"
+		if user_disabled:
+			status = "USER OFF"
+		elif not bool(manifest.get("enabled", true)):
+			status = "BLOCKED"
 		var author := str(manifest.get("author", "")).strip_edges()
 		lines.append("[%s] %s v%s%s" % [
 			status,
@@ -673,19 +767,34 @@ func _update_weapon_menu() -> void:
 	var energy := int(round(float(state.get("energy", 0.0))))
 	var max_energy := int(round(float(state.get("max_energy", 1.0))))
 	var fire_mode := StringName(state.get("fire_mode", &"projectile"))
+	var mode_label := String(fire_mode).to_upper()
 	var raw_cost := float(state.get("cost_per_second", 0.0))
-	if fire_mode != &"beam":
+	if fire_mode == &"field":
+		raw_cost = float(state.get("cost_per_use", 0.0))
+	elif fire_mode != &"beam":
 		raw_cost = float(state.get("cost_per_shot", 0.0))
 	var cost := int(round(raw_cost))
-	var cost_label := "/s" if fire_mode == &"beam" else "/shot"
-	weapon_status_label.text = "%d/%d | %s | E %d/%d | %d%s" % [
+	var cost_label := "/s" if fire_mode == &"beam" else ("/use" if fire_mode == &"field" else "/shot")
+	var unlocked := int(state.get("unlocked_count", count))
+	var total := maxi(int(state.get("total_weapon_count", unlocked)), unlocked)
+	var next_wave := int(state.get("next_unlock_wave", -1))
+	var pool_text := "ALL WEAPONS" if total <= unlocked else "%d/%d UNLOCKED" % [unlocked, total]
+	var next_text := "" if next_wave < 0 or total <= unlocked else " | NEXT WAVE %d" % next_wave
+	var role := String(state.get("role", "baseline vector shot")).to_upper()
+	var play_hint := String(state.get("play_hint", "surf gravity, keep the chain alive")).to_upper()
+	weapon_status_label.text = "%d/%d | %s | %s | E %d/%d | %d%s\n%s | %s%s\n%s" % [
 		index,
 		count,
 		display_name,
+		mode_label,
 		energy,
 		max_energy,
 		cost,
 		cost_label,
+		role,
+		pool_text,
+		next_text,
+		play_hint,
 	]
 
 
@@ -736,6 +845,7 @@ func _on_shake_changed(value: float) -> void:
 func _on_reduce_flash_toggled(enabled: bool) -> void:
 	Settings.set_reduce_flash(enabled)
 	_play_settings_sound()
+	_apply_pause_readability_palette()
 
 
 func _on_color_mode_selected(index: int) -> void:
@@ -743,6 +853,7 @@ func _on_color_mode_selected(index: int) -> void:
 		return
 	Settings.set_colorblind_mode(color_mode_option.get_item_id(index))
 	_play_settings_sound()
+	_apply_pause_readability_palette()
 
 
 func _on_trackpad_camera_toggled(enabled: bool) -> void:

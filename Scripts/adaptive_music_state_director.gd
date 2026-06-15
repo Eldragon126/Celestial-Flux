@@ -16,6 +16,8 @@ var _arena_chaos: float = 0.0
 var _resonance_pressure: float = 0.0
 var _time_pressure: float = 0.0
 var _boss_pressure: float = 0.0
+var _flow_pressure: float = 0.0
+var _chain_pressure: float = 0.0
 var _target_intensity: float = 0.0
 var _current_intensity: float = 0.0
 var _last_emitted_intensity: float = -1.0
@@ -39,6 +41,7 @@ func _process(delta: float) -> void:
 	if _sample_timer >= sample_interval:
 		_sample_timer = 0.0
 		_refresh_boss_pressure()
+		_refresh_skill_pressure()
 		_update_target_intensity()
 	_current_intensity = lerpf(
 		_current_intensity,
@@ -58,6 +61,8 @@ func get_music_state() -> Dictionary:
 		"resonance_pressure": _resonance_pressure,
 		"time_pressure": _time_pressure,
 		"boss_pressure": _boss_pressure,
+		"flow_pressure": _flow_pressure,
+		"chain_pressure": _chain_pressure,
 	}
 
 
@@ -76,6 +81,10 @@ func _bootstrap() -> void:
 	_connect_once(time_manager, &"time_tear_intensity_changed", Callable(self, "_on_time_tear_intensity_changed"))
 	_connect_once(_wave_director, &"boss_wave", Callable(self, "_on_boss_wave"))
 	_connect_once(_wave_director, &"regular_wave", Callable(self, "_on_regular_wave"))
+	_connect_once(get_tree().get_first_node_in_group("run_score_tracker"), &"run_chain_changed", Callable(self, "_on_run_chain_changed"))
+	var player := _local_player()
+	if player != null:
+		_connect_once(player.get_node_or_null("MomentumCombatComponent"), &"flow_state_changed", Callable(self, "_on_flow_state_changed"))
 
 
 func _connect_once(source: Node, signal_name: StringName, callable: Callable) -> void:
@@ -87,10 +96,12 @@ func _connect_once(source: Node, signal_name: StringName, callable: Callable) ->
 
 func _update_target_intensity() -> void:
 	_target_intensity = clampf(
-		_arena_chaos * 0.38
-		+ _resonance_pressure * 0.24
-		+ _time_pressure * 0.18
-		+ _boss_pressure * 0.2,
+		_arena_chaos * 0.28
+		+ _resonance_pressure * 0.2
+		+ _time_pressure * 0.15
+		+ _boss_pressure * 0.18
+		+ _flow_pressure * 0.14
+		+ _chain_pressure * 0.12,
 		0.0,
 		1.0
 	)
@@ -113,6 +124,8 @@ func _emit_beat_hint_if_needed() -> void:
 	var event_id := &"pulse"
 	if _current_intensity > 0.86:
 		event_id = &"collapse"
+	elif _chain_pressure > 0.58:
+		event_id = &"flow_chain"
 	elif _current_intensity > 0.72:
 		event_id = &"burst"
 	music_beat_hint.emit(event_id, _current_intensity)
@@ -141,6 +154,25 @@ func _refresh_boss_pressure() -> void:
 			return
 
 
+func _refresh_skill_pressure() -> void:
+	var player := _local_player()
+	if player != null and is_instance_valid(player):
+		var active := bool(player.get_meta(&"momentum_flow_active", false))
+		_flow_pressure = clampf(float(player.get_meta(&"momentum_flow_intensity", 0.0)), 0.0, 1.0) if active else maxf(_flow_pressure - sample_interval * 0.55, 0.0)
+	var tracker := get_tree().get_first_node_in_group("run_score_tracker")
+	if tracker == null or not tracker.has_method("get_score_snapshot"):
+		_chain_pressure = maxf(_chain_pressure - sample_interval * 0.45, 0.0)
+		return
+	var value: Variant = tracker.call("get_score_snapshot")
+	if not (value is Dictionary):
+		return
+	var snapshot: Dictionary = value
+	if float(snapshot.get("run_chain_timer", 0.0)) <= 0.0:
+		_chain_pressure = maxf(_chain_pressure - sample_interval * 0.45, 0.0)
+		return
+	_chain_pressure = clampf(float(snapshot.get("run_chain_count", 0)) / 10.0, 0.0, 1.0)
+
+
 func _on_chaos_level_changed(value: float) -> void:
 	_arena_chaos = clampf(value, 0.0, 1.0)
 
@@ -166,3 +198,24 @@ func _on_boss_wave() -> void:
 func _on_regular_wave() -> void:
 	_boss_pressure = 0.0
 	_emit_music_state_if_needed(&"regular_wave")
+
+
+func _on_run_chain_changed(chain_count: int, _multiplier: float, timer: float, reason: StringName) -> void:
+	_chain_pressure = clampf(float(chain_count) / 10.0, 0.0, 1.0) if timer > 0.0 else 0.0
+	_emit_music_state_if_needed(reason)
+
+
+func _on_flow_state_changed(active: bool, intensity: float) -> void:
+	_flow_pressure = clampf(intensity, 0.0, 1.0) if active else 0.0
+	_emit_music_state_if_needed(&"flow_state")
+
+
+func _local_player() -> Node:
+	if MultiplayerTargeting != null and MultiplayerTargeting.has_method("local_player"):
+		var player_value: Variant = MultiplayerTargeting.call("local_player", get_tree())
+		if player_value is Node and is_instance_valid(player_value):
+			return player_value
+	for player in get_tree().get_nodes_in_group("Player"):
+		if is_instance_valid(player):
+			return player
+	return null

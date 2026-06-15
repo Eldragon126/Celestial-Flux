@@ -4,52 +4,26 @@ class_name WeaponSystem
 signal weapon_changed(weapon_id: StringName, display_name: String, weapon_data: Dictionary)
 signal weapon_fired(weapon_id: StringName, weapon_data: Dictionary)
 signal weapon_energy_failed(weapon_id: StringName, required_energy: float, available_energy: float)
+signal weapon_pool_changed(unlocked_count: int, total_count: int, newly_unlocked: Array[String])
 
 const PROJECTILE_SCENE := preload("res://Nodes/projectile.tscn")
 const WEAPON_IDS: Array[StringName] = [
 	&"vector_bolt",
+	&"harmonic_needle",
 	&"relativistic_rail",
 	&"barycentric_splitter",
-	&"vacuum_collapse_seed",
+	&"gravity_lance",
 	&"temporal_splinter",
 	&"inversion_disc",
-	&"harmonic_needle",
-	&"shear_comet",
-	&"singularity_pin",
-	&"event_horizon_shard",
-	&"gravity_lance",
-	&"orbit_saw",
-	&"tidal_mortar",
-	&"chronal_mirror_shot",
+	&"vacuum_collapse_seed",
 	&"polarity_javelin",
-	&"lensing_flak",
-	&"rift_anchor",
-	&"apex_vector_spear",
-	&"phase_suture",
-	&"null_rebounder",
-	&"graviton_bloom",
-	&"causal_anchor",
-	&"vector_prism",
+	&"singularity_pin",
+	&"tidal_mortar",
 	&"mass_driver",
-	&"tidal_skein",
-	&"scar_carver",
-	&"chronal_needleloom",
-	&"singularity_kite",
-	&"inertia_maul",
-	&"harmonic_bloom",
-	&"singularity_bell",
-	&"gravity_loom",
-	&"orbital_lasso",
-	&"kinetic_ram",
-	&"temporal_bloom",
-	&"phase_guillotine",
-	&"event_horizon_veil",
-	&"mass_siphon",
-	&"inversion_chime",
-	&"resonance_anvil",
 	&"positron_beam",
 	&"gravity_wave_beam",
 	&"chronal_refraction_beam",
+	&"event_horizon_shard",
 ]
 const WEAPON_NAMES := {
 	&"vector_bolt": "Vector Bolt",
@@ -95,6 +69,51 @@ const WEAPON_NAMES := {
 	&"positron_beam": "Positron Beam",
 	&"gravity_wave_beam": "Gravity Wave Beam",
 	&"chronal_refraction_beam": "Chronal Refraction Beam",
+}
+const WEAPON_UNLOCK_WAVES := {
+	&"vector_bolt": 0,
+	&"harmonic_needle": 0,
+	&"relativistic_rail": 2,
+	&"barycentric_splitter": 3,
+	&"gravity_lance": 4,
+	&"temporal_splinter": 5,
+	&"orbit_saw": 4,
+	&"inversion_disc": 6,
+	&"lensing_flak": 6,
+	&"chronal_mirror_shot": 6,
+	&"vacuum_collapse_seed": 8,
+	&"shear_comet": 8,
+	&"polarity_javelin": 9,
+	&"vector_prism": 8,
+	&"singularity_pin": 10,
+	&"tidal_skein": 10,
+	&"phase_suture": 10,
+	&"gravity_loom": 10,
+	&"positron_beam": 14,
+	&"tidal_mortar": 12,
+	&"scar_carver": 12,
+	&"mass_driver": 16,
+	&"null_rebounder": 15,
+	&"temporal_bloom": 15,
+	&"orbital_lasso": 15,
+	&"mass_siphon": 15,
+	&"chronal_needleloom": 18,
+	&"singularity_kite": 18,
+	&"inversion_chime": 18,
+	&"event_horizon_veil": 18,
+	&"gravity_wave_beam": 18,
+	&"rift_anchor": 22,
+	&"graviton_bloom": 22,
+	&"kinetic_ram": 22,
+	&"phase_guillotine": 22,
+	&"singularity_bell": 22,
+	&"causal_anchor": 26,
+	&"inertia_maul": 26,
+	&"harmonic_bloom": 26,
+	&"resonance_anvil": 26,
+	&"chronal_refraction_beam": 22,
+	&"event_horizon_shard": 28,
+	&"apex_vector_spear": 30,
 }
 const EXTRA_WEAPON_DEFINITIONS := {
 	&"gravity_lance": {
@@ -527,7 +546,7 @@ const EXTRA_WEAPON_DEFINITIONS := {
 		"shot_count": 1,
 		"pattern": &"single",
 		"role": "heavy velocity punch",
-		"color": Color(0.9, 1.0, 0.82, 1.0),
+		"color": Color(0.56, 0.92, 1.0, 1.0),
 		"trail_color": Color(0.36, 0.66, 1.0, 0.94),
 		"visual_scale": 1.08,
 		"payload": {
@@ -875,6 +894,12 @@ const IMPACT_RING_WIDTH: float = 2.0
 @export var enable_switch_hotkeys: bool = true
 @export var switch_cooldown: float = 0.14
 
+@export_group("Weapon Progression")
+@export var progressive_weapon_unlocks: bool = true
+@export var clip_lab_unlocks_all_weapons: bool = true
+@export var mod_weapons_unlock_wave: int = 6
+@export var weapon_unlock_check_interval: float = 0.42
+
 @export_group("Beam Geometry")
 @export var beam_range: float = 1180.0
 @export var positron_beam_width: float = 74.0
@@ -987,7 +1012,7 @@ const IMPACT_RING_WIDTH: float = 2.0
 
 @export_group("Visuals")
 @export var vector_bolt_color: Color = Color(0.34, 1.0, 0.86, 1.0)
-@export var relativistic_rail_color: Color = Color(0.86, 1.0, 1.0, 1.0)
+@export var relativistic_rail_color: Color = Color(0.42, 0.9, 1.0, 1.0)
 @export var barycentric_splitter_color: Color = Color(0.56, 1.0, 0.58, 1.0)
 @export var vacuum_seed_color: Color = Color(1.0, 0.38, 0.2, 1.0)
 @export var temporal_splinter_color: Color = Color(0.74, 0.36, 1.0, 1.0)
@@ -999,6 +1024,7 @@ const IMPACT_RING_WIDTH: float = 2.0
 @export var positron_color: Color = Color(1.0, 0.72, 0.28, 1.0)
 @export var gravity_wave_color: Color = Color(0.3, 0.72, 1.0, 1.0)
 @export var chronal_color: Color = Color(0.74, 0.36, 1.0, 1.0)
+@export_range(0.0, 1.0, 0.01) var projectile_core_alpha_cap: float = 0.62
 @export_range(0.0, 0.42, 0.01) var beam_alpha_cap: float = 0.34
 @export var beam_impact_radius_cap: float = 96.0
 @export var beam_pulse_speed: float = 10.0
@@ -1034,6 +1060,11 @@ var _chronal_phantoms_this_tick: int = 0
 var _chronal_async_generation: int = 0
 var _beam_points := PackedVector2Array([Vector2.ZERO, Vector2.ZERO])
 var _chronal_trace_pool: Array[Line2D] = []
+var _progression_unlock_token: String = ""
+var _last_unlocked_weapon_count: int = 0
+var _weapon_unlock_check_elapsed: float = 999.0
+var _total_weapon_catalog_count: int = 0
+var _cached_progression_wave: int = 0
 
 
 func _ready() -> void:
@@ -1042,7 +1073,10 @@ func _ready() -> void:
 	call_deferred("_resolve_pause_menu")
 	_configure_query()
 	_ensure_visual_nodes()
+	_cached_progression_wave = _sample_weapon_progression_wave()
 	_initialize_weapon_catalog()
+	_progression_unlock_token = _current_weapon_unlock_token()
+	_last_unlocked_weapon_count = _weapon_ids.size()
 	_connect_network_session()
 	select_weapon(selected_weapon_index)
 	set_process_unhandled_input(true)
@@ -1050,6 +1084,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_update_weapon_progression(delta)
+
 	if _is_gameplay_blocked() or _is_player_dead():
 		_end_beam()
 		return
@@ -1150,11 +1186,21 @@ func get_weapon_debug_state() -> Dictionary:
 	var interval := get_current_fire_interval()
 	var cooldown_remaining := maxf(interval - (_now_seconds() - _last_projectile_fire_time), 0.0) if is_projectile or is_field else 0.0
 	var field_cost := _field_energy_cost(_active_weapon_id)
+	var total_weapons := _total_weapon_count()
+	var next_unlock_wave := _next_weapon_unlock_wave()
 	return {
 		"weapon_id": _active_weapon_id,
 		"display_name": _display_name(_active_weapon_id),
 		"index": selected_weapon_index,
 		"count": _weapon_ids.size(),
+		"unlocked_count": _weapon_ids.size(),
+		"total_weapon_count": total_weapons,
+		"progression_wave": _current_weapon_progression_wave(),
+		"unlock_wave": _weapon_unlock_wave(_active_weapon_id),
+		"next_unlock_wave": next_unlock_wave,
+		"next_unlock_names": _next_weapon_unlock_names(next_unlock_wave),
+		"progression_active": progressive_weapon_unlocks and not _all_weapons_unlocked_for_context(),
+		"clip_lab_all_weapons": _is_clip_lab_context() and _all_weapons_unlocked_for_context(),
 		"fire_mode": &"beam" if is_beam else (&"field" if is_field else &"projectile"),
 		"is_projectile": is_projectile,
 		"is_field": is_field,
@@ -1170,6 +1216,7 @@ func get_weapon_debug_state() -> Dictionary:
 		"cost_per_use": field_cost,
 		"ready": cooldown_remaining <= 0.001 and energy >= _minimum_energy_for_weapon(_active_weapon_id),
 		"role": _weapon_role(_active_weapon_id),
+		"play_hint": _weapon_play_hint(_active_weapon_id),
 		"color": _weapon_color(_active_weapon_id),
 		"prediction": _projectile_prediction_state(_active_weapon_id),
 	}
@@ -1181,10 +1228,12 @@ func _initialize_weapon_catalog() -> void:
 	_weapon_catalog.clear()
 
 	for weapon_id in WEAPON_IDS:
-		_register_builtin_weapon(weapon_id)
+		if _weapon_available_in_current_context(weapon_id):
+			_register_builtin_weapon(weapon_id)
 
 	_bind_mod_registry()
 	_register_mod_weapons()
+	_total_weapon_catalog_count = maxi(WEAPON_IDS.size() + _playable_mod_weapon_count(), _weapon_ids.size())
 
 	if _weapon_ids.is_empty():
 		_weapon_ids.append(&"vector_bolt")
@@ -1247,6 +1296,9 @@ func _register_mod_weapons() -> void:
 			continue
 		if _weapon_catalog.has(String(weapon_id)):
 			continue
+		var unlock_wave := int(entry.get("unlock_wave", mod_weapons_unlock_wave))
+		if not _all_weapons_unlocked_for_context() and _current_weapon_progression_wave() < unlock_wave:
+			continue
 		entry["builtin"] = false
 		entry["fire_mode"] = StringName(str(entry.get("fire_mode", "projectile")))
 		entry["base_weapon_id"] = StringName(str(entry.get("base_weapon_id", "vector_bolt")))
@@ -1261,9 +1313,154 @@ func _register_weapon_entry(weapon_id: StringName, entry: Dictionary) -> void:
 
 
 func _on_mod_registry_loaded(_summary: Dictionary) -> void:
+	_cached_progression_wave = _sample_weapon_progression_wave()
 	_initialize_weapon_catalog()
+	_progression_unlock_token = _current_weapon_unlock_token()
+	_last_unlocked_weapon_count = _weapon_ids.size()
 	_sync_projectile_predictor()
 	weapon_changed.emit(_active_weapon_id, _display_name(_active_weapon_id), get_weapon_debug_state())
+
+
+func unlock_all_weapons_for_showcase() -> void:
+	progressive_weapon_unlocks = false
+	_progression_unlock_token = ""
+	_initialize_weapon_catalog()
+	_progression_unlock_token = _current_weapon_unlock_token()
+	_last_unlocked_weapon_count = _weapon_ids.size()
+	_sync_projectile_predictor()
+	weapon_changed.emit(_active_weapon_id, _display_name(_active_weapon_id), get_weapon_debug_state())
+
+
+func refresh_weapon_catalog() -> void:
+	_progression_unlock_token = ""
+	_update_weapon_progression(weapon_unlock_check_interval, true)
+
+
+func _update_weapon_progression(delta: float, force: bool = false) -> void:
+	_weapon_unlock_check_elapsed += delta
+	if not force and _weapon_unlock_check_elapsed < maxf(weapon_unlock_check_interval, 0.08):
+		return
+	_weapon_unlock_check_elapsed = 0.0
+	var sampled_wave := _sample_weapon_progression_wave()
+	var token := "all" if _all_weapons_unlocked_for_context() else "wave:%d" % sampled_wave
+	if not force and token == _progression_unlock_token:
+		return
+
+	var previous_ids := _weapon_ids.duplicate()
+	_progression_unlock_token = token
+	_cached_progression_wave = sampled_wave
+	_initialize_weapon_catalog()
+	_sync_projectile_predictor()
+	var newly_unlocked := _new_weapon_names(previous_ids, _weapon_ids)
+	_last_unlocked_weapon_count = _weapon_ids.size()
+	if not newly_unlocked.is_empty():
+		weapon_pool_changed.emit(_weapon_ids.size(), _total_weapon_count(), newly_unlocked)
+	weapon_changed.emit(_active_weapon_id, _display_name(_active_weapon_id), get_weapon_debug_state())
+
+
+func _weapon_available_in_current_context(weapon_id: StringName) -> bool:
+	if _all_weapons_unlocked_for_context():
+		return true
+	return _current_weapon_progression_wave() >= _weapon_unlock_wave(weapon_id)
+
+
+func _all_weapons_unlocked_for_context() -> bool:
+	if not progressive_weapon_unlocks:
+		return true
+	return clip_lab_unlocks_all_weapons and _is_clip_lab_context()
+
+
+func _is_clip_lab_context() -> bool:
+	var tree := get_tree()
+	if tree == null:
+		return false
+	var scene := tree.current_scene
+	if scene != null and (scene.name == "ClipLabScene" or scene.is_in_group("clip_lab_scene")):
+		return true
+	return tree.get_first_node_in_group("clip_lab_scene") != null
+
+
+func _current_weapon_progression_wave() -> int:
+	if _all_weapons_unlocked_for_context():
+		return 9999
+	return _cached_progression_wave
+
+
+func _sample_weapon_progression_wave() -> int:
+	if _all_weapons_unlocked_for_context():
+		return 9999
+	var wave := 0
+	var tree := get_tree()
+	var scene := tree.current_scene if tree != null else null
+	var wave_director := scene.find_child("WaveDirector", true, false) if scene != null else null
+	if wave_director != null and wave_director.has_method("get_current_wave"):
+		wave = maxi(wave, int(wave_director.call("get_current_wave")))
+	elif wave_director != null:
+		var wave_value: Variant = wave_director.get("_wave")
+		if wave_value is int or wave_value is float:
+			wave = maxi(wave, int(wave_value))
+	if RunProgress != null:
+		wave = maxi(wave, int(RunProgress.wave_index))
+	return wave
+
+
+func _current_weapon_unlock_token() -> String:
+	if _all_weapons_unlocked_for_context():
+		return "all"
+	return "wave:%d" % _current_weapon_progression_wave()
+
+
+func _weapon_unlock_wave(weapon_id: StringName) -> int:
+	return int(WEAPON_UNLOCK_WAVES.get(weapon_id, 0))
+
+
+func _total_weapon_count() -> int:
+	return maxi(_total_weapon_catalog_count, _weapon_ids.size())
+
+
+func _playable_mod_weapon_count() -> int:
+	if _mod_registry == null or not is_instance_valid(_mod_registry) or not _mod_registry.has_method("get_playable_weapon_entries"):
+		return 0
+	var entries_value: Variant = _mod_registry.call("get_playable_weapon_entries")
+	if entries_value is Array:
+		return (entries_value as Array).size()
+	return 0
+
+
+func _next_weapon_unlock_wave() -> int:
+	if _all_weapons_unlocked_for_context():
+		return -1
+	var current_wave := _current_weapon_progression_wave()
+	var next_wave := 999999
+	for weapon_id in WEAPON_IDS:
+		var unlock_wave := _weapon_unlock_wave(weapon_id)
+		if unlock_wave > current_wave and unlock_wave < next_wave:
+			next_wave = unlock_wave
+	return -1 if next_wave == 999999 else next_wave
+
+
+func _next_weapon_unlock_names(next_wave: int = -2) -> Array[String]:
+	var names: Array[String] = []
+	var target_wave := next_wave
+	if target_wave == -2:
+		target_wave = _next_weapon_unlock_wave()
+	if target_wave < 0:
+		return names
+	for weapon_id in WEAPON_IDS:
+		if _weapon_unlock_wave(weapon_id) == target_wave:
+			names.append(_builtin_display_name(weapon_id))
+	return names
+
+
+func _new_weapon_names(previous_ids: Array, current_ids: Array[StringName]) -> Array[String]:
+	var previous_lookup := {}
+	for value in previous_ids:
+		previous_lookup[String(value)] = true
+	var names: Array[String] = []
+	for weapon_id in current_ids:
+		if not previous_lookup.has(String(weapon_id)):
+			names.append(_display_name(weapon_id))
+	return names
 
 
 func _fire_selected_beam(delta: float) -> void:
@@ -1404,7 +1601,7 @@ func _apply_field_weapon_effect(
 		if not _target_in_field_shape(weapon_id, target, origin, direction, radius):
 			continue
 		_apply_field_target_impulse(weapon_id, entry, target, origin, direction, anchor, force)
-		_apply_field_target_damage(target, damage)
+		_apply_field_target_damage(weapon_id, target, damage)
 		var slow := float(entry.get("slow", 1.0))
 		if slow < 0.999:
 			CombatStatus.apply_local_time_scale(target, clampf(slow, 0.2, 1.0), maxf(float(entry.get("slow_duration", 0.35)), 0.05))
@@ -1479,10 +1676,11 @@ func _target_in_field_shape(weapon_id: StringName, target: Node2D, origin: Vecto
 	return lateral <= width
 
 
-func _apply_field_target_damage(target: Node, damage: float) -> void:
+func _apply_field_target_damage(weapon_id: StringName, target: Node, damage: float) -> void:
 	if damage <= 0.0 or target == null or not is_instance_valid(target):
 		return
 	if target.has_method("take_damage") and _is_hostile_target(target):
+		_stamp_player_weapon_hit(target, weapon_id, damage)
 		target.call("take_damage", damage)
 
 
@@ -1632,6 +1830,7 @@ func _apply_positron_beam(origin: Vector2, direction: Vector2, hits: Array[Node]
 			continue
 
 		if target.has_method("take_damage") and _is_hostile_target(target):
+			_stamp_player_weapon_hit(target, &"positron_beam", damage)
 			target.call("take_damage", damage)
 
 	if positron_recoil > 0.0:
@@ -1675,6 +1874,7 @@ func _apply_gravity_wave_beam(origin: Vector2, direction: Vector2, hits: Array[N
 		target_2d.set_meta(&"gravity_wave_beam_pressure", clampf(1.0 - along * 0.42, 0.0, 1.0))
 
 		if target.has_method("take_damage") and _is_hostile_target(target):
+			_stamp_player_weapon_hit(target, &"gravity_wave_beam", damage)
 			target.call("take_damage", damage)
 
 	_stamp_gravity_wave_resonance(origin, direction)
@@ -1708,6 +1908,7 @@ func _apply_chronal_refraction_beam(origin: Vector2, direction: Vector2, hits: A
 		target_2d.set_meta(&"chronal_desync_impulse", desync_impulse)
 
 		if target_2d.has_method("take_damage") and _is_hostile_target(target_2d):
+			_stamp_player_weapon_hit(target_2d, &"chronal_refraction_beam", damage)
 			target_2d.call("take_damage", damage)
 
 		_spawn_chronal_echoes(target_2d, body_velocity)
@@ -1817,6 +2018,7 @@ func _apply_delayed_chronal_chain(target: Node2D, impulse: Vector2, damage: floa
 	CombatStatus.add_velocity(target, impulse)
 	CombatStatus.apply_local_time_scale(target, 0.72, 0.22)
 	if target.has_method("take_damage") and _is_hostile_target(target):
+		_stamp_player_weapon_hit(target, &"chronal_refraction_beam", damage)
 		target.call("take_damage", damage)
 	_stamp_chronal_echo_zone(target.global_position)
 
@@ -1901,7 +2103,7 @@ func _projectile_payload(weapon_id: StringName, shot_index: int, shot_count: int
 		"gravity_pull_radius": 2000.0,
 		"player_gravity_deadzone_radius": 520.0,
 		"windowkill_visual_scale": _projectile_visual_scale_for_weapon(weapon_id),
-		"vector_core_color": Color(color.r, color.g, color.b, 0.82),
+		"vector_core_color": _safe_projectile_core_color(color),
 		"vector_trail_fade_color": _projectile_trail_color_for_weapon(weapon_id),
 		"weapon_axis_impulse": 0.0,
 		"weapon_temporal_slow_multiplier": 1.0,
@@ -2056,6 +2258,7 @@ func _projectile_payload(weapon_id: StringName, shot_index: int, shot_count: int
 		_:
 			pass
 	_apply_catalog_payload_overrides(payload, weapon_id)
+	_apply_signature_payload_modifiers(payload, weapon_id, shot_index, shot_count)
 	return payload
 
 
@@ -2072,9 +2275,107 @@ func _apply_catalog_payload_overrides(payload: Dictionary, weapon_id: StringName
 	payload["display_name"] = _display_name(weapon_id)
 	if entry.has("color"):
 		var color := _color_from_variant(entry.get("color"), _weapon_color(weapon_id))
-		payload["vector_core_color"] = Color(color.r, color.g, color.b, 0.82)
+		payload["vector_core_color"] = _safe_projectile_core_color(color)
 	if entry.has("trail_color"):
 		payload["vector_trail_fade_color"] = _color_from_variant(entry.get("trail_color"), _projectile_trail_color_for_weapon(weapon_id))
+
+
+func _apply_signature_payload_modifiers(payload: Dictionary, weapon_id: StringName, shot_index: int, shot_count: int) -> void:
+	var alternating_side := -1.0 if (_projectile_pattern_index + shot_index) % 2 == 0 else 1.0
+	var shot_ratio := float(shot_index) / maxf(float(maxi(shot_count - 1, 1)), 1.0)
+	match weapon_id:
+		&"lensing_flak":
+			payload["weapon_curve_side"] = _projectile_side_for_index(shot_index, shot_count) if shot_count > 1 else alternating_side
+			payload["weapon_curve_frequency"] = 10.5 + float(shot_index) * 1.1
+			payload["weapon_field_force"] = -140.0 + shot_ratio * 120.0
+			_tint_projectile_payload(payload, Color(0.24, 1.0, 0.92, 1.0), 0.18 + shot_ratio * 0.12)
+		&"vector_prism":
+			var prism_tints: Array[Color] = [
+				Color(0.28, 1.0, 0.92, 1.0),
+				Color(0.42, 0.78, 1.0, 1.0),
+				Color(0.82, 0.58, 1.0, 1.0),
+				Color(0.52, 1.0, 0.54, 1.0),
+				Color(1.0, 0.88, 0.34, 1.0),
+			]
+			_tint_projectile_payload(payload, prism_tints[shot_index % prism_tints.size()], 0.32)
+			payload["weapon_curve_side"] = _projectile_side_for_index(shot_index, shot_count)
+			payload["weapon_field_force"] = 130.0 + absf(float(shot_index) - float(shot_count - 1) * 0.5) * 38.0
+		&"graviton_bloom":
+			payload["weapon_field_force"] = -360.0 - 42.0 * float(shot_index % 3)
+			payload["weapon_resonance_intensity"] = 0.32 + 0.04 * float(shot_index % 3)
+			payload["phase_offset"] = float(_projectile_pattern_index) * 0.9 + shot_ratio * TAU
+			_tint_projectile_payload(payload, Color(0.18, 0.86, 1.0, 1.0), 0.18)
+		&"harmonic_bloom":
+			payload["weapon_tangent_impulse"] = 220.0 + 34.0 * float(shot_index % 2)
+			payload["weapon_curve_side"] = alternating_side
+			payload["weapon_resonance_intensity"] = 0.36 + shot_ratio * 0.16
+			payload["phase_offset"] = float(shot_index) * TAU / maxf(float(shot_count), 1.0)
+			_tint_projectile_payload(payload, Color(0.72, 1.0, 0.34, 1.0), 0.2 + shot_ratio * 0.12)
+		&"chronal_needleloom":
+			payload["weapon_temporal_slow_duration"] = 0.24 + 0.08 * float(shot_index + 1)
+			payload["weapon_curve_side"] = alternating_side
+			payload["phase_offset"] = float(_projectile_pattern_index + shot_index) * 1.04
+			_tint_projectile_payload(payload, Color(0.84, 0.52, 1.0, 1.0), 0.2)
+		&"null_rebounder":
+			payload["weapon_radial_impulse"] = 280.0 + 70.0 * float(shot_index % 2)
+			payload["weapon_tangent_impulse"] = 170.0 * alternating_side
+			payload["weapon_curve_side"] = -alternating_side
+			_tint_projectile_payload(payload, Color(1.0, 0.48, 0.18, 1.0), 0.22)
+		&"tidal_skein":
+			payload["weapon_curve_side"] = sin(float(_projectile_pattern_index + shot_index) * 0.75)
+			var tidal_side := float(payload.get("weapon_curve_side", 0.0))
+			payload["weapon_field_force"] = -220.0 - 80.0 * absf(tidal_side)
+			payload["phase_offset"] = float(_projectile_pattern_index) * 0.82 + float(shot_index) * 1.7
+			_tint_projectile_payload(payload, Color(0.1, 0.82, 1.0, 1.0), 0.16)
+		&"scar_carver":
+			payload["weapon_tangent_impulse"] = 300.0 * alternating_side
+			payload["weapon_scar_duration"] = 30.0 if shot_index == 0 else 18.0
+			payload["weapon_scar_intensity"] = 0.54 if shot_index == 0 else 0.38
+		&"singularity_kite":
+			payload["weapon_curve_side"] = alternating_side
+			payload["weapon_curve_force"] = 760.0 + 80.0 * clampf(float(_projectile_pattern_index % 4) / 3.0, 0.0, 1.0)
+			payload["weapon_field_force"] = -700.0 - 80.0 * float(_projectile_pattern_index % 2)
+		&"phase_suture":
+			payload["weapon_curve_side"] = -_projectile_side_for_index(shot_index, shot_count)
+			payload["weapon_temporal_slow_duration"] = 0.52 if shot_index == 0 else 0.34
+			payload["weapon_field_slow_duration"] = 0.38 if shot_index == 0 else 0.22
+		&"apex_vector_spear":
+			var flow_intensity := _player_flow_intensity()
+			if flow_intensity > 0.0:
+				payload["weapon_axis_impulse"] = float(payload.get("weapon_axis_impulse", 0.0)) + 260.0 * flow_intensity
+				payload["weapon_tangent_impulse"] = float(payload.get("weapon_tangent_impulse", 0.0)) + 190.0 * flow_intensity
+				payload["damage_min"] = float(payload.get("damage_min", 0.0)) * (1.0 + 0.18 * flow_intensity)
+				payload["damage_max"] = float(payload.get("damage_max", 0.0)) * (1.0 + 0.24 * flow_intensity)
+				payload["weapon_resonance_intensity"] = float(payload.get("weapon_resonance_intensity", 0.0)) + 0.18 * flow_intensity
+				_tint_projectile_payload(payload, Color(0.96, 1.0, 0.62, 1.0), 0.24 + flow_intensity * 0.24)
+		&"mass_driver":
+			payload["relativistic_rail_stacks"] = maxi(int(payload.get("relativistic_rail_stacks", 0)), 2)
+			payload["weapon_planet_damage"] = maxf(float(payload.get("weapon_planet_damage", 0.0)), 124.0)
+			payload["weapon_axis_impulse"] = maxf(float(payload.get("weapon_axis_impulse", 0.0)), 760.0)
+		&"inertia_maul":
+			payload["weapon_temporal_slow_multiplier"] = 0.72
+			payload["weapon_temporal_slow_duration"] = 0.22
+			payload["weapon_field_slow_multiplier"] = 0.74
+			payload["weapon_field_slow_duration"] = 0.32
+			payload["gravity_pull_radius"] = 2400.0
+		_:
+			pass
+
+
+func _tint_projectile_payload(payload: Dictionary, tint: Color, amount: float) -> void:
+	var core := _color_from_variant(payload.get("vector_core_color", tint), tint)
+	var trail := _color_from_variant(payload.get("vector_trail_fade_color", tint), tint)
+	var weight := clampf(amount, 0.0, 1.0)
+	payload["vector_core_color"] = _safe_projectile_core_color(core.lerp(tint, weight))
+	payload["vector_trail_fade_color"] = trail.lerp(Color(tint.r, tint.g, tint.b, trail.a), weight)
+
+
+func _player_flow_intensity() -> float:
+	if _player == null or not is_instance_valid(_player):
+		return 0.0
+	if not bool(_player.get_meta(&"momentum_flow_active", false)):
+		return 0.0
+	return clampf(float(_player.get_meta(&"momentum_flow_intensity", 0.0)), 0.0, 1.0)
 
 
 func _apply_projectile_payload(projectile: Node, payload: Dictionary) -> void:
@@ -2160,6 +2461,7 @@ func _projectile_prediction_tracks(weapon_id: StringName, shot_count: int = -1) 
 			"projectile_speed": float(payload.get("initial_speed", _projectile_speed_for_weapon(weapon_id))),
 			"gravity_constant": float(payload.get("gravity_constant", _projectile_gravity_for_weapon(weapon_id))),
 			"gravity_radius": float(payload.get("gravity_pull_radius", 2000.0)),
+			"player_gravity_deadzone_radius": float(payload.get("player_gravity_deadzone_radius", 520.0)),
 			"collision_radius": projectile_prediction_collision_radius * visual_scale,
 			"projectile_mass": 0.25,
 			"prediction_color": Color(core_color.r, core_color.g, core_color.b, alpha),
@@ -2243,20 +2545,15 @@ func _catalog_projectile_direction(
 				return direction
 			return direction.rotated(-signf(side) * spread).normalized()
 		&"scissor":
-			var scissor_side := signf(offset)
-			if absf(scissor_side) <= 0.001:
-				scissor_side = -1.0 if shot_index % 2 == 0 else 1.0
-			var alternator := -1.0 if (_projectile_pattern_index + shot_index) % 2 == 0 else 1.0
-			return direction.rotated(scissor_side * spread * alternator).normalized()
+			return direction.rotated(offset * spread * 0.82).normalized()
 		&"helix":
 			var phase := float(_projectile_pattern_index) * 0.82 + float(shot_index) * TAU / float(shot_count)
-			return direction.rotated(sin(phase) * spread).normalized()
+			return direction.rotated(offset * spread * 0.58 + sin(phase) * spread * 0.22).normalized()
 		&"pinwheel":
-			var phase := float(shot_index) * TAU / float(shot_count) + float(_projectile_pattern_index) * spread
-			return direction.rotated(phase).normalized()
+			var phase := sin(float(_projectile_pattern_index) * 0.55) * spread * 0.22
+			return direction.rotated(offset * spread * 0.86 + phase).normalized()
 		&"ring":
-			var ring_angle := float(shot_index) * TAU / float(shot_count)
-			return direction.rotated(ring_angle).normalized()
+			return direction.rotated(offset * spread).normalized()
 		_:
 			return direction
 
@@ -2268,10 +2565,6 @@ func _projectile_side_offset_for_index(
 	shot_count: int
 ) -> Vector2:
 	if shot_count <= 1:
-		return Vector2.ZERO
-	var entry := _weapon_entry(weapon_id)
-	var pattern := StringName(str(entry.get("pattern", &"single")))
-	if pattern == &"ring" or pattern == &"pinwheel":
 		return Vector2.ZERO
 	return direction.orthogonal() * _projectile_side_for_index(shot_index, shot_count) * projectile_side_offset
 
@@ -2555,6 +2848,43 @@ func _weapon_role(weapon_id: StringName) -> String:
 	return "baseline vector shot"
 
 
+func _weapon_play_hint(weapon_id: StringName) -> String:
+	var entry := _weapon_entry(weapon_id)
+	if entry.has("play_hint"):
+		return String(entry.get("play_hint", ""))
+	var base_weapon := _catalog_base_weapon_id(weapon_id)
+	if base_weapon != weapon_id:
+		return _weapon_play_hint(base_weapon)
+	match weapon_id:
+		&"vector_bolt":
+			return "steady aim, cheap chain fuel"
+		&"relativistic_rail":
+			return "line up lanes after a slingshot"
+		&"barycentric_splitter":
+			return "tag clusters, then orbit the linked pack"
+		&"vacuum_collapse_seed":
+			return "plant it where enemies will drift next"
+		&"temporal_splinter":
+			return "slow pursuers before grazing a gravity edge"
+		&"inversion_disc":
+			return "push threats into fields and hazards"
+		&"harmonic_needle":
+			return "thread pierces through orbiting targets"
+		&"shear_comet":
+			return "curve shots across your travel tangent"
+		&"singularity_pin":
+			return "hold enemies in a collapse pocket"
+		&"event_horizon_shard":
+			return "commit to a heavy late-run collapse"
+		&"positron_beam":
+			return "burn priority targets in a clear lane"
+		&"gravity_wave_beam":
+			return "bend crowds into safer movement arcs"
+		&"chronal_refraction_beam":
+			return "desync fast enemies before escape"
+	return "surf gravity, keep the chain alive"
+
+
 func _play_projectile_sound(spawned: int) -> void:
 	var sound := _player.get_node_or_null("BulletBlastSoundEffect") as AudioStreamPlayer
 	if sound == null:
@@ -2580,6 +2910,14 @@ func _restore_energy(amount: float) -> void:
 		return
 	if _energy_component.has_method("restore"):
 		_energy_component.call("restore", amount)
+
+
+func _stamp_player_weapon_hit(target: Node, weapon_id: StringName, damage: float) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	target.set_meta(&"last_player_weapon_hit_time", _now_seconds())
+	target.set_meta(&"last_player_weapon_id", String(weapon_id))
+	target.set_meta(&"last_player_weapon_hit_damage", damage)
 
 
 func _collect_beam_hits(origin: Vector2, direction: Vector2, width: float) -> Array[Node]:
@@ -2687,6 +3025,7 @@ func _sync_projectile_predictor() -> void:
 	_set_if_present(predictor, "projectile_speed", state.get("initial_speed", vector_bolt_speed))
 	_set_if_present(predictor, "gravity_constant", state.get("gravity_constant", vector_bolt_gravity))
 	_set_if_present(predictor, "gravity_radius", state.get("gravity_pull_radius", 2000.0))
+	_set_if_present(predictor, "player_gravity_deadzone_radius", state.get("player_gravity_deadzone_radius", 520.0))
 	_set_if_present(predictor, "spawn_offset", state.get("spawn_offset", projectile_spawn_offset))
 	_set_if_present(predictor, "collision_radius", state.get("collision_radius", projectile_prediction_collision_radius))
 	_set_if_present(predictor, "prediction_color", state.get("prediction_color", vector_bolt_color))
@@ -3011,6 +3350,18 @@ func _payload_field_for_profile_field(field: String) -> String:
 
 func _is_builtin_beam_weapon(weapon_id: StringName) -> bool:
 	return weapon_id == &"positron_beam" or weapon_id == &"gravity_wave_beam" or weapon_id == &"chronal_refraction_beam"
+
+
+func _safe_projectile_core_color(color: Color) -> Color:
+	var adjusted := color
+	if Settings != null and Settings.has_method("apply_readability_color"):
+		adjusted = Settings.apply_readability_color(adjusted)
+	var alpha := minf(adjusted.a, projectile_core_alpha_cap)
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		alpha = Settings.world_visual_alpha(alpha, projectile_core_alpha_cap)
+	elif Settings != null and Settings.has_method("flash_alpha"):
+		alpha = minf(Settings.flash_alpha(alpha), projectile_core_alpha_cap)
+	return Color(adjusted.r, adjusted.g, adjusted.b, alpha)
 
 
 func _color_from_variant(value: Variant, fallback: Color) -> Color:

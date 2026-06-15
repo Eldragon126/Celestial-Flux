@@ -534,7 +534,7 @@ func _request_camera_shake(amount: float) -> void:
 
 
 func _queue_free_if_valid(node: Node) -> void:
-	if node != null and is_instance_valid(node):
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
 		node.queue_free()
 	if node == _desktop_breach_window:
 		_desktop_breach_window = null

@@ -15,6 +15,9 @@ const ENEMY_BULLET_SCENE := preload("res://Nodes/enemy_bullet.tscn")
 @export var rule_radius: float = 620.0
 @export var rule_force: float = 820.0
 @export var reward_drop_count: int = 2
+@export var vector_shade_health_floor: float = 1180.0
+@export var chronal_mirror_health_floor: float = 4200.0
+@export var chronal_mirror_wave_health_bonus: float = 150.0
 
 var _orbit_angle := 0.0
 var _rule_charge := 0.0
@@ -27,7 +30,11 @@ var _time_manager: Node = null
 
 
 func _ready() -> void:
-	max_health = maxf(max_health, 1180.0)
+	var wave_bonus := 0.0
+	if RunProgress != null:
+		wave_bonus = maxf(float(RunProgress.wave_index - 12), 0.0) * chronal_mirror_wave_health_bonus
+	var health_floor := chronal_mirror_health_floor + wave_bonus if secret_variant == 1 else vector_shade_health_floor
+	max_health = maxf(max_health, health_floor)
 	mass = 410000.0
 	attack_interval = 2.35
 	display_name = "CHRONAL MIRROR" if secret_variant == 1 else "VECTOR SHADE"

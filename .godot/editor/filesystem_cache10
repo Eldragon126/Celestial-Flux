@@ -1,5 +1,5 @@
 e910c82af1378a97450e26817c58487e
-::res://::1781387025
+::res://::1781462015
 .agentrules.txt::TextFile::-1::1780678393::0::1::::<><><>0<>0<><>::
 default_bus_layout.tres::AudioBusLayout::6536144205823831777::1779223367::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1781226004::0::1::::<><><>0<>0<><>::
@@ -25,7 +25,7 @@ Radial2D.svg::CompressedTexture2D::5294797171325615259::1779223366::1779223366::
 THIRDPARTY.txt::TextFile::-1::1779223366::0::1::::<><><>0<>0<><>::
 water_shader.gdshader::Shader::5244640210084459761::1779223367::0::1::::<><><>0<>0<><>::
 water_shader.tres::ShaderMaterial::6495341302912672044::1779223367::0::1::::<><><>0<>0<><>::res://addons/godot-rapier2d/water_shader.gdshader
-::res://addons/godot-rapier2d/bin/::1781387017
+::res://addons/godot-rapier2d/bin/::1781462006
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.arm64.framework/::1779223367
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.x86_64.framework/::1779223367
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.macos.framework/::1779223367
@@ -501,7 +501,7 @@ tex_metal_taper_corner_right.png::CompressedTexture2D::5010548700008117401::1779
 mirror_law_pack.gd::GDScript::5361407406938059331::1780617770::0::1::::<>Node<><>0<>0<><>::
 mirror_well_demo.tscn::PackedScene::-1::1780617770::0::1::::<><><>0<>0<><>::
 vector_anomaly_mod.json::JSON::-1::1781385195::0::1::::<><><>0<>0<><>::
-::res://Nodes/::1781311015
+::res://Nodes/::1781389723
 accretion_core_boss.tscn::PackedScene::-1::1779472405::0::1::::<><><>0<>0<><>::res://Scripts/Bosses/accretion_core_boss.gd
 adaptive_music_state_director.tscn::PackedScene::-1::1779814697::0::1::::<><><>0<>0<><>::res://Scripts/adaptive_music_state_director.gd
 arena_destabilization_manager.tscn::PackedScene::445768193153712680::1779223366::0::1::::<><><>0<>0<><>::uid://bldsjmtcko3dx::::res://Scripts/arena_destabilization_manager.gd
@@ -555,7 +555,7 @@ mass_point.tscn::PackedScene::3105762539098871575::1780619522::0::1::::<><><>0<>
 mechanic_audio_director.tscn::PackedScene::-1::1779384125::0::1::::<><><>0<>0<><>::res://Scripts/mechanic_audio_director.gd
 mod_content_registry.tscn::PackedScene::-1::1779814106::0::1::::<><><>0<>0<><>::res://Scripts/mod_content_registry.gd
 mod_hook_director.tscn::PackedScene::-1::1780875516::0::1::::<><><>0<>0<><>::res://Scripts/mod_hook_director.gd
-mod_management_scene.tscn::PackedScene::143540816824597170::1781311015::0::1::::<><><>0<>0<><>::uid://46h5son1n3q6::::res://Scripts/mod_management_scene.gd
+mod_management_scene.tscn::PackedScene::143540816824597170::1781389723::0::1::::<><><>0<>0<><>::uid://46h5son1n3q6::::res://Scripts/mod_management_scene.gd
 momentum_combat_component.tscn::PackedScene::3380575738748913029::1779662488::0::1::::<><><>0<>0<><>::uid://chh48hfsnblto::::res://Scripts/momentum_combat_component.gd
 multiplayer_sync_foundation.tscn::PackedScene::6552634645986540086::1780885330::0::1::::<><><>0<>0<><>::uid://b24mhpb3hmrmh::::res://Scripts/multiplayer_sync_foundation.gd
 music_finale_director.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/music_finale_director.gd
@@ -634,7 +634,7 @@ polymorph_boss.tscn::PackedScene::4922909907427867519::1779472477::0::1::::<><><
 SDL Log.txt::TextFile::-1::1779223366::0::1::::<><><>0<>0<><>::
 ::res://Nodes/resonance_zones/::1779467036
 resonance_zone_visual.tscn::PackedScene::-1::1780617222::0::1::::<><><>0<>0<><>::res://Scripts/resonance_zone_visual.gd
-::res://Scripts/::1781312951
+::res://Scripts/::1781389553
 _godot_check.gd::GDScript::7637899577734680835::1779223366::0::1::::<>SceneTree<><>0<>0<><>::
 _godot_check_all.gd::GDScript::8017831429787697617::1780806723::0::1::::<>SceneTree<><>0<>0<><>::
 adaptive_music_state_director.gd::GDScript::919395632423091337::1780426258::0::1::::AdaptiveMusicStateDirector<>Node<><>0<>0<><>::
@@ -676,7 +676,7 @@ gravity_component_test_runner.gd::GDScript::8765232107729011022::1779223366::0::
 gravity_debris.gd::GDScript::3462119300209532465::1781197932::0::1::::GravityDebris<>Node2D<><>0<>0<><>::
 gravity_harasser.gd::GDScript::5408031024417288255::1781197932::0::1::::<>CharacterBody2D<><>0<>0<><>::
 gravity_heat_map_overlay.gd::GDScript::611207338856104570::1781286602::0::1::::GravityHeatMapOverlay<>Node2D<><>0<>0<><>::
-gravity_leech.gd::GDScript::1162668937304884682::1781311116::0::1::::<>CharacterBody2D<><>0<>0<><>::
+gravity_leech.gd::GDScript::1162668937304884682::1781389553::0::1::::<>CharacterBody2D<><>0<>0<><>::
 gravity_maw_boss.gd::GDScript::3295833977332972474::1781199865::0::1::::GravityMawBoss<>PhaseBoss<><>0<>0<><>::
 gravity_resonance_manager.gd::GDScript::2482221750751723031::1781307537::0::1::::GravityResonanceManager<>Node<><>0<>0<><>::
 gravity_scar_manager.gd::GDScript::6815623346093802510::1781307550::0::1::::GravityScarManager<>Node2D<><>0<>0<><>::
@@ -716,7 +716,7 @@ orbit_weaver.gd::GDScript::7607463110087985321::1781282272::0::1::::OrbitWeaver<
 parametric_motion_component.gd::GDScript::8379096402876116259::1780418501::0::1::::ParametricMotionComponent<>Node2D<><>0<>0<><>::
 particle_focus_culler.gd::GDScript::5845911365967279023::1780616582::0::1::::ParticleFocusCuller<>Node<><>0<>0<><>::
 pause_menu.gd::GDScript::6366961530430168320::1781385087::0::1::::<>Control<><>0<>0<><>::
-pause_menu.gdshader::Shader::6359819644958804231::1781310336::0::1::::<><><>0<>0<><>::
+pause_menu.gdshader::Shader::6359819644958804231::1781389539::0::1::::<><><>0<>0<><>::
 pebble_of_reckoning.gd::GDScript::8855493015747433739::1781312951::0::1::::PebbleOfReckoning<>CharacterBody2D<><>0<>0<><>::
 performance_budget_director.gd::GDScript::8213096334148852219::1781285542::0::1::::PerformanceBudgetDirector<>Node<><>0<>0<><>::
 periapsis_mantis.gd::GDScript::8767823081166773437::1781282040::0::1::::PeriapsisMantis<>CharacterBody2D<><>0<>0<><>::
@@ -726,12 +726,12 @@ physics_aware_enemy_director.gd::GDScript::4919423037199566154::1781283566::0::1
 physics_drop.gd::GDScript::6564770331211235020::1780616661::0::1::::PhysicsDrop<>Area2D<><>0<>0<><>::
 physics_drop_system.gd::GDScript::8423181302644099560::1780616842::0::1::::PhysicsDropSystem<>Node<><>0<>0<><>::
 planet_1.gd::GDScript::5041419185777251057::1781384437::0::1::::<>StaticBody2D<><>0<>0<><>::
-planet_1.gdshader::Shader::4381545973256523815::1781310336::0::1::::<><><>0<>0<><>::
+planet_1.gdshader::Shader::4381545973256523815::1781389539::0::1::::<><><>0<>0<><>::
 planet_atmosphere_dust.gd::GDScript::7609698741783299846::1779223366::0::1::::<>Node2D<><>0<>0<><>::
 playable_tutorial_director.gd::GDScript::5035035054781794395::1780615530::0::1::::PlayableTutorialDirector<>Node2D<><>0<>0<><>::
 player.gd::GDScript::5424910629918329491::1781385698::0::1::::<>CharacterBody2D<><>0<>0<><>::
-player.gdshader::Shader::6169009076136816292::1781310336::0::1::::<><><>0<>0<><>::
-playershield.gdshader::Shader::880010420938775349::1781310336::0::1::::<><><>0<>0<><>::
+player.gdshader::Shader::6169009076136816292::1781389539::0::1::::<><><>0<>0<><>::
+playershield.gdshader::Shader::880010420938775349::1781389539::0::1::::<><><>0<>0<><>::
 player_damage_camera_shake.gd::GDScript::234362575886560579::1780523957::0::1::::<>Node<><>0<>0<><>::
 player_engine_hum.gd::GDScript::5069761183290189784::1779223366::0::1::::<>AudioStreamPlayer2D<><>0<>0<><>::
 player_hull.gdshader::Shader::1751693809725717146::1779467023::0::1::::<><><>0<>0<><>::
@@ -744,7 +744,7 @@ powerup_inventory.gd::GDScript::3890460173974284305::1781196415::0::1::::Powerup
 powerup_library.gd::GDScript::5597053758471478865::1780506799::0::1::::PowerupLibrary<>Object<><>0<>0<><>::
 powerup_pickup.gd::GDScript::4579941966172858626::1781197932::0::1::::PowerupPickup<>Area2D<><>0<>0<><>::
 production_simulation_runner.gd::GDScript::2925912824436529054::1780421840::0::1::::<>SceneTree<><>0<>0<><>::
-projectile.gd::GDScript::2704767779697364289::1781384319::0::1::::<>RigidBody2D<><>0<>0<><>::
+projectile.gd::GDScript::2704767779697364289::1781389539::0::1::::<>RigidBody2D<><>0<>0<><>::
 projectile_collision_spark_listener.gd::GDScript::5639759509116826782::1780639069::0::1::::<>Node<><>0<>0<><>::
 projectile_predictor.gd::GDScript::2326113856539857645::1781283321::0::1::::ProjectileAimPredictor<>Node2D<><>0<>0<><>::
 projectile_predictor_component.gd::GDScript::1986586609270956613::1781283994::0::1::::ProjectileTrajectoryVisualizer<>Node2D<><>0<>0<><>::

@@ -241,7 +241,12 @@ func _spawn_skill_hit_ring() -> void:
 	var tween := ring.create_tween()
 	tween.tween_property(ring, "scale", Vector2.ONE * 78.0, 0.2)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.2)
-	tween.tween_callback(ring.queue_free)
+	tween.tween_callback(Callable(self, "_queue_free_if_valid").bind(ring))
+
+
+func _queue_free_if_valid(node: Node) -> void:
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+		node.queue_free()
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()

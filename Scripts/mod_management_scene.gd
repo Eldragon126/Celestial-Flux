@@ -104,6 +104,12 @@ func _refresh_registry() -> void:
 		return
 	if _registry.has_method("reload_registry"):
 		_registry.call("reload_registry")
+	_render_registry()
+
+
+func _render_registry(feedback_text: String = "") -> void:
+	if _registry == null:
+		return
 	var summary: Dictionary = {}
 	if _registry.has_method("get_registry_summary"):
 		var summary_value: Variant = _registry.call("get_registry_summary")
@@ -113,7 +119,18 @@ func _refresh_registry() -> void:
 	var manifest_count := int(summary.get("manifest_count", 0))
 	var content_total := int(summary.get("content_total", 0))
 	var failed := int(summary.get("failed", 0))
-	_summary_label.text = "Loaded %d manifests, %d content entries, %d failed. Gameplay signature: %s" % [manifest_count, content_total, failed, signature]
+	var disabled := int(summary.get("disabled", 0))
+	var user_disabled := int(summary.get("user_disabled", 0))
+	_summary_label.text = "Loaded %d manifests, %d content entries, %d failed, %d off (%d toggled). Gameplay signature: %s" % [
+		manifest_count,
+		content_total,
+		failed,
+		disabled,
+		user_disabled,
+		signature,
+	]
+	if not feedback_text.is_empty():
+		_summary_label.text = "%s\n%s" % [feedback_text, _summary_label.text]
 	_details_label.text = _build_details_text(summary)
 	_populate_detail_cards(summary)
 
@@ -189,6 +206,7 @@ func _populate_detail_cards(summary: Dictionary) -> void:
 	var snapshot := _get_registry_snapshot()
 	var manifests_value: Variant = snapshot.get("manifests", {})
 	var manifests: Dictionary = manifests_value if manifests_value is Dictionary else {}
+	_details_box.add_child(_make_manifest_toggle_section(load_order, manifests))
 	var manifest_lines: Array[String] = []
 	if load_order.is_empty():
 		manifest_lines.append("No manifests loaded.")
@@ -203,7 +221,11 @@ func _populate_detail_cards(summary: Dictionary) -> void:
 				suffix += " | %s" % source_kind
 			if not source_path.is_empty():
 				suffix += " | %s" % source_path
-			manifest_lines.append("- %s%s" % [String(manifest_id), suffix])
+			var status := "active" if bool(manifest.get("enabled", true)) else "off"
+			var reason := str(manifest.get("disabled_reason", "")).strip_edges()
+			if not reason.is_empty():
+				suffix += " | %s" % reason
+			manifest_lines.append("- %s [%s]%s" % [String(manifest_id), status, suffix])
 	_details_box.add_child(_make_detail_section("Loaded Manifests", manifest_lines))
 	var failed_value: Variant = snapshot.get("failed_manifests", {})
 	var failed: Dictionary = failed_value if failed_value is Dictionary else {}
@@ -223,6 +245,97 @@ func _populate_detail_cards(summary: Dictionary) -> void:
 	if count_lines.is_empty():
 		count_lines.append("No content buckets active yet.")
 	_details_box.add_child(_make_detail_section("Content Counts", count_lines))
+
+
+func _make_manifest_toggle_section(load_order: Array, manifests: Dictionary) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_stylebox_override("panel", _panel_style())
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 7)
+	panel.add_child(rows)
+
+	var title := Label.new()
+	title.text = "MOD TOGGLES"
+	title.add_theme_font_size_override("font_size", 16)
+	title.modulate = Color(0.46, 1.0, 0.92, 1.0)
+	rows.add_child(title)
+
+	var hint := Label.new()
+	hint.text = "Turn discovered mods on or off without moving their folders. Changes are saved in user data and applied on the next registry refresh."
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 13)
+	hint.modulate = Color(0.72, 0.9, 0.96, 0.86)
+	rows.add_child(hint)
+
+	if load_order.is_empty():
+		var empty_label := Label.new()
+		empty_label.text = "No installed manifests found in the scanned folders."
+		empty_label.modulate = Color(0.78, 0.92, 0.98, 0.92)
+		rows.add_child(empty_label)
+		return panel
+
+	for manifest_id in load_order:
+		var manifest_key := String(manifest_id)
+		var manifest_value: Variant = manifests.get(manifest_key, {})
+		var manifest: Dictionary = manifest_value if manifest_value is Dictionary else {}
+		var display_name := str(manifest.get("display_name", manifest_key)).strip_edges()
+		if display_name.is_empty():
+			display_name = manifest_key
+		var user_disabled := bool(manifest.get("user_disabled", false))
+		var active := bool(manifest.get("enabled", true))
+		var reason := str(manifest.get("disabled_reason", "")).strip_edges()
+
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		rows.add_child(row)
+
+		var toggle := CheckBox.new()
+		toggle.text = "%s  (%s)" % [display_name, manifest_key]
+		toggle.button_pressed = not user_disabled
+		toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		toggle.tooltip_text = "Enable or disable this mod manifest."
+		toggle.toggled.connect(_on_manifest_toggled.bind(manifest_key))
+		row.add_child(toggle)
+
+		var status := Label.new()
+		status.custom_minimum_size = Vector2(92.0, 0.0)
+		status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		status.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		status.add_theme_font_size_override("font_size", 13)
+		if user_disabled:
+			status.text = "OFF"
+			status.modulate = Color(1.0, 0.58, 0.42, 0.95)
+		elif active:
+			status.text = "ACTIVE"
+			status.modulate = Color(0.52, 1.0, 0.72, 0.95)
+		else:
+			status.text = "BLOCKED"
+			status.modulate = Color(1.0, 0.82, 0.36, 0.95)
+		row.add_child(status)
+
+		var meta := Label.new()
+		var source_path := str(manifest.get("source_display_path", manifest.get("source_path", ""))).strip_edges()
+		var source_kind := str(manifest.get("source_kind", "mod")).capitalize()
+		var source_suffix := " | %s" % source_path if not source_path.is_empty() else ""
+		meta.text = "%s%s" % [source_kind, source_suffix]
+		if not reason.is_empty():
+			meta.text += " | %s" % reason
+		meta.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		meta.add_theme_font_size_override("font_size", 12)
+		meta.modulate = Color(0.66, 0.82, 0.9, 0.82)
+		rows.add_child(meta)
+	return panel
+
+
+func _on_manifest_toggled(enabled_state: bool, manifest_id: String) -> void:
+	if _registry == null or not _registry.has_method("set_manifest_user_enabled"):
+		_render_registry("Mod toggles are unavailable for this registry.")
+		return
+	_registry.call("set_manifest_user_enabled", StringName(manifest_id), enabled_state)
+	var state_text := "Enabled" if enabled_state else "Disabled"
+	_render_registry("%s mod: %s" % [state_text, manifest_id])
 
 
 func _make_detail_section(title_text: String, body_lines: Array[String]) -> PanelContainer:

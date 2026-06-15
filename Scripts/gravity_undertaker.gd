@@ -471,7 +471,12 @@ func _spawn_ring_burst(position: Vector2, radius: float, color: Color) -> void:
 	var tween := ring.create_tween()
 	tween.tween_property(ring, "scale", Vector2.ONE * radius, 0.24).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.parallel().tween_property(ring, "default_color:a", 0.0, 0.32)
-	tween.tween_callback(Callable(ring, "queue_free"))
+	tween.tween_callback(Callable(self, "_queue_free_if_valid").bind(ring))
+
+
+func _queue_free_if_valid(node: Node) -> void:
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+		node.queue_free()
 
 
 func _on_attack_area_body_entered(body: Node) -> void:

@@ -141,11 +141,11 @@ func _process(_delta: float) -> void:
 		_rpc_heartbeat_ping.rpc_id(1, sent_msec, _heartbeat_nonce)
 
 
-func host_and_play(player_name: String, port: int = DEFAULT_PORT, peer_limit: int = DEFAULT_MAX_PEERS) -> int:
+func host_and_play(player_name: String, port: int = DEFAULT_PORT, peer_limit: int = DEFAULT_MAX_PEERS, seed_override: int = 0) -> int:
 	var err := start_lan_host(player_name, port, peer_limit)
 	if err != OK:
 		return err
-	_begin_host_run()
+	_begin_host_run(seed_override)
 	return OK
 
 
@@ -471,11 +471,11 @@ func _connect_multiplayer_signals() -> void:
 		multiplayer.server_disconnected.connect(_on_server_disconnected)
 
 
-func _begin_host_run() -> void:
+func _begin_host_run(seed_override: int = 0) -> void:
 	if RunProgress == null:
 		_fail_session("RUN START FAILED: RunProgress missing")
 		return
-	RunProgress.begin_new_run(false)
+	RunProgress.begin_new_run(false, seed_override)
 	_run_config = {
 		"scene_path": RUN_SCENE_PATH,
 		"seed": int(RunProgress.run_seed),
@@ -497,8 +497,7 @@ func _begin_host_run() -> void:
 func _apply_run_config(config: Dictionary) -> void:
 	if RunProgress == null:
 		return
-	RunProgress.begin_new_run(bool(config.get("challenge_mode", false)))
-	RunProgress.run_seed = int(config.get("seed", RunProgress.run_seed))
+	RunProgress.begin_new_run(bool(config.get("challenge_mode", false)), int(config.get("seed", 0)))
 	RunProgress.challenge_mode = bool(config.get("challenge_mode", false))
 	RunProgress.boss_rush_mode = bool(config.get("boss_rush_mode", false))
 	RunProgress.phase = int(config.get("phase", RunProgress.Phase.PHYSICS_WAVES)) as RunProgress.Phase

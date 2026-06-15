@@ -22,6 +22,14 @@ const PHYSICS_DROP_SCENE = preload("res://Nodes/physics_drop.tscn")
 @export var elite_bonus_chance: float = 0.32
 @export var drop_spread_radius: float = 66.0
 
+@export_group("Skill Reward Loop")
+@export var flow_drop_bonus_chance: float = 0.18
+@export var chain_drop_bonus_per_link: float = 0.012
+@export var chain_drop_bonus_cap: float = 0.22
+@export var rush_momentum_orb_chain_threshold: int = 4
+@export var movement_puzzle_chain_rarity_threshold: int = 4
+@export var movement_puzzle_chain_rarity_bonus: int = 1
+
 var _active_drops: Array[Node] = []
 var _wave_director: Node = null
 var _sequence: int = 0
@@ -99,17 +107,20 @@ func _spawn_fragments(parent: Node, position: Vector2, rng: RandomNumberGenerato
 
 func _try_spawn_optional(parent: Node, position: Vector2, rng: RandomNumberGenerator, rarity: int, wave: int, is_boss: bool, spawned: Array[Node]) -> void:
 	var elite_bonus := elite_bonus_chance if rarity >= 3 else 0.0
-	if rng.randf() <= momentum_orb_chance + elite_bonus * 0.35:
+	var skill_bonus := _skill_drop_bonus()
+	if rng.randf() <= momentum_orb_chance + elite_bonus * 0.35 + skill_bonus:
+		_spawn_drop(parent, PhysicsDrop.DropType.MOMENTUM_ORB, rarity, position, rng, 1.0 + float(rarity), null, spawned)
+	elif _active_run_chain_count() >= rush_momentum_orb_chain_threshold and rng.randf() <= skill_bonus * 0.55:
 		_spawn_drop(parent, PhysicsDrop.DropType.MOMENTUM_ORB, rarity, position, rng, 1.0 + float(rarity), null, spawned)
 	if wave >= uncommon_drop_wave:
-		if rng.randf() <= gravity_residue_chance + elite_bonus:
+		if rng.randf() <= gravity_residue_chance + elite_bonus + skill_bonus * 0.45:
 			_spawn_drop(parent, PhysicsDrop.DropType.GRAVITY_RESIDUE, rarity, position, rng, 1.0 + float(rarity), null, spawned)
-		if rng.randf() <= temporal_charge_chance + elite_bonus * 0.5:
+		if rng.randf() <= temporal_charge_chance + elite_bonus * 0.5 + skill_bonus * 0.35:
 			_spawn_drop(parent, PhysicsDrop.DropType.TEMPORAL_CHARGE, rarity, position, rng, 1.0 + float(rarity), null, spawned)
 	if wave >= rare_drop_wave or is_boss:
-		if rng.randf() <= instability_shard_chance + elite_bonus * 0.35:
+		if rng.randf() <= instability_shard_chance + elite_bonus * 0.35 + skill_bonus * 0.24:
 			_spawn_drop(parent, PhysicsDrop.DropType.INSTABILITY_SHARD, rarity, position, rng, 1.0 + float(rarity), null, spawned)
-		if rng.randf() <= anomaly_seed_chance + elite_bonus * 0.25:
+		if rng.randf() <= anomaly_seed_chance + elite_bonus * 0.25 + skill_bonus * 0.16:
 			_spawn_drop(parent, PhysicsDrop.DropType.ANOMALY_SEED, rarity, position, rng, 1.0 + float(rarity), null, spawned)
 
 
@@ -171,6 +182,9 @@ func _rarity_for_enemy(enemy: Node, is_boss: bool, wave: int) -> int:
 		rarity = max(rarity, 3)
 	if wave >= rare_drop_wave:
 		rarity = max(rarity, 1)
+	var chain_count := _active_run_chain_count()
+	if enemy.has_meta(&"movement_puzzle_role") and chain_count >= movement_puzzle_chain_rarity_threshold:
+		rarity = max(rarity, movement_puzzle_chain_rarity_bonus + int(float(chain_count) / 8.0))
 	return clampi(rarity, 0, 5)
 
 
@@ -211,6 +225,41 @@ func _current_wave() -> int:
 
 func _is_boss_enemy(enemy: Node) -> bool:
 	return enemy.is_in_group("bosses") or enemy.has_signal("boss_defeated")
+
+
+func _skill_drop_bonus() -> float:
+	var bonus := 0.0
+	var player := MultiplayerTargeting.local_player(get_tree())
+	if player != null and is_instance_valid(player):
+		if bool(player.get_meta(&"momentum_flow_active", false)):
+			bonus += flow_drop_bonus_chance * clampf(float(player.get_meta(&"momentum_flow_intensity", 0.0)), 0.0, 1.0)
+	var chain_count := _active_run_chain_count()
+	if chain_count > 0:
+		bonus += minf(float(chain_count) * chain_drop_bonus_per_link, chain_drop_bonus_cap)
+	return clampf(bonus, 0.0, 0.42)
+
+
+func _active_run_chain_count() -> int:
+	var snapshot := _score_snapshot()
+	if snapshot.is_empty():
+		return 0
+	if float(snapshot.get("run_chain_timer", 0.0)) <= 0.0:
+		return 0
+	return int(snapshot.get("run_chain_count", 0))
+
+
+func _score_snapshot() -> Dictionary:
+	var tracker := get_tree().get_first_node_in_group("run_score_tracker")
+	if tracker != null and tracker.has_method("get_score_snapshot"):
+		var value: Variant = tracker.call("get_score_snapshot")
+		if value is Dictionary:
+			return value as Dictionary
+	if RunProgress == null:
+		return {}
+	var snapshot_value: Variant = RunProgress.arena_flags.get("score_snapshot", {})
+	if snapshot_value is Dictionary:
+		return snapshot_value as Dictionary
+	return {}
 
 
 func _cleanup_drops() -> void:

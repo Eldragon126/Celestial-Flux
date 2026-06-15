@@ -77,11 +77,13 @@ var _reality_collapse: Node = null
 var _celestial_director: Node = null
 var _swim_director: Node = null
 var _weapon_system: Node = null
+var _score_tracker: Node = null
 var _active_players: Array[AudioStreamPlayer2D] = []
 var _last_cue_time := -999.0
 var _next_gravity_scar_apply_cue := 0.0
 var _next_weapon_cue_time := 0.0
 var _next_drop_collect_cue := 0.0
+var _next_chain_cue := 0.0
 var _next_thrust_cue := 0.0
 var _next_resource_warning_cue := 0.0
 var _source_refresh_elapsed := 999.0
@@ -148,6 +150,7 @@ func _connect_sources() -> void:
 	_connect_signal(_swim_director, &"spacetime_glitch_triggered", Callable(self, "_on_spacetime_glitch_triggered"))
 	_connect_signal(_weapon_system, &"weapon_fired", Callable(self, "_on_weapon_fired"))
 	_connect_signal(_weapon_system, &"weapon_energy_failed", Callable(self, "_on_weapon_energy_failed"))
+	_connect_signal(_score_tracker, &"run_chain_changed", Callable(self, "_on_run_chain_changed"))
 	_connect_ambient_audio_sources(scene)
 	_connect_boss_audio_sources()
 
@@ -188,6 +191,7 @@ func _resolve_sources() -> void:
 		_shield = _player.get_node_or_null("Shield")
 		_energy_component = _player.get_node_or_null("EnergyComponent")
 		_weapon_system = _player.get_node_or_null("WeaponSystem")
+	_score_tracker = get_tree().get_first_node_in_group("run_score_tracker")
 
 
 func _connect_signal(source: Node, signal_name: StringName, callable: Callable) -> void:
@@ -524,6 +528,22 @@ func _on_near_miss_recorded(data: Dictionary) -> void:
 	if severity < 0.42:
 		return
 	_play_positional_cue(MOMENTUM_SURGE_STREAM, _event_position(data), momentum_cue_volume_db - 8.0, lerpf(0.88, 1.3, severity))
+
+
+func _on_run_chain_changed(chain_count: int, _multiplier: float, timer: float, reason: StringName) -> void:
+	if timer <= 0.0 or chain_count < 2:
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _next_chain_cue:
+		return
+	var pressure := clampf(float(chain_count) / 12.0, 0.0, 1.0)
+	_next_chain_cue = now + lerpf(0.22, 0.08, pressure)
+	var stream := MOMENTUM_SURGE_STREAM
+	if reason == &"weapon_kill":
+		stream = RESONANCE_INTENSIFY_STREAM
+	elif chain_count >= 8:
+		stream = LATE_GAME_OVERFOLD_STREAM
+	_play_player_cue(stream, momentum_cue_volume_db - 8.0 + pressure * 2.0, 0.92 + pressure * 0.42)
 
 
 func _on_reality_breach_opened(breach_id: StringName, data: Dictionary) -> void:

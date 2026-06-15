@@ -12,9 +12,11 @@ signal content_registered(content_type: StringName, entry_id: StringName, manife
 signal dependency_warning(manifest_id: StringName, dependency_id: StringName, reason: String)
 signal mod_catalog_changed(snapshot: Dictionary)
 signal mod_hook_registered(hook_id: StringName, entry_id: StringName, manifest_id: StringName, entry: Dictionary)
+signal manifest_toggle_changed(manifest_id: StringName, enabled: bool)
 
 const MAX_SCHEMA_VERSION := 3
 const DEFAULT_MANIFEST_FILE_NAME := "vector_anomaly_mod.json"
+const DEFAULT_MOD_STATE_PATH := "user://mod_state.json"
 const LEGACY_MANIFEST_FILE_NAMES := ["mod.json"]
 const DEFAULT_EXTERNAL_MOD_ROOT_NAMES := ["mods", "Mods"]
 const MAX_SCAN_DEPTH_LIMIT := 8
@@ -297,6 +299,8 @@ const GRAVITY_SCAR_NAME_TO_ID := {
 @export var allow_script_pack_registration: bool = false
 @export var res_mod_root: String = "res://Mods"
 @export var user_mod_root: String = "user://mods"
+@export var persist_mod_toggles: bool = true
+@export var mod_state_path: String = DEFAULT_MOD_STATE_PATH
 @export var manifest_file_name: String = DEFAULT_MANIFEST_FILE_NAME
 @export var alternate_manifest_file_names: Array[String] = ["mod.json"]
 @export var executable_mod_root_names: Array[String] = ["mods", "Mods"]
@@ -312,6 +316,7 @@ var _hook_index: Dictionary = {}
 var _load_order: Array[StringName] = []
 var _scan_roots: Array[Dictionary] = []
 var _loaded_manifest_paths: Dictionary = {}
+var _user_disabled_manifests: Dictionary = {}
 
 
 func _ready() -> void:
@@ -322,6 +327,9 @@ func _ready() -> void:
 
 
 func reload_registry() -> void:
+	if persist_mod_toggles:
+		_load_mod_toggle_state()
+
 	_manifests.clear()
 	_failed_manifests.clear()
 	_dependency_warnings.clear()
@@ -351,6 +359,7 @@ func get_registry_summary() -> Dictionary:
 		"failed": _failed_manifests.size(),
 		"dependency_warnings": _dependency_warnings.size(),
 		"disabled": _disabled_manifests.size(),
+		"user_disabled": _loaded_user_disabled_count(),
 		"content_total": _content_index.size(),
 		"hook_count": _hook_index.size(),
 		"hook_entry_count": _hook_entry_count(),
@@ -369,6 +378,7 @@ func get_registry_snapshot() -> Dictionary:
 		"failed_manifests": _failed_manifests.duplicate(true),
 		"dependency_warnings": _dependency_warnings.duplicate(true),
 		"disabled_manifests": _disabled_manifests.duplicate(true),
+		"user_disabled_manifests": _user_disabled_manifests.duplicate(true),
 		"content": _content.duplicate(true),
 		"content_index": _content_index.duplicate(true),
 		"hook_index": _hook_index.duplicate(true),
@@ -492,6 +502,8 @@ func get_modding_capabilities() -> Dictionary:
 		"install_paths": get_mod_install_paths(),
 		"relative_asset_paths": allow_relative_asset_paths,
 		"recursive_scan_depth": clampi(recursive_scan_depth, 1, MAX_SCAN_DEPTH_LIMIT),
+		"persistent_toggles": persist_mod_toggles,
+		"toggle_state_path": _display_path(mod_state_path),
 	}
 
 
@@ -514,6 +526,14 @@ func _hook_entry_count() -> int:
 	for entries_value in _hook_index.values():
 		if entries_value is Array:
 			total += (entries_value as Array).size()
+	return total
+
+
+func _loaded_user_disabled_count() -> int:
+	var total := 0
+	for key in _user_disabled_manifests.keys():
+		if _manifests.has(str(key)):
+			total += 1
 	return total
 
 
@@ -559,6 +579,56 @@ func get_manifest_load_order() -> Array[StringName]:
 	return _load_order.duplicate()
 
 
+func get_user_disabled_manifests() -> Array[StringName]:
+	var ids: Array[StringName] = []
+	for key in _user_disabled_manifests.keys():
+		ids.append(StringName(str(key)))
+	ids.sort()
+	return ids
+
+
+func is_manifest_user_disabled(manifest_id: StringName) -> bool:
+	return _user_disabled_manifests.has(str(manifest_id))
+
+
+func is_manifest_enabled(manifest_id: StringName) -> bool:
+	var manifest := get_manifest(manifest_id)
+	return not manifest.is_empty() and bool(manifest.get("enabled", true))
+
+
+func set_manifest_user_enabled(manifest_id: StringName, enabled_state: bool) -> bool:
+	var manifest_key := str(manifest_id).strip_edges()
+	if manifest_key.is_empty():
+		return false
+	var new_disabled := not enabled_state
+	var was_disabled := _user_disabled_manifests.has(manifest_key)
+	if was_disabled == new_disabled:
+		return false
+	if new_disabled:
+		_user_disabled_manifests[manifest_key] = true
+	else:
+		_user_disabled_manifests.erase(manifest_key)
+	if persist_mod_toggles:
+		_save_mod_toggle_state()
+	reload_registry()
+	manifest_toggle_changed.emit(StringName(manifest_key), enabled_state)
+	return true
+
+
+func set_manifest_enabled(manifest_id: StringName, enabled_state: bool) -> bool:
+	return set_manifest_user_enabled(manifest_id, enabled_state)
+
+
+func toggle_manifest_user_enabled(manifest_id: StringName) -> bool:
+	var next_enabled := _user_disabled_manifests.has(str(manifest_id))
+	set_manifest_user_enabled(manifest_id, next_enabled)
+	return next_enabled
+
+
+func toggle_manifest_enabled(manifest_id: StringName) -> bool:
+	return toggle_manifest_user_enabled(manifest_id)
+
+
 func get_dependency_warnings() -> Dictionary:
 	return _dependency_warnings.duplicate(true)
 
@@ -578,6 +648,7 @@ func get_mod_install_paths() -> Dictionary:
 		"bundled_mods": res_mod_root,
 		"executable_mods": _join_path(executable_root, "mods") if not executable_root.is_empty() else "",
 		"manifest_files": _manifest_file_names(),
+		"toggle_state": _display_path(mod_state_path),
 		"external_roots_enabled": load_executable_adjacent_mods,
 		"relative_paths_enabled": allow_relative_asset_paths,
 	}
@@ -729,6 +800,59 @@ func _append_unique_string(values: Array[String], value: String) -> void:
 	if clean.is_empty() or values.has(clean):
 		return
 	values.append(clean)
+
+
+func _load_mod_toggle_state() -> void:
+	_user_disabled_manifests.clear()
+	var clean_path := _normalize_path_text(mod_state_path)
+	if clean_path.is_empty() or not FileAccess.file_exists(clean_path):
+		return
+	var file := FileAccess.open(clean_path, FileAccess.READ)
+	if file == null:
+		return
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not (parsed is Dictionary):
+		return
+	var data := parsed as Dictionary
+	var disabled_value: Variant = data.get("disabled_manifests", data.get("disabled", []))
+	if disabled_value is Array:
+		for value in (disabled_value as Array):
+			_add_user_disabled_manifest_id(str(value))
+	elif disabled_value is Dictionary:
+		var disabled_map := disabled_value as Dictionary
+		for key in disabled_map.keys():
+			if bool(disabled_map.get(key, false)):
+				_add_user_disabled_manifest_id(str(key))
+
+
+func _save_mod_toggle_state() -> bool:
+	var clean_path := _normalize_path_text(mod_state_path)
+	if clean_path.is_empty():
+		return false
+	var parent_dir := clean_path.get_base_dir()
+	if not parent_dir.is_empty() and parent_dir != ".":
+		_ensure_mod_root(parent_dir)
+	var ids: Array[String] = []
+	for key in _user_disabled_manifests.keys():
+		ids.append(str(key))
+	ids.sort()
+	var file := FileAccess.open(clean_path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(JSON.stringify({
+		"version": 1,
+		"disabled_manifests": ids,
+	}, "\t"))
+	file.close()
+	return true
+
+
+func _add_user_disabled_manifest_id(manifest_id: String) -> void:
+	var clean_id := manifest_id.strip_edges()
+	if clean_id.is_empty() or not _is_safe_identifier(clean_id):
+		return
+	_user_disabled_manifests[clean_id] = true
 
 
 func _ensure_mod_root(root_path: String) -> void:
@@ -1018,6 +1142,8 @@ func _load_manifest_path(path: String, source_context: Dictionary = {}) -> void:
 		"dependencies": _dependency_array(manifest.get("dependencies", [])),
 		"load_after": _string_array(manifest.get("load_after", [])),
 		"enabled": true,
+		"user_enabled": true,
+		"user_disabled": false,
 	}
 	_manifests[manifest_key] = metadata
 	_load_order.append(manifest_id)
@@ -1653,6 +1779,11 @@ func _resolve_dependency_warnings() -> void:
 				if bool(dependency.get("required", true)):
 					_disabled_manifests[manifest_key] = "missing dependency %s" % str(dependency_id)
 				continue
+			if _user_disabled_manifests.has(str(dependency_id)):
+				_add_dependency_warning(manifest_id, dependency_id, "dependency disabled by user")
+				if bool(dependency.get("required", true)):
+					_disabled_manifests[manifest_key] = "dependency %s disabled" % str(dependency_id)
+				continue
 			var min_version := str(dependency.get("min_version", "")).strip_edges()
 			if min_version.is_empty():
 				continue
@@ -1671,11 +1802,15 @@ func _resolve_dependency_warnings() -> void:
 
 
 func _apply_manifest_enabled_state() -> void:
+	_apply_user_disabled_manifests()
 	for manifest_id in _load_order:
 		var manifest_key := str(manifest_id)
+		var user_disabled := _user_disabled_manifests.has(manifest_key)
 		var enabled_state := not _disabled_manifests.has(manifest_key)
 		var manifest: Dictionary = _manifests.get(manifest_key, {})
 		manifest["enabled"] = enabled_state
+		manifest["user_enabled"] = not user_disabled
+		manifest["user_disabled"] = user_disabled
 		manifest["disabled_reason"] = str(_disabled_manifests.get(manifest_key, ""))
 		_manifests[manifest_key] = manifest
 
@@ -1684,10 +1819,22 @@ func _apply_manifest_enabled_state() -> void:
 		for qualified_id in entries.keys():
 			var entry: Dictionary = entries[qualified_id]
 			var manifest_key := str(entry.get("manifest_id", ""))
+			var entry_user_disabled := _user_disabled_manifests.has(manifest_key)
 			var enabled_state := not _disabled_manifests.has(manifest_key)
 			entry["enabled"] = enabled_state
+			entry["manifest_user_enabled"] = not entry_user_disabled
+			entry["manifest_user_disabled"] = entry_user_disabled
 			entry["disabled_reason"] = str(_disabled_manifests.get(manifest_key, ""))
 			entries[qualified_id] = entry
+
+
+func _apply_user_disabled_manifests() -> void:
+	for key in _user_disabled_manifests.keys():
+		var manifest_key := str(key)
+		if not _manifests.has(manifest_key):
+			continue
+		var existing_reason := str(_disabled_manifests.get(manifest_key, "")).strip_edges()
+		_disabled_manifests[manifest_key] = "user disabled" if existing_reason.is_empty() else "user disabled; %s" % existing_reason
 
 
 func _entries_for_manifest(manifest_id: StringName, buckets: Array) -> Array:

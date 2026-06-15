@@ -253,7 +253,7 @@ func _spawn_ribbon(position: Vector2, direction: Vector2, intensity: float, colo
 		var old_value: Variant = oldest.get("node")
 		if old_value != null and is_instance_valid(old_value):
 			var old_node := old_value as Node
-			if old_node != null:
+			if old_node != null and not old_node.is_queued_for_deletion():
 				old_node.queue_free()
 	if direction.length_squared() <= 0.001:
 		direction = Vector2.RIGHT
@@ -285,7 +285,7 @@ func _spawn_glitch_slice(intensity: float, color: Color) -> void:
 		var old_value: Variant = oldest.get("node")
 		if old_value != null and is_instance_valid(old_value):
 			var old_node := old_value as Node
-			if old_node != null:
+			if old_node != null and not old_node.is_queued_for_deletion():
 				old_node.queue_free()
 
 	var rect := ColorRect.new()
@@ -319,7 +319,7 @@ func _spawn_break_ring(position: Vector2, intensity: float, color: Color) -> voi
 		var old_value: Variant = oldest.get("node")
 		if old_value != null and is_instance_valid(old_value):
 			var old_node := old_value as Node
-			if old_node != null:
+			if old_node != null and not old_node.is_queued_for_deletion():
 				old_node.queue_free()
 
 	var ring := Line2D.new()
@@ -363,7 +363,8 @@ func _update_ribbons(delta: float) -> void:
 		entry["age"] = age
 		_ribbons[i] = entry
 		if age >= lifetime:
-			line.queue_free()
+			if not line.is_queued_for_deletion():
+				line.queue_free()
 			_ribbons.remove_at(i)
 
 
@@ -386,7 +387,8 @@ func _update_glitch_slices(delta: float) -> void:
 		entry["age"] = age
 		_glitch_slices[i] = entry
 		if age >= lifetime:
-			rect.queue_free()
+			if not rect.is_queued_for_deletion():
+				rect.queue_free()
 			_glitch_slices.remove_at(i)
 
 
@@ -410,7 +412,8 @@ func _update_break_rings(delta: float) -> void:
 		entry["age"] = age
 		_break_rings[i] = entry
 		if age >= lifetime:
-			ring.queue_free()
+			if not ring.is_queued_for_deletion():
+				ring.queue_free()
 			_break_rings.remove_at(i)
 
 

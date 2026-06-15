@@ -436,7 +436,7 @@ func _spawn_ring_burst(position: Vector2, radius: float, color: Color) -> void:
 	var tween := ring.create_tween()
 	tween.tween_property(ring, "scale", Vector2.ONE * radius, 0.26).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.parallel().tween_property(ring, "default_color:a", 0.0, 0.28)
-	tween.tween_callback(Callable(ring, "queue_free"))
+	tween.tween_callback(Callable(self, "_queue_free_if_valid").bind(ring))
 
 
 func _add_effect_node(node: Node) -> void:
@@ -448,9 +448,14 @@ func _add_effect_node(node: Node) -> void:
 
 
 func _cleanup_warning_line() -> void:
-	if _warning_line != null and is_instance_valid(_warning_line):
+	if _warning_line != null and is_instance_valid(_warning_line) and not _warning_line.is_queued_for_deletion():
 		_warning_line.queue_free()
 	_warning_line = null
+
+
+func _queue_free_if_valid(node: Node) -> void:
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+		node.queue_free()
 
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:

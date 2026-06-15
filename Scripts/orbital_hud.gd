@@ -10,7 +10,7 @@ extends CanvasLayer
 @export var nearest_field_notice_radius: float = 760.0
 @export var enable_player_orbit_telemetry: bool = false
 @export var hud_safe_margin: float = 18.0
-@export var left_panel_gap: float = 20.0
+@export var left_panel_gap: float = 28.0
 
 var _player: Node2D
 var _resonance_manager: Node
@@ -73,6 +73,8 @@ var _challenge_code := "--"
 var _last_score_snapshot: Dictionary = {}
 var _resource_previous_values: Dictionary = {}
 var _resource_pulse_tweens: Dictionary = {}
+var _last_weapon_notice_id: String = ""
+var _last_weapon_pool_count: int = 0
 
 # Cache the current intensity to avoid repeated get_shader_parameter calls
 var _current_vignette_intensity: float = 0.0
@@ -113,6 +115,31 @@ func _process(delta: float) -> void:
 	_update_threat_arrows(delta)
 	_apply_accessibility_settings()
 	_layout_hud()
+
+
+func _safe_viewport() -> Viewport:
+	var viewport := get_viewport()
+	if viewport != null:
+		return viewport
+	var tree := get_tree()
+	if tree != null:
+		return tree.root
+	return null
+
+
+func _safe_viewport_size() -> Vector2:
+	var viewport := _safe_viewport()
+	if viewport == null:
+		return Vector2(1280.0, 720.0)
+	var size := viewport.get_visible_rect().size
+	if size.x <= 0.0 or size.y <= 0.0:
+		return Vector2(1280.0, 720.0)
+	return size
+
+
+func _safe_canvas_transform() -> Transform2D:
+	var viewport := _safe_viewport()
+	return viewport.get_canvas_transform() if viewport != null else Transform2D.IDENTITY
 
 
 # ============================
@@ -167,7 +194,7 @@ func _build_resource_bars() -> void:
 	_resource_panel.name = "ResourceBarsPanel"
 	_resource_panel.offset_left = 18.0
 	_resource_panel.offset_top = 18.0
-	_resource_panel.custom_minimum_size = Vector2(390.0, 104.0)
+	_resource_panel.custom_minimum_size = Vector2(390.0, 148.0)
 	_resource_panel.clip_contents = true
 	_resource_panel.add_theme_stylebox_override(
 		"panel",
@@ -736,6 +763,7 @@ func _resolve_rule_systems() -> void:
 		var weapon_system := _player.get_node_or_null("WeaponSystem")
 		if weapon_system != null and weapon_system != _weapon_system:
 			_weapon_system = weapon_system
+			_connect_weapon_system_signals(weapon_system)
 
 func _update_field_lens() -> void:
 	if _field_label == null:
@@ -938,6 +966,7 @@ func _update_weapon_lens() -> void:
 	var active := bool(state.get("beam_active", false))
 	var energy_percent := clampf(float(state.get("energy_percent", 0.0)), 0.0, 1.0)
 	var fire_mode := StringName(state.get("fire_mode", &"projectile"))
+	var mode_label := String(fire_mode).to_upper()
 	var cost := float(state.get("cost_per_second", 0.0)) if fire_mode == &"beam" else float(state.get("cost_per_shot", 0.0))
 	var cost_label := "/s" if fire_mode == &"beam" else "/shot"
 	if fire_mode == &"field":
@@ -946,9 +975,15 @@ func _update_weapon_lens() -> void:
 	var color: Color = state.get("color", Color(0.34, 1.0, 0.86, 1.0))
 	var ready := bool(state.get("ready", energy_percent > 0.12))
 	var state_label := "FIRING" if active else ("READY" if ready else "LOW ENERGY")
+	var unlocked := int(state.get("unlocked_count", state.get("count", 1)))
+	var total := maxi(int(state.get("total_weapon_count", unlocked)), unlocked)
+	var next_wave := int(state.get("next_unlock_wave", -1))
+	var pool_label := "ALL" if total <= unlocked else "%d/%d" % [unlocked, total]
+	var next_label := " NEXT W%d" % next_wave if next_wave > 0 and total > unlocked else ""
 
-	_weapon_label.text = "%s  %s %.0f%s" % [display_name, state_label, cost, cost_label]
+	_weapon_label.text = "%s  %s %s  E%.0f%s  %s%s" % [display_name, mode_label, state_label, cost, cost_label, pool_label, next_label]
 	_weapon_label.modulate = _readability_color(color)
+	_weapon_bar.modulate = _readability_color(color.lerp(Color.WHITE, 0.16 if ready else 0.46))
 	_weapon_bar.value = energy_percent
 
 func _update_score_panel(delta: float) -> void:
@@ -1000,11 +1035,20 @@ func _apply_score_snapshot(score: int, snapshot: Dictionary) -> void:
 	if _score_label != null:
 		_score_label.text = "%06d" % maxi(score, 0)
 	if _score_detail_label != null:
-		_score_detail_label.text = "W%d  B%d  ANOM %d" % [
-			int(snapshot.get("waves_cleared", snapshot.get("wave", 0))),
-			int(snapshot.get("bosses_defeated", 0)) + int(snapshot.get("secret_bosses_defeated", 0)),
-			int(snapshot.get("physics_anomaly_total", 0)),
-		]
+		var chain_count := int(snapshot.get("run_chain_count", 0))
+		var chain_timer := float(snapshot.get("run_chain_timer", 0.0))
+		if chain_count > 0 and chain_timer > 0.0:
+			_score_detail_label.text = "FLOW x%d  %.2fx  %.1fs" % [
+				chain_count,
+				float(snapshot.get("run_chain_multiplier", 1.0)),
+				chain_timer,
+			]
+		else:
+			_score_detail_label.text = "W%d  B%d  ANOM %d" % [
+				int(snapshot.get("waves_cleared", snapshot.get("wave", 0))),
+				int(snapshot.get("bosses_defeated", 0)) + int(snapshot.get("secret_bosses_defeated", 0)),
+				int(snapshot.get("physics_anomaly_total", 0)),
+			]
 	if _anomaly_label != null:
 		var last_value: Variant = snapshot.get("last_physics_anomaly", {})
 		if typeof(last_value) == TYPE_DICTIONARY:
@@ -1028,8 +1072,8 @@ func _update_orbit_telemetry(delta: float) -> void:
 		return
 
 	_hud_phase += delta
-	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var viewport_size: Vector2 = _safe_viewport_size()
+	var canvas_transform: Transform2D = _safe_canvas_transform()
 	var screen_pos: Vector2 = canvas_transform * _player.global_position
 	var margin := 86.0
 	var visible := screen_pos.x > margin and screen_pos.y > margin and screen_pos.x < viewport_size.x - margin and screen_pos.y < viewport_size.y - margin
@@ -1143,6 +1187,43 @@ func show_mod_notice(text: String, color: Color = Color(0.34, 1.0, 0.86, 1.0), d
 	_powerup_notice_label.text = clean_text
 	_powerup_notice_color = color
 	_powerup_notice_time = maxf(_powerup_notice_time, duration)
+
+
+func _connect_weapon_system_signals(weapon_system: Node) -> void:
+	if weapon_system == null:
+		return
+	var changed_callable := Callable(self, "_on_weapon_changed")
+	if weapon_system.has_signal("weapon_changed") and not weapon_system.is_connected("weapon_changed", changed_callable):
+		weapon_system.connect("weapon_changed", changed_callable)
+	var pool_callable := Callable(self, "_on_weapon_pool_changed")
+	if weapon_system.has_signal("weapon_pool_changed") and not weapon_system.is_connected("weapon_pool_changed", pool_callable):
+		weapon_system.connect("weapon_pool_changed", pool_callable)
+
+
+func _on_weapon_changed(weapon_id: StringName, display_name: String, weapon_data: Dictionary) -> void:
+	var weapon_key := String(weapon_id)
+	if weapon_key == _last_weapon_notice_id:
+		return
+	_last_weapon_notice_id = weapon_key
+	var mode := String(weapon_data.get("fire_mode", &"projectile")).to_upper()
+	var color: Color = weapon_data.get("color", Color(0.34, 1.0, 0.86, 1.0))
+	show_mod_notice("%s ONLINE: %s" % [mode, display_name.to_upper()], color, 1.05)
+
+
+func _on_weapon_pool_changed(unlocked_count: int, total_count: int, newly_unlocked: Array[String]) -> void:
+	_last_weapon_pool_count = unlocked_count
+	if newly_unlocked.is_empty():
+		return
+	var first_name := newly_unlocked[0].to_upper()
+	var text := "NEW WEAPON: %s" % first_name
+	if newly_unlocked.size() > 1:
+		text = "WEAPONS UNLOCKED: %s +%d" % [first_name, newly_unlocked.size() - 1]
+	if total_count > unlocked_count:
+		text += "  %d/%d" % [unlocked_count, total_count]
+	else:
+		text += "  FULL ARSENAL"
+	show_mod_notice(text, Color(0.46, 1.0, 0.82, 1.0), 2.15)
+
 
 func _on_slingshot_mastery_triggered(data: Dictionary) -> void:
 	if _powerup_notice_label == null:
@@ -1290,9 +1371,9 @@ func _update_health_vignette(delta: float) -> void:
 # ============================
 
 func _update_nav_arrows(_gravity_strength: float) -> void:
-	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var viewport_size: Vector2 = _safe_viewport_size()
 	var center: Vector2 = viewport_size * 0.5
-	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var canvas_transform: Transform2D = _safe_canvas_transform()
 	var arrow_index: int = 0
 	
 	for planet in get_tree().get_nodes_in_group("planets"):
@@ -1357,8 +1438,8 @@ func _collect_offscreen_targets(group_name: StringName, limit: int, skip_bosses:
 	if limit <= 0 or _player == null:
 		return targets
 
-	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var viewport_size: Vector2 = _safe_viewport_size()
+	var canvas_transform: Transform2D = _safe_canvas_transform()
 
 	for node in get_tree().get_nodes_in_group(group_name):
 		if node == null or not is_instance_valid(node):
@@ -1389,8 +1470,8 @@ func _collect_offscreen_targets_from_groups(group_names: Array[StringName], limi
 	if limit <= 0 or _player == null:
 		return targets
 
-	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var viewport_size: Vector2 = _safe_viewport_size()
+	var canvas_transform: Transform2D = _safe_canvas_transform()
 	var seen := {}
 
 	for group_name in group_names:
@@ -1419,9 +1500,9 @@ func _collect_offscreen_targets_from_groups(group_names: Array[StringName], limi
 
 
 func _update_target_arrows(arrows: Array[Polygon2D], targets: Array[Node2D], base_color: Color, is_boss_arrow: bool, base_scale: float = 1.0) -> void:
-	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var viewport_size: Vector2 = _safe_viewport_size()
 	var center: Vector2 = viewport_size * 0.5
-	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var canvas_transform: Transform2D = _safe_canvas_transform()
 	var arrow_index := 0
 
 	for target in targets:
@@ -1499,12 +1580,12 @@ func _layout_hud() -> void:
 	if _hud_root == null:
 		return
 	var scale_value := maxf(_last_ui_scale, 0.75)
-	var viewport_size := get_viewport().get_visible_rect().size / scale_value
+	var viewport_size := _safe_viewport_size() / scale_value
 	var margin := maxf(hud_safe_margin, 10.0)
 	var compact_width := viewport_size.x < 960.0
 	var compact_height := viewport_size.y < 660.0
 	var resource_width := clampf(viewport_size.x * (0.44 if compact_width else 0.29), 286.0, 382.0)
-	var resource_height := 98.0 if compact_height else 104.0
+	var resource_height := 132.0 if compact_height else 148.0
 
 	if _resource_panel != null:
 		_resource_panel.custom_minimum_size = Vector2(resource_width, resource_height)
@@ -1516,7 +1597,7 @@ func _layout_hud() -> void:
 		var readout_width := minf(resource_width, 318.0)
 		var readout_height := 318.0
 		if compact_height:
-			readout_height = clampf(viewport_size.y - readout_top - 126.0, 178.0, 268.0)
+			readout_height = clampf(viewport_size.y - readout_top - 150.0, 168.0, 248.0)
 		else:
 			readout_height = minf(readout_height, maxf(viewport_size.y - readout_top - margin, 220.0))
 		_readout_panel.custom_minimum_size = Vector2(readout_width, readout_height)

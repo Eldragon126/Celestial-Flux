@@ -484,6 +484,16 @@ func _grant_showcase_upgrades() -> void:
 		var definition := PowerupLibrary.get_definition(powerup_id)
 		if definition != null and inventory.has_method("apply_powerup"):
 			inventory.call("apply_powerup", definition)
+	var weapon_system := player.get_node_or_null("WeaponSystem")
+	if weapon_system == null:
+		return
+	if weapon_system.has_method("unlock_all_weapons_for_showcase"):
+		weapon_system.call("unlock_all_weapons_for_showcase")
+		return
+	if weapon_system.get("progressive_weapon_unlocks") != null:
+		weapon_system.set("progressive_weapon_unlocks", false)
+	if weapon_system.has_method("refresh_weapon_catalog"):
+		weapon_system.call("refresh_weapon_catalog")
 
 
 func _clear_spawned() -> void:

@@ -38,6 +38,7 @@ class_name ProjectileAimPredictor
 @export var spawn_offset: float = 70.0
 @export var projectile_mass: float = 0.25
 @export var gravity_source_refresh_interval: float = 0.12
+@export var player_gravity_deadzone_radius: float = 520.0
 
 @export var friction: float = 0.5
 @export var bounce: float = 0.5
@@ -91,9 +92,10 @@ func _physics_process(delta: float) -> void:
 
 func _update_gravity_sources() -> void:
 	_gravity_sources.clear()
+	var origin := _prediction_origin()
 	if RuntimeRegistry != null:
 		RuntimeRegistry.fill_nearest_gravity_sources(
-			_player.global_position,
+			origin,
 			_gravity_sources,
 			max_gravity_sources,
 			gravity_radius,
@@ -106,7 +108,7 @@ func _update_gravity_sources() -> void:
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for n in get_tree().get_nodes_in_group(group_name):
 			var node := n as Node2D
-			if node == null or not is_instance_valid(node) or _should_ignore_source(node):
+			if node == null or not is_instance_valid(node) or _should_ignore_source_for_position(node, origin, player_gravity_deadzone_radius):
 				continue
 			var id := node.get_instance_id()
 			if seen.has(id):
@@ -114,16 +116,17 @@ func _update_gravity_sources() -> void:
 			seen[id] = true
 			_gravity_sources.append(node)
 	_gravity_sources.sort_custom(func(a: Node2D, b: Node2D) -> bool:
-		return a.global_position.distance_squared_to(_player.global_position) < b.global_position.distance_squared_to(_player.global_position)
+		return a.global_position.distance_squared_to(origin) < b.global_position.distance_squared_to(origin)
 	)
 	if max_gravity_sources > 0 and _gravity_sources.size() > max_gravity_sources:
 		_gravity_sources.resize(max_gravity_sources)
 
 
 func _filter_ignored_sources() -> void:
+	var origin := _prediction_origin()
 	for index in range(_gravity_sources.size() - 1, -1, -1):
 		var source := _gravity_sources[index]
-		if source == null or not is_instance_valid(source) or _should_ignore_source(source):
+		if source == null or not is_instance_valid(source) or _should_ignore_source_for_position(source, origin, player_gravity_deadzone_radius):
 			_gravity_sources.remove_at(index)
 
 
@@ -135,6 +138,24 @@ func _should_ignore_source(source: Node2D) -> bool:
 	if source.is_ancestor_of(_player):
 		return true
 	return false
+
+
+func _should_ignore_source_for_position(source: Node2D, position: Vector2, deadzone_radius: float) -> bool:
+	if _should_ignore_source(source):
+		return true
+	if source.global_position.distance_squared_to(position) <= deadzone_radius * deadzone_radius:
+		if source.is_in_group("Objects_With_Gravity") and not source.is_in_group("planets"):
+			return true
+	return false
+
+
+func _prediction_origin() -> Vector2:
+	if not is_instance_valid(_player):
+		return global_position
+	var base_dir := -_player.transform.x.normalized()
+	if base_dir.length_squared() <= 0.001:
+		base_dir = Vector2.RIGHT
+	return _player.global_position + base_dir * spawn_offset
 
 
 func _simulate() -> void:
@@ -173,6 +194,7 @@ func _active_prediction_tracks() -> Array:
 			"projectile_speed": projectile_speed,
 			"gravity_constant": gravity_constant,
 			"gravity_radius": gravity_radius,
+			"player_gravity_deadzone_radius": player_gravity_deadzone_radius,
 			"collision_radius": collision_radius,
 			"projectile_mass": projectile_mass,
 			"prediction_color": prediction_color,
@@ -239,8 +261,11 @@ func _gravity_acceleration_for_track(pos: Vector2, track: Dictionary, track_mass
 	var force := Vector2.ZERO
 	var track_gravity := float(track.get("gravity_constant", gravity_constant))
 	var track_gravity_radius := float(track.get("gravity_radius", gravity_radius))
+	var track_deadzone := float(track.get("player_gravity_deadzone_radius", player_gravity_deadzone_radius))
 	for g in _gravity_sources:
 		if not is_instance_valid(g):
+			continue
+		if _should_ignore_source_for_position(g, pos, track_deadzone):
 			continue
 		var offset := g.global_position - pos
 		var dist := offset.length()
@@ -304,9 +329,7 @@ func _resolve_gravity_source_collision(pos: Vector2, _vel: Vector2, track_collis
 			continue
 		var delta_vec := pos - planet.global_position
 		var dist := delta_vec.length()
-		var impact_radius := track_collision_radius
-		if "consume_radius" in planet:
-			impact_radius = maxf(impact_radius, float(planet.get("consume_radius")))
+		var impact_radius := _gravity_source_collision_radius(planet, track_collision_radius)
 		if dist < impact_radius and dist > 0.001:
 			var normal := delta_vec / dist
 			return {
@@ -315,6 +338,25 @@ func _resolve_gravity_source_collision(pos: Vector2, _vel: Vector2, track_collis
 				"normal": normal,
 			}
 	return {"hit": false}
+
+
+func _gravity_source_collision_radius(source: Node2D, projectile_radius: float) -> float:
+	var source_radius := 0.0
+	var consume_value: Variant = source.get("consume_radius")
+	if consume_value is float or consume_value is int:
+		source_radius = maxf(source_radius, float(consume_value))
+	var radius_value: Variant = source.get("radius")
+	if radius_value is float or radius_value is int:
+		source_radius = maxf(source_radius, float(radius_value))
+	var base_radius_value: Variant = source.get("base_radius")
+	if base_radius_value is float or base_radius_value is int:
+		source_radius = maxf(source_radius, float(base_radius_value))
+	var collision := source.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		var circle := collision.shape as CircleShape2D
+		var scale_factor := maxf(absf(source.global_scale.x), absf(source.global_scale.y))
+		source_radius = maxf(source_radius, circle.radius * scale_factor)
+	return maxf(source_radius, 1.0) + maxf(projectile_radius, 1.0)
 
 
 func _predicted_launch_speed(direction: Vector2) -> float:

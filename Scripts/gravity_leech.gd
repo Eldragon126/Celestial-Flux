@@ -262,7 +262,12 @@ func _spawn_birth_glimmer(position: Vector2) -> void:
 	var tween := ring.create_tween()
 	tween.tween_property(ring, "scale", Vector2.ONE * 1.7, 0.46)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.46)
-	tween.tween_callback(ring.queue_free)
+	tween.tween_callback(Callable(self, "_queue_free_if_valid").bind(ring))
+
+
+func _queue_free_if_valid(node: Node) -> void:
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+		node.queue_free()
 
 
 func _gravity_leech_population() -> int:

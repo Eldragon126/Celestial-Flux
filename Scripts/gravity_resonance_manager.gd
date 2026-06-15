@@ -1124,14 +1124,14 @@ func _remove_zone_visual(zone_id: int) -> void:
 		var root_value: Variant = visual.get("root")
 		if root_value != null and is_instance_valid(root_value):
 			var root := root_value as Node
-			if root != null:
+			if root != null and not root.is_queued_for_deletion():
 				root.queue_free()
 	_zone_visuals.erase(zone_id)
 
 func _clear_zone_visuals() -> void:
 	for zone_id in _zone_visuals.keys():
 		_remove_zone_visual(int(zone_id))
-	if _visual_root != null and is_instance_valid(_visual_root):
+	if _visual_root != null and is_instance_valid(_visual_root) and not _visual_root.is_queued_for_deletion():
 		_visual_root.queue_free()
 	_visual_root = null
 

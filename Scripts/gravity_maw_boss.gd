@@ -304,7 +304,12 @@ func _spawn_absorb_line(source_position: Vector2, intensity: float) -> void:
 	add_child(line)
 	var tween := line.create_tween()
 	tween.tween_property(line, "modulate:a", 0.0, 0.18)
-	tween.tween_callback(line.queue_free)
+	tween.tween_callback(Callable(self, "_queue_free_if_valid").bind(line))
+
+
+func _queue_free_if_valid(node: Node) -> void:
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+		node.queue_free()
 
 
 func _build_editable_body() -> void:

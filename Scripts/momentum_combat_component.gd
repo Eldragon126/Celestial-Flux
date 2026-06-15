@@ -3,6 +3,7 @@ class_name MomentumCombatComponent
 
 const NEAR_MISS_GROUPS: Array[StringName] = [&"Objects_With_Gravity"]
 const SHOCKWAVE_TARGET_GROUPS: Array[StringName] = [&"enemies", &"wave_enemy", &"Projectiles", &"enemy_projectiles"]
+const NEAR_MISS_RADIUS_PROPERTIES: Array[StringName] = [&"radius", &"body_radius", &"base_radius", &"endpoint_radius", &"consume_radius"]
 
 # ==========================================
 # == SIGNALS ==
@@ -54,9 +55,17 @@ signal flow_state_changed(active: bool, intensity: float)
 @export var near_miss_inner_deadzone: float = 28.0
 @export var near_miss_min_speed: float = 540.0
 @export var near_miss_side_dot: float = 0.52
-@export var near_miss_velocity_gain: float = 95.0
+@export var near_miss_velocity_gain: float = 105.0
 @export var near_miss_cooldown: float = 0.7
 @export var near_miss_max_targets: int = 16
+@export var near_miss_uses_surface_distance: bool = true
+@export var near_miss_max_effective_radius: float = 320.0
+@export var near_miss_requires_tangent_pass: bool = true
+@export var near_miss_min_quality: float = 0.18
+@export var near_miss_quality_boost: float = 0.45
+@export var near_miss_starts_mastery_combo: bool = true
+@export var near_miss_starter_speed: float = 920.0
+@export_range(0.2, 1.0, 0.01) var near_miss_starter_timer_multiplier: float = 0.58
 
 @export_group("Kinetic Impact")
 @export var kinetic_impact_enabled: bool = true
@@ -97,19 +106,21 @@ signal flow_state_changed(active: bool, intensity: float)
 @export var mastery_good_threshold: float = 0.42
 @export var mastery_perfect_threshold: float = 0.82
 @export var mastery_apex_threshold: float = 0.94
-@export var mastery_combo_window: float = 2.6
-@export var mastery_max_combo: int = 7
+@export var mastery_combo_window: float = 3.2
+@export var mastery_max_combo: int = 9
 @export var mastery_speed_cap_bonus: float = 320.0
 @export var mastery_near_miss_bonus_multiplier: float = 1.75
 @export var mastery_impact_damage_bonus_per_combo: float = 0.13
-@export var flow_enter_combo: int = 3
+@export var flow_enter_combo: int = 2
 @export var flow_speed_ratio: float = 1.12
 @export var flow_speed_cap_bonus: float = 360.0
+@export var impact_starts_mastery_combo: bool = true
+@export var impact_starter_speed: float = 1040.0
 
 @export_group("Flow Rewards")
-@export var flow_energy_restore_per_second: float = 3.2
-@export_range(0.55, 1.0, 0.01) var flow_fire_interval_multiplier: float = 0.82
-@export_range(0.45, 1.0, 0.01) var god_vector_fire_interval_multiplier: float = 0.72
+@export var flow_energy_restore_per_second: float = 4.1
+@export_range(0.55, 1.0, 0.01) var flow_fire_interval_multiplier: float = 0.78
+@export_range(0.45, 1.0, 0.01) var god_vector_fire_interval_multiplier: float = 0.68
 @export var flow_reward_min_intensity: float = 0.2
 
 @export_group("Mastery Feedback")
@@ -287,33 +298,90 @@ func _update_near_misses(delta: float) -> void:
 	if speed < near_miss_min_speed:
 		return
 	
-	_fill_targets_in_radius(NEAR_MISS_GROUPS, _player.global_position, near_miss_radius, near_miss_max_targets, false, _near_miss_targets)
+	_fill_targets_in_radius(NEAR_MISS_GROUPS, _player.global_position, _near_miss_scan_radius(), near_miss_max_targets, false, _near_miss_targets)
 	for target_2d in _near_miss_targets:
 		if target_2d == _player or not is_instance_valid(target_2d) or target_2d.is_queued_for_deletion():
 			continue
-		var dist = _player.global_position.distance_to(target_2d.global_position)
-		if dist < near_miss_radius and dist > near_miss_inner_deadzone:
+		var center_distance := _player.global_position.distance_to(target_2d.global_position)
+		var surface_distance := _near_miss_surface_distance(target_2d, center_distance)
+		if surface_distance < near_miss_radius and surface_distance > near_miss_inner_deadzone:
+			var quality := _near_miss_quality(target_2d, center_distance, surface_distance)
+			if quality < near_miss_min_quality:
+				continue
 			var id = target_2d.get_instance_id()
 			if not _near_miss_cooldowns.has(id) or Time.get_ticks_msec() > _near_miss_cooldowns[id]:
-				_apply_near_miss(target_2d)
+				_apply_near_miss(target_2d, quality, surface_distance)
 				_near_miss_cooldowns[id] = Time.get_ticks_msec() + (near_miss_cooldown * 1000)
 
 
-func _apply_near_miss(target: Node) -> void:
-	var boost = near_miss_velocity_gain
+func _apply_near_miss(target: Node, quality: float = 0.0, surface_distance: float = 0.0) -> void:
+	var clamped_quality := clampf(quality, 0.0, 1.0)
+	var boost = near_miss_velocity_gain * (1.0 + clamped_quality * near_miss_quality_boost)
 	_speed_cap_bonus = maxf(_speed_cap_bonus, near_miss_speed_cap_bonus)
 
 	if _mastery_timer > 0.0:
 		boost *= mastery_near_miss_bonus_multiplier
 		_extend_mastery_combo(&"near_miss", _node_position_or_player(target))
+	elif near_miss_starts_mastery_combo and _player.velocity.length() >= near_miss_starter_speed:
+		_start_mastery_combo(&"near_miss", _node_position_or_player(target), mastery_combo_window * near_miss_starter_timer_multiplier)
 
 	var speed := _player.velocity.length()
 	var boost_dir := _player.velocity.normalized() if speed > 1.0 else -_player.transform.x.normalized()
 	var base_cap := float(_player.get("max_speed")) if _player.get("max_speed") != null else 800.0
 	var cap := base_cap + _speed_cap_bonus + near_miss_speed_cap_bonus
 	_player.velocity = (_player.velocity + boost_dir * boost).limit_length(cap)
+	_player.set_meta(&"last_near_miss_quality", clamped_quality)
+	_player.set_meta(&"last_near_miss_surface_distance", surface_distance)
+	_player.set_meta(&"last_near_miss_time", Time.get_ticks_msec() / 1000.0)
 
 	near_miss_velocity_gained.emit(target, boost)
+
+
+func _near_miss_scan_radius() -> float:
+	if not near_miss_uses_surface_distance:
+		return near_miss_radius
+	return near_miss_radius + maxf(near_miss_max_effective_radius, 0.0)
+
+
+func _near_miss_surface_distance(target: Node2D, center_distance: float) -> float:
+	if target == null or not near_miss_uses_surface_distance:
+		return center_distance
+	return maxf(center_distance - _near_miss_effective_radius(target), 0.0)
+
+
+func _near_miss_quality(target: Node2D, center_distance: float, surface_distance: float) -> float:
+	if target == null or not is_instance_valid(_player) or center_distance <= 0.01:
+		return 0.0
+	var speed := _player.velocity.length()
+	if speed < near_miss_min_speed:
+		return 0.0
+	var radial := _player.global_position - target.global_position
+	if radial.length_squared() <= 0.0001:
+		return 0.0
+	var travel_dir := _player.velocity / speed
+	var radial_alignment := absf(travel_dir.dot(radial.normalized()))
+	if near_miss_requires_tangent_pass and radial_alignment > near_miss_side_dot:
+		return 0.0
+	var tangent_quality := 1.0 - radial_alignment
+	var graze_span := maxf(near_miss_radius - near_miss_inner_deadzone, 1.0)
+	var closeness := 1.0 - clampf((surface_distance - near_miss_inner_deadzone) / graze_span, 0.0, 1.0)
+	return clampf(tangent_quality * 0.7 + closeness * 0.3, 0.0, 1.0)
+
+
+func _near_miss_effective_radius(target: Node2D) -> float:
+	if target == null:
+		return 0.0
+	var radius := 0.0
+	for property_name in NEAR_MISS_RADIUS_PROPERTIES:
+		var value: Variant = target.get(String(property_name))
+		if value is float or value is int:
+			radius = maxf(radius, float(value))
+	var collision := target.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision == null:
+		collision = target.find_child("CollisionShape2D", true, false) as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		radius = maxf(radius, (collision.shape as CircleShape2D).radius)
+	return clampf(radius * maxf(absf(target.scale.x), absf(target.scale.y)), 0.0, maxf(near_miss_max_effective_radius, 0.0))
 
 
 func _update_kinetic_overload() -> void:
@@ -385,6 +453,8 @@ func _on_impact(body: Node) -> void:
 			_last_impact_had_shockwave = shockwaves_enabled and speed >= shockwave_min_speed
 			if _should_spawn_impact_mastery_flash(impact_position, damage):
 				_spawn_impact_mastery_flash(impact_position, damage)
+		elif impact_starts_mastery_combo and speed >= impact_starter_speed:
+			_start_mastery_combo(&"impact", _node_position_or_player(body), mastery_combo_window * 0.66)
 		if shockwaves_enabled and speed >= shockwave_min_speed:
 			_create_kinetic_shockwave(body, speed)
 
@@ -537,7 +607,7 @@ func _spawn_shockwave_visual(center: Vector2) -> void:
 	var tween := ring.create_tween()
 	tween.tween_property(ring, "scale", Vector2.ONE * _visual_radius(shockwave_radius * 0.45), 0.18)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.24)
-	tween.tween_callback(ring.queue_free)
+	tween.tween_callback(Callable(self, "_queue_free_if_valid").bind(ring))
 
 func _update_mastery_timer(delta: float) -> void:
 	if _mastery_timer <= 0.0:
@@ -615,6 +685,25 @@ func _extend_mastery_combo(reason: StringName, event_position: Vector2) -> void:
 	# slingshot_mastery_triggered.emit(data) 
 
 	if slingshot_visuals_enabled and _mastery_combo >= flow_enter_combo:
+		_spawn_combo_ping(event_position, reason)
+
+func _start_mastery_combo(reason: StringName, event_position: Vector2, timer: float) -> void:
+	if _mastery_combo > 0:
+		_extend_mastery_combo(reason, event_position)
+		return
+
+	_mastery_combo = 1
+	_mastery_timer = maxf(timer, mastery_combo_window * 0.45)
+	_speed_cap_bonus = maxf(_speed_cap_bonus, mastery_speed_cap_bonus * 0.42)
+	_last_mastery_data = {
+		"combo": _mastery_combo,
+		"tier": _current_mastery_tier(),
+		"reason": reason,
+		"position": event_position,
+		"score": 0.58,
+	}
+	momentum_combo_changed.emit(_mastery_combo, _current_mastery_tier(), _mastery_timer)
+	if slingshot_visuals_enabled:
 		_spawn_combo_ping(event_position, reason)
 
 func _current_mastery_tier() -> StringName:
@@ -770,12 +859,12 @@ func _spawn_slingshot_mastery_visual(data: Dictionary, mastered: bool) -> void:
 	var tween := ring.create_tween()
 	tween.tween_property(ring, "scale", Vector2.ONE * (_visual_radius(lerpf(70.0, 160.0, score)) / 10.0), duration)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, duration)
-	tween.tween_callback(ring.queue_free)
+	tween.tween_callback(Callable(self, "_queue_free_if_valid").bind(ring))
 
 	var line_tween := vector_line.create_tween()
 	line_tween.tween_property(vector_line, "modulate:a", 0.0, duration * 0.78)
 	# Removed the parallel tween here that caused the vector flash to scale and bloom
-	line_tween.tween_callback(vector_line.queue_free)
+	line_tween.tween_callback(Callable(self, "_queue_free_if_valid").bind(vector_line))
 
 func _spawn_combo_ping(position: Vector2, reason: StringName) -> void:
 	var color := Color(0.35, 1.0, 0.84, 0.58)
@@ -807,7 +896,12 @@ func _spawn_transient_ring(center: Vector2, radius: float, color: Color, duratio
 	var tween := ring.create_tween()
 	tween.tween_property(ring, "scale", Vector2.ONE * _visual_radius(radius), duration)
 	tween.parallel().tween_property(ring, "modulate:a", 0.0, duration)
-	tween.tween_callback(ring.queue_free)
+	tween.tween_callback(Callable(self, "_queue_free_if_valid").bind(ring))
+
+
+func _queue_free_if_valid(node: Node) -> void:
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+		node.queue_free()
 
 func _play_mastery_whoosh(data: Dictionary) -> void:
 	if DisplayServer.get_name() == "headless" or _mastery_audio_stream == null:

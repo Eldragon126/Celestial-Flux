@@ -861,7 +861,7 @@ func _remove_visual(scar_id: int) -> void:
 		var root_value: Variant = visual.get("root")
 		if root_value != null and is_instance_valid(root_value):
 			var root := root_value as Node
-			if root != null:
+			if root != null and not root.is_queued_for_deletion():
 				root.queue_free()
 	_visuals.erase(scar_id)
 
@@ -869,7 +869,7 @@ func _remove_visual(scar_id: int) -> void:
 func _clear_visuals() -> void:
 	for visual_id in _visuals.keys():
 		_remove_visual(int(visual_id))
-	if _visual_root != null and is_instance_valid(_visual_root):
+	if _visual_root != null and is_instance_valid(_visual_root) and not _visual_root.is_queued_for_deletion():
 		_visual_root.queue_free()
 	_visual_root = null
 

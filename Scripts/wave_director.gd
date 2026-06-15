@@ -123,6 +123,9 @@ enum MusicMode { NONE, WAVE, BOSS, INTERMISSION }
 @export var clear_reward_mastery_threshold: float = 0.82
 @export var clear_reward_energy: float = 38.0
 @export var clear_reward_shield: float = 14.0
+@export var clear_reward_chain_threshold: int = 4
+@export var clear_reward_chain_energy: float = 48.0
+@export var clear_reward_chain_shield: float = 18.0
 @export var pressure_clear_energy: float = 52.0
 @export var pressure_clear_shield: float = 24.0
 @export var pressure_health_threshold: float = 0.32
@@ -714,10 +717,37 @@ func _tune_enemy_for_wave(enemy: Node) -> void:
 		enemy.set("fire_interval", fire_interval)
 	if enemy.get("contact_damage") != null:
 		enemy.set("contact_damage", float(enemy.get("contact_damage")) * minf(1.0 + float(_wave) * 0.04, 1.6))
+	_apply_movement_puzzle_role(enemy)
 
 	var health = enemy.get_node_or_null("HealthComponent")
 	if health != null:
 		health.set("max_health", float(health.get("max_health")) * difficulty)
+
+
+func _apply_movement_puzzle_role(enemy: Node) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	var key := ("%s %s" % [String(enemy.scene_file_path), String(enemy.name)]).to_lower()
+	var role := &"orbit_bait"
+	var hint := "skim the gravity edge, then exit tangent"
+	if key.contains("shooter") or key.contains("sniper"):
+		role = &"line_punisher"
+		hint = "curve around the firing lane instead of boosting straight"
+	elif key.contains("seeker") or key.contains("harasser"):
+		role = &"drift_breaker"
+		hint = "cut through gravity fields to shake pursuit"
+	elif key.contains("shield") or key.contains("armor"):
+		role = &"field_check"
+		hint = "use field weapons or collapse effects to break posture"
+	elif key.contains("phase") or key.contains("chaos"):
+		role = &"escape_check"
+		hint = "save a slingshot exit before the lane collapses"
+	elif enemy.is_in_group("Objects_With_Gravity") or key.contains("gravity") or key.contains("leech") or key.contains("orbiter"):
+		role = &"orbit_bait"
+		hint = "orbit close enough to build flow before killing it"
+	enemy.set_meta(&"movement_puzzle_role", role)
+	enemy.set_meta(&"movement_puzzle_hint", hint)
+
 
 func _track_enemy_rewards(enemy: Node) -> void:
 	if enemy == null or not is_instance_valid(enemy):
@@ -743,6 +773,9 @@ func _on_wave_enemy_died(enemy: Node) -> void:
 		parent = _level_root
 	if parent == null:
 		return
+	var score_tracker := get_tree().get_first_node_in_group("run_score_tracker")
+	if score_tracker != null and score_tracker.has_method("record_weapon_kill"):
+		score_tracker.call("record_weapon_kill", enemy)
 	_spawn_enemy_death_effect(enemy, enemy_2d.global_position)
 	var drop_count: int = _energy_drop_count_for_enemy(enemy)
 	PowerupLibrary.try_spawn_energy_droplets(
@@ -1228,6 +1261,36 @@ func _wave_clear_reward_for_player(player: Node2D) -> Dictionary:
 			"energy": clear_reward_energy,
 			"shield": clear_reward_shield,
 		}
+	var chain_count := _active_run_chain_count()
+	if chain_count >= clear_reward_chain_threshold:
+		return {
+			"reason": "rush",
+			"energy": clear_reward_chain_energy,
+			"shield": clear_reward_chain_shield,
+		}
+	return {}
+
+
+func _active_run_chain_count() -> int:
+	var snapshot := _score_snapshot()
+	if snapshot.is_empty():
+		return 0
+	if float(snapshot.get("run_chain_timer", 0.0)) <= 0.0:
+		return 0
+	return int(snapshot.get("run_chain_count", 0))
+
+
+func _score_snapshot() -> Dictionary:
+	var tracker := get_tree().get_first_node_in_group("run_score_tracker")
+	if tracker != null and tracker.has_method("get_score_snapshot"):
+		var value: Variant = tracker.call("get_score_snapshot")
+		if value is Dictionary:
+			return value as Dictionary
+	if RunProgress == null:
+		return {}
+	var snapshot_value: Variant = RunProgress.arena_flags.get("score_snapshot", {})
+	if snapshot_value is Dictionary:
+		return snapshot_value as Dictionary
 	return {}
 
 

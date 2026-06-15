@@ -64,21 +64,21 @@ func _refresh_enemy_glyphs() -> void:
 		if _live_ids.has(id):
 			continue
 		var marker = _marked[id]
-		if is_instance_valid(marker):
+		if marker != null and is_instance_valid(marker) and not marker.is_queued_for_deletion():
 			marker.queue_free()
 		_marked.erase(id)
 	for id in _enemy_halos.keys():
 		if _live_ids.has(id):
 			continue
 		var halo = _enemy_halos[id]
-		if is_instance_valid(halo):
+		if halo != null and is_instance_valid(halo) and not halo.is_queued_for_deletion():
 			halo.queue_free()
 		_enemy_halos.erase(id)
 	for id in _boss_outlines.keys():
 		if _live_ids.has(id):
 			continue
 		var outline = _boss_outlines[id]
-		if is_instance_valid(outline):
+		if outline != null and is_instance_valid(outline) and not outline.is_queued_for_deletion():
 			outline.queue_free()
 		_boss_outlines.erase(id)
 

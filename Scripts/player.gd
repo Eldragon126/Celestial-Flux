@@ -67,13 +67,18 @@ signal planet_super_boost_activated(source: Node, impulse: Vector2, energy_spent
 
 @export_group("Planet Super Boost")
 @export var super_boost_enabled: bool = true
-@export var super_boost_stuck_seconds: float = 1.1
-@export var super_boost_energy_cost: float = 520.0
-@export var super_boost_impulse: float = 1550.0
-@export var super_boost_clearance: float = 72.0
-@export var super_boost_stuck_speed_threshold: float = 260.0
-@export_range(0.0, 1.0, 0.01) var super_boost_tangent_bias: float = 0.18
-@export var super_boost_cooldown: float = 1.35
+@export var super_boost_stuck_seconds: float = 0.42
+@export var super_boost_energy_cost: float = 140.0
+@export var super_boost_impulse: float = 1850.0
+@export var super_boost_clearance: float = 96.0
+@export var super_boost_stuck_speed_threshold: float = 360.0
+@export_range(0.0, 1.0, 0.01) var super_boost_tangent_bias: float = 0.28
+@export var super_boost_cooldown: float = 0.75
+@export var pin_escape_enabled: bool = true
+@export var pin_escape_seconds: float = 0.28
+@export var pin_escape_impulse: float = 760.0
+@export var pin_escape_cooldown: float = 0.36
+@export_range(0.0, 1.0, 0.01) var pin_escape_tangent_bias: float = 0.34
 
 @export_group("Shooting")
 @export var projectile_hold_fire_interval: float = 0.18
@@ -143,6 +148,7 @@ var _gravity_source_query: Array[Node2D] = []
 var _planet_stuck_time: float = 0.0
 var _planet_stuck_source_id: int = 0
 var _last_super_boost_time: float = -999.0
+var _last_pin_escape_time: float = -999.0
 var network_peer_id: int = 1
 var network_is_local: bool = true
 var network_display_name: String = "VECTOR"
@@ -233,6 +239,7 @@ func _physics_process(delta: float):
 	var gravity = calculate_gravity()
 	_update_slingshot_window(gravity)
 	_update_planet_stuck_state(delta)
+	_apply_planet_pin_escape()
 
 	handle_rotation(delta)
 
@@ -771,6 +778,33 @@ func _update_planet_stuck_state(delta: float) -> void:
 			_planet_stuck_source_id = 0
 
 
+func _apply_planet_pin_escape() -> void:
+	if not pin_escape_enabled or _planet_stuck_time < pin_escape_seconds:
+		return
+	if _now_seconds() - _last_pin_escape_time < pin_escape_cooldown:
+		return
+	if not is_instance_valid(closest_planet) or not _is_boostable_planet(closest_planet):
+		return
+	var source := closest_planet as Node2D
+	if source == null:
+		return
+	var outward := global_position - source.global_position
+	if outward.length_squared() <= 0.001:
+		outward = -transform.x
+	outward = outward.normalized()
+	var tangent := outward.orthogonal()
+	if tangent.dot(velocity) < 0.0:
+		tangent = -tangent
+	var bias := clampf(pin_escape_tangent_bias, 0.0, 0.7)
+	var escape_dir := (outward * (1.0 - bias) + tangent * bias).normalized()
+	var pressure := clampf(_planet_stuck_time / maxf(super_boost_stuck_seconds, 0.01), 0.0, 1.0)
+	var impulse := escape_dir * pin_escape_impulse * lerpf(0.52, 1.0, pressure)
+	velocity = (velocity + impulse).limit_length(maxf(_get_current_hard_speed_cap(), dash_speed_cap + pin_escape_impulse * 0.4))
+	current_max_speed = maxf(current_max_speed, dash_speed_cap + pin_escape_impulse * 0.25)
+	_last_pin_escape_time = _now_seconds()
+	_planet_stuck_time = minf(_planet_stuck_time, pin_escape_seconds * 0.5)
+
+
 func _is_boostable_planet(source: Node) -> bool:
 	if source == null or not is_instance_valid(source):
 		return false
@@ -905,6 +939,14 @@ func _handle_shoot_input() -> void:
 
 func _current_weapon_fire_interval() -> float:
 	var multiplier := clampf(float(get_meta(&"momentum_fire_interval_multiplier", 1.0)), 0.45, 1.25)
+	var now := Time.get_ticks_msec() / 1000.0
+	var chain_until := float(get_meta(&"run_chain_fire_interval_until", 0.0))
+	if chain_until > now:
+		multiplier *= clampf(float(get_meta(&"run_chain_fire_interval_multiplier", 1.0)), 0.55, 1.0)
+	elif has_meta(&"run_chain_fire_interval_multiplier"):
+		remove_meta(&"run_chain_fire_interval_multiplier")
+		if has_meta(&"run_chain_fire_interval_until"):
+			remove_meta(&"run_chain_fire_interval_until")
 	var weapon_system := get_node_or_null("WeaponSystem")
 	if weapon_system != null and weapon_system.has_method("get_current_fire_interval"):
 		return maxf(float(weapon_system.call("get_current_fire_interval")) * multiplier, 0.03)

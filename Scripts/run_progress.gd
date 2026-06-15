@@ -60,9 +60,9 @@ func _ready() -> void:
 	_load_persistent_collapse()
 
 
-func begin_new_run(use_challenge: bool = false) -> void:
+func begin_new_run(use_challenge: bool = false, seed_override: int = 0) -> void:
 	_rng.randomize()
-	run_seed = int(_rng.randi())
+	run_seed = _resolve_start_seed(seed_override)
 	challenge_mode = use_challenge
 	boss_rush_mode = false
 	run_finished = false
@@ -77,8 +77,8 @@ func begin_new_run(use_challenge: bool = false) -> void:
 	clear_anchor()
 
 
-func begin_boss_rush() -> void:
-	begin_new_run(true)
+func begin_boss_rush(seed_override: int = 0) -> void:
+	begin_new_run(true, seed_override)
 	boss_rush_mode = true
 	challenge_modifiers = {
 		"boss_rush": true,
@@ -348,3 +348,37 @@ func set_last_death_message(message: String) -> void:
 func get_run_seed_code() -> String:
 	var mode := "boss_rush" if boss_rush_mode else ("challenge" if challenge_mode else "standard")
 	return "%s:%d:%d" % [mode, run_seed, wave_index]
+
+
+func seed_from_code(text: String) -> int:
+	var trimmed := text.strip_edges()
+	if trimmed.is_empty():
+		return 0
+	var parts := trimmed.split(":", false)
+	if parts.size() >= 2:
+		var parsed_code_seed := _seed_from_numeric_text(String(parts[1]))
+		if parsed_code_seed != 0:
+			return parsed_code_seed
+	var direct_seed := _seed_from_numeric_text(trimmed)
+	if direct_seed != 0:
+		return direct_seed
+	return maxi(absi(int(hash(trimmed))), 1)
+
+
+func _resolve_start_seed(seed_override: int) -> int:
+	if seed_override != 0:
+		return maxi(absi(seed_override), 1)
+	return maxi(absi(int(_rng.randi())), 1)
+
+
+func _seed_from_numeric_text(text: String) -> int:
+	var clean := text.strip_edges()
+	if clean.is_empty():
+		return 0
+	var start := 1 if clean.begins_with("-") else 0
+	if start >= clean.length():
+		return 0
+	for i in range(start, clean.length()):
+		if not clean.substr(i, 1).is_valid_int():
+			return 0
+	return int(clean)

@@ -461,7 +461,7 @@ func _on_window_helper_exited() -> void:
 
 
 func _queue_free_if_valid(node: Node) -> void:
-	if node != null and is_instance_valid(node):
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
 		node.queue_free()
 
 

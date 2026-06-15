@@ -32,7 +32,10 @@ signal projectile_hit(hit_data: Dictionary)
 @export var enable_vector_wake: bool = true
 @export var vector_wake_length: float = 74.0
 @export var vector_wake_width: float = 4.2
+@export_range(0.0, 1.0, 0.01) var vector_core_alpha_cap: float = 0.62
 @export_range(0.0, 1.0, 0.01) var vector_wake_alpha_cap: float = 0.36
+@export var projectile_light_energy_cap: float = 1.35
+@export var projectile_light_reduced_flash_energy_cap: float = 0.72
 
 @export_group("Vector Anomaly Upgrade Responses")
 @export var relativistic_rail_acceleration: float = 640.0
@@ -210,6 +213,7 @@ func _on_body_entered(body: Node) -> void:
 		return
 	
 	if body.has_method("take_damage"):
+		_stamp_player_weapon_hit(body, rolled_damage)
 		body.take_damage(rolled_damage)
 		if _should_continue_after_hit(body):
 			return
@@ -381,7 +385,9 @@ func _apply_weapon_field(position: Vector2, hit_body: Node2D) -> void:
 		if weapon_field_slow_duration > 0.0 and weapon_field_slow_multiplier < 1.0:
 			CombatStatus.apply_local_time_scale(target, weapon_field_slow_multiplier, weapon_field_slow_duration * (0.45 + falloff * 0.55))
 		if weapon_field_damage > 0.0 and target.has_method("take_damage") and _is_hostile_target(target):
-			target.call("take_damage", weapon_field_damage * falloff)
+			var field_damage := weapon_field_damage * falloff
+			_stamp_player_weapon_hit(target, field_damage)
+			target.call("take_damage", field_damage)
 		target.set_meta(&"weapon_field_pressure", falloff)
 
 
@@ -407,6 +413,15 @@ func _collect_weapon_field_targets(position: Vector2, radius: float, limit: int)
 			if target.global_position.distance_squared_to(position) <= radius_squared:
 				_field_targets.append(target)
 	return _field_targets
+
+
+func _stamp_player_weapon_hit(target: Node, damage: float) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	target.set_meta(&"last_player_weapon_hit_time", Time.get_ticks_msec() / 1000.0)
+	target.set_meta(&"last_player_weapon_id", String(weapon_id))
+	target.set_meta(&"last_player_weapon_hit_damage", damage)
+	target.set_meta(&"last_player_weapon_hit_speed", linear_velocity.length())
 
 
 func _stamp_weapon_resonance(position: Vector2) -> void:
@@ -453,19 +468,32 @@ func _destroy_projectile() -> void:
 			_vector_trail.emitting = false
 			if _should_preserve_trail_after_destroy():
 				_vector_trail.reparent(parent)
-				get_tree().create_timer(_vector_trail.lifetime).timeout.connect(_vector_trail.queue_free)
+				var vector_trail := _vector_trail
+				get_tree().create_timer(vector_trail.lifetime).timeout.connect(func() -> void:
+					if vector_trail != null and is_instance_valid(vector_trail) and not vector_trail.is_queued_for_deletion():
+						vector_trail.queue_free()
+				, CONNECT_ONE_SHOT)
 			else:
-				_vector_trail.queue_free()
+				_queue_free_if_valid(_vector_trail)
 		
 		if is_instance_valid(_rail_trail):
 			_rail_trail.emitting = false
 			if _should_preserve_trail_after_destroy():
 				_rail_trail.reparent(parent)
-				get_tree().create_timer(_rail_trail.lifetime).timeout.connect(_rail_trail.queue_free)
+				var rail_trail := _rail_trail
+				get_tree().create_timer(rail_trail.lifetime).timeout.connect(func() -> void:
+					if rail_trail != null and is_instance_valid(rail_trail) and not rail_trail.is_queued_for_deletion():
+						rail_trail.queue_free()
+				, CONNECT_ONE_SHOT)
 			else:
-				_rail_trail.queue_free()
+				_queue_free_if_valid(_rail_trail)
 			
 	queue_free()
+
+
+func _queue_free_if_valid(node: Node) -> void:
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+		node.queue_free()
 
 
 func consume_by_black_hole() -> void:
@@ -536,8 +564,10 @@ func _update_rail_trail(active: bool, delta: float, ratio: float = 0.0) -> void:
 		_rail_trail.emission_sphere_radius = 4.0
 		
 		var ramp = Gradient.new()
-		ramp.add_point(0.0, Color(0.86, 1.0, 1.0, 1.0)) # Bright white/blue core
-		ramp.add_point(0.5, Color(0.42, 0.72, 1.0, 0.8))
+		var rail_core := _safe_projectile_color(Color(0.42, 0.9, 1.0, 0.62))
+		var rail_mid := _safe_projectile_color(Color(0.28, 0.64, 1.0, 0.44))
+		ramp.add_point(0.0, rail_core)
+		ramp.add_point(0.5, rail_mid)
 		ramp.add_point(1.0, Color(0.0, 0.2, 1.0, 0.0))
 		_rail_trail.color_ramp = ramp
 		
@@ -559,12 +589,12 @@ func _update_rail_trail(active: bool, delta: float, ratio: float = 0.0) -> void:
 func _configure_windowkill_visuals() -> void:
 	var polygon := get_node_or_null("Polygon2D") as Polygon2D
 	if polygon != null:
-		polygon.color = vector_core_color
+		polygon.color = _safe_projectile_color(vector_core_color)
 		polygon.scale = Vector2.ONE * windowkill_visual_scale
 
 	var light := get_node_or_null("PointLight2D") as PointLight2D
 	if light != null:
-		light.energy = maxf(light.energy, 2.65)
+		light.energy = minf(maxf(light.energy, 0.85), _projectile_light_cap())
 		light.texture_scale = maxf(light.texture_scale, 0.72)
 
 	_ensure_vector_trail()
@@ -602,7 +632,8 @@ func _ensure_vector_trail() -> void:
 		
 	# Mimics the visualizer fade: Main color fading into the danger color, then to transparent
 	var ramp = Gradient.new()
-	ramp.add_point(0.0, Color(vector_core_color.r, vector_core_color.g, vector_core_color.b, alpha))
+	var safe_core := _safe_projectile_color(Color(vector_core_color.r, vector_core_color.g, vector_core_color.b, alpha))
+	ramp.add_point(0.0, safe_core)
 	ramp.add_point(0.65, Color(vector_trail_fade_color.r, vector_trail_fade_color.g, vector_trail_fade_color.b, alpha * 0.8))
 	ramp.add_point(1.0, Color(vector_trail_fade_color.r, vector_trail_fade_color.g, vector_trail_fade_color.b, 0.0))
 	_vector_trail.color_ramp = ramp
@@ -955,7 +986,26 @@ func _update_projectile_light() -> void:
 	if not enabled:
 		return
 	var pressure := clampf(float(_visual_pressure) / maxf(float(visual_pressure_soft_cap), 1.0), 0.0, 1.0)
-	light.energy = lerpf(2.65, 0.74, pressure)
+	light.energy = lerpf(_projectile_light_cap(), 0.42, pressure)
+
+
+func _safe_projectile_color(color: Color) -> Color:
+	var adjusted := color
+	if Settings != null and Settings.has_method("apply_readability_color"):
+		adjusted = Settings.apply_readability_color(adjusted)
+	var alpha := minf(adjusted.a, vector_core_alpha_cap)
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		alpha = Settings.world_visual_alpha(alpha, vector_core_alpha_cap)
+	elif Settings != null and Settings.has_method("flash_alpha"):
+		alpha = minf(Settings.flash_alpha(alpha), vector_core_alpha_cap)
+	return Color(adjusted.r, adjusted.g, adjusted.b, alpha)
+
+
+func _projectile_light_cap() -> float:
+	var cap := maxf(projectile_light_energy_cap, 0.0)
+	if Settings != null and bool(Settings.reduce_flash):
+		cap = minf(cap, projectile_light_reduced_flash_energy_cap)
+	return cap
 
 
 func _should_ignore_gravity_source(source: Node2D) -> bool:

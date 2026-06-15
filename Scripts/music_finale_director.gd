@@ -201,7 +201,7 @@ func _safe_alpha(alpha: float) -> float:
 
 
 func _queue_free_if_valid(node: Node) -> void:
-	if node != null and is_instance_valid(node):
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
 		node.queue_free()
 
 

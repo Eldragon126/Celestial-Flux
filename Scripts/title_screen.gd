@@ -64,6 +64,9 @@ var _mp_steam_button: Button = null
 var _demo_button: Button = null
 var _clip_lab_button: Button = null
 var _mod_manager_button: Button = null
+var _seed_row: HBoxContainer = null
+var _seed_edit: LineEdit = null
+var _seed_random_button: Button = null
 var _menu_button_tweens: Dictionary = {}
 var _title_lattice: Node2D = null
 var _title_lattice_lines: Array[Line2D] = []
@@ -87,6 +90,7 @@ func _ready() -> void:
 	_apply_title_brand()
 	_build_title_lattice()
 	_build_production_buttons()
+	_build_seed_ui()
 	_build_multiplayer_ui()
 	_normalize_title_menu_density()
 	call_deferred("_setup_menu_button_tweens")
@@ -179,12 +183,12 @@ func _on_challenge_button_pressed() -> void:
 func _on_boss_rush_button_pressed() -> void:
 	if NetworkSession != null:
 		NetworkSession.leave_session()
-	RunProgress.begin_boss_rush()
+	RunProgress.begin_boss_rush(_selected_start_seed())
 	get_tree().change_scene_to_file("res://Nodes/the_abyss.tscn")
 
 
 func _begin_new_run(use_challenge: bool = false) -> void:
-	RunProgress.begin_new_run(use_challenge)
+	RunProgress.begin_new_run(use_challenge, _selected_start_seed())
 	get_tree().change_scene_to_file("res://Nodes/the_abyss.tscn")
 
 
@@ -246,6 +250,39 @@ func _build_production_buttons() -> void:
 	_reorder_menu_button(_demo_button, "TutorialButton")
 	_reorder_menu_button(_clip_lab_button, "BossRushButton")
 	_reorder_menu_button(_mod_manager_button, "BossRushButton")
+
+
+func _build_seed_ui() -> void:
+	var menu := get_node_or_null("Menu") as VBoxContainer
+	if menu == null or _seed_row != null:
+		return
+	_seed_row = HBoxContainer.new()
+	_seed_row.name = "SeedStartRow"
+	_seed_row.custom_minimum_size = Vector2(420.0, 42.0)
+	_seed_row.add_theme_constant_override("separation", 8)
+	_seed_row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
+	var seed_label := _make_label("SEED", 16, Color(0.56, 0.88, 0.96, 0.88), HORIZONTAL_ALIGNMENT_LEFT)
+	seed_label.custom_minimum_size = Vector2(74.0, 42.0)
+	_seed_row.add_child(seed_label)
+
+	_seed_edit = _make_line_edit("", "random or seed code")
+	_seed_edit.name = "SeedStartEdit"
+	_seed_edit.custom_minimum_size = Vector2(236.0, 42.0)
+	_seed_edit.tooltip_text = "Leave blank for a random run, enter a number/text seed, or paste a copied seed code."
+	_seed_row.add_child(_seed_edit)
+
+	_seed_random_button = _make_action_button("RANDOM")
+	_seed_random_button.name = "SeedRandomButton"
+	_seed_random_button.custom_minimum_size = Vector2(100.0, 42.0)
+	_seed_random_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_seed_row.add_child(_seed_random_button)
+	_seed_random_button.pressed.connect(_on_seed_random_pressed)
+
+	menu.add_child(_seed_row)
+	var new_run_button := menu.get_node_or_null("NewRunButton")
+	if new_run_button != null:
+		menu.move_child(_seed_row, mini(new_run_button.get_index() + 1, menu.get_child_count() - 1))
 
 
 func _ensure_menu_button(node_name: String, text: String, callback: Callable) -> Button:
@@ -427,7 +464,7 @@ func _on_multiplayer_host_pressed() -> void:
 		return
 	var player_name := _mp_name_edit.text if _mp_name_edit != null else "VECTOR"
 	var port := int(_mp_port_spin.value) if _mp_port_spin != null else multiplayer_default_port
-	NetworkSession.host_and_play(player_name, port, multiplayer_max_peers)
+	NetworkSession.host_and_play(player_name, port, multiplayer_max_peers, _selected_start_seed())
 	_update_multiplayer_ui()
 
 
@@ -490,6 +527,20 @@ func _on_network_error(message: String) -> void:
 	if _mp_status_label != null:
 		_mp_status_label.text = message
 	_update_multiplayer_ui()
+
+
+func _selected_start_seed() -> int:
+	if RunProgress == null or _seed_edit == null:
+		return 0
+	return RunProgress.seed_from_code(_seed_edit.text)
+
+
+func _on_seed_random_pressed() -> void:
+	if _seed_edit == null:
+		return
+	_seed_edit.text = ""
+	_seed_edit.placeholder_text = "random run"
+	_seed_edit.release_focus()
 
 
 func _make_field_row(label_text: String, control: Control) -> HBoxContainer:

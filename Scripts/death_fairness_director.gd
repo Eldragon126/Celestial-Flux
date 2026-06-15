@@ -65,6 +65,10 @@ func _capture_readout() -> Dictionary:
 		"chaos": _chaos_level(),
 		"projectiles": _projectile_count(),
 		"boss_active": _boss_active(),
+		"flow": _player_flow_label(),
+		"chain": _run_chain_label(),
+		"weapon": _weapon_label(),
+		"movement_hint": _nearest_movement_hint(),
 	}
 
 
@@ -82,13 +86,19 @@ func _format_readout(readout: Dictionary) -> String:
 	var projectile_note := "clear"
 	if int(readout.get("projectiles", 0)) >= max_projectiles_label_threshold:
 		projectile_note = "dense"
-	return "READOUT: wave %d | speed %d | field %s | chaos %d%% | shots %s%s" % [
+	var hint := String(readout.get("movement_hint", ""))
+	var hint_text := " | %s" % hint if not hint.is_empty() else ""
+	return "READOUT: wave %d | speed %d | field %s | chaos %d%% | shots %s | %s | %s | %s%s%s" % [
 		int(readout.get("wave", 0)),
 		int(readout.get("speed", 0.0)),
 		String(readout.get("field_rule", "NONE")).to_upper(),
 		int(round(float(readout.get("chaos", 0.0)) * 100.0)),
 		projectile_note,
+		String(readout.get("flow", "flow off")),
+		String(readout.get("chain", "chain x0")),
+		String(readout.get("weapon", "weapon unknown")),
 		" | boss law active" if bool(readout.get("boss_active", false)) else "",
+		hint_text,
 	]
 
 
@@ -149,3 +159,74 @@ func _boss_active() -> bool:
 		if is_instance_valid(boss) and not boss.is_queued_for_deletion():
 			return true
 	return false
+
+
+func _player_flow_label() -> String:
+	if _player == null or not is_instance_valid(_player):
+		return "flow off"
+	if bool(_player.get_meta(&"momentum_flow_active", false)):
+		return "flow %d%%" % int(round(clampf(float(_player.get_meta(&"momentum_flow_intensity", 0.0)), 0.0, 1.0) * 100.0))
+	return "flow off"
+
+
+func _run_chain_label() -> String:
+	var snapshot := _score_snapshot()
+	if snapshot.is_empty() or float(snapshot.get("run_chain_timer", 0.0)) <= 0.0:
+		return "chain x0"
+	return "chain x%d %.2fx" % [
+		int(snapshot.get("run_chain_count", 0)),
+		float(snapshot.get("run_chain_multiplier", 1.0)),
+	]
+
+
+func _weapon_label() -> String:
+	if _player == null or not is_instance_valid(_player):
+		return "weapon unknown"
+	var weapon_system := _player.get_node_or_null("WeaponSystem")
+	if weapon_system == null or not weapon_system.has_method("get_weapon_debug_state"):
+		return "weapon unknown"
+	var value: Variant = weapon_system.call("get_weapon_debug_state")
+	if not (value is Dictionary):
+		return "weapon unknown"
+	var state: Dictionary = value
+	return "%s %s" % [
+		String(state.get("display_name", "weapon")).to_lower(),
+		String(state.get("role", "")).to_lower(),
+	]
+
+
+func _nearest_movement_hint() -> String:
+	if _player == null or not is_instance_valid(_player):
+		return ""
+	var nearest: Node2D = null
+	var nearest_dist := INF
+	for group_name in [&"enemies", &"wave_enemy", &"bosses"]:
+		for value in get_tree().get_nodes_in_group(group_name):
+			var enemy := value as Node2D
+			if enemy == null or not is_instance_valid(enemy) or enemy.is_queued_for_deletion():
+				continue
+			if not enemy.has_meta(&"movement_puzzle_hint"):
+				continue
+			var dist := enemy.global_position.distance_squared_to(_player.global_position)
+			if dist < nearest_dist:
+				nearest = enemy
+				nearest_dist = dist
+	if nearest == null:
+		return ""
+	return "hint: %s" % String(nearest.get_meta(&"movement_puzzle_hint", ""))
+
+
+func _score_snapshot() -> Dictionary:
+	var tracker := get_tree().get_first_node_in_group("run_score_tracker")
+	if tracker != null and tracker.has_method("get_score_snapshot"):
+		var value: Variant = tracker.call("get_score_snapshot")
+		if value is Dictionary:
+			return value as Dictionary
+	if RunProgress == null:
+		return {}
+	var flags_value: Variant = RunProgress.get("arena_flags")
+	if flags_value is Dictionary:
+		var snapshot_value: Variant = (flags_value as Dictionary).get("score_snapshot", {})
+		if snapshot_value is Dictionary:
+			return snapshot_value as Dictionary
+	return {}
