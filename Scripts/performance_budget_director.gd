@@ -187,11 +187,15 @@ func _apply_new_director_budget(scene: Node, low: bool, medium: bool) -> void:
 			continue
 		_set_if_present(node, "number_of_points", 18 if low else (22 if medium else 28))
 		_set_if_present(node, "max_active_groups", 2 if low else 3)
+		_set_if_present(node, "max_physics_points_per_group", 5 if low else (7 if medium else 8))
+		_set_if_present(node, "physics_update_interval", 0.075 if low else (0.06 if medium else 0.05))
+		_set_if_present(node, "visual_update_interval", 0.065 if low else (0.05 if medium else 0.04))
 	for hazard in get_tree().get_nodes_in_group("pulsating_gravity_spawner"):
 		var node := hazard as Node
 		if node == null or not is_instance_valid(node):
 			continue
 		_set_if_present(node, "max_active_fields", 1 if low else 2)
+		_set_if_present(node, "visual_update_interval", 0.08 if low else (0.06 if medium else 0.05))
 
 
 func _apply_player_budget(low: bool) -> void:

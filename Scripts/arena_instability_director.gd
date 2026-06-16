@@ -389,7 +389,7 @@ func _update_telegraph_visual(event: Dictionary, age: float, telegraph: float, d
 func _free_event_visual(event: Dictionary) -> void:
 	var visual: Dictionary = event.get("visual", {})
 	var root := visual.get("root") as Node
-	if root != null and is_instance_valid(root):
+	if root != null and is_instance_valid(root) and not root.is_queued_for_deletion():
 		root.queue_free()
 
 

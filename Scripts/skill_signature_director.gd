@@ -182,7 +182,7 @@ func _trim_signature_count() -> void:
 	while _signatures.size() >= max_active_signatures and not _signatures.is_empty():
 		var oldest := _signatures.pop_front() as Dictionary
 		var node := oldest.get("node") as Node
-		if node != null and is_instance_valid(node):
+		if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
 			node.queue_free()
 
 
@@ -205,7 +205,8 @@ func _update_signatures(delta: float) -> void:
 		_signatures[i] = entry
 
 		if age >= lifetime:
-			node.queue_free()
+			if not node.is_queued_for_deletion():
+				node.queue_free()
 			_signatures.remove_at(i)
 
 

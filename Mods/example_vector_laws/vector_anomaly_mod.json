@@ -324,6 +324,25 @@
         "description": "A sample local-only shader pack entry. Future visual directors can consume it without affecting multiplayer compatibility."
       }
     ],
+    "shader_overrides": [
+      {
+        "id": "mirror_time_overlay_override",
+        "display_name": "Mirror Time Overlay Override",
+        "network_category": "local_visual",
+        "shader": "res://Scripts/gravity_time_overlay.gdshader",
+        "target": "time_dilation_overlay",
+        "description": "A local-only shader override slot for Minecraft-style visual packs."
+      }
+    ],
+    "ui_skins": [
+      {
+        "id": "mirror_menu_skin",
+        "display_name": "Mirror Menu Skin",
+        "network_category": "local_visual",
+        "palette": "mirror_cyan_orange",
+        "description": "A cataloged UI skin that future menus can apply without changing gameplay compatibility."
+      }
+    ],
     "levels": [
       {
         "id": "mirror_well_level",
@@ -348,6 +367,16 @@
         "description": "A sample enemy pack grouping authored enemy profiles for future campaign or total-conversion mods."
       }
     ],
+    "boss_rules": [
+      {
+        "id": "mirror_boss_rule",
+        "display_name": "Mirror Boss Rule",
+        "network_category": "deterministic_seed",
+        "tags": ["boss-rule", "gravity"],
+        "effects": ["inversion_lanes", "harmonic_orbit_windows"],
+        "description": "A data-only boss rule profile for future custom boss and calamity-style packs."
+      }
+    ],
     "total_conversions": [
       {
         "id": "mirror_calamity_trial",
@@ -360,11 +389,25 @@
         "description": "A safe catalog shape for large Terraria-Calamity-style expansions: levels, enemies, bosses, laws, shaders, and audio remain declarative until trusted directors consume them."
       }
     ],
+    "calamity_mods": [
+      {
+        "id": "mirror_calamity_manifest",
+        "display_name": "Mirror Calamity Manifest",
+        "network_category": "deterministic_seed",
+        "tags": ["calamity-style", "large-expansion"],
+        "levels": ["mirror_well_level"],
+        "enemy_packs": ["mirror_swarm_pack"],
+        "boss_rules": ["mirror_boss_rule"],
+        "shader_overrides": ["mirror_time_overlay_override"],
+        "ui_skins": ["mirror_menu_skin"],
+        "description": "A larger expansion manifest shape that bundles levels, enemy packs, boss rules, shader overrides, and UI skins while staying declarative."
+      }
+    ],
     "creator_notes": [
       {
         "id": "mirror_pack_design_notes",
         "display_name": "Mirror Pack Design Notes",
-        "note": "This sample avoids scripts. Its weapons, levels, enemy packs, shader pack, total-conversion entry, recipe, challenge card, and palette are all declarative catalog entries that future directors can consume safely."
+        "note": "This sample avoids scripts. Its weapons, levels, enemy packs, boss rules, shader packs, shader overrides, UI skin, total-conversion entries, recipe, challenge card, and palette are all declarative catalog entries that future directors can consume safely."
       }
     ],
     "enemies": [

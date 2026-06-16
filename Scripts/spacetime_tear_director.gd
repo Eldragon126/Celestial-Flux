@@ -357,7 +357,7 @@ func _free_tear(entry: Dictionary) -> void:
 		return
 	var visual: Dictionary = visual_value
 	var root := visual.get("root") as Node
-	if root != null and is_instance_valid(root):
+	if root != null and is_instance_valid(root) and not root.is_queued_for_deletion():
 		root.queue_free()
 
 

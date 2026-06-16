@@ -55,13 +55,15 @@ func _exit_tree() -> void:
 
 
 func _process(delta: float) -> void:
+	if is_queued_for_deletion():
+		return
 	_age += delta
 	_update_motion(delta)
 	_update_visuals(delta)
 	if not _destabilized and _age >= lifetime * destabilize_at_life_ratio:
 		_destabilize()
 	if _age >= lifetime:
-		queue_free()
+		_queue_free_if_valid(self)
 
 
 func configure(
@@ -88,7 +90,7 @@ func configure(
 
 
 func absorb_body(other: DynamicCelestialBody) -> void:
-	if other == null or other == self or not is_instance_valid(other):
+	if other == null or other == self or not is_instance_valid(other) or other.is_queued_for_deletion():
 		return
 	var combined_mass := mass + other.mass
 	var blend := clampf(other.mass / maxf(combined_mass, 1.0), 0.0, 1.0)
@@ -96,7 +98,7 @@ func absorb_body(other: DynamicCelestialBody) -> void:
 	mass = combined_mass
 	body_radius = sqrt(body_radius * body_radius + other.body_radius * other.body_radius) * 0.88
 	lifetime = maxf(lifetime, other.lifetime * 0.72)
-	other.queue_free()
+	_queue_free_if_valid(other)
 	_destabilize()
 
 
@@ -227,3 +229,8 @@ func _soft_circle_points(count: int, radius_value: float) -> PackedVector2Array:
 		var wobble := 1.0 + sin(angle * 3.0) * 0.055 + cos(angle * 7.0) * 0.028
 		points.append(Vector2(cos(angle), sin(angle)) * radius_value * wobble)
 	return points
+
+
+func _queue_free_if_valid(node: Node) -> void:
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+		node.queue_free()

@@ -43,6 +43,6 @@ low_performance_mode = false
 [node name="TimeDilationManager" type="Node" parent="."]
 process_mode = 3
 script = ExtResource("5_time")
-use_global_time_scale = true
+use_global_time_scale = false
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]

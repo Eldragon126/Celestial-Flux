@@ -114,7 +114,7 @@ func _scan_for_collection() -> void:
 		if debris == null or not is_instance_valid(debris) or debris.is_queued_for_deletion():
 			continue
 		_add_debris_charge(debris.global_position, 1.0)
-		debris.queue_free()
+		_queue_free_if_valid(debris)
 
 
 func _watch_nearby_enemy_deaths() -> void:
@@ -205,7 +205,7 @@ func _launch_one_debris() -> void:
 	var start_position := global_position
 	if visual != null and is_instance_valid(visual):
 		start_position = visual.global_position
-		visual.queue_free()
+		_queue_free_if_valid(visual)
 	var direction := Vector2.RIGHT.rotated(float(charge.get("angle", 0.0)))
 	if _player != null and is_instance_valid(_player):
 		direction = (_player.global_position - start_position).normalized()
@@ -251,8 +251,7 @@ func _collapse_ring_burst(death_reward: bool) -> void:
 	_spawn_ring_burst(global_position, radius, _undertaker_warning_color(Settings.world_visual_alpha(0.62, 0.36)))
 	for charge in _debris_charges:
 		var node := charge.get("node") as Node2D
-		if node != null and is_instance_valid(node):
-			node.queue_free()
+		_queue_free_if_valid(node)
 	_debris_charges.clear()
 	funeral_ring_released.emit({
 		"position": global_position,
@@ -303,7 +302,7 @@ func _update_launched_debris(delta: float) -> void:
 		shard.rotation += delta * 7.0
 		entry["age"] = age
 		if age >= 2.4:
-			shard.queue_free()
+			_queue_free_if_valid(shard)
 			_launched_debris.remove_at(index)
 			continue
 		_launched_debris[index] = entry
@@ -322,7 +321,7 @@ func _on_launched_debris_body_entered(body: Node, shard: Area2D) -> void:
 	if body_2d != null:
 		direction = (body_2d.global_position - shard.global_position).normalized()
 	CombatStatus.add_velocity(body, direction * launch_speed * 0.36)
-	shard.queue_free()
+	_queue_free_if_valid(shard)
 
 
 func _fill_targets_in_radius(

@@ -5,6 +5,8 @@ extends StaticBody2D
 @export var base_how_big: float = 1000.0
 @export var oscillation_speed: float = 1.0
 @export var minimum_mass_pulse: float = 0.18
+@export var visual_update_interval: float = 0.05
+@export var visual_focus_radius: float = 2400.0
 
 var t: float = 0.0
 var mass: float
@@ -14,6 +16,9 @@ var how_big: float
 var oscillation: float = 0.0
 var _rng := RandomNumberGenerator.new()
 var _has_deterministic_seed: bool = false
+var _visual_elapsed: float = 999.0
+var _visual_in_focus: bool = true
+var _visual_player: Node2D = null
 
 # Cache the nodes so we don't search the scene tree every frame
 @onready var big_sphere: Polygon2D = $BigSphere
@@ -79,6 +84,18 @@ func _process(delta: float) -> void:
 	if t > how_big:
 		queue_free()
 		return # Stop processing once freed
+
+	_visual_elapsed += delta
+	if _visual_elapsed < maxf(visual_update_interval, 0.016):
+		_update_mass_only()
+		return
+	_visual_elapsed = 0.0
+	_visual_in_focus = _is_visual_in_focus()
+	big_sphere.visible = _visual_in_focus
+	small_sphere.visible = _visual_in_focus
+	_update_mass_only()
+	if not _visual_in_focus:
+		return
 	
 	# Handle Colors
 	if t > (how_big - 100.0):
@@ -95,6 +112,18 @@ func _process(delta: float) -> void:
 	
 	big_sphere.scale = Vector2(current_big_radius, current_big_radius)
 	small_sphere.scale = Vector2(current_small_radius, current_small_radius)
-	
+
+
+func _update_mass_only() -> void:
 	var pulse := minimum_mass_pulse + (1.0 - minimum_mass_pulse) * (0.5 + 0.5 * sin(oscillation))
 	mass = base_mass * rand_factor * pulse
+
+
+func _is_visual_in_focus() -> bool:
+	if visual_focus_radius <= 0.0:
+		return true
+	if _visual_player == null or not is_instance_valid(_visual_player):
+		_visual_player = MultiplayerTargeting.local_player(get_tree())
+	if _visual_player == null or not is_instance_valid(_visual_player):
+		return true
+	return global_position.distance_squared_to(_visual_player.global_position) <= visual_focus_radius * visual_focus_radius

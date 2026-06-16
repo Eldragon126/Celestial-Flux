@@ -32,20 +32,34 @@ linear_damp_mode = 1
 angular_damp_mode = 1
 script = ExtResource("1_a85iw")
 gravity_constant = 100.0
+enable_vector_wake = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=740035178]
 shape = SubResource("CircleShape2D_dgwo2")
 
 [node name="PointLight2D" type="PointLight2D" parent="." unique_id=1741619624]
-energy = 2.65
+z_index = 5
+energy = 2.75
 texture = SubResource("GradientTexture2D_2xblw")
-texture_scale = 0.72
+texture_scale = 0.9
 
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=1539769750]
+z_index = 7
 position = Vector2(43, 24)
-color = Color(0.42, 1, 0.92, 1)
+color = Color(0.62, 1, 0.98, 1)
 polygon = PackedVector2Array(-55, -24, -43, -12, -31, -24, -43, -36)
 uv = PackedVector2Array(-89.76105, -18.890343, -43.38037, 27.039673, 16.760986, -21.552338, -36.281677, -86.56702)
+
+[node name="ReadabilityHalo" type="Line2D" parent="."]
+visible = false
+z_index = 6
+points = PackedVector2Array(-14, 0, 0, -14, 18, 0, 0, 14, -14, 0)
+width = 3.7
+default_color = Color(0.85, 1, 1, 0.95)
+closed = true
+begin_cap_mode = 2
+end_cap_mode = 2
+antialiased = true
 
 [node name="Timer" type="Timer" parent="." unique_id=856762356]
 wait_time = 5.0

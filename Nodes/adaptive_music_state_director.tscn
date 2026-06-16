@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://ddm5nokxjw1gn"]
 
-[ext_resource type="Script" path="res://Scripts/adaptive_music_state_director.gd" id="1_adaptive_music"]
+[ext_resource type="Script" uid="uid://ndmkumwhqws4" path="res://Scripts/adaptive_music_state_director.gd" id="1_adaptive_music"]
 
-[node name="AdaptiveMusicStateDirector" type="Node"]
+[node name="AdaptiveMusicStateDirector" type="Node" unique_id=1670385209]
 script = ExtResource("1_adaptive_music")

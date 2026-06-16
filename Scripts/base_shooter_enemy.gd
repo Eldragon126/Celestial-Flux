@@ -14,10 +14,13 @@ const ENEMY_BULLET_SCENE := preload("res://Nodes/enemy_bullet.tscn")
 @export var planet_escape_clearance: float = 52.0
 @export var planet_escape_force: float = 620.0
 @export var planet_escape_spin: float = 220.0
+@export var offscreen_simulation_distance: float = 2400.0
+@export var offscreen_simulation_interval: float = 0.1
 
 var Player: Node = null
 var planets: Array[Node2D] = []
 var _gravity_refresh_elapsed = 0.0
+var _simulation_accumulator: float = 0.0
 
 func _ready() -> void:
 	Player = MultiplayerTargeting.nearest_player(global_position, get_tree())
@@ -25,6 +28,15 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	delta *= CombatStatus.get_time_scale(self)
+	if _should_use_coarse_simulation():
+		_simulation_accumulator += delta
+		if _simulation_accumulator < maxf(offscreen_simulation_interval, 0.016):
+			return
+		delta = _simulation_accumulator
+		_simulation_accumulator = 0.0
+	else:
+		_simulation_accumulator = 0.0
+
 	_gravity_refresh_elapsed += delta
 	if _gravity_refresh_elapsed >= gravity_refresh_interval:
 		_refresh_planets()
@@ -79,6 +91,8 @@ func _process(delta: float) -> void:
 
 func _on_shoot_animation_animation_started(anim_name: StringName) -> void:
 	if anim_name == "Blast":
+		if _should_hold_offscreen_fire():
+			return
 		# Check global bullet cap before spawning
 		if not BulletManager.can_spawn_bullet():
 			return
@@ -157,6 +171,23 @@ func _refresh_planets() -> void:
 				continue
 			seen[id] = true
 			planets.append(source_2d)
+
+
+func _should_use_coarse_simulation() -> bool:
+	if offscreen_simulation_distance <= 0.0:
+		return false
+	var player_2d := Player as Node2D
+	if player_2d == null or not is_instance_valid(player_2d):
+		return false
+	return global_position.distance_squared_to(player_2d.global_position) > offscreen_simulation_distance * offscreen_simulation_distance
+
+
+func _should_hold_offscreen_fire() -> bool:
+	var player_2d := Player as Node2D
+	if player_2d == null or not is_instance_valid(player_2d):
+		return false
+	var fire_distance := offscreen_simulation_distance * 1.25
+	return global_position.distance_squared_to(player_2d.global_position) > fire_distance * fire_distance
 
 
 func _planet_escape_velocity(delta: float) -> Vector2:

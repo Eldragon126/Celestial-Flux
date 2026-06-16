@@ -383,9 +383,9 @@ func _add_effect_node(node: Node) -> void:
 
 
 func _cleanup_warning_nodes() -> void:
-	if _warning_line != null and is_instance_valid(_warning_line):
+	if _warning_line != null and is_instance_valid(_warning_line) and not _warning_line.is_queued_for_deletion():
 		_warning_line.queue_free()
-	if _warning_glyph != null and is_instance_valid(_warning_glyph):
+	if _warning_glyph != null and is_instance_valid(_warning_glyph) and not _warning_glyph.is_queued_for_deletion():
 		_warning_glyph.queue_free()
 	_warning_line = null
 	_warning_glyph = null

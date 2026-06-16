@@ -39,6 +39,7 @@ extends Node2D
 
 var spawned_planets: Array = []
 var _rng := RandomNumberGenerator.new()
+var _spawn_blockers: Array[Dictionary] = []
 
 # ============================================================
 # READY
@@ -61,6 +62,8 @@ func spawn_planets() -> void:
 		push_error("PlanetSpawner: No player found in group '%s'" % player_group)
 		return
 
+	spawned_planets.clear()
+	_rebuild_spawn_blockers()
 	for i in range(planets_to_spawn):
 		var success := try_spawn_planet(player.global_position, i)
 
@@ -152,37 +155,48 @@ func is_position_valid(pos: Vector2, radius: float) -> bool:
 		if pos.distance_to(other_pos) < min_distance:
 			return false
 
-	# ------------------------------------------------
-	# Check scene objects in collision groups
-	# ------------------------------------------------
-
-	for group_name in collision_groups:
-
-		var nodes := get_tree().get_nodes_in_group(group_name)
-
-		for node in nodes:
-
-			if node == self:
-				continue
-
-			if !(node is Node2D):
-				continue
-
-			var other_pos = node.global_position
-
-			# Approximate object size
-			var other_radius := 100.0
-
-			# Try to estimate radius from scale
-			if node is Node2D:
-				other_radius *= max(node.scale.x, node.scale.y)
-
-			var min_distance := radius + other_radius + padding
-
-			if pos.distance_to(other_pos) < min_distance:
-				return false
+	for blocker in _spawn_blockers:
+		var other_pos: Vector2 = blocker.position
+		var other_radius: float = blocker.radius
+		var min_distance := radius + other_radius + padding
+		if pos.distance_to(other_pos) < min_distance:
+			return false
 
 	return true
+
+
+func _rebuild_spawn_blockers() -> void:
+	_spawn_blockers.clear()
+	var seen: Dictionary = {}
+	for group_name in collision_groups:
+		var nodes := get_tree().get_nodes_in_group(group_name)
+		for node in nodes:
+			if node == self or node == null or not is_instance_valid(node):
+				continue
+			var node_2d := node as Node2D
+			if node_2d == null or node_2d.is_queued_for_deletion():
+				continue
+			var id := node_2d.get_instance_id()
+			if seen.has(id):
+				continue
+			seen[id] = true
+			_spawn_blockers.append({
+				"position": node_2d.global_position,
+				"radius": _estimated_spawn_blocker_radius(node_2d),
+			})
+
+
+func _estimated_spawn_blocker_radius(node: Node2D) -> float:
+	var radius_value: Variant = node.get("radius")
+	if radius_value is float or radius_value is int:
+		return maxf(float(radius_value), 24.0)
+	var base_radius_value: Variant = node.get("base_radius")
+	if base_radius_value is float or base_radius_value is int:
+		return maxf(float(base_radius_value), 24.0)
+	var collision := node.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		return maxf((collision.shape as CircleShape2D).radius * maxf(node.scale.x, node.scale.y), 24.0)
+	return 100.0 * maxf(node.scale.x, node.scale.y)
 
 
 func _seed_rng() -> void:

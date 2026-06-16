@@ -1,6 +1,7 @@
 extends Control
 
 @export var run_scene_path: String = "res://Nodes/the_abyss.tscn"
+@export var run_loading_scene_path: String = "res://Nodes/run_loading_screen.tscn"
 @export var title_scene_path: String = "res://Nodes/title_screen.tscn"
 @export var death_label_glitch_strength: float = 4.0
 
@@ -37,7 +38,10 @@ func _process(_delta: float) -> void:
 
 func _on_try_again_pressed() -> void:
 	RunProgress.begin_new_run(false)
-	get_tree().change_scene_to_file(run_scene_path)
+	if run_scene_path == "res://Nodes/the_abyss.tscn":
+		get_tree().change_scene_to_file(run_loading_scene_path)
+	else:
+		get_tree().change_scene_to_file(run_scene_path)
 
 
 func _on_title_pressed() -> void:

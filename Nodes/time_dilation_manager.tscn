@@ -5,4 +5,4 @@
 [node name="TimeDilationManager" type="Node"]
 process_mode = 3
 script = ExtResource("1_time")
-use_global_time_scale = true
+use_global_time_scale = false

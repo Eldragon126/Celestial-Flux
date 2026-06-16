@@ -39,6 +39,7 @@ const MODE_RULE_NAMES = {
 @export var player_escape_floor_speed: float = 260.0
 @export var player_trap_escape_boost: float = 520.0
 @export var player_trap_escape_radius_ratio: float = 0.28
+@export var player_escape_requires_thrust: bool = true
 @export var enable_escape_buildup: bool = true
 @export var escape_buildup_seconds: float = 0.85
 @export var enemy_escape_floor_speed: float = 180.0
@@ -50,9 +51,9 @@ const MODE_RULE_NAMES = {
 @export var enable_particles: bool = true
 @export var debug_visual_enabled: bool = true
 @export var visual_radius_cap: float = 420.0
-@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.095
-@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.42
-@export_range(0.0, 1.0, 0.01) var visual_glyph_alpha_cap: float = 0.38
+@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.11
+@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.5
+@export_range(0.0, 1.0, 0.01) var visual_glyph_alpha_cap: float = 0.44
 @export_group("Temporal")
 @export var temporal_slow_multiplier: float = 0.48
 @export var temporal_slow_duration: float = 0.35
@@ -337,6 +338,8 @@ func _apply_temporal_field(body: Node, radial: Vector2, falloff: float, delta: f
 func _player_escape_impulse(body: Node, radial: Vector2, falloff: float, distance: float, delta: float) -> Vector2:
 	if mode != TideMode.COMPRESSION and mode != TideMode.TEMPORAL:
 		return Vector2.ZERO
+	if body.is_in_group("Player") and player_escape_requires_thrust and not Input.is_action_pressed("thrust"):
+		return Vector2.ZERO
 	if distance > radius * clampf(player_trap_escape_radius_ratio, 0.08, 0.65):
 		return Vector2.ZERO
 	var velocity := _body_velocity(body)
@@ -356,6 +359,9 @@ func _trap_escape_buildup_impulse(body: Node, radial: Vector2, falloff: float, d
 		_escape_buildup.erase(body.get_instance_id())
 		return Vector2.ZERO
 	if not (body.is_in_group("Player") or body.is_in_group("enemies") or body.is_in_group("wave_enemy") or body.is_in_group("bosses")):
+		return Vector2.ZERO
+	if body.is_in_group("Player") and player_escape_requires_thrust and not Input.is_action_pressed("thrust"):
+		_escape_buildup.erase(body.get_instance_id())
 		return Vector2.ZERO
 
 	var velocity := _body_velocity(body)

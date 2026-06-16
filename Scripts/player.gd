@@ -14,7 +14,7 @@ signal planet_super_boost_activated(source: Node, impulse: Vector2, energy_spent
 # == EXPORT VARIABLES ==
 # ========================
 
-@export var thrust_power: float = 4000.0
+@export var thrust_power: float = 4150.0
 @export var rotation_speed: float = 9.0
 @export var orbit_alignment_assist_strength: float = 0.08
 @export var max_speed: float = 1000.0
@@ -24,16 +24,16 @@ signal planet_super_boost_activated(source: Node, impulse: Vector2, energy_spent
 @export var dash_speed_cap: float = 2300.0
 @export var absolute_velocity_cap: float = 2800.0
 @export var high_speed_thrust_falloff_start: float = 0.86
-@export var counter_thrust_control_bonus: float = 0.32
-@export var lateral_thrust_control_bonus: float = 0.18
+@export var counter_thrust_control_bonus: float = 0.38
+@export var lateral_thrust_control_bonus: float = 0.24
 
 @export_group("Drag Precision")
-@export var drag_precision_alignment_rate: float = 5.2
-@export var drag_precision_brake_blend: float = 0.38
+@export var drag_precision_alignment_rate: float = 6.4
+@export var drag_precision_brake_blend: float = 0.44
 @export var drag_gravity_turn_blend: float = 0.28
-@export_range(0.0, 1.0, 0.01) var drag_tangent_assist_min_ratio: float = 0.42
-@export var drag_slingshot_energy_recovery: float = 4.5
-@export var drag_precision_min_speed: float = 240.0
+@export_range(0.0, 1.0, 0.01) var drag_tangent_assist_min_ratio: float = 0.4
+@export var drag_slingshot_energy_recovery: float = 5.0
+@export var drag_precision_min_speed: float = 190.0
 
 @export_group("Gravity")
 @export var gravity_constant: float = 400.0
@@ -41,21 +41,29 @@ signal planet_super_boost_activated(source: Node, impulse: Vector2, energy_spent
 @export var gravity_pull_radius: float = 1800.0
 @export var max_gravity_sources: int = 4
 @export var gravity_source_refresh_interval: float = 0.35
+@export var max_gravity_acceleration_per_source: float = 3600.0
+@export var max_total_gravity_acceleration: float = 7200.0
 
 @export_group("Slingshot")
-@export var slingshot_factor: float = 1.5
-@export var slingshot_max_impulse: float = 800.0
-@export var slingshot_speed_cap: float = 2500.0
-@export var slingshot_cooldown: float = 0.2
+@export var slingshot_factor: float = 1.48
+@export var slingshot_max_impulse: float = 640.0
+@export var slingshot_speed_cap: float = 2480.0
+@export var slingshot_cooldown: float = 0.24
 @export var slingshot_min_tangential_speed: float = 210.0
-@export var slingshot_gravity_boost_scale: float = 2.8
+@export var slingshot_gravity_boost_scale: float = 2.55
 @export var slingshot_sweet_spot_distance: float = 265.0
-@export var slingshot_sweet_spot_width: float = 150.0
-@export var slingshot_perfect_score: float = 0.82
-@export var slingshot_apex_score: float = 0.94
-@export var slingshot_mastery_cap_bonus: float = 270.0
+@export var slingshot_sweet_spot_width: float = 170.0
+@export var slingshot_perfect_score: float = 0.8
+@export var slingshot_apex_score: float = 0.93
+@export var slingshot_mastery_cap_bonus: float = 300.0
 @export var slingshot_camera_kick: float = 20.0
-@export var slingshot_camera_roll: float = 0.035
+@export var slingshot_camera_roll: float = 0.034
+@export var slingshot_burst_scale: float = 0.46
+@export var slingshot_min_burst_impulse: float = 45.0
+@export var slingshot_precision_grace_duration: float = 0.34
+@export_range(0.0, 1.0, 0.01) var slingshot_precision_grace_blend: float = 0.2
+@export var slingshot_inward_pull_scale: float = 0.2
+@export_range(0.0, 1.0, 0.01) var slingshot_outward_damping: float = 0.26
 @export var recoil_instability: float = 0.0
 @export var max_gravity_anchors: int = 1
 @export var orbit_control_bonus: float = 0.0
@@ -69,12 +77,12 @@ signal planet_super_boost_activated(source: Node, impulse: Vector2, energy_spent
 @export var super_boost_enabled: bool = true
 @export var super_boost_stuck_seconds: float = 0.42
 @export var super_boost_energy_cost: float = 140.0
-@export var super_boost_impulse: float = 1850.0
+@export var super_boost_impulse: float = 1250.0
 @export var super_boost_clearance: float = 96.0
 @export var super_boost_stuck_speed_threshold: float = 360.0
-@export_range(0.0, 1.0, 0.01) var super_boost_tangent_bias: float = 0.28
+@export_range(0.0, 1.0, 0.01) var super_boost_tangent_bias: float = 0.76
 @export var super_boost_cooldown: float = 0.75
-@export var pin_escape_enabled: bool = true
+@export var pin_escape_enabled: bool = false
 @export var pin_escape_seconds: float = 0.28
 @export var pin_escape_impulse: float = 760.0
 @export var pin_escape_cooldown: float = 0.36
@@ -136,6 +144,7 @@ var _camera_base_rotation: float = 0.0
 var _camera_feedback_offset: Vector2 = Vector2.ZERO
 var _camera_feedback_roll: float = 0.0
 var _next_held_projectile_time: float = 0.0
+var _slingshot_precision_until: float = -999.0
 
 var menu_is_hidden := true
 var time_tween: Tween
@@ -301,8 +310,8 @@ func calculate_gravity() -> Vector2:
 			var source_mass = float(mass_value) if mass_type == TYPE_FLOAT or mass_type == TYPE_INT else 100.0
 
 			var strength = gravity_constant * source_mass / (dist * dist)
-
-			total += dir * strength
+			var contribution = (dir * strength).limit_length(maxf(max_gravity_acceleration_per_source, 1.0))
+			total = (total + contribution).limit_length(maxf(max_total_gravity_acceleration, 1.0))
 
 	return total
 
@@ -364,22 +373,42 @@ func apply_slingshot(gravity: Vector2, delta: float):
 		return
 
 	var inward_speed = maxf(velocity.dot(-radial_dir), 0.0)
+	var outward_speed = maxf(velocity.dot(radial_dir), 0.0)
 	var speed_before := velocity.length()
 	var quality_data := _score_slingshot_window(gravity, radial_dir, tangent, tangential_speed, inward_speed)
 	var slingshot_score := float(quality_data.get("score", 0.0))
-	var quality_bonus := lerpf(0.9, 1.34, slingshot_score)
-	var speed_factor = clampf(tangential_speed / maxf(slingshot_speed_cap, 1.0), 0.28, 1.35)
+	var quality_bonus := lerpf(0.92, 1.24, slingshot_score)
+	var speed_factor = clampf(tangential_speed / maxf(slingshot_speed_cap, 1.0), 0.28, 1.12)
 	var assist_strength = gravity.length() * speed_factor * slingshot_gravity_boost_scale
+	var inward_pull := Vector2.ZERO
+	var outward_damp := 0.0
 	if assist_strength > 0:
-		impulse = tangent * assist_strength * (slingshot_factor + orbit_control_bonus) * quality_bonus * delta
+		inward_pull = (
+			-radial_dir
+			* minf(
+				gravity.length() * slingshot_inward_pull_scale * lerpf(0.45, 1.0, slingshot_score),
+				slingshot_max_impulse * 0.2
+			)
+		)
+		outward_damp = minf(outward_speed * slingshot_outward_damping, slingshot_max_impulse * 0.22)
+		if outward_damp > 0.0:
+			velocity -= radial_dir * outward_damp
+		velocity += inward_pull
 
-		var impulse_cap := slingshot_max_impulse * lerpf(0.88, 1.24, slingshot_score)
+		var burst_scale := maxf(slingshot_burst_scale, 0.0) * lerpf(0.58, 0.92, slingshot_score)
+		impulse = tangent * assist_strength * (slingshot_factor + orbit_control_bonus) * quality_bonus * burst_scale
+		var minimum_impulse := slingshot_min_burst_impulse * clampf((slingshot_score - 0.32) / 0.68, 0.0, 1.0)
+		if minimum_impulse > 0.0 and impulse.length() < minimum_impulse:
+			impulse = tangent * minimum_impulse
+
+		var impulse_cap := slingshot_max_impulse * lerpf(0.72, 1.08, slingshot_score)
 		if impulse.length() > impulse_cap:
 			impulse = impulse.normalized() * impulse_cap
 
 		var momentum_comp = get_node_or_null("MomentumCombatComponent")
 		if momentum_comp != null and momentum_comp.has_method("modify_slingshot_impulse"):
 			impulse = momentum_comp.modify_slingshot_impulse(impulse, gravity, delta)
+			impulse = tangent * maxf(impulse.dot(tangent), 0.0)
 
 		var proposed = velocity + impulse
 		var mastery_speed_cap := slingshot_speed_cap + slingshot_mastery_cap_bonus * slingshot_score
@@ -391,8 +420,14 @@ func apply_slingshot(gravity: Vector2, delta: float):
 				impulse = Vector2.ZERO
 
 		velocity += impulse
+		current_max_speed = maxf(current_max_speed, minf(mastery_speed_cap, maxf(velocity.length(), max_speed)))
+		_slingshot_precision_until = _now_seconds() + maxf(slingshot_precision_grace_duration, 0.0)
+		var effective_strength := minf(
+			maxf(impulse.length(), inward_pull.length() + outward_damp),
+			slingshot_max_impulse * 1.08
+		)
 
-		last_slingshot_strength = maxf(last_slingshot_strength, assist_strength)
+		last_slingshot_strength = maxf(last_slingshot_strength, effective_strength)
 		last_slingshot_source = closest_planet
 		last_slingshot_time = Time.get_ticks_msec() / 1000.0
 		last_slingshot_score = slingshot_score
@@ -403,7 +438,10 @@ func apply_slingshot(gravity: Vector2, delta: float):
 		mastery_data["source"] = closest_planet
 		mastery_data["gravity"] = gravity
 		mastery_data["impulse"] = impulse
-		mastery_data["assist_strength"] = assist_strength
+		mastery_data["assist_strength"] = effective_strength
+		mastery_data["inward_pull"] = inward_pull
+		mastery_data["outward_damp"] = outward_damp
+		mastery_data["outward_speed_before"] = outward_speed
 		mastery_data["speed_before"] = speed_before
 		mastery_data["speed_after"] = velocity.length()
 		mastery_data["grade"] = last_slingshot_grade
@@ -417,7 +455,7 @@ func apply_slingshot(gravity: Vector2, delta: float):
 			closest_planet,
 			gravity,
 			impulse,
-			assist_strength,
+			effective_strength,
 			velocity.length()
 		)
 		slingshot_mastery_scored.emit(mastery_data)
@@ -450,6 +488,18 @@ func apply_regular_slingshot(gravity: Vector2, delta: float):
 		tangent = -tangent
 
 	var tangential_speed := maxf(velocity.dot(tangent), 0.0)
+	var outward_speed := maxf(velocity.dot(radial_dir), 0.0)
+	if DRAG_enabled:
+		var inward_bias := gravity.length() * slingshot_inward_pull_scale * 0.25 * delta
+		if inward_bias > 0.0:
+			velocity += -radial_dir * minf(inward_bias, slingshot_max_impulse * 0.05)
+		if outward_speed > 0.0:
+			var outward_softening := minf(
+				outward_speed * slingshot_outward_damping * delta * 2.0,
+				slingshot_max_impulse * 0.05
+			)
+			velocity -= radial_dir * outward_softening
+
 	if tangential_speed >= slingshot_min_tangential_speed and DRAG_enabled:
 		var tangent_ratio := tangential_speed / maxf(velocity.length(), 1.0)
 		var accel_tangent := gravity.length() * clampf(tangent_ratio, 0.0, 1.0)
@@ -569,7 +619,11 @@ func apply_drag(gravity: Vector2, delta: float):
 	if not DRAG_enabled or velocity.length() < 1:
 		return
 
-	var thrusting := Input.is_action_pressed("thrust")
+	var thrusting := Input.is_action_pressed("thrust") or (
+		Settings != null
+		and bool(Settings.alternate_movement_enabled)
+		and _alternate_reverse_pressed()
+	)
 	var coeff := drag if thrusting else idle_drag
 	var old_v := velocity
 	var in_slingshot_band := _is_drag_slingshot_band(gravity)
@@ -625,16 +679,36 @@ func _apply_drag_precision_control(
 			var tangential_speed := maxf(old_velocity.dot(tangent), 0.0)
 			var tangent_ratio := tangential_speed / maxf(old_velocity.length(), 1.0)
 			var outward_speed := maxf(old_velocity.dot(radial_dir), 0.0)
+			var inward_bias := gravity.length() * slingshot_inward_pull_scale * 0.35 * delta
+			if inward_bias > 0.0:
+				velocity += -radial_dir * minf(inward_bias, slingshot_max_impulse * 0.08)
+			if outward_speed > 0.0:
+				var outward_softening := minf(
+					outward_speed * slingshot_outward_damping * delta * 3.0,
+					slingshot_max_impulse * 0.08
+				)
+				velocity -= radial_dir * outward_softening
 			if tangent_ratio >= drag_tangent_assist_min_ratio and tangential_speed > outward_speed * 0.72:
-				target_direction = tangent
-				blend = drag_gravity_turn_blend * clampf(tangent_ratio, 0.0, 1.0)
+				var tangent_boost = (
+					tangent
+					* gravity.length()
+					* drag_gravity_turn_blend
+					* clampf(tangent_ratio, 0.0, 1.0)
+					* delta
+				)
+				velocity += tangent_boost.limit_length(slingshot_max_impulse * 0.1)
 
-	if thrusting:
+	var sling_precision_grace := _now_seconds() <= _slingshot_precision_until
+	if thrusting and (not in_slingshot_band or sling_precision_grace):
 		var forward := -transform.x.normalized()
 		var speed_dir := old_velocity.normalized()
-		var aim_quality := clampf(1.0 - absf(speed_dir.dot(forward)), 0.0, 1.0)
+		var alignment := speed_dir.dot(forward)
+		var aim_quality := clampf(1.0 - alignment, 0.0, 1.0)
 		target_direction = (target_direction + forward * (0.62 + aim_quality)).normalized()
-		blend = maxf(blend, drag_precision_brake_blend * (0.45 + aim_quality * 0.55))
+		var thrust_blend := drag_precision_brake_blend * (0.5 + aim_quality * 0.65)
+		if sling_precision_grace:
+			thrust_blend = maxf(thrust_blend, slingshot_precision_grace_blend)
+		blend = maxf(blend, thrust_blend)
 
 	if target_direction.length_squared() <= 0.001 or blend <= 0.0:
 		return
@@ -700,8 +774,9 @@ func _try_planet_super_boost() -> bool:
 	var tangent := outward.orthogonal()
 	if tangent.dot(velocity) < 0.0:
 		tangent = -tangent
-	var bias := clampf(super_boost_tangent_bias, 0.0, 0.65)
-	var boost_dir := (outward * (1.0 - bias) + tangent * bias).normalized()
+	var inward := -outward
+	var bias := clampf(super_boost_tangent_bias, 0.0, 0.92)
+	var boost_dir := (inward * (1.0 - bias) + tangent * bias).normalized()
 	var impulse := boost_dir * maxf(super_boost_impulse, 0.0)
 	var spent := float(energy_component.spend(super_boost_energy_cost)) if energy_component != null else 0.0
 	if spent < super_boost_energy_cost:
@@ -709,6 +784,9 @@ func _try_planet_super_boost() -> bool:
 			energy_component.restore(spent)
 		return false
 
+	var outward_speed := maxf(velocity.dot(outward), 0.0)
+	if outward_speed > 0.0:
+		velocity -= outward * minf(outward_speed * 0.55, super_boost_impulse * 0.18)
 	velocity = (velocity + impulse).limit_length(maxf(_get_current_hard_speed_cap(), dash_speed_cap + super_boost_impulse * 0.35))
 	current_max_speed = maxf(current_max_speed, dash_speed_cap + super_boost_impulse * 0.35)
 	_planet_stuck_time = 0.0
@@ -1021,7 +1099,7 @@ func update_camera(delta: float):
 	if Settings.input_type == false:
 		var target = (get_global_mouse_position() - global_position).normalized() * 180
 		var base_offset = camera.offset - _camera_feedback_offset
-		var follow_weight := clampf(0.05 * float(Settings.camera_follow_strength), 0.02, 0.18) if Settings != null else 0.05
+		var follow_weight := clampf(0.075 * float(Settings.camera_follow_strength), 0.035, 0.24) if Settings != null else 0.075
 		if Settings != null and bool(Settings.trackpad_direct_camera):
 			follow_weight = 1.0
 		camera.offset = base_offset.lerp(target, follow_weight) + _camera_feedback_offset
@@ -1463,19 +1541,19 @@ func _score_slingshot_window(
 		distance_score = 1.0 - absf(closest_dist - slingshot_sweet_spot_distance) / slingshot_sweet_spot_width
 	distance_score = clampf(distance_score, 0.0, 1.0)
 
-	var full_tangent_speed := maxf(slingshot_speed_cap * 0.82, slingshot_min_tangential_speed + 1.0)
+	var full_tangent_speed := maxf(slingshot_speed_cap * 0.68, slingshot_min_tangential_speed + 1.0)
 	var tangent_score := clampf(
 		(tangential_speed - slingshot_min_tangential_speed)
 		/ maxf(full_tangent_speed - slingshot_min_tangential_speed, 1.0),
 		0.0,
 		1.0
 	)
-	var dive_score := clampf(inward_speed / 620.0, 0.0, 1.0)
+	var dive_score := clampf(inward_speed / 580.0, 0.0, 1.0)
 	var speed_score := clampf(velocity.length() / maxf(current_max_speed, 1.0), 0.0, 1.0)
-	var gravity_score := clampf(gravity.length() / 420.0, 0.0, 1.0)
+	var gravity_score := clampf(gravity.length() / 400.0, 0.0, 1.0)
 	var score := clampf(
-		distance_score * 0.44
-		+ tangent_score * 0.34
+		distance_score * 0.4
+		+ tangent_score * 0.38
 		+ dive_score * 0.14
 		+ speed_score * 0.05
 		+ gravity_score * 0.03,

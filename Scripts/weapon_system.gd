@@ -1024,7 +1024,7 @@ const IMPACT_RING_WIDTH: float = 2.0
 @export var positron_color: Color = Color(1.0, 0.72, 0.28, 1.0)
 @export var gravity_wave_color: Color = Color(0.3, 0.72, 1.0, 1.0)
 @export var chronal_color: Color = Color(0.74, 0.36, 1.0, 1.0)
-@export_range(0.0, 1.0, 0.01) var projectile_core_alpha_cap: float = 0.62
+@export_range(0.0, 1.0, 0.01) var projectile_core_alpha_cap: float = 0.96
 @export_range(0.0, 0.42, 0.01) var beam_alpha_cap: float = 0.34
 @export var beam_impact_radius_cap: float = 96.0
 @export var beam_pulse_speed: float = 10.0
@@ -1765,7 +1765,10 @@ func _spawn_field_weapon_visual(weapon_id: StringName, origin: Vector2, directio
 	var tween := create_tween()
 	tween.tween_property(line, "scale", Vector2.ONE * 1.18, field_weapon_visual_lifetime)
 	tween.parallel().tween_property(line, "modulate:a", 0.0, field_weapon_visual_lifetime)
-	tween.finished.connect(line.queue_free)
+	var free_line := func() -> void:
+		if line != null and is_instance_valid(line) and not line.is_queued_for_deletion():
+			line.queue_free()
+	tween.finished.connect(free_line, CONNECT_ONE_SHOT)
 
 
 func _spawn_projectile_pattern(weapon_id: StringName, origin: Vector2, direction: Vector2) -> int:
@@ -3357,9 +3360,7 @@ func _safe_projectile_core_color(color: Color) -> Color:
 	if Settings != null and Settings.has_method("apply_readability_color"):
 		adjusted = Settings.apply_readability_color(adjusted)
 	var alpha := minf(adjusted.a, projectile_core_alpha_cap)
-	if Settings != null and Settings.has_method("world_visual_alpha"):
-		alpha = Settings.world_visual_alpha(alpha, projectile_core_alpha_cap)
-	elif Settings != null and Settings.has_method("flash_alpha"):
+	if Settings != null and bool(Settings.reduce_flash) and Settings.has_method("flash_alpha"):
 		alpha = minf(Settings.flash_alpha(alpha), projectile_core_alpha_cap)
 	return Color(adjusted.r, adjusted.g, adjusted.b, alpha)
 

@@ -87,9 +87,9 @@ const ANY_SAMPLE_POSITION := Vector2(999999999.0, 999999999.0)
 @export var label_min_intensity: float = 0.22
 @export var visual_player_focus_radius: float = 1550.0
 @export var visual_radius_cap: float = 380.0
-@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.065
-@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.34
-@export_range(0.0, 1.0, 0.01) var visual_seam_alpha_cap: float = 0.26
+@export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.08
+@export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.42
+@export_range(0.0, 1.0, 0.01) var visual_seam_alpha_cap: float = 0.34
 
 var _scars: Array[Dictionary] = []
 var _visuals: Dictionary = {}

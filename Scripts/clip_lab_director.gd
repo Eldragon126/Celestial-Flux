@@ -498,7 +498,7 @@ func _grant_showcase_upgrades() -> void:
 
 func _clear_spawned() -> void:
 	for node in _spawned:
-		if node != null and is_instance_valid(node):
+		if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
 			node.queue_free()
 	_spawned.clear()
 

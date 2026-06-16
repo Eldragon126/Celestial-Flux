@@ -3,19 +3,20 @@ extends Control
 const SECRET_ENEMY_GROUPS: Array[StringName] = [&"wave_enemy", &"enemies", &"ParametricEnemies"]
 const TITLE_TRACK_ORBITAL_DRIFT := preload("res://Assets/Songs/Orbital Drift.mp3")
 const TITLE_TRACK_DARK_PULSE := preload("res://Assets/Songs/Title Screen New.mp3")
+const RUN_LOADING_SCENE := "res://Nodes/run_loading_screen.tscn"
 const STEAM_DEMO_SCENE := "res://Nodes/demo_game.tscn"
 const CLIP_LAB_SCENE := "res://Nodes/clip_lab_scene.tscn"
 const MOD_MANAGER_SCENE := "res://Nodes/mod_management_scene.tscn"
-const SECRET_LAW_BOSS_SCENE := preload("res://Nodes/secret_law_boss.tscn")
-const GRAVITY_MAW_BOSS_SCENE := preload("res://Nodes/gravity_maw_boss.tscn")
-const CHAOS_WISP_SCENE := preload("res://Nodes/chaos_wisp.tscn")
-const GRAVIMETRIC_ECHO_DRONE_SCENE := preload("res://Nodes/gravimetric_echo_drone.tscn")
-const EVENT_HORIZON_WARDEN_SCENE := preload("res://Nodes/event_horizon_warden.tscn")
-const ORBITAL_NULL_HARVESTER_SCENE := preload("res://Nodes/orbital_null_harvester.tscn")
-const RESONANCE_PARALYTIC_CONSTRUCT_SCENE := preload("res://Nodes/resonance_paralytic_construct.tscn")
-const PHASE_SLIP_SWARM_SCENE := preload("res://Nodes/phase_slip_swarm.tscn")
-const SHIELD_BREAKER_SCENE := preload("res://Nodes/shield_breaker_unit.tscn")
-const SEEKER_FRAGMENT_SCENE := preload("res://Nodes/seeker_fragment.tscn")
+const SECRET_LAW_BOSS_SCENE := "res://Nodes/secret_law_boss.tscn"
+const GRAVITY_MAW_BOSS_SCENE := "res://Nodes/gravity_maw_boss.tscn"
+const CHAOS_WISP_SCENE := "res://Nodes/chaos_wisp.tscn"
+const GRAVIMETRIC_ECHO_DRONE_SCENE := "res://Nodes/gravimetric_echo_drone.tscn"
+const EVENT_HORIZON_WARDEN_SCENE := "res://Nodes/event_horizon_warden.tscn"
+const ORBITAL_NULL_HARVESTER_SCENE := "res://Nodes/orbital_null_harvester.tscn"
+const RESONANCE_PARALYTIC_CONSTRUCT_SCENE := "res://Nodes/resonance_paralytic_construct.tscn"
+const PHASE_SLIP_SWARM_SCENE := "res://Nodes/phase_slip_swarm.tscn"
+const SHIELD_BREAKER_SCENE := "res://Nodes/shield_breaker_unit.tscn"
+const SEEKER_FRAGMENT_SCENE := "res://Nodes/seeker_fragment.tscn"
 
 @export var version_string: String = "v1.0.4.6"
 @export var secret_completion_check_interval: float = 0.25
@@ -71,6 +72,7 @@ var _menu_button_tweens: Dictionary = {}
 var _title_lattice: Node2D = null
 var _title_lattice_lines: Array[Line2D] = []
 var _title_lattice_elapsed: float = 0.0
+var _scene_cache: Dictionary = {}
 
 
 func _ready() -> void:
@@ -93,6 +95,8 @@ func _ready() -> void:
 	_build_seed_ui()
 	_build_multiplayer_ui()
 	_normalize_title_menu_density()
+	_set_title_secret_roster_active(false)
+	call_deferred("_prewarm_run_loading_screen")
 	call_deferred("_setup_menu_button_tweens")
 	_connect_network_session()
 	_update_multiplayer_ui()
@@ -184,19 +188,27 @@ func _on_boss_rush_button_pressed() -> void:
 	if NetworkSession != null:
 		NetworkSession.leave_session()
 	RunProgress.begin_boss_rush(_selected_start_seed())
-	get_tree().change_scene_to_file("res://Nodes/the_abyss.tscn")
+	_go_to_run_loading_screen()
 
 
 func _begin_new_run(use_challenge: bool = false) -> void:
 	RunProgress.begin_new_run(use_challenge, _selected_start_seed())
-	get_tree().change_scene_to_file("res://Nodes/the_abyss.tscn")
+	_go_to_run_loading_screen()
 
 
 func _begin_continue() -> void:
 	if RunProgress.has_anchor and RunProgress.load_anchor():
-		get_tree().change_scene_to_file("res://Nodes/the_abyss.tscn")
+		_go_to_run_loading_screen()
 	else:
 		_begin_new_run(false)
+
+
+func _go_to_run_loading_screen() -> void:
+	get_tree().change_scene_to_file(RUN_LOADING_SCENE)
+
+
+func _prewarm_run_loading_screen() -> void:
+	ResourceLoader.load_threaded_request(RUN_LOADING_SCENE)
 
 
 func _update_button_visibility() -> void:
@@ -759,7 +771,10 @@ func _on_secret_button_pressed() -> void:
 			_secret_mode_active = true
 		return
 
-	var player := preload("res://Nodes/player.tscn")
+	_set_title_secret_roster_active(true)
+	var player := _load_cached_scene("res://Nodes/player.tscn")
+	if player == null:
+		return
 	var instance := player.instantiate() as Node2D
 	if instance == null:
 		return
@@ -852,7 +867,7 @@ func _spawn_super_secret_boss_wave(player: Node2D) -> void:
 		{"scene": GRAVITY_MAW_BOSS_SCENE, "name": "SuperSecretGravityMaw", "variant": -1, "display": "SUPER GRAVITY MAW", "angle": PI * 1.38},
 	]
 	for spec in boss_specs:
-		var scene := spec.get("scene") as PackedScene
+		var scene := _load_cached_scene(String(spec.get("scene", "")))
 		if scene == null:
 			continue
 		var boss := scene.instantiate()
@@ -872,7 +887,7 @@ func _spawn_super_secret_boss_wave(player: Node2D) -> void:
 
 
 func _spawn_super_secret_elites(player: Node2D) -> void:
-	var roster: Array[PackedScene] = [
+	var roster: Array[String] = [
 		CHAOS_WISP_SCENE,
 		GRAVIMETRIC_ECHO_DRONE_SCENE,
 		EVENT_HORIZON_WARDEN_SCENE,
@@ -883,7 +898,9 @@ func _spawn_super_secret_elites(player: Node2D) -> void:
 		SEEKER_FRAGMENT_SCENE,
 	]
 	for i in range(maxi(super_secret_elite_count, 0)):
-		var scene := roster[i % roster.size()]
+		var scene := _load_cached_scene(roster[i % roster.size()])
+		if scene == null:
+			continue
 		var enemy := scene.instantiate()
 		if enemy == null:
 			continue
@@ -928,6 +945,27 @@ func _mark_title_secret_enemy(enemy: Node) -> void:
 	if RuntimeRegistry != null:
 		RuntimeRegistry.register_node(enemy, &"enemies")
 		RuntimeRegistry.register_node(enemy, &"wave_enemy")
+
+
+func _load_cached_scene(path: String) -> PackedScene:
+	if path.is_empty():
+		return null
+	if _scene_cache.has(path):
+		return _scene_cache[path] as PackedScene
+	var scene := ResourceLoader.load(path) as PackedScene
+	if scene != null:
+		_scene_cache[path] = scene
+	return scene
+
+
+func _set_title_secret_roster_active(active: bool) -> void:
+	for group_name in SECRET_ENEMY_GROUPS:
+		for node in get_tree().get_nodes_in_group(group_name):
+			if node == null or not is_instance_valid(node) or node == self:
+				continue
+			if bool(node.get_meta(&"title_super_secret_enemy", false)):
+				continue
+			node.process_mode = Node.PROCESS_MODE_INHERIT if active else Node.PROCESS_MODE_DISABLED
 
 
 func _announce_super_secret_completed() -> void:

@@ -11,12 +11,15 @@ class_name PhaseSlipSwarm
 @export var history_limit: int = 36
 @export var phase_proxy_radius: float = 22.0
 @export var jitter_strength: float = 180.0
+@export var offscreen_simulation_distance: float = 2200.0
+@export var offscreen_simulation_interval: float = 0.08
 
 var _player: Node2D = null
 var _health: HealthComponent = null
 var _history: Array[Vector2] = []
 var _phase_proxies: Array[Area2D] = []
 var _rng := RandomNumberGenerator.new()
+var _simulation_accumulator: float = 0.0
 
 
 func _ready() -> void:
@@ -30,6 +33,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _should_use_coarse_simulation():
+		return
 	_update_history()
 	_update_phase_proxies(delta)
 
@@ -39,6 +44,14 @@ func _physics_process(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 		return
+	if _should_use_coarse_simulation():
+		_simulation_accumulator += scaled_delta
+		if _simulation_accumulator < maxf(offscreen_simulation_interval, 0.016):
+			return
+		scaled_delta = _simulation_accumulator
+		_simulation_accumulator = 0.0
+	else:
+		_simulation_accumulator = 0.0
 	var player_velocity := _body_velocity(_player)
 	var predicted := _player.global_position + player_velocity * 0.22
 	var direction := (predicted - global_position).normalized()
@@ -138,6 +151,14 @@ func _body_velocity(body: Node) -> Vector2:
 	if linear_velocity_value is Vector2:
 		return linear_velocity_value
 	return Vector2.ZERO
+
+
+func _should_use_coarse_simulation() -> bool:
+	if offscreen_simulation_distance <= 0.0:
+		return false
+	if _player == null or not is_instance_valid(_player):
+		return false
+	return global_position.distance_squared_to(_player.global_position) > offscreen_simulation_distance * offscreen_simulation_distance
 
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:

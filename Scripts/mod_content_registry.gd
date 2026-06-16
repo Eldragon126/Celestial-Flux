@@ -38,19 +38,36 @@ const CONTENT_BUCKETS := [
 	"physics_drops",
 	"materials",
 	"shader_packs",
+	"shader_overrides",
 	"texture_packs",
 	"prefabs",
 	"entities",
 	"gamemodes",
 	"campaigns",
+	"biomes",
+	"mission_packs",
+	"wave_tables",
 	"total_conversions",
 	"expansion_packs",
+	"calamity_mods",
 	"npc_behaviors",
+	"enemy_behaviors",
+	"boss_rules",
+	"projectile_profiles",
+	"gravity_source_profiles",
+	"planet_packs",
+	"status_effects",
+	"mechanics",
 	"sfx",
 	"music",
+	"soundtrack_packs",
 	"hud_badges",
+	"ui_skins",
+	"localization",
+	"accessibility_profiles",
 	"maps",
 	"tools",
+	"creator_tools",
 	"law_weaves",
 	"anomaly_recipes",
 	"challenge_cards",
@@ -75,13 +92,17 @@ const PATH_FIELDS := [
 	"pack",
 	"manifest",
 	"cover_art",
+	"font",
+	"data",
+	"json",
+	"localization",
 ]
 const SCRIPT_CONTENT_BUCKETS := ["script_packs", "tools", "npc_behaviors"]
 const HOOKABLE_CONTENT_BUCKETS := ["law_weaves", "anomaly_recipes", "challenge_cards"]
-const LOCAL_ONLY_CONTENT_BUCKETS := ["mod_palettes", "creator_notes", "hud_badges", "sfx", "music", "shader_packs", "texture_packs"]
-const CREATOR_LEVEL_BUCKETS := ["arenas", "levels", "level_packs", "maps", "campaigns"]
-const CREATOR_ENTITY_BUCKETS := ["enemies", "enemy_packs", "bosses", "boss_packs", "entities", "prefabs"]
-const CREATOR_EXPANSION_BUCKETS := ["total_conversions", "expansion_packs", "gamemodes", "rules", "waves", "upgrades", "powerups"]
+const LOCAL_ONLY_CONTENT_BUCKETS := ["mod_palettes", "creator_notes", "hud_badges", "sfx", "music", "soundtrack_packs", "shader_packs", "shader_overrides", "texture_packs", "ui_skins", "localization", "accessibility_profiles"]
+const CREATOR_LEVEL_BUCKETS := ["arenas", "levels", "level_packs", "maps", "campaigns", "biomes", "mission_packs", "wave_tables"]
+const CREATOR_ENTITY_BUCKETS := ["enemies", "enemy_packs", "enemy_behaviors", "bosses", "boss_packs", "boss_rules", "entities", "prefabs", "projectile_profiles", "gravity_source_profiles", "planet_packs"]
+const CREATOR_EXPANSION_BUCKETS := ["total_conversions", "expansion_packs", "calamity_mods", "gamemodes", "rules", "waves", "upgrades", "powerups", "mechanics", "status_effects"]
 const WEAPON_FIRE_MODES := ["catalog", "projectile", "beam"]
 const NETWORK_CATEGORIES := ["local_visual", "exported_state", "reliable_event", "deterministic_seed"]
 const WEAPON_PATTERN_MODES := ["single", "spread", "parallel", "braid", "helix", "ring", "converge", "scissor", "pinwheel"]
@@ -112,6 +133,13 @@ const MOD_HOOKS := [
 	"enemy_defeated",
 	"mod_pack_enabled",
 	"shader_pack_applied",
+	"powerup_collected",
+	"weapon_changed",
+	"player_hit",
+	"black_hole_consumed",
+	"planet_fractured",
+	"level_completed",
+	"mod_pack_disabled",
 ]
 const MOD_EFFECT_ACTIONS := [
 	"spawn_arena_event",
@@ -136,8 +164,16 @@ const MOD_EFFECT_ACTIONS := [
 	"apply_texture_pack",
 	"set_arena_law",
 	"queue_mod_story_event",
+	"offer_upgrade",
+	"set_gravity_profile",
+	"apply_status_effect",
+	"request_boss_rule",
+	"request_wave_table",
+	"apply_ui_skin",
+	"request_localization",
+	"set_level_flag",
 ]
-const LOCAL_VISUAL_EFFECT_ACTIONS := ["emit_hud_badge", "play_sfx", "request_music_layer", "apply_shader_pack", "apply_texture_pack"]
+const LOCAL_VISUAL_EFFECT_ACTIONS := ["emit_hud_badge", "play_sfx", "request_music_layer", "apply_shader_pack", "apply_texture_pack", "apply_ui_skin", "request_localization"]
 const MOD_CONDITION_TYPES := [
 	"min_wave",
 	"max_wave",
@@ -158,6 +194,11 @@ const MOD_CONDITION_TYPES := [
 	"mod_loaded",
 	"content_tag",
 	"player_speed_above",
+	"projectile_pressure_at_least",
+	"enemy_count_at_least",
+	"near_gravity_source",
+	"black_hole_active",
+	"accessibility_mode",
 ]
 const WEAPON_NUMERIC_FIELDS := [
 	"energy_per_shot",
@@ -410,11 +451,11 @@ func get_enemy_pack_entries() -> Array:
 
 
 func get_shader_pack_entries() -> Array:
-	return _entries_for_buckets(["shader_packs", "texture_packs"])
+	return _entries_for_buckets(["shader_packs", "shader_overrides", "texture_packs", "ui_skins"])
 
 
 func get_total_conversion_entries() -> Array:
-	return _entries_for_buckets(["total_conversions", "expansion_packs"])
+	return _entries_for_buckets(["total_conversions", "expansion_packs", "calamity_mods"])
 
 
 func get_entries_for_creator_surface(surface: StringName) -> Array:
@@ -427,6 +468,8 @@ func get_entries_for_creator_surface(surface: StringName) -> Array:
 			return get_shader_pack_entries()
 		"total_conversions", "expansions", "calamity":
 			return get_total_conversion_entries()
+		"creator_tools", "tools":
+			return _entries_for_buckets(["tools", "creator_tools"])
 	return []
 
 
@@ -492,8 +535,9 @@ func get_modding_capabilities() -> Dictionary:
 			"levels": CREATOR_LEVEL_BUCKETS.duplicate(),
 			"entities": CREATOR_ENTITY_BUCKETS.duplicate(),
 			"expansions": CREATOR_EXPANSION_BUCKETS.duplicate(),
-			"shader_packs": ["shader_packs", "texture_packs"],
-			"calamity_style_mods": ["total_conversions", "expansion_packs", "campaigns", "boss_packs", "enemy_packs"],
+			"shader_packs": ["shader_packs", "shader_overrides", "texture_packs", "ui_skins"],
+			"calamity_style_mods": ["total_conversions", "expansion_packs", "calamity_mods", "campaigns", "boss_packs", "enemy_packs", "boss_rules", "mechanics"],
+			"creator_tools": ["tools", "creator_tools", "script_packs"],
 		},
 		"script_pack_registration_enabled": allow_script_pack_registration,
 		"safe_data_only": true,
@@ -1896,13 +1940,13 @@ func _string_array(value: Variant) -> Array[String]:
 func _entry_activation_state(bucket: String) -> StringName:
 	if HOOKABLE_CONTENT_BUCKETS.has(bucket):
 		return &"hookable"
-	if bucket == "shader_packs" or bucket == "texture_packs":
+	if bucket == "shader_packs" or bucket == "shader_overrides" or bucket == "texture_packs" or bucket == "ui_skins":
 		return &"visual_pack"
 	if CREATOR_LEVEL_BUCKETS.has(bucket):
 		return &"creator_level"
 	if CREATOR_ENTITY_BUCKETS.has(bucket):
 		return &"creator_entity"
-	if bucket == "total_conversions" or bucket == "expansion_packs":
+	if bucket == "total_conversions" or bucket == "expansion_packs" or bucket == "calamity_mods":
 		return &"expansion"
 	if bucket == "mod_palettes":
 		return &"visual"
@@ -1920,9 +1964,9 @@ func _default_network_category(bucket: String) -> String:
 		return "local_visual"
 	if HOOKABLE_CONTENT_BUCKETS.has(bucket):
 		return "deterministic_seed"
-	if bucket == "arenas" or bucket == "levels" or bucket == "level_packs" or bucket == "maps" or bucket == "campaigns":
+	if CREATOR_LEVEL_BUCKETS.has(bucket):
 		return "deterministic_seed"
-	if bucket == "total_conversions" or bucket == "expansion_packs":
+	if CREATOR_EXPANSION_BUCKETS.has(bucket):
 		return "deterministic_seed"
 	if bucket == "arenas" or bucket == "waves" or bucket == "rules" or bucket == "arena_events":
 		return "deterministic_seed"

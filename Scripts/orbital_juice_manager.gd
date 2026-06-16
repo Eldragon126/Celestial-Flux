@@ -132,6 +132,7 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var enable_tide_particles: bool = true
 @export var enable_time_afterimages: bool = true
 @export var low_performance_mode: bool = false
+@export var spread_installation_over_frames: bool = true
 
 var _installed = false
 var _stress_director: Node = null
@@ -197,6 +198,9 @@ func _install_modular_additions() -> void:
 		# toggled or removed without changing player, enemy, or wave logic.
 		_add_child_scene_once(level_root, DEBUG_BALANCE_OVERLAY_SCENE, "DebugBalanceOverlay")
 
+	if spread_installation_over_frames:
+		await get_tree().process_frame
+
 	if attach_projectile_sparks:
 		_add_child_scene_once(level_root, SPARK_WATCHER_SCENE, "ProjectileSparkWatcher")
 
@@ -226,6 +230,9 @@ func _install_modular_additions() -> void:
 	if enable_reality_collapse:
 		_add_child_scene_once(level_root, REALITY_COLLAPSE_DIRECTOR_SCENE, "RealityCollapseDirector")
 
+	if spread_installation_over_frames:
+		await get_tree().process_frame
+
 	for current_player in players:
 		_install_player_additions(level_root, current_player)
 
@@ -241,6 +248,9 @@ func _install_modular_additions() -> void:
 
 	if attach_orbital_vfx:
 		_add_child_scene_once(level_root, ORBITAL_VFX_DIRECTOR_SCENE, "OrbitalVFXDirector")
+
+	if spread_installation_over_frames:
+		await get_tree().process_frame
 
 	if attach_mechanic_audio:
 		_add_child_scene_once(level_root, MECHANIC_AUDIO_SCENE, "MechanicAudioDirector")
@@ -276,6 +286,9 @@ func _install_modular_additions() -> void:
 			_add_child_scene_once(level_root, SECRET_BOSS_DIRECTOR_SCENE, "SecretBossDirector")
 		if enable_run_score_tracker:
 			_add_child_scene_once(level_root, RUN_SCORE_TRACKER_SCENE, "RunScoreTracker")
+
+	if spread_installation_over_frames:
+		await get_tree().process_frame
 
 	var player_2d := player as Node2D
 	if spawn_showcase_content and player_2d != null:

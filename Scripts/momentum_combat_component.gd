@@ -103,12 +103,12 @@ signal flow_state_changed(active: bool, intensity: float)
 @export var impact_speed_cap_bonus: float = 260.0
 
 @export_group("Slingshot Mastery")
-@export var mastery_good_threshold: float = 0.42
-@export var mastery_perfect_threshold: float = 0.82
-@export var mastery_apex_threshold: float = 0.94
-@export var mastery_combo_window: float = 3.2
+@export var mastery_good_threshold: float = 0.4
+@export var mastery_perfect_threshold: float = 0.8
+@export var mastery_apex_threshold: float = 0.93
+@export var mastery_combo_window: float = 3.3
 @export var mastery_max_combo: int = 9
-@export var mastery_speed_cap_bonus: float = 320.0
+@export var mastery_speed_cap_bonus: float = 340.0
 @export var mastery_near_miss_bonus_multiplier: float = 1.75
 @export var mastery_impact_damage_bonus_per_combo: float = 0.13
 @export var flow_enter_combo: int = 2
@@ -128,10 +128,10 @@ signal flow_state_changed(active: bool, intensity: float)
 @export var flow_visuals_enabled: bool = true
 @export var mastery_audio_enabled: bool = true
 @export var mastery_particle_cap: int = 10
-@export var great_ring_min_score: float = 0.86
+@export var great_ring_min_score: float = 0.8
 @export var mastery_visual_radius_cap: float = 280.0
-@export_range(0.0, 0.42, 0.01) var mastery_ring_alpha_cap: float = 0.24
-@export_range(0.0, 0.42, 0.01) var mastery_aura_alpha_cap: float = 0.18
+@export_range(0.0, 0.42, 0.01) var mastery_ring_alpha_cap: float = 0.26
+@export_range(0.0, 0.42, 0.01) var mastery_aura_alpha_cap: float = 0.2
 
 # ========================
 # == INTERNAL STATE ==
@@ -921,7 +921,10 @@ func _play_mastery_whoosh(data: Dictionary) -> void:
 	player.volume_db = lerpf(-18.0, -5.0, score)
 	player.bus = &"Player Sound Effects"
 	root.add_child(player)
-	player.finished.connect(player.queue_free)
+	var free_player := func() -> void:
+		if player != null and is_instance_valid(player) and not player.is_queued_for_deletion():
+			player.queue_free()
+	player.finished.connect(free_player, CONNECT_ONE_SHOT)
 	player.play()
 
 func _grade_color(grade: StringName, mastered: bool) -> Color:

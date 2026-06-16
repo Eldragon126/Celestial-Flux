@@ -27,6 +27,8 @@ var _live_ids: Dictionary = {}
 
 func _ready() -> void:
 	add_to_group("enemy_readability_director")
+	_connect_accessibility_settings()
+	_apply_readability_halo_setting()
 	set_process(true)
 
 
@@ -44,6 +46,8 @@ func _refresh_enemy_glyphs() -> void:
 	var marked_this_pass := 0
 	_live_ids.clear()
 	_fill_enemy_buffer()
+	if not _readability_halos_enabled():
+		_clear_readability_halos()
 
 	for enemy_2d in _enemy_buffer:
 		if marked_this_pass >= max_marked_enemies:
@@ -115,7 +119,7 @@ func _ensure_glyph(enemy: Node2D) -> void:
 
 
 func _ensure_enemy_halo(enemy: Node2D) -> void:
-	if not enable_enemy_halos:
+	if not enable_enemy_halos or not _readability_halos_enabled():
 		return
 	var id := enemy.get_instance_id()
 	var profile := _profile_for_enemy(enemy)
@@ -148,7 +152,7 @@ func _update_enemy_halo(halo: Line2D, profile: StringName, is_boss: bool) -> voi
 
 
 func _ensure_boss_silhouette(enemy: Node2D) -> void:
-	if not enable_boss_silhouettes or not enemy.is_in_group("bosses"):
+	if not enable_boss_silhouettes or not enemy.is_in_group("bosses") or not _readability_halos_enabled():
 		return
 	var id := enemy.get_instance_id()
 	var profile := _profile_for_enemy(enemy)
@@ -171,6 +175,41 @@ func _update_boss_silhouette(outline: Line2D, profile: StringName) -> void:
 	outline.points = _boss_points_for_profile(profile)
 	var color := _color_for_profile(profile)
 	outline.default_color = Color(color.r, color.g, color.b, _safe_alpha(0.42, 0.42))
+
+
+func _connect_accessibility_settings() -> void:
+	if Settings == null or not Settings.has_signal("accessibility_changed"):
+		return
+	var callable := Callable(self, "_on_accessibility_changed")
+	if not Settings.is_connected("accessibility_changed", callable):
+		Settings.connect("accessibility_changed", callable)
+
+
+func _on_accessibility_changed(_settings: Dictionary) -> void:
+	_apply_readability_halo_setting()
+
+
+func _apply_readability_halo_setting() -> void:
+	if _readability_halos_enabled():
+		return
+	_clear_readability_halos()
+
+
+func _readability_halos_enabled() -> bool:
+	return Settings != null and bool(Settings.readability_halos_enabled)
+
+
+func _clear_readability_halos() -> void:
+	_clear_line_dictionary(_enemy_halos)
+	_clear_line_dictionary(_boss_outlines)
+
+
+func _clear_line_dictionary(nodes: Dictionary) -> void:
+	for id in nodes.keys():
+		var line = nodes[id]
+		if line != null and is_instance_valid(line) and not line.is_queued_for_deletion():
+			line.queue_free()
+	nodes.clear()
 
 
 func _profile_for_enemy(enemy: Node) -> StringName:

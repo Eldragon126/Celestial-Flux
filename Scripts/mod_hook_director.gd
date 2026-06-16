@@ -35,7 +35,7 @@ const NETWORKED_PLAYER_HOOKS := [
 	&"projectile_hit",
 	&"coop_combo_triggered",
 ]
-const LOCAL_VISUAL_ACTIONS := [&"emit_hud_badge", &"play_sfx", &"request_music_layer", &"apply_shader_pack", &"apply_texture_pack"]
+const LOCAL_VISUAL_ACTIONS := [&"emit_hud_badge", &"play_sfx", &"request_music_layer", &"apply_shader_pack", &"apply_texture_pack", &"apply_ui_skin", &"request_localization"]
 
 @export var enabled: bool = true
 @export var reconnect_interval: float = 0.5
@@ -363,6 +363,16 @@ func _condition_matches(condition: Dictionary, data: Dictionary) -> bool:
 			return _data_has_tag(data, str(condition.get("value", condition.get("tag", ""))))
 		&"player_speed_above":
 			return _player_speed() >= float(condition.get("value", 0.0))
+		&"projectile_pressure_at_least":
+			return _group_count(&"Projectiles") + _group_count(&"enemy_projectiles") >= int(condition.get("value", 0))
+		&"enemy_count_at_least":
+			return _group_count(&"enemies") + _group_count(&"wave_enemy") >= int(condition.get("value", 0))
+		&"near_gravity_source":
+			return _player_near_group(&"Objects_With_Gravity", float(condition.get("radius", condition.get("value", 520.0))))
+		&"black_hole_active":
+			return _black_hole_active() == bool(condition.get("value", true))
+		&"accessibility_mode":
+			return _accessibility_mode_matches(str(condition.get("value", condition.get("mode", ""))))
 	return false
 
 
@@ -426,6 +436,22 @@ func _apply_entry_effects(entry: Dictionary, _hook_id: StringName, data: Diction
 			&"set_arena_law":
 				applied = _record_mod_event(action, effect, entry, data)
 			&"queue_mod_story_event":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"offer_upgrade":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"set_gravity_profile":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"apply_status_effect":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"request_boss_rule":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"request_wave_table":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"apply_ui_skin":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"request_localization":
+				applied = _record_mod_event(action, effect, entry, data)
+			&"set_level_flag":
 				applied = _record_mod_event(action, effect, entry, data)
 			_:
 				applied = false
@@ -522,7 +548,10 @@ func _apply_play_sfx(effect: Dictionary, entry: Dictionary, data: Dictionary) ->
 	player.volume_db = clampf(float(effect.get("volume_db", -10.0)), -36.0, 3.0)
 	player.pitch_scale = clampf(float(effect.get("pitch", 1.0)), 0.45, 1.8)
 	root.add_child(player)
-	player.finished.connect(player.queue_free)
+	var free_player := func() -> void:
+		if player != null and is_instance_valid(player) and not player.is_queued_for_deletion():
+			player.queue_free()
+	player.finished.connect(free_player, CONNECT_ONE_SHOT)
 	player.play()
 	_audio_players.append(player)
 	_record_mod_event(&"play_sfx", effect, entry, data)
@@ -858,6 +887,58 @@ func _player_speed() -> float:
 	return 0.0
 
 
+func _group_count(group_name: StringName) -> int:
+	if RuntimeRegistry != null and RuntimeRegistry.has_method("get_count"):
+		return int(RuntimeRegistry.call("get_count", group_name))
+	return get_tree().get_nodes_in_group(String(group_name)).size()
+
+
+func _player_near_group(group_name: StringName, radius: float) -> bool:
+	if _player == null or not is_instance_valid(_player):
+		return false
+	var radius_squared := maxf(radius, 1.0) * maxf(radius, 1.0)
+	for node in get_tree().get_nodes_in_group(String(group_name)):
+		var body := node as Node2D
+		if body == null or not is_instance_valid(body) or body.is_queued_for_deletion() or body == _player:
+			continue
+		if _player.global_position.distance_squared_to(body.global_position) <= radius_squared:
+			return true
+	return false
+
+
+func _black_hole_active() -> bool:
+	for node in get_tree().get_nodes_in_group("Objects_With_Gravity"):
+		if node == null or not is_instance_valid(node):
+			continue
+		var node_name := String((node as Node).name).to_lower()
+		if node_name.contains("blackhole") or node_name.contains("black_hole"):
+			return true
+		var script_value: Variant = (node as Node).get_script()
+		if script_value is Script and (script_value as Script).resource_path.ends_with("black_hole.gd"):
+			return true
+	return false
+
+
+func _accessibility_mode_matches(mode: String) -> bool:
+	var clean_mode := mode.strip_edges().to_lower()
+	if clean_mode.is_empty() or Settings == null:
+		return false
+	match clean_mode:
+		"reduced_flash":
+			return bool(Settings.reduce_flash)
+		"full_flash":
+			return not bool(Settings.reduce_flash)
+		"trackpad":
+			return bool(Settings.trackpad_direct_camera)
+		"alternate_movement":
+			return bool(Settings.alternate_movement_enabled)
+		"readability_halos":
+			return bool(Settings.readability_halos_enabled)
+		"no_readability_halos":
+			return not bool(Settings.readability_halos_enabled)
+	return false
+
+
 func _is_remote_projectile_hit(data: Dictionary) -> bool:
 	if NetworkSession == null or not NetworkSession.is_network_active():
 		return false
@@ -937,8 +1018,16 @@ func _effect_notice(action: StringName, effect: Dictionary, entry: Dictionary) -
 			return "%s: LEVEL" % entry_name
 		&"spawn_enemy_profile", &"spawn_boss_profile":
 			return "%s: ENCOUNTER" % entry_name
-		&"apply_shader_pack", &"apply_texture_pack":
+		&"apply_shader_pack", &"apply_texture_pack", &"apply_ui_skin":
 			return "%s: VISUAL PACK" % entry_name
+		&"request_boss_rule":
+			return "%s: BOSS RULE" % entry_name
+		&"request_wave_table":
+			return "%s: WAVE TABLE" % entry_name
+		&"set_gravity_profile":
+			return "%s: GRAVITY PROFILE" % entry_name
+		&"apply_status_effect":
+			return "%s: STATUS" % entry_name
 		&"set_arena_law":
 			return "%s: ARENA LAW" % entry_name
 	return entry_name

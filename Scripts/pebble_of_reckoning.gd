@@ -171,7 +171,10 @@ func _spawn_pop_rings() -> void:
 		tween.set_parallel(true)
 		tween.tween_property(ring, "scale", Vector2.ONE * (2.2 + float(i) * 0.35), 0.34)
 		tween.tween_property(ring, "modulate:a", 0.0, 0.34)
-		tween.finished.connect(ring.queue_free)
+		var free_ring := func() -> void:
+			if ring != null and is_instance_valid(ring) and not ring.is_queued_for_deletion():
+				ring.queue_free()
+		tween.finished.connect(free_ring, CONNECT_ONE_SHOT)
 
 
 func _fade_and_free(duration: float, target_scale: Vector2) -> void:

@@ -8,24 +8,50 @@ extends CharacterBody2D
 @export var gravity_radius = 620.0
 @export var gravity_strength = 1450.0
 @export var max_health = 42.0
+@export var offscreen_simulation_distance: float = 2400.0
+@export var offscreen_simulation_interval: float = 0.08
+@export var particle_focus_radius: float = 1800.0
 
 var _player: Node = null
 var _health: HealthComponent = null
+var _simulation_accumulator: float = 0.0
+var _field_particles: GPUParticles2D = null
 
 func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("planets")
 	add_to_group("Objects_With_Gravity")
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"enemies")
+		RuntimeRegistry.register_node(self, &"planets")
+		RuntimeRegistry.register_node(self, &"Objects_With_Gravity")
 
 	_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 
 	_build_body()
 	_build_health()
 
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"enemies")
+		RuntimeRegistry.unregister_node(self, &"planets")
+		RuntimeRegistry.unregister_node(self, &"Objects_With_Gravity")
+
 func _physics_process(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 		return
+
+	if _should_use_coarse_simulation():
+		_simulation_accumulator += delta
+		if _simulation_accumulator < maxf(offscreen_simulation_interval, 0.016):
+			_update_particle_focus(false)
+			return
+		delta = _simulation_accumulator
+		_simulation_accumulator = 0.0
+	else:
+		_simulation_accumulator = 0.0
+	_update_particle_focus(true)
 
 	var to_player: Vector2 = _player.global_position - global_position
 	var desired: Vector2 = to_player.normalized() * move_speed
@@ -106,12 +132,32 @@ func _build_body() -> void:
 		particles = GPUParticles2D.new()
 		particles.name = "GravityFieldParticles"
 		particles.z_index = -1
-		particles.amount = 120
+		particles.amount = 64
 		particles.lifetime = 1.8
 		particles.randomness = 0.6
 		add_child(particles)
 	if particles.process_material == null:
 		particles.process_material = _make_field_material()
+	_field_particles = particles
+
+func _should_use_coarse_simulation() -> bool:
+	if offscreen_simulation_distance <= 0.0:
+		return false
+	var player_2d := _player as Node2D
+	if player_2d == null or not is_instance_valid(player_2d):
+		return false
+	return global_position.distance_squared_to(player_2d.global_position) > offscreen_simulation_distance * offscreen_simulation_distance
+
+
+func _update_particle_focus(near_player: bool) -> void:
+	if _field_particles == null or not is_instance_valid(_field_particles):
+		return
+	if not near_player and particle_focus_radius > 0.0:
+		var player_2d := _player as Node2D
+		if player_2d != null and is_instance_valid(player_2d):
+			near_player = global_position.distance_squared_to(player_2d.global_position) <= particle_focus_radius * particle_focus_radius
+	_field_particles.visible = near_player
+	_field_particles.emitting = near_player
 
 func _build_health() -> void:
 	_health = get_node_or_null("HealthComponent") as HealthComponent

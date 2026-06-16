@@ -2,6 +2,8 @@ extends Node
 ## Orchestrates rupture → music finale → credits after the authored wave arc.
 
 const CREDITS_SCENE := "res://Nodes/credits_sequence.tscn"
+const RUPTURE_DIRECTOR_SCENE := "res://Nodes/rupture_director.tscn"
+const MUSIC_FINALE_DIRECTOR_SCENE := "res://Nodes/music_finale_director.tscn"
 
 var _wave_director: Node = null
 var _rupture: Node = null
@@ -39,6 +41,7 @@ func _bootstrap() -> void:
 			RunProgress.phase_changed.connect(phase_cb)
 
 	_build_phase_banner()
+	_request_endgame_scene_preloads()
 	_apply_loaded_anchor()
 	_on_phase_changed(RunProgress.Phase.PHYSICS_WAVES, RunProgress.phase)
 
@@ -83,7 +86,7 @@ func _start_rupture() -> void:
 	if _rupture != null and is_instance_valid(_rupture):
 		return
 
-	var scene: PackedScene = load("res://Nodes/rupture_director.tscn") as PackedScene
+	var scene: PackedScene = _get_preloaded_scene(RUPTURE_DIRECTOR_SCENE)
 	if scene == null:
 		RunProgress.enter_music_finale()
 		return
@@ -96,7 +99,7 @@ func _start_rupture() -> void:
 
 
 func _on_rupture_complete() -> void:
-	if _rupture != null and is_instance_valid(_rupture):
+	if _rupture != null and is_instance_valid(_rupture) and not _rupture.is_queued_for_deletion():
 		_rupture.queue_free()
 		_rupture = null
 	RunProgress.enter_music_finale()
@@ -106,7 +109,7 @@ func _start_music_finale() -> void:
 	if _finale != null and is_instance_valid(_finale):
 		return
 
-	var scene: PackedScene = load("res://Nodes/music_finale_director.tscn") as PackedScene
+	var scene: PackedScene = _get_preloaded_scene(MUSIC_FINALE_DIRECTOR_SCENE)
 	if scene == null:
 		RunProgress.enter_credits()
 		return
@@ -119,7 +122,7 @@ func _start_music_finale() -> void:
 
 
 func _on_finale_complete() -> void:
-	if _finale != null and is_instance_valid(_finale):
+	if _finale != null and is_instance_valid(_finale) and not _finale.is_queued_for_deletion():
 		_finale.queue_free()
 		_finale = null
 	RunProgress.enter_credits()
@@ -128,7 +131,11 @@ func _on_finale_complete() -> void:
 func _go_to_credits() -> void:
 	if _wave_director != null and _wave_director.has_method("halt_waves"):
 		_wave_director.call("halt_waves")
-	get_tree().change_scene_to_file(CREDITS_SCENE)
+	var credits_scene := _get_preloaded_scene(CREDITS_SCENE)
+	if credits_scene != null:
+		get_tree().change_scene_to_packed(credits_scene)
+	else:
+		get_tree().change_scene_to_file(CREDITS_SCENE)
 
 
 func _get_powerup_inventory() -> Node:
@@ -143,6 +150,21 @@ func _save_anchor_if_run_active() -> void:
 		RunProgress.clear_anchor()
 		return
 	RunProgress.save_anchor()
+
+
+func _request_endgame_scene_preloads() -> void:
+	ResourceLoader.load_threaded_request(RUPTURE_DIRECTOR_SCENE)
+	ResourceLoader.load_threaded_request(MUSIC_FINALE_DIRECTOR_SCENE)
+	ResourceLoader.load_threaded_request(CREDITS_SCENE)
+
+
+func _get_preloaded_scene(path: String) -> PackedScene:
+	var status := ResourceLoader.load_threaded_get_status(path)
+	if status == ResourceLoader.THREAD_LOAD_LOADED:
+		return ResourceLoader.load_threaded_get(path) as PackedScene
+	if status == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+		return ResourceLoader.load_threaded_get(path) as PackedScene
+	return ResourceLoader.load(path) as PackedScene
 
 
 func _build_phase_banner() -> void:

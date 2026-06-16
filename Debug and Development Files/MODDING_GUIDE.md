@@ -1,6 +1,6 @@
 # VECTOR ANOMALY Modding Guide
 
-The modding foundation is a safe, data-driven catalog inspired by tModLoader, Garry's Mod, Terraria packs, and custom-level ecosystems, but tuned for VECTOR ANOMALY's physics identity. Mods can declare arenas, waves, weapons, audio, UI badges, law weaves, anomaly recipes, challenge cards, palettes, and creator metadata without executing arbitrary scripts by default.
+The modding foundation is a safe, data-driven catalog inspired by tModLoader, Garry's Mod, Terraria packs, shader packs, custom-level ecosystems, and large "Calamity-style" expansions, but tuned for VECTOR ANOMALY's physics identity. Mods can declare arenas, levels, waves, enemies, bosses, boss rules, weapons, gravity profiles, shader packs, UI skins, audio, law weaves, anomaly recipes, challenge cards, palettes, and creator metadata without executing arbitrary scripts by default.
 
 The design goal is unusual flexibility without runtime chaos: mod packs describe content, conditions, effects, and network categories; game directors opt into those entries through typed registry APIs.
 
@@ -42,12 +42,14 @@ This gives the game a huge future mod surface without turning early mod loading 
 The registry supports root-level arrays and nested `content` arrays for these buckets:
 
 - `arenas`, `levels`, `level_packs`, `maps`, `campaigns`
+- `biomes`, `mission_packs`, `wave_tables`
 - `waves`, `upgrades`, `rules`, `powerups`, `weapons`
-- `enemies`, `enemy_packs`, `bosses`, `boss_packs`
+- `enemies`, `enemy_packs`, `enemy_behaviors`, `bosses`, `boss_packs`, `boss_rules`
+- `projectile_profiles`, `gravity_source_profiles`, `planet_packs`, `status_effects`, `mechanics`
 - `arena_events`, `celestial_bodies`, `physics_drops`
-- `materials`, `shader_packs`, `texture_packs`, `prefabs`, `entities`, `gamemodes`
-- `total_conversions`, `expansion_packs`, `npc_behaviors`
-- `sfx`, `music`, `hud_badges`, `maps`, `tools`
+- `materials`, `shader_packs`, `shader_overrides`, `texture_packs`, `prefabs`, `entities`, `gamemodes`
+- `total_conversions`, `expansion_packs`, `calamity_mods`, `npc_behaviors`
+- `sfx`, `music`, `soundtrack_packs`, `hud_badges`, `ui_skins`, `localization`, `accessibility_profiles`, `tools`, `creator_tools`
 - `law_weaves`, `anomaly_recipes`, `challenge_cards`
 - `mod_palettes`, `creator_notes`
 - `script_packs`, `workshop_tags`
@@ -132,6 +134,9 @@ Supported hook names:
 - `near_death`, `death`, `recovery_window_started`
 - `rare_event_started`, `rupture_started`, `music_beat`
 - `coop_combo_triggered`
+- `level_loaded`, `arena_loaded`, `enemy_spawned`, `enemy_defeated`, `shader_pack_applied`
+- `powerup_collected`, `weapon_changed`, `player_hit`, `black_hole_consumed`, `planet_fractured`
+- `level_completed`, `mod_pack_enabled`, `mod_pack_disabled`
 
 Supported condition types:
 
@@ -144,6 +149,9 @@ Supported condition types:
 - `player_health_below`, `player_shield_below`
 - `seed_tag`, `run_modifier`
 - `multiplayer_peer_count_at_least`
+- `projectile_pressure_at_least`, `enemy_count_at_least`
+- `near_gravity_source`, `black_hole_active`
+- `accessibility_mode`: `reduced_flash`, `full_flash`, `trackpad`, `alternate_movement`, `readability_halos`, or `no_readability_halos`
 
 Supported effect actions:
 
@@ -161,6 +169,11 @@ Supported effect actions:
 - `tag_score_event`
 - `start_challenge_card`
 - `complete_challenge_card`
+- `request_level_transition`, `offer_level`
+- `spawn_enemy_profile`, `spawn_boss_profile`
+- `apply_shader_pack`, `apply_texture_pack`, `apply_ui_skin`, `request_localization`
+- `set_arena_law`, `set_gravity_profile`, `request_boss_rule`, `request_wave_table`
+- `offer_upgrade`, `apply_status_effect`, `set_level_flag`, `queue_mod_story_event`
 
 ## Runtime Hook Activation
 
@@ -247,9 +260,13 @@ Hookable entries marked `local_visual` may only request local-safe effect action
 The registry now exposes first-class creator surfaces for large mods:
 
 - Custom levels and campaigns: `levels`, `level_packs`, `maps`, `campaigns`
-- Enemy and boss libraries: `enemies`, `enemy_packs`, `bosses`, `boss_packs`, `entities`, `prefabs`
-- Minecraft-style visual packs: `shader_packs`, `texture_packs`, local-only by default
-- Calamity-style expansions: `total_conversions`, `expansion_packs`
+- Biomes and mission structure: `biomes`, `mission_packs`, `wave_tables`
+- Enemy and boss libraries: `enemies`, `enemy_packs`, `enemy_behaviors`, `bosses`, `boss_packs`, `boss_rules`, `entities`, `prefabs`
+- Physics and combat profiles: `projectile_profiles`, `gravity_source_profiles`, `planet_packs`, `status_effects`, `mechanics`
+- Minecraft-style visual packs: `shader_packs`, `shader_overrides`, `texture_packs`, `ui_skins`, local-only by default
+- Audio and language packs: `soundtrack_packs`, `localization`, `accessibility_profiles`
+- Calamity-style expansions: `total_conversions`, `expansion_packs`, `calamity_mods`
+- Tooling surfaces: `tools`, `creator_tools`, and locked `script_packs`
 
 These entries are cataloged and compatibility-tagged now, while trusted directors and editor tools can consume them incrementally. The default boundary is still safe and deterministic: no arbitrary scripts run unless trusted script pack registration is explicitly enabled.
 

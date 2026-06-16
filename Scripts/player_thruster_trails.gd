@@ -1,6 +1,6 @@
 extends Node2D
 
-# Inspector-tunable thruster visuals. Script only drives emission from velocity.
+# Inspector-tunable thruster visuals. Emission is tied to the thrust input.
 
 @export var thruster_local_position: Vector2 = Vector2(32.0, 0.0)
 @export_group("Vector Contrail")
@@ -55,12 +55,12 @@ func _process(delta: float) -> void:
 			slingshot_heat = 0.0
 			juice = clampf(flow_intensity, 0.0, 1.0)
 
-	_flame.emitting = thrusting or juice > 0.08
+	_flame.emitting = thrusting
 	_flame.speed_scale = lerpf(0.55, 1.65, clampf(speed_ratio, 0.0, 1.0)) + juice * 0.62
 	_flame.lifetime = lerpf(0.28, 0.62, clampf(speed_ratio, 0.0, 1.0)) + juice * 0.18
 	_flame.amount = int(lerpf(72.0, 138.0, juice))
 
-	_glow.visible = thrusting or juice > 0.08
+	_glow.visible = thrusting
 	_glow.scale = Vector2.ONE * (lerpf(0.82, 1.35, clampf(speed_ratio, 0.0, 1.0)) + juice * 0.35)
 	var glow_color := _glow.color
 	var glow_alpha := _safe_alpha(lerpf(0.18, 0.68, maxf(juice, 0.2 if thrusting else 0.0)), 0.42)
@@ -128,8 +128,8 @@ func _update_contrail(speed_ratio: float, juice: float, thrusting: bool) -> void
 	_ensure_contrail()
 	if _contrail == null or _inner_contrail == null:
 		return
-	var heat := clampf(maxf(maxf(juice, speed_ratio * 0.48), 0.18 if thrusting else 0.0), 0.0, 1.0)
-	var visible := heat > 0.04
+	var heat := clampf(maxf(juice, maxf(speed_ratio * 0.48, 0.18)) if thrusting else 0.0, 0.0, 1.0)
+	var visible := thrusting and heat > 0.04
 	_contrail.visible = visible
 	_inner_contrail.visible = visible
 	if not visible:

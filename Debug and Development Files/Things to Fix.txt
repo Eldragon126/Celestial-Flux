@@ -611,11 +611,11 @@ Those are future constellations. Right now you need a rocket that survives launc
 
 [x] PRIORITY: I want there to be a toggleable gravity heat map inspired by title-screen contours and multivariable calculus. Fixed: added `GravityHeatMapOverlay`, installed by the juice manager and toggleable with F10, with relative gravity-potential heat cells, marching-square contour curves, gradient vectors, and tangent hints for slingshot paths.
 
-[ ] For some reason the player gets pushed away / pushed to the side of tangents. This shouldn't happen, I want gravity to act normally and only boost the orthogonal speed vector to gravity. The player shouldn't get pushed away from the planet as they try to move toward it.
+[x] For some reason the player gets pushed away / pushed to the side of tangents. This shouldn't happen, I want gravity to act normally and only boost the orthogonal speed vector to gravity. The player shouldn't get pushed away from the planet as they try to move toward it. Fixed: drag precision no longer rotates the whole velocity vector into a tangent during slingshot windows; it preserves radial motion and adds only a capped tangent component, while slingshot upgrade modifiers are re-projected onto the tangent.
 
-[ ] The game still crashes when some things go into black holes, or the player is next to the black hole for a long time. This needs to be fixed.
+[x] The game still crashes when some things go into black holes, or the player is next to the black hole for a long time. This needs to be fixed. Fixed: black holes no longer expose a million-mass generic gravity source to every gravity sampler, player/projectile gravity acceleration is capped, and black-hole RigidBody pulls use safe impulses instead of raw velocity assignment.
 
-[ ] The slowing down time overlay effects and similar effects are super glitchy as well. I think it would be best to just overlay the screen with a cool looking shader. 
+[x] The slowing down time overlay effects and similar effects are super glitchy as well. I think it would be best to just overlay the screen with a cool looking shader. Fixed: gameplay time dilation now uses local slow by default instead of global Engine.time_scale, and the SpacetimeSwimDirector uses the CanvasLayer/ColorRect gravity-time shader path with stronger controlled distortion and no idle/glitch-slice noise.
 Canvas layer
 - Color rect 
 That could be a good node setup and this could be the shader (or something similar):
@@ -707,10 +707,16 @@ void fragment() {
 	COLOR = col;
 }
 
-[ ] I want the modding capabilities for users to be extended by exponential amounts. I want the users to be able to modify everything about the game, and even make their own levels, own enemies, add shader packs like in Minecraft, make their own "calamity" mod, ext. This is one of the key sellable items of the game.
+[x] I want the modding capabilities for users to be extended by exponential amounts. I want the users to be able to modify everything about the game, and even make their own levels, own enemies, add shader packs like in Minecraft, make their own "calamity" mod, ext. This is one of the key sellable items of the game. Fixed: ModContentRegistry now catalogs expanded creator surfaces for biomes, mission packs, wave tables, boss rules, enemy behaviors, projectile/gravity/planet profiles, mechanics, status effects, shader overrides, UI skins, localization, creator tools, and calamity-style mods, with safe hooks/effects and updated docs/sample manifest.
 
-[ ] Make the big circles slightly brighter.
+[x] Make the big circles slightly brighter. Fixed: world readability caps, resonance zones, gravity scars, tide pockets, and glyph/ring alpha defaults are slightly brighter while still routed through reduced-flash caps.
 
-[ ] Make a way for the player to "super boost" off of planets using a lot of energy if they have been stuck on a planet for too long. Only on or right next to planets, though.
+[x] Make a way for the player to "super boost" off of planets using a lot of energy if they have been stuck on a planet for too long. Only on or right next to planets, though. Right now there is an auto boost off of planets, but I want it to be player controlled. Fixed: the old automatic planet pin escape is disabled by default, while the existing expensive planet super boost remains player-triggered, energy-gated, cooldown-gated, and valid only near boostable planets.
 
-[ ] 
+[x] I feel like I'm getting pushed away from gravity sources when slingshotting. I want my orbit to happen correctly, but only my orthogonal velocity in the direction of the player with respect to the gravity vector to increase. Fixed: slingshot assist now guards against radial impulse contamination and compression/temporal tide-pocket player escape boosts require thrust input instead of silently pushing the player away.
+
+[x] Player thrusters should only be activated when THRUST key is pressed. No other time. Fixed: PlayerThrusterTrails now emits flame, glow, and contrail only while the thrust action is held; slingshot/flow heat can color thrusting but no longer activates thrusters on its own.
+
+[x] The loading screen needs to look much more visually appealing. Fixed: the loading screen now layers animated orbit rings and vector ticks over the gravity shader, scaling with load progress while keeping the text and progress bar readable.
+
+[x] I can't see the player bullets AT ALL. Fixed: Vector Bolt now has an always-visible high-z core, readability halo, brighter uncapped player-projectile alpha, visible wake by default, and capped gravity forces so shots remain readable under pressure.

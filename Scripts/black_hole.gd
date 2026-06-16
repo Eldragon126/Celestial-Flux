@@ -3,7 +3,7 @@ extends StaticBody2D
 signal spaghettification_started(body: Node, intensity: float)
 signal horizon_body_consumed(body: Node)
 
-@export var mass: float = 1000000.0
+@export var mass: float = 3200.0
 @export var event_horizon_radius: float = 620.0
 @export var spaghettify_radius: float = 260.0
 @export var consume_radius: float = 58.0
@@ -301,6 +301,15 @@ func _apply_safe_field_velocity(body: Node, impulse: Vector2) -> void:
 	if not _body_can_receive_field(body) or not _finite_vector(impulse):
 		return
 	var safe_impulse := impulse.limit_length(maxf(max_field_impulse_per_tick, 1.0))
+	if body is RigidBody2D:
+		var rigid_body := body as RigidBody2D
+		if rigid_body.freeze:
+			return
+		rigid_body.apply_central_impulse(safe_impulse * maxf(rigid_body.mass, 0.01))
+		var next_linear := rigid_body.linear_velocity
+		if _finite_vector(next_linear) and next_linear.length() > max_body_speed_after_pull:
+			rigid_body.linear_velocity = next_linear.limit_length(maxf(max_body_speed_after_pull, 1.0))
+		return
 	var velocity: Variant = body.get("velocity")
 	if velocity is Vector2:
 		var next_velocity: Vector2 = velocity

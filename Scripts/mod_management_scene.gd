@@ -172,7 +172,8 @@ func _populate_detail_cards(summary: Dictionary) -> void:
 	for child in _details_box.get_children():
 		if child == _details_label:
 			continue
-		child.queue_free()
+		if child != null and is_instance_valid(child) and not child.is_queued_for_deletion():
+			child.queue_free()
 	_details_label.text = ""
 	var install_paths := _get_install_paths()
 	var executable_mods := str(install_paths.get("executable_mods", "")).strip_edges()

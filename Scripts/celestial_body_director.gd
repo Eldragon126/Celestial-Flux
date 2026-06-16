@@ -173,11 +173,11 @@ func _spawn_body(
 func _resolve_body_relationships() -> void:
 	for i in range(_bodies.size() - 1, -1, -1):
 		var a := _bodies[i]
-		if a == null or not is_instance_valid(a):
+		if a == null or not is_instance_valid(a) or a.is_queued_for_deletion():
 			continue
 		for j in range(i - 1, -1, -1):
 			var b := _bodies[j]
-			if b == null or not is_instance_valid(b):
+			if b == null or not is_instance_valid(b) or b.is_queued_for_deletion():
 				continue
 			var merge_distance := maxf(a.body_radius, b.body_radius) * 0.72
 			if a.global_position.distance_to(b.global_position) > merge_distance:
@@ -213,7 +213,7 @@ func _split_body(body: DynamicCelestialBody, count: int, data: Dictionary) -> vo
 			Vector2.RIGHT.rotated(angle) * 140.0
 		)
 		children.append(child)
-	body.queue_free()
+	_queue_free_if_valid(body)
 	celestial_body_split.emit(parent_id, children, data)
 
 
@@ -275,7 +275,7 @@ func _update_anchors(delta: float) -> void:
 		entry["age"] = age
 		_anchors[i] = entry
 		if age >= lifetime:
-			node.queue_free()
+			_queue_free_if_valid(node)
 			_anchors.remove_at(i)
 
 
@@ -310,8 +310,7 @@ func _remove_oldest_body() -> void:
 	if _bodies.is_empty():
 		return
 	var body = _bodies.pop_front()
-	if body != null and is_instance_valid(body):
-		body.queue_free()
+	_queue_free_if_valid(body)
 
 
 func _cleanup() -> void:
@@ -319,6 +318,11 @@ func _cleanup() -> void:
 		var body := _bodies[i]
 		if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
 			_bodies.remove_at(i)
+
+
+func _queue_free_if_valid(node: Node) -> void:
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+		node.queue_free()
 
 
 func _next_spawn_interval() -> float:

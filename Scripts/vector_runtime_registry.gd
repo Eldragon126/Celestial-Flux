@@ -14,6 +14,7 @@ const TRACKED_GROUPS: Array[StringName] = [
 	&"wave_enemy",
 	&"bosses",
 	&"law_gravity_debris",
+	&"gravity_leeches",
 	&"Player",
 ]
 

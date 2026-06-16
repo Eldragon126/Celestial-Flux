@@ -11,11 +11,14 @@ extends CharacterBody2D
 @export var planet_escape_clearance: float = 48.0
 @export var planet_escape_force: float = 780.0
 @export var planet_escape_spin: float = 260.0
+@export var offscreen_simulation_distance: float = 2200.0
+@export var offscreen_simulation_interval: float = 0.08
 
 var Player: Node2D
 var planets: Array[Node2D] = []
 var direction_variance: Vector2
 var _gravity_refresh_elapsed = 0.0
+var _simulation_accumulator: float = 0.0
 
 @onready var trail_particles: GPUParticles2D = $GPUParticles2D2
 
@@ -34,6 +37,17 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	delta *= CombatStatus.get_time_scale(self)
+
+	# Far enemies still move, but they do it in coarser slices so late waves do not spend full-rate physics on offscreen pursuit.
+	if _should_use_coarse_simulation():
+		_simulation_accumulator += delta
+		if _simulation_accumulator < maxf(offscreen_simulation_interval, 0.016):
+			return
+		delta = _simulation_accumulator
+		_simulation_accumulator = 0.0
+	else:
+		_simulation_accumulator = 0.0
+
 	_gravity_refresh_elapsed += delta
 
 	# Refresh player reference if needed
@@ -146,6 +160,14 @@ func _refresh_planets() -> void:
 				continue
 			seen[id] = true
 			planets.append(source_2d)
+
+
+func _should_use_coarse_simulation() -> bool:
+	if offscreen_simulation_distance <= 0.0:
+		return false
+	if Player == null or not is_instance_valid(Player):
+		return false
+	return global_position.distance_squared_to(Player.global_position) > offscreen_simulation_distance * offscreen_simulation_distance
 
 
 func _planet_escape_velocity(delta: float) -> Vector2:

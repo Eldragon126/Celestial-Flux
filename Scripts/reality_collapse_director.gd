@@ -240,7 +240,8 @@ func _update_breaches(delta: float) -> void:
 		entry["age"] = age
 		_active_breaches[i] = entry
 		if age >= duration:
-			root.queue_free()
+			if not root.is_queued_for_deletion():
+				root.queue_free()
 			_active_breaches.remove_at(i)
 
 
@@ -249,7 +250,7 @@ func _remove_oldest_breach() -> void:
 		return
 	var entry = _active_breaches.pop_front()
 	var root := entry.get("root") as Node
-	if root != null and is_instance_valid(root):
+	if root != null and is_instance_valid(root) and not root.is_queued_for_deletion():
 		root.queue_free()
 
 

@@ -49,46 +49,54 @@ const ORBIT_WEAVER_SCENE = preload("res://Nodes/orbit_weaver.tscn")
 const CAUSALITY_SHRIKE_SCENE = preload("res://Nodes/causality_shrike.tscn")
 const GRAVITY_UNDERTAKER_SCENE = preload("res://Nodes/gravity_undertaker.tscn")
 const PEBBLE_OF_RECKONING_SCRIPT = preload("res://Scripts/pebble_of_reckoning.gd")
+const SPAWN_REGISTRY_GROUPS: Array[StringName] = [
+	&"enemies",
+	&"wave_enemy",
+	&"bosses",
+	&"Objects_With_Gravity",
+	&"planets",
+	&"gravity_leeches",
+]
 
-const SONG_A_NEW_THREAD_AMBIENCE = preload("res://Assets/Songs/A New Thread Ambience.mp3")
-const SONG_A_NEW_THREAD = preload("res://Assets/Songs/A New Thread.mp3")
-const SONG_A_CASUAL = preload("res://Assets/Songs/ACasualSong.mp3")
-const SONG_A_NEW_PLANET = preload("res://Assets/Songs/A New Planet.mp3")
-const SONG_APPROACHING_ABYSS = preload("res://Assets/Songs/Approaching Abyss.mp3")
-const SONG_BOOGIE_WORLD = preload("res://Assets/Songs/Boogie World.mp3")
-const SONG_CONTINUUM = preload("res://Assets/Songs/Continuum.mp3")
-const SONG_COSMIC_BASS = preload("res://Assets/Songs/Cosmic Bass.wav")
-const SONG_COSMIC_JOURNEY_BACKGROUND = preload("res://Assets/Songs/Cosmic Journey Background.mp3")
-const SONG_COSMIC_JOURNEY_EPIC = preload("res://Assets/Songs/Cosmic Journey Epic.mp3")
-const SONG_CRASH_LANDING = preload("res://Assets/Songs/Crash Landing.mp3")
-const SONG_DAWN_ON_A_NEW_PLANET = preload("res://Assets/Songs/Dawn on A New Planet.mp3")
-const SONG_FRAGMENTS_FORGOTTEN_FUTUR = preload("res://Assets/Songs/Fragments of a Forgotten Futur.mp3")
-const SONG_GRAVITY_BLOOM = preload("res://Assets/Songs/Gravity Bloom.mp3")
-const SONG_GREEN_FLAME_ULTRA = preload("res://Assets/Songs/Green Flame Ultra.mp3")
-const SONG_INTERESTING = preload("res://Assets/Songs/Interesting Song (1).mp3")
-const SONG_NEON_STARLIGHT = preload("res://Assets/Songs/Neon Starlight.mp3")
-const SONG_ORBITAL_DRIFT = preload("res://Assets/Songs/Orbital Drift.mp3")
-const SONG_ORBITAL_FUN = preload("res://Assets/Songs/Orbital Fun.wav")
-const SONG_OTHER_WORLDS = preload("res://Assets/Songs/oTHER wORLDS.mp3")
-const SONG_QUANTUM_BREAK = preload("res://Assets/Songs/Quantum Break.mp3")
-const SONG_RESONANCE = preload("res://Assets/Songs/Resonance.mp3")
-const SONG_SOLAR_RAYS = preload("res://Assets/Songs/Solar Rays.mp3")
-const SONG_SPINE_CHILLING_CHRISTMAS = preload("res://Assets/Songs/Spine Chilling Christmas.mp3")
-const SONG_THE_4TH_DIMENSION = preload("res://Assets/Songs/The 4th Dimension.mp3")
-const SONG_THE_ABYSS = preload("res://Assets/Songs/The Abyss.wav")
-const SONG_THE_ABYSS_INTRO = preload("res://Assets/Songs/The Abyss Intro.wav")
-const SONG_THE_ARRIVAL = preload("res://Assets/Songs/The Arrival.mp3")
-const SONG_THE_LONG_DRIFT = preload("res://Assets/Songs/The Long Drift.mp3")
-const SONG_THE_NEURAL_DRIFT_THRESHOLD = preload("res://Assets/Songs/The Neural Drift Threshold.mp3")
-const SONG_THE_TOMB_OF_GALAXIES = preload("res://Assets/Songs/The Tomb of Galaxies.mp3")
-const SONG_THE_TOWN = preload("res://Assets/Songs/The Town.mp3")
-const SONG_THE_UNIVERSE_SAYS_HELLO = preload("res://Assets/Songs/The Universe Says Hello.mp3")
-const SONG_THROUGH_TIME = preload("res://Assets/Songs/Through Time.mp3")
-const SONG_TITLE_SCREEN_AMBIENCE = preload("res://Assets/Songs/Title Screen Ambience.mp3")
-const SONG_TWANGY_SPACE = preload("res://Assets/Songs/Twangy Space.mp3")
-const SONG_WHISPERS_IN_THE_VOID = preload("res://Assets/Songs/Whispers in the Void.mp3")
-const SONG_ERR_INVALID_THREAD_CHANGE = preload("res://Assets/Songs/[Err -42] invalid thread change.mp3")
-const SONG_ERR_RUPTURE = preload("res://Assets/Songs/[Err -502] RUPTURE.mp3")
+const SONG_A_NEW_THREAD_AMBIENCE_PATH := "res://Assets/Songs/A New Thread Ambience.mp3"
+const SONG_A_NEW_THREAD_PATH := "res://Assets/Songs/A New Thread.mp3"
+const SONG_A_CASUAL_PATH := "res://Assets/Songs/ACasualSong.mp3"
+const SONG_A_NEW_PLANET_PATH := "res://Assets/Songs/A New Planet.mp3"
+const SONG_APPROACHING_ABYSS_PATH := "res://Assets/Songs/Approaching Abyss.mp3"
+const SONG_BOOGIE_WORLD_PATH := "res://Assets/Songs/Boogie World.mp3"
+const SONG_CONTINUUM_PATH := "res://Assets/Songs/Continuum.mp3"
+const SONG_COSMIC_BASS_PATH := "res://Assets/Songs/Cosmic Bass.wav"
+const SONG_COSMIC_JOURNEY_BACKGROUND_PATH := "res://Assets/Songs/Cosmic Journey Background.mp3"
+const SONG_COSMIC_JOURNEY_EPIC_PATH := "res://Assets/Songs/Cosmic Journey Epic.mp3"
+const SONG_CRASH_LANDING_PATH := "res://Assets/Songs/Crash Landing.mp3"
+const SONG_DAWN_ON_A_NEW_PLANET_PATH := "res://Assets/Songs/Dawn on A New Planet.mp3"
+const SONG_FRAGMENTS_FORGOTTEN_FUTUR_PATH := "res://Assets/Songs/Fragments of a Forgotten Futur.mp3"
+const SONG_GRAVITY_BLOOM_PATH := "res://Assets/Songs/Gravity Bloom.mp3"
+const SONG_GREEN_FLAME_ULTRA_PATH := "res://Assets/Songs/Green Flame Ultra.mp3"
+const SONG_INTERESTING_PATH := "res://Assets/Songs/Interesting Song (1).mp3"
+const SONG_NEON_STARLIGHT_PATH := "res://Assets/Songs/Neon Starlight.mp3"
+const SONG_ORBITAL_DRIFT_PATH := "res://Assets/Songs/Orbital Drift.mp3"
+const SONG_ORBITAL_FUN_PATH := "res://Assets/Songs/Orbital Fun.wav"
+const SONG_OTHER_WORLDS_PATH := "res://Assets/Songs/oTHER wORLDS.mp3"
+const SONG_QUANTUM_BREAK_PATH := "res://Assets/Songs/Quantum Break.mp3"
+const SONG_RESONANCE_PATH := "res://Assets/Songs/Resonance.mp3"
+const SONG_SOLAR_RAYS_PATH := "res://Assets/Songs/Solar Rays.mp3"
+const SONG_SPINE_CHILLING_CHRISTMAS_PATH := "res://Assets/Songs/Spine Chilling Christmas.mp3"
+const SONG_THE_4TH_DIMENSION_PATH := "res://Assets/Songs/The 4th Dimension.mp3"
+const SONG_THE_ABYSS_PATH := "res://Assets/Songs/The Abyss.wav"
+const SONG_THE_ABYSS_INTRO_PATH := "res://Assets/Songs/The Abyss Intro.wav"
+const SONG_THE_ARRIVAL_PATH := "res://Assets/Songs/The Arrival.mp3"
+const SONG_THE_LONG_DRIFT_PATH := "res://Assets/Songs/The Long Drift.mp3"
+const SONG_THE_NEURAL_DRIFT_THRESHOLD_PATH := "res://Assets/Songs/The Neural Drift Threshold.mp3"
+const SONG_THE_TOMB_OF_GALAXIES_PATH := "res://Assets/Songs/The Tomb of Galaxies.mp3"
+const SONG_THE_TOWN_PATH := "res://Assets/Songs/The Town.mp3"
+const SONG_THE_UNIVERSE_SAYS_HELLO_PATH := "res://Assets/Songs/The Universe Says Hello.mp3"
+const SONG_THROUGH_TIME_PATH := "res://Assets/Songs/Through Time.mp3"
+const SONG_TITLE_SCREEN_AMBIENCE_PATH := "res://Assets/Songs/Title Screen Ambience.mp3"
+const SONG_TWANGY_SPACE_PATH := "res://Assets/Songs/Twangy Space.mp3"
+const SONG_WHISPERS_IN_THE_VOID_PATH := "res://Assets/Songs/Whispers in the Void.mp3"
+const SONG_ERR_INVALID_THREAD_CHANGE_PATH := "res://Assets/Songs/[Err -42] invalid thread change.mp3"
+const SONG_ERR_RUPTURE_PATH := "res://Assets/Songs/[Err -502] RUPTURE.mp3"
 
 enum MusicMode { NONE, WAVE, BOSS, INTERMISSION }
 
@@ -155,6 +163,7 @@ enum MusicMode { NONE, WAVE, BOSS, INTERMISSION }
 @export var gravity_wave_maker_lifetime: float = 30.0
 @export var gravity_wave_maker_points: int = 24
 @export var gravity_wave_maker_max_groups: int = 3
+@export var gravity_wave_maker_physics_points: int = 8
 @export var enable_pulsating_gravity_spawner_hazards: bool = true
 @export var pulsating_gravity_spawner_start_wave: int = 3
 @export var pulsating_gravity_spawner_interval: int = 3
@@ -231,75 +240,77 @@ var _last_pause_blocked: bool = false
 var _boss_pause_count: int = 0
 var _boss_pause_dialogue_used: bool = false
 var _boss_pause_dialogue_trigger_count: int = 0
-var _wave_music_tracks: Array[AudioStream] = [
-	SONG_THE_ABYSS,
-	SONG_ORBITAL_DRIFT,
-	SONG_COSMIC_BASS,
-	SONG_WHISPERS_IN_THE_VOID,
-	SONG_INTERESTING,
-	SONG_THE_LONG_DRIFT,
-	SONG_GRAVITY_BLOOM,
-	SONG_CONTINUUM,
-	SONG_APPROACHING_ABYSS,
-	SONG_THE_ABYSS_INTRO,
-	SONG_COSMIC_JOURNEY_BACKGROUND,
-	SONG_ORBITAL_FUN,
-	SONG_THE_4TH_DIMENSION,
-	SONG_THE_ARRIVAL,
+var _audio_stream_cache: Dictionary = {}
+var _planet_spawn_blockers: Array[Node2D] = []
+var _wave_music_tracks: Array[String] = [
+	SONG_THE_ABYSS_PATH,
+	SONG_ORBITAL_DRIFT_PATH,
+	SONG_COSMIC_BASS_PATH,
+	SONG_WHISPERS_IN_THE_VOID_PATH,
+	SONG_INTERESTING_PATH,
+	SONG_THE_LONG_DRIFT_PATH,
+	SONG_GRAVITY_BLOOM_PATH,
+	SONG_CONTINUUM_PATH,
+	SONG_APPROACHING_ABYSS_PATH,
+	SONG_THE_ABYSS_INTRO_PATH,
+	SONG_COSMIC_JOURNEY_BACKGROUND_PATH,
+	SONG_ORBITAL_FUN_PATH,
+	SONG_THE_4TH_DIMENSION_PATH,
+	SONG_THE_ARRIVAL_PATH,
 ]
-var _intermission_music_tracks: Array[AudioStream] = [
-	SONG_A_NEW_THREAD_AMBIENCE,
-	SONG_DAWN_ON_A_NEW_PLANET,
-	SONG_THE_UNIVERSE_SAYS_HELLO,
-	SONG_THE_TOWN,
-	SONG_TWANGY_SPACE,
-	SONG_BOOGIE_WORLD,
-	SONG_A_NEW_THREAD,
+var _intermission_music_tracks: Array[String] = [
+	SONG_A_NEW_THREAD_AMBIENCE_PATH,
+	SONG_DAWN_ON_A_NEW_PLANET_PATH,
+	SONG_THE_UNIVERSE_SAYS_HELLO_PATH,
+	SONG_THE_TOWN_PATH,
+	SONG_TWANGY_SPACE_PATH,
+	SONG_BOOGIE_WORLD_PATH,
+	SONG_A_NEW_THREAD_PATH,
 ]
 
 func _configure_music_maps() -> void:
 	_wave_music_by_wave = {
-		1: SONG_THE_ABYSS_INTRO,
-		2: SONG_WHISPERS_IN_THE_VOID,
-		3: SONG_COSMIC_BASS,
-		4: SONG_THE_ABYSS,
-		6: SONG_THE_ABYSS,
-		7: SONG_THE_4TH_DIMENSION,
-		8: SONG_GRAVITY_BLOOM,
-		9: SONG_A_NEW_THREAD_AMBIENCE,
-		11: SONG_SOLAR_RAYS,
-		12: SONG_CRASH_LANDING,
-		13: SONG_COSMIC_BASS,
-		14: SONG_DAWN_ON_A_NEW_PLANET,
-		16: SONG_THE_ABYSS,
-		17: SONG_CONTINUUM,
-		18: SONG_COSMIC_BASS,
-		19: SONG_BOOGIE_WORLD,
-		21: SONG_THE_ABYSS,
-		22: SONG_COSMIC_BASS,
-		23: SONG_COSMIC_BASS,
-		24: SONG_APPROACHING_ABYSS,
-		26: SONG_THE_ABYSS,
-		27: SONG_WHISPERS_IN_THE_VOID,
-		28: SONG_CONTINUUM,
-		29: SONG_THE_NEURAL_DRIFT_THRESHOLD,
-		31: SONG_THE_ABYSS,
-		32: SONG_CONTINUUM,
-		33: SONG_THROUGH_TIME,
-		34: SONG_A_NEW_PLANET,
-		36: SONG_FRAGMENTS_FORGOTTEN_FUTUR,
-		37: SONG_THE_TOMB_OF_GALAXIES,
-		38: SONG_TITLE_SCREEN_AMBIENCE,
-		39: SONG_THE_ABYSS,
+		1: SONG_THE_ABYSS_INTRO_PATH,
+		2: SONG_WHISPERS_IN_THE_VOID_PATH,
+		3: SONG_COSMIC_BASS_PATH,
+		4: SONG_THE_ABYSS_PATH,
+		6: SONG_THE_ABYSS_PATH,
+		7: SONG_THE_4TH_DIMENSION_PATH,
+		8: SONG_GRAVITY_BLOOM_PATH,
+		9: SONG_A_NEW_THREAD_AMBIENCE_PATH,
+		11: SONG_SOLAR_RAYS_PATH,
+		12: SONG_CRASH_LANDING_PATH,
+		13: SONG_COSMIC_BASS_PATH,
+		14: SONG_DAWN_ON_A_NEW_PLANET_PATH,
+		16: SONG_THE_ABYSS_PATH,
+		17: SONG_CONTINUUM_PATH,
+		18: SONG_COSMIC_BASS_PATH,
+		19: SONG_BOOGIE_WORLD_PATH,
+		21: SONG_THE_ABYSS_PATH,
+		22: SONG_COSMIC_BASS_PATH,
+		23: SONG_COSMIC_BASS_PATH,
+		24: SONG_APPROACHING_ABYSS_PATH,
+		26: SONG_THE_ABYSS_PATH,
+		27: SONG_WHISPERS_IN_THE_VOID_PATH,
+		28: SONG_CONTINUUM_PATH,
+		29: SONG_THE_NEURAL_DRIFT_THRESHOLD_PATH,
+		31: SONG_THE_ABYSS_PATH,
+		32: SONG_CONTINUUM_PATH,
+		33: SONG_THROUGH_TIME_PATH,
+		34: SONG_A_NEW_PLANET_PATH,
+		36: SONG_FRAGMENTS_FORGOTTEN_FUTUR_PATH,
+		37: SONG_THE_TOMB_OF_GALAXIES_PATH,
+		38: SONG_TITLE_SCREEN_AMBIENCE_PATH,
+		39: SONG_THE_ABYSS_PATH,
 	}
 	_boss_music_by_wave = {
-		5: SONG_A_CASUAL,
-		15: SONG_OTHER_WORLDS,
-		20: SONG_QUANTUM_BREAK,
-		25: SONG_RESONANCE,
-		30: SONG_ERR_INVALID_THREAD_CHANGE,
-		35: SONG_THE_ARRIVAL,
-		40: SONG_COSMIC_JOURNEY_EPIC,
+		5: SONG_A_CASUAL_PATH,
+		15: SONG_OTHER_WORLDS_PATH,
+		20: SONG_QUANTUM_BREAK_PATH,
+		25: SONG_RESONANCE_PATH,
+		30: SONG_ERR_INVALID_THREAD_CHANGE_PATH,
+		35: SONG_THE_ARRIVAL_PATH,
+		40: SONG_COSMIC_JOURNEY_EPIC_PATH,
 	}
 
 
@@ -328,31 +339,37 @@ func _apply_manifest_music_map(target: Dictionary, source_value: Variant) -> voi
 		var wave := _int_from_manifest_key(key)
 		if wave <= 0:
 			continue
-		var stream := _load_audio_stream(String(source[key]))
-		if stream != null:
-			target[wave] = stream
+		var path := String(source[key]).strip_edges()
+		if not path.is_empty():
+			target[wave] = path
 
 
-func _apply_manifest_playlist(target: Array[AudioStream], source_value: Variant) -> void:
+func _apply_manifest_playlist(target: Array[String], source_value: Variant) -> void:
 	if not (source_value is Array):
 		return
-	var replacement: Array[AudioStream] = []
+	var replacement: Array[String] = []
 	for path_value in source_value:
-		var stream := _load_audio_stream(String(path_value))
-		if stream != null:
-			replacement.append(stream)
+		var path := String(path_value).strip_edges()
+		if not path.is_empty():
+			replacement.append(path)
 	if replacement.is_empty():
 		return
 	target.clear()
-	for stream in replacement:
-		target.append(stream)
+	for path in replacement:
+		target.append(path)
 
 
 func _load_audio_stream(path: String) -> AudioStream:
 	var clean_path := path.strip_edges()
 	if clean_path.is_empty():
 		return null
-	var resource := load(clean_path)
+	if _audio_stream_cache.has(clean_path):
+		var cached := _audio_stream_cache[clean_path] as AudioStream
+		if cached != null:
+			return cached
+	var resource := ResourceLoader.load(clean_path)
+	if resource is AudioStream:
+		_audio_stream_cache[clean_path] = resource
 	return resource as AudioStream
 
 
@@ -496,6 +513,7 @@ func register_secret_boss(boss: Node, display_name: String) -> void:
 	_spawning = false
 	if not _active_enemies.has(boss):
 		_active_enemies.append(boss)
+	_register_spawned_runtime_groups(boss)
 	_track_enemy_rewards(boss)
 	_reset_boss_pause_annoyance()
 
@@ -518,6 +536,7 @@ func register_external_enemy(enemy: Node) -> void:
 		return
 	if not enemy.is_in_group("wave_enemy"):
 		enemy.add_to_group("wave_enemy")
+	_register_spawned_runtime_groups(enemy)
 	enemy.set_meta(&"external_wave_enemy", true)
 	_external_enemy_ids[enemy.get_instance_id()] = true
 	if external_enemies_block_wave and not _active_enemies.has(enemy):
@@ -560,6 +579,7 @@ func _spawn_regular_wave() -> void:
 	_banner_label.text = "WAVE %d" % _wave
 	_play_wave_music_for_wave(_wave)
 	_seed_wave_hazards()
+	_refresh_planet_spawn_blockers()
 
 	var roster = _build_wave_roster()
 	if recovery_wave_interval > 0 and _wave % recovery_wave_interval == 0:
@@ -585,6 +605,7 @@ func _spawn_boss_wave() -> void:
 	boss_wave.emit()
 	_banner_label.text = "BOSS WAVE %d" % _wave
 	_seed_wave_hazards()
+	_refresh_planet_spawn_blockers()
 
 	var boss_scene = _choose_boss_scene()
 	_play_boss_music_for_wave(_wave, boss_scene)
@@ -602,8 +623,11 @@ func _spawn_boss_wave() -> void:
 	if boss.get("move_speed") != null:
 		boss.set("move_speed", float(boss.get("move_speed")) * (1.06 + 0.04 * float(_wave / boss_every_waves)))
 
+	var boss_2d := boss as Node2D
+	if boss_2d != null:
+		boss_2d.global_position = _spawn_position_for_index(_wave)
 	_level_root.add_child(boss)
-	boss.global_position = _spawn_position_for_index(_wave)
+	_register_spawned_runtime_groups(boss)
 	_apply_boss_pressure_tuning(boss, boss_scene, boss_health)
 	_refresh_player_planet_cache()
 
@@ -690,7 +714,6 @@ func _spawn_enemy(scene: PackedScene, node_name: String) -> Node:
 	enemy.add_to_group("wave_enemy")
 	_tune_enemy_for_wave(enemy)
 
-	_level_root.add_child(enemy)
 	var enemy_2d = enemy as Node2D
 	if enemy_2d != null:
 		var avoid_planets := _enemy_requires_planet_clearance(enemy, scene)
@@ -699,6 +722,8 @@ func _spawn_enemy(scene: PackedScene, node_name: String) -> Node:
 			avoid_planets,
 			stationary_enemy_planet_clearance
 		)
+	_level_root.add_child(enemy)
+	_register_spawned_runtime_groups(enemy)
 	_track_enemy_rewards(enemy)
 
 	return enemy
@@ -844,7 +869,9 @@ func _body_velocity(body: Node) -> Vector2:
 
 func _spawn_battlefield_features() -> void:
 	var origin := _spawn_center()
+	_refresh_planet_spawn_blockers()
 	_spawn_far_planet_field(origin)
+	_refresh_planet_spawn_blockers()
 	_spawn_hazard_once(NEBULA_SCENE, "PermanentNebulaNorth", origin + Vector2(-740.0, -520.0))
 	_spawn_hazard_once(NEBULA_SCENE, "PermanentNebulaSouth", origin + Vector2(920.0, 680.0))
 
@@ -920,6 +947,7 @@ func _seed_galaxy_arrival_field(center: Vector2) -> void:
 		_spawn_hazard_once(PLANET_SCENE, "Galaxy%dPlanet%d" % [_wave, i], position)
 
 func _seed_wave_hazards() -> void:
+	_refresh_planet_spawn_blockers()
 	if _wave % 2 == 0:
 		_spawn_hazard(UNSTABLE_MOON_SCENE, "Wave%dUnstableMoon" % _wave, _spawn_position_for_index(_wave + 3))
 	if _wave % 3 == 0:
@@ -964,6 +992,9 @@ func _configure_gravity_wave_maker(hazard: Node) -> void:
 		return
 	_set_if_present(hazard, &"number_of_points", gravity_wave_maker_points)
 	_set_if_present(hazard, &"max_active_groups", gravity_wave_maker_max_groups)
+	_set_if_present(hazard, &"max_physics_points_per_group", gravity_wave_maker_physics_points)
+	_set_if_present(hazard, &"physics_update_interval", 0.05)
+	_set_if_present(hazard, &"visual_update_interval", 0.04)
 	_set_if_present(hazard, &"run_lifetime_seconds", gravity_wave_maker_lifetime)
 	_set_if_present(hazard, &"spawn_interval", 1.95)
 	_set_if_present(hazard, &"max_expansion_scale", 7.4)
@@ -993,6 +1024,11 @@ func _queue_free_hazard_if_valid(hazard: Node) -> void:
 		hazard.queue_free()
 
 
+func _queue_free_node_if_valid(node: Node) -> void:
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+		node.queue_free()
+
+
 func _set_if_present(target: Node, property_name: StringName, value: Variant) -> void:
 	if target == null or target.get(property_name) == null:
 		return
@@ -1008,6 +1044,9 @@ func _spawn_hazard(scene: PackedScene, node_name: String, global_pos: Vector2) -
 		hazard.call("configure_deterministic", _seed_for_key(node_name), StringName(node_name))
 
 	_level_root.add_child(hazard)
+	_register_spawned_runtime_groups(hazard)
+	if hazard_2d != null and hazard_2d.is_in_group("planets"):
+		_planet_spawn_blockers.append(hazard_2d)
 
 	_active_hazards.append(hazard)
 	return hazard
@@ -1105,8 +1144,9 @@ func _enemy_requires_planet_clearance(enemy: Node, scene: PackedScene) -> bool:
 
 
 func _is_position_clear_of_planets(position: Vector2, clearance: float) -> bool:
-	for node in get_tree().get_nodes_in_group("planets"):
-		var planet := node as Node2D
+	if _planet_spawn_blockers.is_empty():
+		_refresh_planet_spawn_blockers()
+	for planet in _planet_spawn_blockers:
 		if planet == null or not is_instance_valid(planet) or planet.is_queued_for_deletion():
 			continue
 		var radius := _node_radius(planet) + clearance
@@ -1116,11 +1156,12 @@ func _is_position_clear_of_planets(position: Vector2, clearance: float) -> bool:
 
 
 func _push_position_out_of_planets(position: Vector2, clearance: float) -> Vector2:
+	if _planet_spawn_blockers.is_empty():
+		_refresh_planet_spawn_blockers()
 	var adjusted := position
 	for _attempt in range(4):
 		var moved := false
-		for node in get_tree().get_nodes_in_group("planets"):
-			var planet := node as Node2D
+		for planet in _planet_spawn_blockers:
 			if planet == null or not is_instance_valid(planet) or planet.is_queued_for_deletion():
 				continue
 			var offset := adjusted - planet.global_position
@@ -1135,6 +1176,26 @@ func _push_position_out_of_planets(position: Vector2, clearance: float) -> Vecto
 		if not moved:
 			return adjusted
 	return adjusted
+
+
+func _refresh_planet_spawn_blockers() -> void:
+	_planet_spawn_blockers.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(&"planets", _planet_spawn_blockers)
+		return
+	for node in get_tree().get_nodes_in_group("planets"):
+		var planet := node as Node2D
+		if planet == null or not is_instance_valid(planet) or planet.is_queued_for_deletion():
+			continue
+		_planet_spawn_blockers.append(planet)
+
+
+func _register_spawned_runtime_groups(node: Node) -> void:
+	if RuntimeRegistry == null or node == null or not is_instance_valid(node):
+		return
+	for group_name in SPAWN_REGISTRY_GROUPS:
+		if node.is_in_group(group_name):
+			RuntimeRegistry.register_node(node, group_name)
 
 
 func _node_radius(node: Node2D) -> float:
@@ -1890,7 +1951,8 @@ func _update_suspicious_trout(delta: float) -> void:
 	_trout_state["age"] = age
 	if age >= duration:
 		_spawn_tiny_ripple_distortion(trout.global_position, Color(0.18, 1.0, 0.92, 0.38))
-		trout.queue_free()
+		if not trout.is_queued_for_deletion():
+			trout.queue_free()
 		_trout_state.clear()
 
 
@@ -1982,7 +2044,7 @@ func _show_fake_boss_gag() -> void:
 	_banner_label.text = "MINIBOSS COLLAPSE: THE PEBBLE OF RECKONING"
 	_play_transition_message("THE PEBBLE OF RECKONING", Color(1.0, 0.22, 0.12, 1.0))
 	_request_camera_shake(0.42)
-	_set_music_mode(MusicMode.BOSS, SONG_THE_ARRIVAL, boss_music_volume_db + 2.0)
+	_set_music_mode(MusicMode.BOSS, _load_audio_stream(SONG_THE_ARRIVAL_PATH), boss_music_volume_db + 2.0)
 	if pebble_music_swell_seconds > 0.0:
 		get_tree().create_timer(pebble_music_swell_seconds).timeout.connect(
 			Callable(self, "_restore_fake_boss_music_once"),
@@ -2130,7 +2192,7 @@ func _spawn_tiny_ripple_distortion(position: Vector2, color: Color) -> void:
 	tween.set_parallel(true)
 	tween.tween_property(root, "scale", Vector2.ONE * 2.6, 0.62).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tween.tween_property(root, "modulate:a", 0.0, 0.62)
-	tween.finished.connect(root.queue_free)
+	tween.finished.connect(Callable(self, "_queue_free_node_if_valid").bind(root), CONNECT_ONE_SHOT)
 
 
 func _request_camera_shake(amount: float) -> void:
@@ -2182,7 +2244,7 @@ func _circle_points(radius: float, count: int) -> PackedVector2Array:
 
 func _clear_remaining_wave_enemies() -> void:
 	for enemy in get_tree().get_nodes_in_group("wave_enemy"):
-		if enemy != _boss and enemy != null and is_instance_valid(enemy):
+		if enemy != _boss and enemy != null and is_instance_valid(enemy) and not enemy.is_queued_for_deletion():
 			enemy.queue_free()
 	_active_enemies.clear()
 	_external_enemy_ids.clear()
@@ -2294,41 +2356,48 @@ func _play_intermission_music_for_wave(wave_number: int) -> void:
 	_set_music_mode(MusicMode.INTERMISSION, stream, intermission_music_volume_db)
 
 func _play_boss_music_for_wave(wave: int, scene: PackedScene) -> void:
-	var stream: AudioStream = _boss_music_by_wave.get(wave, null)
+	var value: Variant = _boss_music_by_wave.get(wave, "")
+	var stream: AudioStream = null
+	if value is AudioStream:
+		stream = value as AudioStream
+	elif value is String and not String(value).is_empty():
+		stream = _load_audio_stream(String(value))
 	if stream == null:
 		stream = _boss_music_for_scene(scene)
 	_set_music_mode(MusicMode.BOSS, stream, boss_music_volume_db)
 
 func _play_secret_boss_music(display_name: String) -> void:
 	var hash = abs(display_name.hash())
-	var stream := SONG_GREEN_FLAME_ULTRA if hash % 2 == 0 else SONG_SPINE_CHILLING_CHRISTMAS
+	var stream := _load_audio_stream(SONG_GREEN_FLAME_ULTRA_PATH if hash % 2 == 0 else SONG_SPINE_CHILLING_CHRISTMAS_PATH)
 	_set_music_mode(MusicMode.BOSS, stream, boss_music_volume_db)
 
 func _music_for_regular_wave(wave: int) -> AudioStream:
-	var mapped: AudioStream = _wave_music_by_wave.get(wave, null)
-	if mapped != null:
-		return mapped
+	var mapped: Variant = _wave_music_by_wave.get(wave, "")
+	if mapped is AudioStream:
+		return mapped as AudioStream
+	if mapped is String and not String(mapped).is_empty():
+		return _load_audio_stream(String(mapped))
 	if _wave_music_tracks.is_empty():
 		return null
 	var index := wrapi(maxi(wave - 1, 0), 0, _wave_music_tracks.size())
-	return _wave_music_tracks[index]
+	return _load_audio_stream(_wave_music_tracks[index])
 
 func _boss_music_for_scene(scene: PackedScene) -> AudioStream:
 	if scene == ACCRETION_CORE_SCENE:
-		return SONG_COSMIC_JOURNEY_EPIC
+		return _load_audio_stream(SONG_COSMIC_JOURNEY_EPIC_PATH)
 	if scene == NULL_SERAPH_SCENE:
-		return SONG_ERR_INVALID_THREAD_CHANGE
+		return _load_audio_stream(SONG_ERR_INVALID_THREAD_CHANGE_PATH)
 	if scene == MAGNETAR_TWINS_SCENE:
-		return SONG_GREEN_FLAME_ULTRA
+		return _load_audio_stream(SONG_GREEN_FLAME_ULTRA_PATH)
 	if scene == RIFT_WEAVER_SCENE:
-		return SONG_QUANTUM_BREAK
+		return _load_audio_stream(SONG_QUANTUM_BREAK_PATH)
 	if scene == POLYMORPH_BOSS_SCENE:
-		return SONG_ERR_RUPTURE
+		return _load_audio_stream(SONG_ERR_RUPTURE_PATH)
 	if scene == CENTRIFUGE_MARSHAL_SCENE:
-		return SONG_NEON_STARLIGHT
+		return _load_audio_stream(SONG_NEON_STARLIGHT_PATH)
 	if scene == EXTRADIMENSIONAL_BREACHER_SCENE:
-		return SONG_THE_NEURAL_DRIFT_THRESHOLD
-	return SONG_RESONANCE
+		return _load_audio_stream(SONG_THE_NEURAL_DRIFT_THRESHOLD_PATH)
+	return _load_audio_stream(SONG_RESONANCE_PATH)
 
 func _set_music_mode(mode: int, stream: AudioStream, volume_db: float) -> void:
 	if not music_enabled or stream == null:

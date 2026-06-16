@@ -834,7 +834,10 @@ func _play_positional_cue(stream: AudioStream, position: Vector2, volume_db: flo
 	player.pitch_scale = clampf(pitch, 0.35, 1.9)
 	player.bus = bus_name
 	scene.add_child(player)
-	player.finished.connect(player.queue_free)
+	var free_player := func() -> void:
+		if player != null and is_instance_valid(player) and not player.is_queued_for_deletion():
+			player.queue_free()
+	player.finished.connect(free_player, CONNECT_ONE_SHOT)
 	player.play()
 	_active_players.append(player)
 

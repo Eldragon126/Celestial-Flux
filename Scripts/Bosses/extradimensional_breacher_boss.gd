@@ -51,10 +51,11 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	for construct in _active_constructs:
-		if construct != null and is_instance_valid(construct):
+		if construct != null and is_instance_valid(construct) and not construct.is_queued_for_deletion():
 			construct.queue_free()
-	if _desktop_breach_window != null and is_instance_valid(_desktop_breach_window):
+	if _desktop_breach_window != null and is_instance_valid(_desktop_breach_window) and not _desktop_breach_window.is_queued_for_deletion():
 		_desktop_breach_window.queue_free()
+	_desktop_breach_window = null
 
 
 func _boss_physics(delta: float) -> void:
@@ -222,8 +223,9 @@ func _attack_outside_space_breach(center: Vector2) -> void:
 func _open_desktop_breach_window(center: Vector2) -> bool:
 	if not enable_desktop_breach_window or not _is_desktop_os():
 		return false
-	if _desktop_breach_window != null and is_instance_valid(_desktop_breach_window):
+	if _desktop_breach_window != null and is_instance_valid(_desktop_breach_window) and not _desktop_breach_window.is_queued_for_deletion():
 		_desktop_breach_window.queue_free()
+	_desktop_breach_window = null
 
 	var window := Window.new()
 	window.name = "BreacherDesktopWindow"

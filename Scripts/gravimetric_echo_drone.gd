@@ -166,14 +166,14 @@ func _update_echoes(delta: float) -> void:
 			continue
 		var path: Array = data.get("path", [])
 		if path.size() < 2:
-			echo.queue_free()
+			_queue_free_if_valid(echo)
 			_echoes.remove_at(idx)
 			continue
 		data["progress"] = float(data.get("progress", 0.0)) + delta * echo_speed
 		var progress := float(data["progress"])
 		var segment := int(floor(progress))
 		if segment >= path.size() - 1:
-			echo.queue_free()
+			_queue_free_if_valid(echo)
 			_echoes.remove_at(idx)
 			continue
 		var t := progress - float(segment)
@@ -192,7 +192,7 @@ func _on_echo_body_entered(body: Node, echo: Area2D) -> void:
 		body.call("take_damage", echo_damage)
 		CombatStatus.add_velocity(body, (body.global_position - echo.global_position).normalized() * 260.0)
 		body.set_meta(&"trajectory_prediction_disrupted", Time.get_ticks_msec() / 1000.0 + 0.7)
-		echo.queue_free()
+		_queue_free_if_valid(echo)
 
 
 func _build_body() -> void:
@@ -233,6 +233,11 @@ func _update_visuals(delta: float) -> void:
 func _on_died() -> void:
 	PowerupLibrary.try_spawn_drop(get_parent(), global_position, 0.1)
 	queue_free()
+
+
+func _queue_free_if_valid(node: Node) -> void:
+	if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+		node.queue_free()
 
 
 func _circle_points(count: int, radius: float) -> PackedVector2Array:

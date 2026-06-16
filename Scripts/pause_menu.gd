@@ -40,6 +40,7 @@ const SECTION_ACCENTS := {
 @onready var ui_scale_slider: HSlider = find_child("UIScaleSlider", true, false) as HSlider
 @onready var shake_slider: HSlider = find_child("ShakeSlider", true, false) as HSlider
 @onready var reduce_flash_check: CheckBox = find_child("ReduceFlashCheck", true, false) as CheckBox
+@onready var readability_halos_check: CheckBox = find_child("ReadabilityHalosCheck", true, false) as CheckBox
 @onready var color_mode_option: OptionButton = find_child("ColorModeOption", true, false) as OptionButton
 @onready var trackpad_camera_check: CheckBox = find_child("TrackpadCameraCheck", true, false) as CheckBox
 @onready var alternate_movement_check: CheckBox = find_child("AlternateMovementCheck", true, false) as CheckBox
@@ -446,6 +447,11 @@ func _setup_accessibility_controls() -> void:
 		if not reduce_flash_check.toggled.is_connected(_on_reduce_flash_toggled):
 			reduce_flash_check.toggled.connect(_on_reduce_flash_toggled)
 
+	if readability_halos_check != null:
+		readability_halos_check.button_pressed = bool(Settings.readability_halos_enabled)
+		if not readability_halos_check.toggled.is_connected(_on_readability_halos_toggled):
+			readability_halos_check.toggled.connect(_on_readability_halos_toggled)
+
 	if color_mode_option != null:
 		color_mode_option.clear()
 		color_mode_option.add_item("STANDARD", 0)
@@ -471,6 +477,8 @@ func _ensure_optional_input_rows() -> void:
 	var rows := find_child("MenuRows", true, false) as VBoxContainer
 	if rows == null:
 		return
+	if readability_halos_check == null:
+		readability_halos_check = _make_pause_checkbox_row(rows, "READABILITY HALOS", "ReadabilityHalosCheck")
 	if trackpad_camera_check == null:
 		trackpad_camera_check = _make_pause_checkbox_row(rows, "TRACKPAD DIRECT CAMERA", "TrackpadCameraCheck")
 	if alternate_movement_check == null:
@@ -512,7 +520,10 @@ func _on_restart_pressed() -> void:
 		return
 	_force_unpause()
 	RunProgress.begin_new_run(false)
-	get_tree().change_scene_to_file(run_scene_path)
+	if run_scene_path == "res://Nodes/the_abyss.tscn":
+		get_tree().change_scene_to_file("res://Nodes/run_loading_screen.tscn")
+	else:
+		get_tree().change_scene_to_file(run_scene_path)
 
 
 func _on_title_pressed() -> void:
@@ -846,6 +857,11 @@ func _on_reduce_flash_toggled(enabled: bool) -> void:
 	Settings.set_reduce_flash(enabled)
 	_play_settings_sound()
 	_apply_pause_readability_palette()
+
+
+func _on_readability_halos_toggled(enabled: bool) -> void:
+	Settings.set_readability_halos_enabled(enabled)
+	_play_settings_sound()
 
 
 func _on_color_mode_selected(index: int) -> void:

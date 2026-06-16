@@ -26,6 +26,9 @@ shader_parameter/ondulacion = 0.19
 shader_parameter/frecuencia = 5.0
 shader_parameter/color_a = Color(0.02, 0.08, 0.18, 0.2)
 shader_parameter/color_b = Color(0.08, 0.32, 0.62, 0.2)
+shader_parameter/color_neon = Color(0, 0.85, 1, 1)
+shader_parameter/gravity_strength = 0.45
+shader_parameter/gravity_center = Vector2(0.5, 0.5)
 shader_parameter/real_time = 0.0
 
 [sub_resource type="Animation" id="Animation_60x4s"]
@@ -133,7 +136,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(1, 1, 1, 0.2)
+color = Color(1, 1, 1, 0.32941177)
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=925882595]
 libraries/ = SubResource("AnimationLibrary_joli2")
@@ -250,7 +253,6 @@ position = Vector2(-403, 343)
 [node name="TimeDilationManager" type="Node" parent="." unique_id=1501130007]
 process_mode = 3
 script = ExtResource("10_e57lr")
-use_global_time_scale = true
 metadata/_custom_type_script = "uid://dk5kb2f3tf0y7"
 
 [node name="ParametricEnemy1" parent="." unique_id=2014406817 instance=ExtResource("10_xlfwb")]

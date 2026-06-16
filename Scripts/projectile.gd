@@ -8,6 +8,8 @@ signal projectile_hit(hit_data: Dictionary)
 @export var max_gravity_sources: int = 4
 @export var gravity_constant: float = 200.0
 @export var min_grav_dist: float = 50.0
+@export var max_gravity_acceleration_per_source: float = 2600.0
+@export var max_total_gravity_acceleration: float = 5200.0
 @export var damage_min: float = 28.0
 @export var damage_max: float = 38.0
 @export var momentum_damage_cap: float = 2.75
@@ -18,24 +20,24 @@ signal projectile_hit(hit_data: Dictionary)
 @export var debug_logging: bool = false
 
 @export_group("Projectile Readability")
-@export var windowkill_visual_scale: float = 1.18
-@export var vector_trail_alpha: float = 0.54
-@export var vector_core_color: Color = Color(0.0, 0.85, 1.0, 0.75) # Cyan
+@export var windowkill_visual_scale: float = 1.34
+@export var vector_trail_alpha: float = 0.66
+@export var vector_core_color: Color = Color(0.62, 1.0, 0.98, 1.0)
 @export var vector_trail_fade_color: Color = Color(1.0, 0.35, 0.1, 0.95) # Danger Orange
-@export var vector_trail_particle_cap: int = 28
-@export var rail_trail_particle_cap: int = 36
-@export var visual_pressure_soft_cap: int = 64
-@export var visual_pressure_hard_cap: int = 118
+@export var vector_trail_particle_cap: int = 18
+@export var rail_trail_particle_cap: int = 28
+@export var visual_pressure_soft_cap: int = 56
+@export var visual_pressure_hard_cap: int = 104
 @export var trail_focus_radius: float = 1640.0
 @export var trail_budget_refresh_interval: float = 0.18
 @export var preserve_trail_after_destroy: bool = true
 @export var enable_vector_wake: bool = true
-@export var vector_wake_length: float = 74.0
-@export var vector_wake_width: float = 4.2
-@export_range(0.0, 1.0, 0.01) var vector_core_alpha_cap: float = 0.62
-@export_range(0.0, 1.0, 0.01) var vector_wake_alpha_cap: float = 0.36
-@export var projectile_light_energy_cap: float = 1.35
-@export var projectile_light_reduced_flash_energy_cap: float = 0.72
+@export var vector_wake_length: float = 90.0
+@export var vector_wake_width: float = 5.4
+@export_range(0.0, 1.0, 0.01) var vector_core_alpha_cap: float = 1.0
+@export_range(0.0, 1.0, 0.01) var vector_wake_alpha_cap: float = 0.5
+@export var projectile_light_energy_cap: float = 1.85
+@export var projectile_light_reduced_flash_energy_cap: float = 0.88
 
 @export_group("Vector Anomaly Upgrade Responses")
 @export var relativistic_rail_acceleration: float = 640.0
@@ -73,10 +75,11 @@ signal projectile_hit(hit_data: Dictionary)
 # ========================
 var planets: Array[Node2D] = []
 var _has_launched: bool = false
-var _rail_trail: CPUParticles2D = null
-var _vector_trail: CPUParticles2D = null
+var _rail_trail: GPUParticles2D = null
+var _vector_trail: GPUParticles2D = null
 var _vector_wake: Line2D = null
 var _vector_wake_core: Line2D = null
+var _readability_halo: Line2D = null
 var _rail_heat: float = 0.0
 var _visual_player: Node2D = null
 var _visual_budget_elapsed: float = 999.0
@@ -104,6 +107,7 @@ func _ready() -> void:
 		RuntimeRegistry.register_node(self, &"Projectiles")
 		RuntimeRegistry.register_node(self, &"player_projectiles")
 	
+	_connect_accessibility_settings()
 	_configure_windowkill_visuals()
 	_refresh_gravity_sources()
 	
@@ -149,7 +153,8 @@ func _physics_process(delta: float) -> void:
 				p_mass = float(mass_value)
 			
 			var strength = gravity_constant * p_mass / (effective_dist * effective_dist)
-			total_grav_accel += dir * strength
+			var contribution = (dir * strength).limit_length(maxf(max_gravity_acceleration_per_source, 1.0))
+			total_grav_accel = (total_grav_accel + contribution).limit_length(maxf(max_total_gravity_acceleration, 1.0))
 	
 	if total_grav_accel != Vector2.ZERO:
 		if Engine.time_scale > 1.0 or Engine.time_scale < 0.97 and Engine.time_scale != 0.0:
@@ -469,10 +474,10 @@ func _destroy_projectile() -> void:
 			if _should_preserve_trail_after_destroy():
 				_vector_trail.reparent(parent)
 				var vector_trail := _vector_trail
-				get_tree().create_timer(vector_trail.lifetime).timeout.connect(func() -> void:
+				var free_vector_trail := func() -> void:
 					if vector_trail != null and is_instance_valid(vector_trail) and not vector_trail.is_queued_for_deletion():
 						vector_trail.queue_free()
-				, CONNECT_ONE_SHOT)
+				get_tree().create_timer(vector_trail.lifetime).timeout.connect(free_vector_trail, CONNECT_ONE_SHOT)
 			else:
 				_queue_free_if_valid(_vector_trail)
 		
@@ -481,10 +486,10 @@ func _destroy_projectile() -> void:
 			if _should_preserve_trail_after_destroy():
 				_rail_trail.reparent(parent)
 				var rail_trail := _rail_trail
-				get_tree().create_timer(rail_trail.lifetime).timeout.connect(func() -> void:
+				var free_rail_trail := func() -> void:
 					if rail_trail != null and is_instance_valid(rail_trail) and not rail_trail.is_queued_for_deletion():
 						rail_trail.queue_free()
-				, CONNECT_ONE_SHOT)
+				get_tree().create_timer(rail_trail.lifetime).timeout.connect(free_rail_trail, CONNECT_ONE_SHOT)
 			else:
 				_queue_free_if_valid(_rail_trail)
 			
@@ -548,40 +553,36 @@ func _update_rail_trail(active: bool, delta: float, ratio: float = 0.0) -> void:
 		return
 		
 	if _rail_trail == null:
-		_rail_trail = CPUParticles2D.new()
+		_rail_trail = GPUParticles2D.new()
 		_rail_trail.name = "RelativisticRailParticles"
 		_rail_trail.z_index = -1
-		
 		var mat = CanvasItemMaterial.new()
 		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 		_rail_trail.material = mat
-		
-		_rail_trail.local_coords = false # Leaves a trail in global space
+		_rail_trail.local_coords = false
 		_rail_trail.amount = _trail_amount(rail_trail_particle_cap)
 		_rail_trail.lifetime = 0.6
-		_rail_trail.gravity = Vector2.ZERO
-		_rail_trail.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-		_rail_trail.emission_sphere_radius = 4.0
-		
 		var ramp = Gradient.new()
 		var rail_core := _safe_projectile_color(Color(0.42, 0.9, 1.0, 0.62))
 		var rail_mid := _safe_projectile_color(Color(0.28, 0.64, 1.0, 0.44))
 		ramp.add_point(0.0, rail_core)
 		ramp.add_point(0.5, rail_mid)
 		ramp.add_point(1.0, Color(0.0, 0.2, 1.0, 0.0))
-		_rail_trail.color_ramp = ramp
-		
+		_rail_trail.process_material = _make_projectile_particle_material(ramp, 4.0, 14.0, 34.0, 2.0, 7.0)
 		add_child(_rail_trail)
 
 	if _rail_heat > 0.03:
 		_rail_trail.emitting = true
 		_rail_trail.amount = _trail_amount(rail_trail_particle_cap)
-		_rail_trail.scale_amount_min = lerpf(2.0, 6.0, _rail_heat)
-		_rail_trail.scale_amount_max = lerpf(4.0, 9.0, _rail_heat)
-		_rail_trail.initial_velocity_min = lerpf(5.0, 30.0, _rail_heat)
-		_rail_trail.initial_velocity_max = lerpf(15.0, 60.0, _rail_heat)
-		_rail_trail.direction = -linear_velocity.normalized()
-		_rail_trail.spread = lerpf(15.0, 45.0, _rail_heat)
+		_update_projectile_particle_material(
+			_rail_trail,
+			-linear_velocity.normalized(),
+			lerpf(12.0, 38.0, _rail_heat),
+			lerpf(26.0, 72.0, _rail_heat),
+			lerpf(2.0, 6.0, _rail_heat),
+			lerpf(4.0, 9.0, _rail_heat),
+			lerpf(18.0, 48.0, _rail_heat)
+		)
 	else:
 		_rail_trail.emitting = false
 
@@ -595,10 +596,43 @@ func _configure_windowkill_visuals() -> void:
 	var light := get_node_or_null("PointLight2D") as PointLight2D
 	if light != null:
 		light.energy = minf(maxf(light.energy, 0.85), _projectile_light_cap())
-		light.texture_scale = maxf(light.texture_scale, 0.72)
+		light.texture_scale = maxf(light.texture_scale, 0.9)
 
 	_ensure_vector_trail()
 	_ensure_vector_wake()
+	_configure_readability_halo()
+
+
+func _connect_accessibility_settings() -> void:
+	if Settings == null or not Settings.has_signal("accessibility_changed"):
+		return
+	var callable := Callable(self, "_on_accessibility_changed")
+	if not Settings.is_connected("accessibility_changed", callable):
+		Settings.connect("accessibility_changed", callable)
+
+
+func _on_accessibility_changed(_settings: Dictionary) -> void:
+	_update_readability_halo_visibility()
+
+
+func _configure_readability_halo() -> void:
+	_readability_halo = get_node_or_null("ReadabilityHalo") as Line2D
+	if _readability_halo == null:
+		return
+	_readability_halo.default_color = _safe_projectile_color(Color(0.85, 1.0, 1.0, 0.95))
+	_update_readability_halo_visibility()
+
+
+func _update_readability_halo_visibility() -> void:
+	if _readability_halo == null:
+		_readability_halo = get_node_or_null("ReadabilityHalo") as Line2D
+	if _readability_halo == null:
+		return
+	_readability_halo.visible = _readability_halos_enabled() and _visual_in_focus and _visual_pressure < visual_pressure_hard_cap
+
+
+func _readability_halos_enabled() -> bool:
+	return Settings != null and bool(Settings.readability_halos_enabled)
 
 
 func _ensure_vector_trail() -> void:
@@ -607,7 +641,7 @@ func _ensure_vector_trail() -> void:
 	if not _should_emit_projectile_trails(false):
 		return
 		
-	_vector_trail = CPUParticles2D.new()
+	_vector_trail = GPUParticles2D.new()
 	_vector_trail.name = "VectorBoltParticles"
 	_vector_trail.z_index = -2
 	
@@ -615,20 +649,13 @@ func _ensure_vector_trail() -> void:
 	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	_vector_trail.material = mat
 	
-	_vector_trail.local_coords = false # Leaves a trail in global space
+	_vector_trail.local_coords = false
 	_vector_trail.amount = _trail_amount(vector_trail_particle_cap)
 	_vector_trail.lifetime = 0.45
-	_vector_trail.gravity = Vector2.ZERO
 	
-	_vector_trail.spread = 180.0
-	_vector_trail.initial_velocity_min = 2.0
-	_vector_trail.initial_velocity_max = 12.0
-	_vector_trail.scale_amount_min = 2.0
-	_vector_trail.scale_amount_max = 5.5
-	
-	var alpha := vector_trail_alpha
-	if Settings != null and Settings.has_method("world_visual_alpha"):
-		alpha = Settings.world_visual_alpha(alpha, 0.34)
+	var alpha := clampf(vector_trail_alpha, 0.0, 1.0)
+	if Settings != null and bool(Settings.reduce_flash) and Settings.has_method("flash_alpha"):
+		alpha = minf(Settings.flash_alpha(alpha), vector_trail_alpha)
 		
 	# Mimics the visualizer fade: Main color fading into the danger color, then to transparent
 	var ramp = Gradient.new()
@@ -636,7 +663,7 @@ func _ensure_vector_trail() -> void:
 	ramp.add_point(0.0, safe_core)
 	ramp.add_point(0.65, Color(vector_trail_fade_color.r, vector_trail_fade_color.g, vector_trail_fade_color.b, alpha * 0.8))
 	ramp.add_point(1.0, Color(vector_trail_fade_color.r, vector_trail_fade_color.g, vector_trail_fade_color.b, 0.0))
-	_vector_trail.color_ramp = ramp
+	_vector_trail.process_material = _make_projectile_particle_material(ramp, 4.0, 4.0, 18.0, 1.7, 4.8)
 	
 	add_child(_vector_trail)
 
@@ -651,6 +678,67 @@ func _update_vector_trail(_delta: float) -> void:
 	_vector_trail.emitting = can_emit
 	if can_emit:
 		_vector_trail.amount = _trail_amount(vector_trail_particle_cap)
+		_update_projectile_particle_material(
+			_vector_trail,
+			-linear_velocity.normalized(),
+			5.0,
+			18.0,
+			1.7,
+			4.8,
+			24.0
+		)
+
+
+func _make_projectile_particle_material(
+	color_ramp: Gradient,
+	emission_radius: float,
+	initial_velocity_min: float,
+	initial_velocity_max: float,
+	scale_min: float,
+	scale_max: float,
+	spread: float = 24.0
+) -> ParticleProcessMaterial:
+	var process_material := ParticleProcessMaterial.new()
+	process_material.particle_flag_disable_z = true
+	process_material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	process_material.emission_sphere_radius = emission_radius
+	process_material.gravity = Vector3.ZERO
+	process_material.initial_velocity_min = initial_velocity_min
+	process_material.initial_velocity_max = initial_velocity_max
+	process_material.scale_min = scale_min
+	process_material.scale_max = scale_max
+	process_material.spread = spread
+	var ramp_texture := GradientTexture1D.new()
+	ramp_texture.gradient = color_ramp
+	process_material.color_ramp = ramp_texture
+	return process_material
+
+
+func _update_projectile_particle_material(
+	particles: GPUParticles2D,
+	direction: Vector2,
+	initial_velocity_min: float,
+	initial_velocity_max: float,
+	scale_min: float,
+	scale_max: float,
+	spread: float
+) -> void:
+	if particles == null or particles.process_material == null:
+		return
+	var process_material := particles.process_material as ParticleProcessMaterial
+	if process_material == null:
+		return
+	var safe_direction := direction
+	if safe_direction.length_squared() <= 0.001:
+		safe_direction = Vector2.LEFT
+	else:
+		safe_direction = safe_direction.normalized()
+	process_material.direction = Vector3(safe_direction.x, safe_direction.y, 0.0)
+	process_material.initial_velocity_min = initial_velocity_min
+	process_material.initial_velocity_max = initial_velocity_max
+	process_material.scale_min = scale_min
+	process_material.scale_max = scale_max
+	process_material.spread = spread
 
 
 func _ensure_vector_wake() -> void:
@@ -724,8 +812,8 @@ func _safe_visual_alpha(alpha: float, fallback_alpha: float = 1.0) -> float:
 	if is_nan(resolved_alpha) or is_inf(resolved_alpha):
 		resolved_alpha = fallback_alpha
 
-	if Settings != null and Settings.has_method("world_visual_alpha"):
-		resolved_alpha = float(Settings.world_visual_alpha(resolved_alpha, fallback_alpha))
+	if Settings != null and bool(Settings.reduce_flash) and Settings.has_method("flash_alpha"):
+		resolved_alpha = minf(float(Settings.flash_alpha(resolved_alpha)), fallback_alpha)
 
 	if is_nan(resolved_alpha) or is_inf(resolved_alpha):
 		resolved_alpha = fallback_alpha
@@ -934,6 +1022,7 @@ func _update_visual_budget(delta: float) -> void:
 	_visual_budget_elapsed = 0.0
 	_visual_pressure = _projectile_pressure()
 	_visual_in_focus = _is_in_player_focus()
+	_update_readability_halo_visibility()
 
 
 func _should_emit_projectile_trails(include_upgraded: bool) -> bool:
@@ -994,9 +1083,7 @@ func _safe_projectile_color(color: Color) -> Color:
 	if Settings != null and Settings.has_method("apply_readability_color"):
 		adjusted = Settings.apply_readability_color(adjusted)
 	var alpha := minf(adjusted.a, vector_core_alpha_cap)
-	if Settings != null and Settings.has_method("world_visual_alpha"):
-		alpha = Settings.world_visual_alpha(alpha, vector_core_alpha_cap)
-	elif Settings != null and Settings.has_method("flash_alpha"):
+	if Settings != null and bool(Settings.reduce_flash) and Settings.has_method("flash_alpha"):
 		alpha = minf(Settings.flash_alpha(alpha), vector_core_alpha_cap)
 	return Color(adjusted.r, adjusted.g, adjusted.b, alpha)
 

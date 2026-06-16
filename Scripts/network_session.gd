@@ -21,6 +21,7 @@ const DEFAULT_PORT := 28942
 const DEFAULT_MAX_PEERS := 4
 const NETWORK_PROTOCOL_VERSION := 5
 const RUN_SCENE_PATH := "res://Nodes/the_abyss.tscn"
+const RUN_LOADING_SCENE_PATH := "res://Nodes/run_loading_screen.tscn"
 const PLAYER_SCENE := preload("res://Nodes/player.tscn")
 const PROJECTILE_FALLBACK_SCENE_PATH := "res://Nodes/projectile.tscn"
 const MOD_MANIFEST_FILE_NAME := "vector_anomaly_mod.json"
@@ -335,7 +336,7 @@ func configure_arena_players(level_root: Node) -> void:
 			continue
 		var peer_value: Variant = player_2d.get("network_peer_id")
 		var peer_id := int(peer_value) if typeof(peer_value) == TYPE_INT else 0
-		if peer_id > 0 and not _peer_records.has(peer_id):
+		if peer_id > 0 and not _peer_records.has(peer_id) and not player_2d.is_queued_for_deletion():
 			player_2d.queue_free()
 
 	_configure_sync_foundation(level_root)
@@ -491,7 +492,7 @@ func _begin_host_run(seed_override: int = 0) -> void:
 	_rpc_begin_network_run.rpc(_run_config)
 	network_run_started.emit(_run_config.duplicate(true))
 	_publish_status()
-	get_tree().change_scene_to_file(RUN_SCENE_PATH)
+	get_tree().change_scene_to_file(RUN_LOADING_SCENE_PATH)
 
 
 func _apply_run_config(config: Dictionary) -> void:
@@ -510,6 +511,9 @@ func _apply_run_config(config: Dictionary) -> void:
 func _change_to_network_run_scene(scene_path: String) -> void:
 	if scene_path.is_empty():
 		scene_path = RUN_SCENE_PATH
+	if scene_path == RUN_SCENE_PATH:
+		get_tree().change_scene_to_file(RUN_LOADING_SCENE_PATH)
+		return
 	get_tree().change_scene_to_file(scene_path)
 
 

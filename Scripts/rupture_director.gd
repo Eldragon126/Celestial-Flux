@@ -99,13 +99,13 @@ func _restore_player_tuning() -> void:
 
 func _exit_tree() -> void:
 	_restore_player_tuning()
-	if _music != null and is_instance_valid(_music):
+	if _music != null and is_instance_valid(_music) and not _music.is_queued_for_deletion():
 		_music.stop()
 		_music.queue_free()
-	if _banner_canvas != null and is_instance_valid(_banner_canvas):
+	if _banner_canvas != null and is_instance_valid(_banner_canvas) and not _banner_canvas.is_queued_for_deletion():
 		_banner_canvas.queue_free()
 	for drifter in _spawned_drifters:
-		if drifter != null and is_instance_valid(drifter):
+		if drifter != null and is_instance_valid(drifter) and not drifter.is_queued_for_deletion():
 			drifter.queue_free()
 	_spawned_drifters.clear()
 

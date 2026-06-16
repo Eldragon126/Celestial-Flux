@@ -2,6 +2,8 @@ extends CharacterBody2D
 
 signal tiny_gravity_baby_born(parent_a: Node, parent_b: Node, baby: Node)
 
+const GRAVITY_LEECH_SCENE_PATH := "res://Nodes/gravity_leech.tscn"
+
 @export var mass = 90000.0
 @export var distortion_mass = 320000.0
 @export var move_speed = 230.0
@@ -37,6 +39,7 @@ var _is_gravity_baby = false
 var _generation = 0
 var _maturity_elapsed = 0.0
 var _birth_velocity: Vector2 = Vector2.ZERO
+var _mating_query: Array[Node2D] = []
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -47,6 +50,7 @@ func _ready() -> void:
 		RuntimeRegistry.register_node(self, &"enemies")
 		RuntimeRegistry.register_node(self, &"Objects_With_Gravity")
 		RuntimeRegistry.register_node(self, &"planets")
+		RuntimeRegistry.register_node(self, &"gravity_leeches")
 	_base_mass = mass
 	_player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_build_body()
@@ -61,6 +65,7 @@ func _exit_tree() -> void:
 		RuntimeRegistry.unregister_node(self, &"enemies")
 		RuntimeRegistry.unregister_node(self, &"Objects_With_Gravity")
 		RuntimeRegistry.unregister_node(self, &"planets")
+		RuntimeRegistry.unregister_node(self, &"gravity_leeches")
 
 func _physics_process(delta: float) -> void:
 	var scaled_delta = delta * CombatStatus.get_time_scale(self)
@@ -177,8 +182,15 @@ func _decay_mating_contacts(scan_delta: float) -> void:
 func _find_mating_partner() -> Node2D:
 	var best: Node2D = null
 	var best_distance := mating_radius * mating_radius
-	for node in get_tree().get_nodes_in_group("gravity_leeches"):
-		var candidate := node as Node2D
+	_mating_query.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius([&"gravity_leeches"], global_position, mating_radius, mating_population_cap + 2, false, _mating_query)
+	else:
+		for node in get_tree().get_nodes_in_group("gravity_leeches"):
+			var candidate := node as Node2D
+			if candidate != null:
+				_mating_query.append(candidate)
+	for candidate in _mating_query:
 		if candidate == null or candidate == self or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
 			continue
 		if not candidate.has_method("can_gravity_leech_mate") or not bool(candidate.call("can_gravity_leech_mate")):
@@ -196,7 +208,7 @@ func _spawn_gravity_baby(mate: Node2D) -> void:
 		return
 	if _gravity_leech_population() >= mating_population_cap:
 		return
-	var scene := load("res://Nodes/gravity_leech.tscn") as PackedScene
+	var scene := ResourceLoader.load(GRAVITY_LEECH_SCENE_PATH) as PackedScene
 	if scene == null:
 		return
 	var baby := scene.instantiate() as Node2D
@@ -271,6 +283,8 @@ func _queue_free_if_valid(node: Node) -> void:
 
 
 func _gravity_leech_population() -> int:
+	if RuntimeRegistry != null:
+		return RuntimeRegistry.get_count(&"gravity_leeches")
 	var count := 0
 	for node in get_tree().get_nodes_in_group("gravity_leeches"):
 		var leech := node as Node
@@ -388,6 +402,9 @@ func _get_nearest_gravity_source() -> Node2D:
 func _refresh_gravity_sources() -> void:
 	_gravity_refresh_elapsed = 0.0
 	_gravity_sources.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_nearest_gravity_sources(global_position, _gravity_sources, 4, 0.0, self)
+		return
 	var seen = {}
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
 		for source in get_tree().get_nodes_in_group(group_name):

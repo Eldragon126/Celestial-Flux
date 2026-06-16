@@ -211,10 +211,12 @@ func _on_flow_state_changed(active: bool, intensity: float) -> void:
 
 
 func _local_player() -> Node:
-	if MultiplayerTargeting != null and MultiplayerTargeting.has_method("local_player"):
-		var player_value: Variant = MultiplayerTargeting.call("local_player", get_tree())
+	var mt: Variant = MultiplayerTargeting
+	if mt != null and mt.has_method("local_player"):
+		var player_value: Variant = mt.call("local_player", get_tree())
 		if player_value is Node and is_instance_valid(player_value):
 			return player_value
+			
 	for player in get_tree().get_nodes_in_group("Player"):
 		if is_instance_valid(player):
 			return player

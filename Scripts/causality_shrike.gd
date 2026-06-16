@@ -54,7 +54,7 @@ func _exit_tree() -> void:
 		RuntimeRegistry.unregister_node(self, &"enemies")
 	for marker in _markers:
 		var node := marker.get("node") as Node2D
-		if node != null and is_instance_valid(node):
+		if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
 			node.queue_free()
 	_markers.clear()
 
@@ -197,7 +197,8 @@ func _update_markers(delta: float) -> void:
 			_trigger_marker(marker)
 			marker["triggered"] = true
 		elif triggered and age >= marker_telegraph_time + 0.24:
-			node.queue_free()
+			if not node.is_queued_for_deletion():
+				node.queue_free()
 			_markers.remove_at(index)
 			continue
 		_update_marker_visual(marker)

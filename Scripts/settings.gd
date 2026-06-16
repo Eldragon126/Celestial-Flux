@@ -5,9 +5,9 @@ signal accessibility_changed(settings: Dictionary)
 const SETTINGS_PATH := "user://settings.cfg"
 const SECTION_ACCESSIBILITY := "accessibility"
 const SECTION_INPUT := "input"
-const WORLD_ALPHA_CAP: float = 0.28
-const WORLD_FILL_ALPHA_CAP: float = 0.045
-const WORLD_LIGHT_ALPHA_CAP: float = 0.16
+const WORLD_ALPHA_CAP: float = 0.32
+const WORLD_FILL_ALPHA_CAP: float = 0.055
+const WORLD_LIGHT_ALPHA_CAP: float = 0.2
 const WORLD_EFFECT_RADIUS_CAP: float = 420.0
 const WORLD_POLYGON_SEGMENT_CAP: int = 32
 const REDUCED_FLASH_ALPHA_SCALE: float = 0.45
@@ -23,6 +23,7 @@ var input_type: bool = false # Controller true; mouse aim if false.
 var ui_scale: float = 1.0
 var screen_shake_scale: float = 1.0
 var reduce_flash: bool = false
+var readability_halos_enabled: bool = false
 var colorblind_mode: int = ColorblindMode.OFF
 var trackpad_direct_camera: bool = false
 var camera_follow_strength: float = 1.0
@@ -49,6 +50,12 @@ func set_screen_shake_scale(value: float) -> void:
 
 func set_reduce_flash(value: bool) -> void:
 	reduce_flash = value
+	_emit_accessibility_changed()
+	save_settings()
+
+
+func set_readability_halos_enabled(value: bool) -> void:
+	readability_halos_enabled = value
 	_emit_accessibility_changed()
 	save_settings()
 
@@ -99,6 +106,7 @@ func load_settings() -> void:
 	ui_scale = clampf(float(config.get_value(SECTION_ACCESSIBILITY, "ui_scale", ui_scale)), 0.75, 1.35)
 	screen_shake_scale = clampf(float(config.get_value(SECTION_ACCESSIBILITY, "screen_shake_scale", screen_shake_scale)), 0.0, 1.0)
 	reduce_flash = bool(config.get_value(SECTION_ACCESSIBILITY, "reduce_flash", reduce_flash))
+	readability_halos_enabled = bool(config.get_value(SECTION_ACCESSIBILITY, "readability_halos_enabled", readability_halos_enabled))
 	colorblind_mode = clampi(
 		int(config.get_value(SECTION_ACCESSIBILITY, "colorblind_mode", colorblind_mode)),
 		ColorblindMode.OFF,
@@ -117,6 +125,7 @@ func save_settings() -> void:
 	config.set_value(SECTION_ACCESSIBILITY, "ui_scale", ui_scale)
 	config.set_value(SECTION_ACCESSIBILITY, "screen_shake_scale", screen_shake_scale)
 	config.set_value(SECTION_ACCESSIBILITY, "reduce_flash", reduce_flash)
+	config.set_value(SECTION_ACCESSIBILITY, "readability_halos_enabled", readability_halos_enabled)
 	config.set_value(SECTION_ACCESSIBILITY, "colorblind_mode", colorblind_mode)
 	config.set_value(SECTION_INPUT, "trackpad_direct_camera", trackpad_direct_camera)
 	config.set_value(SECTION_INPUT, "camera_follow_strength", camera_follow_strength)
@@ -183,6 +192,7 @@ func export_accessibility_settings() -> Dictionary:
 		"ui_scale": ui_scale,
 		"screen_shake_scale": screen_shake_scale,
 		"reduce_flash": reduce_flash,
+		"readability_halos_enabled": readability_halos_enabled,
 		"colorblind_mode": colorblind_mode,
 		"trackpad_direct_camera": trackpad_direct_camera,
 		"camera_follow_strength": camera_follow_strength,
