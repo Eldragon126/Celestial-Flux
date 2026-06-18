@@ -52,6 +52,7 @@ script = ExtResource("1_amcbj")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1468892824]
 shape = SubResource("CircleShape2D_nvtex")
+disabled = true
 
 [node name="LightOccluder2D" type="LightOccluder2D" parent="." unique_id=1910041286]
 scale = Vector2(2, 2)

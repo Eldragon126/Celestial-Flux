@@ -3360,8 +3360,8 @@ func _safe_projectile_core_color(color: Color) -> Color:
 	if Settings != null and Settings.has_method("apply_readability_color"):
 		adjusted = Settings.apply_readability_color(adjusted)
 	var alpha := minf(adjusted.a, projectile_core_alpha_cap)
-	if Settings != null and bool(Settings.reduce_flash) and Settings.has_method("flash_alpha"):
-		alpha = minf(Settings.flash_alpha(alpha), projectile_core_alpha_cap)
+	if Settings != null and Settings.has_method("projectile_alpha"):
+		alpha = minf(Settings.projectile_alpha(alpha), projectile_core_alpha_cap)
 	return Color(adjusted.r, adjusted.g, adjusted.b, alpha)
 
 

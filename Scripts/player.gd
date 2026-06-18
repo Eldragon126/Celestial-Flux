@@ -51,6 +51,10 @@ signal planet_super_boost_activated(source: Node, impulse: Vector2, energy_spent
 @export var slingshot_cooldown: float = 0.24
 @export var slingshot_min_tangential_speed: float = 210.0
 @export var slingshot_gravity_boost_scale: float = 2.55
+@export var slingshot_proximity_boost_scale: float = 0.32
+@export var slingshot_proximity_max_impulse_per_second: float = 360.0
+@export var slingshot_proximity_close_margin: float = 48.0
+@export var slingshot_proximity_curve: float = 1.35
 @export var slingshot_sweet_spot_distance: float = 265.0
 @export var slingshot_sweet_spot_width: float = 170.0
 @export var slingshot_perfect_score: float = 0.8
@@ -344,6 +348,7 @@ func apply_slingshot(gravity: Vector2, delta: float):
 		apply_regular_slingshot(gravity, delta)
 		return
 	last_slingshot_strength = maxf(last_slingshot_strength - delta * 2.0, 0.0)
+	_try_apply_slingshot_proximity_boost(gravity, delta)
 
 	if not slingshot_ready:
 		return
@@ -377,6 +382,7 @@ func apply_slingshot(gravity: Vector2, delta: float):
 	var speed_before := velocity.length()
 	var quality_data := _score_slingshot_window(gravity, radial_dir, tangent, tangential_speed, inward_speed)
 	var slingshot_score := float(quality_data.get("score", 0.0))
+	var proximity_score := float(quality_data.get("proximity_score", 0.0))
 	var quality_bonus := lerpf(0.92, 1.24, slingshot_score)
 	var speed_factor = clampf(tangential_speed / maxf(slingshot_speed_cap, 1.0), 0.28, 1.12)
 	var assist_strength = gravity.length() * speed_factor * slingshot_gravity_boost_scale
@@ -401,7 +407,7 @@ func apply_slingshot(gravity: Vector2, delta: float):
 		if minimum_impulse > 0.0 and impulse.length() < minimum_impulse:
 			impulse = tangent * minimum_impulse
 
-		var impulse_cap := slingshot_max_impulse * lerpf(0.72, 1.08, slingshot_score)
+		var impulse_cap := slingshot_max_impulse * lerpf(0.72, 1.08, slingshot_score) * lerpf(0.92, 1.18, proximity_score)
 		if impulse.length() > impulse_cap:
 			impulse = impulse.normalized() * impulse_cap
 
@@ -411,7 +417,7 @@ func apply_slingshot(gravity: Vector2, delta: float):
 			impulse = tangent * maxf(impulse.dot(tangent), 0.0)
 
 		var proposed = velocity + impulse
-		var mastery_speed_cap := slingshot_speed_cap + slingshot_mastery_cap_bonus * slingshot_score
+		var mastery_speed_cap := slingshot_speed_cap + slingshot_mastery_cap_bonus * maxf(slingshot_score, proximity_score * 0.65)
 		if proposed.length() > mastery_speed_cap:
 			var allowed = max(0, mastery_speed_cap - velocity.length())
 			if allowed > 0:
@@ -462,6 +468,77 @@ func apply_slingshot(gravity: Vector2, delta: float):
 		if is_inside_tree():
 			get_tree().create_timer(slingshot_cooldown).connect("timeout", Callable(self, "_on_slingshot_cooldown"))
 
+func _try_apply_slingshot_proximity_boost(gravity: Vector2, delta: float) -> Vector2:
+	if slingshot_proximity_boost_scale <= 0.0 or delta <= 0.0:
+		return Vector2.ZERO
+	if not is_instance_valid(closest_planet):
+		return Vector2.ZERO
+	var source := closest_planet as Node2D
+	if source == null:
+		return Vector2.ZERO
+	if velocity.length() < 1.0:
+		return Vector2.ZERO
+	if closest_dist > 500.0 or closest_dist < 70.0:
+		return Vector2.ZERO
+	if gravity.length_squared() <= 0.001:
+		return Vector2.ZERO
+
+	var radial: Vector2 = global_position - source.global_position
+	if radial.length_squared() <= 0.001:
+		return Vector2.ZERO
+
+	var radial_dir: Vector2 = radial.normalized()
+	var tangent: Vector2 = radial_dir.orthogonal()
+	if tangent.dot(velocity) < 0.0:
+		tangent = -tangent
+
+	var tangential_speed := maxf(velocity.dot(tangent), 0.0)
+	if tangential_speed < slingshot_min_tangential_speed:
+		return Vector2.ZERO
+
+	var proximity_score := _slingshot_proximity_score(source)
+	if proximity_score <= 0.001:
+		return Vector2.ZERO
+
+	var curve := maxf(slingshot_proximity_curve, 0.01)
+	var tangent_ratio := tangential_speed / maxf(velocity.length(), 1.0)
+	var proximity_strength := (
+		gravity.length()
+		* clampf(tangent_ratio, 0.0, 1.0)
+		* slingshot_proximity_boost_scale
+		* pow(proximity_score, curve)
+		* (slingshot_factor + orbit_control_bonus)
+	)
+	proximity_strength = minf(proximity_strength, maxf(slingshot_proximity_max_impulse_per_second, 0.0))
+	if proximity_strength <= 0.001:
+		return Vector2.ZERO
+
+	var impulse: Vector2 = tangent * proximity_strength * delta
+	var proximity_cap := slingshot_speed_cap + slingshot_mastery_cap_bonus * maxf(proximity_score * 0.65, 0.0)
+	var proposed: Vector2 = velocity + impulse
+	if proposed.length() > proximity_cap:
+		var allowed := maxf(proximity_cap - velocity.length(), 0.0)
+		if allowed <= 0.001:
+			return Vector2.ZERO
+		impulse = impulse.normalized() * minf(impulse.length(), allowed)
+
+	if impulse.length_squared() <= 0.001:
+		return Vector2.ZERO
+
+	velocity += impulse
+	current_max_speed = maxf(current_max_speed, minf(proximity_cap, maxf(velocity.length(), max_speed)))
+	last_slingshot_strength = maxf(last_slingshot_strength, proximity_strength)
+	last_slingshot_source = source
+	last_slingshot_time = Time.get_ticks_msec() / 1000.0
+	slingshot_assist_applied.emit(
+		source,
+		gravity,
+		impulse,
+		proximity_strength,
+		velocity.length()
+	)
+	return impulse
+
 func apply_regular_slingshot(gravity: Vector2, delta: float):
 	last_slingshot_strength = maxf(last_slingshot_strength - delta * 2.0, 0.0)
 	
@@ -502,7 +579,9 @@ func apply_regular_slingshot(gravity: Vector2, delta: float):
 
 	if tangential_speed >= slingshot_min_tangential_speed and DRAG_enabled:
 		var tangent_ratio := tangential_speed / maxf(velocity.length(), 1.0)
-		var accel_tangent := gravity.length() * clampf(tangent_ratio, 0.0, 1.0)
+		var proximity_score := _slingshot_proximity_score(closest_planet)
+		var proximity_multiplier := lerpf(0.76, 1.28, pow(proximity_score, maxf(slingshot_proximity_curve, 0.01)))
+		var accel_tangent := gravity.length() * clampf(tangent_ratio, 0.0, 1.0) * proximity_multiplier
 		var impulse = tangent * accel_tangent * (slingshot_factor + orbit_control_bonus) * delta
 		velocity += impulse
 		
@@ -1536,6 +1615,7 @@ func _score_slingshot_window(
 	tangential_speed: float,
 	inward_speed: float
 ) -> Dictionary:
+	var proximity_score := _slingshot_proximity_score(closest_planet)
 	var distance_score := 0.0
 	if slingshot_sweet_spot_width > 0.001:
 		distance_score = 1.0 - absf(closest_dist - slingshot_sweet_spot_distance) / slingshot_sweet_spot_width
@@ -1564,6 +1644,7 @@ func _score_slingshot_window(
 	return {
 		"score": score,
 		"distance_score": distance_score,
+		"proximity_score": proximity_score,
 		"tangent_score": tangent_score,
 		"dive_score": dive_score,
 		"speed_score": speed_score,
@@ -1577,6 +1658,21 @@ func _score_slingshot_window(
 		"tangent": tangent,
 		"position": global_position,
 	}
+
+func _slingshot_proximity_score(source: Node) -> float:
+	if source == null or not is_instance_valid(source):
+		return 0.0
+	var source_2d := source as Node2D
+	if source_2d == null:
+		return 0.0
+	var source_radius := _gravity_source_radius(source_2d)
+	var close_distance := maxf(source_radius + maxf(slingshot_proximity_close_margin, 0.0), 70.0)
+	var far_distance := maxf(500.0, close_distance + 1.0)
+	return 1.0 - clampf(
+		(closest_dist - close_distance) / maxf(far_distance - close_distance, 1.0),
+		0.0,
+		1.0
+	)
 
 func _slingshot_grade_for_score(score: float) -> StringName:
 	if score >= slingshot_apex_score:

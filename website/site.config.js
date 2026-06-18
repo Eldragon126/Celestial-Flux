@@ -1,11 +1,11 @@
-/** Update these URLs when launch assets are ready. Empty or PLACEHOLDER values fall back safely. */
+/** Update these URLs when launch assets are ready. Empty values fall back safely. */
 window.VECTOR_ANOMALY_SITE = {
-	steamUrl: "https://store.steampowered.com/app/PLACEHOLDER",
-	demoUrl: "",
+	steamUrl: "",
+	demoUrl: "https://github.com/Eldragon126/VECTOR-ANOMALY-WINDOWS-BUILD",
 	trailerUrl: "",
-	discordUrl: "https://discord.gg/PLACEHOLDER",
-	twitterUrl: "https://twitter.com/PLACEHOLDER",
-	itchUrl: "https://eldragon126.itch.io/placeholder",
-	pressEmail: "press@vectoranomaly.game",
-	demoSeed: "standard:7F3A:wave35",
+	discordUrl: "https://discord.gg/HstMJMkCtb",
+	twitterUrl: "",
+	itchUrl: "",
+	pressEmail: "eldensimmons1@gmail.com",
+	demoSeed: "standard:7135:35",
 };

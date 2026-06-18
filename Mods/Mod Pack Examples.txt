@@ -1,0 +1,529 @@
+You are working on my Godot 4.x game Vector Anomaly, a physics-driven arena survival game about gravity, slingshots, resonance fields, unstable arenas, bosses, and readable chaos.
+
+I want you to build a set of official example mods that ship with the game and teach users how to create their own mods. These should not feel like boring tutorial content. They should feel like small, polished “forbidden laboratory” expansions that demonstrate the modding system.
+
+Your job is to inspect the current project structure first, then implement these official example mods in the safest, cleanest, most modular way possible.
+
+Do not rewrite the whole game.
+Do not break existing gameplay.
+Do not remove existing systems.
+Do not hardcode everything into main game scripts unless absolutely necessary.
+Prefer self-contained mod folders, registries, resources, and adapters.
+Every example mod should be heavily commented so future modders can learn from it.
+
+Create 5 built-in example mods:
+
+1. COSMIC LAWBREAKER PACK
+2. ANOMALY BESTIARY
+3. COLLAPSING MICROVERSE MODE
+4. BOSS HERESY KIT
+5. RELIC SINGULARITY FORGE
+
+These should teach modders how to create:
+- arena law mods
+- enemy mods
+- game mode mods
+- boss mutation mods
+- relic / upgrade mods
+- mod metadata
+- mod registration
+- safe enable / disable behavior
+- basic balance settings
+- documentation files
+
+The mods should be available through an in-game menu or debug/example mod screen called:
+
+ANOMALY WORKSHOP
+
+Inside that menu, include:
+- Official Example Mods
+- Enable / Disable toggle for each mod
+- Brief description of what the mod demonstrates
+- “For Modders” notes showing what files/scripts/resources are used
+- A safe reset button that disables all example mods
+
+If there is already a settings/modding/debug menu, integrate with it.
+If not, create a simple but functional menu scene.
+
+============================================================
+GENERAL MODDING ARCHITECTURE GOAL
+============================================================
+
+Create or improve a lightweight modding architecture that supports official example mods.
+
+Use a structure similar to this if it fits the project:
+
+res://mods/
+    official_examples/
+        cosmic_lawbreaker_pack/
+            mod.json or mod.tres
+            README.md
+            laws/
+            scripts/
+            resources/
+        anomaly_bestiary/
+            mod.json or mod.tres
+            README.md
+            enemies/
+            scripts/
+            resources/
+        collapsing_microverse_mode/
+            mod.json or mod.tres
+            README.md
+            modes/
+            scripts/
+            resources/
+        boss_heresy_kit/
+            mod.json or mod.tres
+            README.md
+            boss_mutations/
+            scripts/
+            resources/
+        relic_singularity_forge/
+            mod.json or mod.tres
+            README.md
+            relics/
+            scripts/
+            resources/
+
+Also create documentation:
+
+res://mods/README_MODDING.md
+res://mods/MOD_TEMPLATE_BASIC_ENEMY.md
+res://mods/MOD_TEMPLATE_BASIC_RELIC.md
+res://mods/MOD_TEMPLATE_BASIC_ARENA_LAW.md
+res://mods/MOD_TEMPLATE_BASIC_MODE.md
+
+If the project already has a different structure, adapt to the current style.
+
+Add a ModManager or improve the existing one. It should be able to:
+- discover official example mods
+- read their metadata
+- enable / disable mods
+- register modded content safely
+- unregister modded content where possible
+- avoid duplicate registration
+- print clear debug messages
+- fail gracefully if a mod has an error
+
+The mod loader does not need to support downloaded Steam Workshop mods yet. These are built-in official examples.
+
+============================================================
+MOD 1: COSMIC LAWBREAKER PACK
+============================================================
+
+Purpose:
+Teach modders how to create new arena rules / physics laws.
+
+Theme:
+The arena has started misremembering physics. Gravity behaves like a legal system run by a haunted calculator.
+
+Implement several example arena laws. Each law should be toggleable if the architecture allows it.
+
+Law examples:
+
+A. AFTERIMAGE GRAVITY
+Gravity sources pull objects toward where the source was recently, not where it is now.
+This creates ghostly delayed pull trails.
+Educational value:
+Shows how to hook into gravity sampling or modify gravity calculation.
+
+B. ORBIT DEBT
+Every time the player performs a strong slingshot or perfect/apex slingshot, the arena stores “debt.”
+After a short delay, the arena releases a counter-force pulse.
+The pulse should be readable and telegraphed.
+Educational value:
+Shows how to listen to player events and create delayed arena effects.
+
+C. MASS BETRAYAL
+Small enemies are pulled harder by gravity.
+Large enemies resist gravity more.
+Projectiles can optionally be affected differently.
+Educational value:
+Shows how to alter force scaling per body type.
+
+D. HARMONIC TAX
+Staying near gravity wells charges a danger meter.
+Higher danger creates better score/reward multipliers but causes more hazardous gravity pulses.
+Educational value:
+Shows how to add risk/reward arena rules.
+
+E. WRONG VECTOR WEATHER
+Every so often, a visible “weather front” sweeps across the arena.
+Inside it, gravity direction is slightly rotated or warped.
+Educational value:
+Shows how to create area-based modifiers.
+
+Implementation notes:
+- Laws must be readable.
+- Add strong visual/audio feedback if existing systems support it.
+- Do not create impossible unfair forces without warning.
+- Add debug labels or icons if the game has an overlay system.
+- Include comments showing how each law registers itself.
+- Include sample metadata that explains each law.
+
+============================================================
+MOD 2: ANOMALY BESTIARY
+============================================================
+
+Purpose:
+Teach modders how to create enemies.
+
+Theme:
+Enemies are no longer just enemies. They are bad equations with teeth.
+
+Add 5 intense example enemies:
+
+A. PENDULUM WRAITH
+An enemy that swings around gravity wells instead of directly chasing the player.
+It tries to attack when its arc lines up with the player.
+Educational value:
+Shows orbital movement and gravity-aware AI.
+
+B. DEBT COLLECTOR
+An enemy that studies the player’s recent slingshot paths.
+It moves to punish repeated movement patterns.
+Educational value:
+Shows how to read player movement history.
+
+C. ORBIT BARNACLE
+An enemy that attaches to a gravity source and corrupts it.
+While attached, it slightly changes the source’s pull strength, rhythm, or direction.
+The player should be able to destroy it to restore the source.
+Educational value:
+Shows enemies modifying world objects.
+
+D. MIRROR FLEA SWARM
+Small enemies that copy the player’s dash direction with a short delay.
+They are individually weak but dangerous in groups.
+Educational value:
+Shows delayed behavior, swarms, and simple event listening.
+
+E. FALSE RELIC MIMIC
+Looks like a pickup or relic shard.
+When the player gets near, it unfolds into an enemy and creates a short gravity snap.
+Educational value:
+Shows pickup/enemy hybrid design and bait behavior.
+
+Implementation notes:
+- Each enemy should be its own scene and script if possible.
+- Include clear comments.
+- Include exported variables for health, speed, gravity response, attack cooldown, etc.
+- Include placeholder visuals if no final art exists.
+- Make them visually distinct with existing particles, colors, shapes, or simple generated geometry.
+- Add them to a modded enemy spawn table only when this mod is enabled.
+- Make sure the enemies are fair and readable.
+- Avoid giant performance spikes.
+
+============================================================
+MOD 3: COLLAPSING MICROVERSE MODE
+============================================================
+
+Purpose:
+Teach modders how to create a custom game mode.
+
+Theme:
+The player fights inside a tiny dying solar system. Moons, debris, gravity wells, and enemies orbit around a collapsing center.
+
+Create a new example game mode:
+
+COLLAPSING MICROVERSE
+
+Core rules:
+- The arena contains a central unstable singularity.
+- Several small moons/debris bodies orbit around it.
+- Enemies spawn from or near orbiting bodies.
+- Gravity sources move in predictable but dangerous orbital paths.
+- The player can use these moving bodies for powerful slingshots.
+- Every few waves, the microverse shrinks or destabilizes.
+- At high instability, the center releases a visible collapse pulse.
+
+Gameplay feel:
+This should feel like fighting inside a pocket galaxy during its final minutes.
+
+Educational value:
+Shows how to:
+- create a custom mode
+- create custom spawning rules
+- modify arena setup
+- add mode-specific hazards
+- add mode-specific progression
+- register a mode with the game
+
+Implementation notes:
+- Add this mode to the Anomaly Workshop menu.
+- If the game has a mode select screen, optionally add it there under “Official Example Mods.”
+- Use existing gravity/debris systems where possible.
+- Keep performance reasonable.
+- Add a README explaining how a modder can copy this mode and create their own.
+
+Optional extra:
+Add a “Microverse Instability” meter to the HUD if simple to do.
+
+============================================================
+MOD 4: BOSS HERESY KIT
+============================================================
+
+Purpose:
+Teach modders how to mutate existing bosses without building an entirely new boss from scratch.
+
+Theme:
+The bosses are being rewritten by corrupted physics laws. Same skeleton, new nightmare.
+
+Create alternate boss variants / mutations for existing bosses. Use actual boss names found in the project. If these exact bosses exist, use them. If names differ, adapt to the current boss roster.
+
+Example variants:
+
+A. GRAVITY WARDEN: REDSHIFT HERESY
+The faster the player moves, the farther some boss attacks stretch.
+The boss rewards controlled orbiting and punishes panic movement.
+Educational value:
+Shows how to modify attack parameters based on player state.
+
+B. ACCRETION CORE: HUNGER HERESY
+The boss absorbs debris or loose objects.
+Absorbed matter changes its next attack pattern.
+Educational value:
+Shows boss interaction with arena objects.
+
+C. MAGNETAR TWINS: DESYNC HERESY
+The twins stop attacking in perfect rhythm.
+One predicts where the player will be.
+The other reacts to where the player currently is.
+Educational value:
+Shows multi-entity boss coordination and prediction logic.
+
+D. NULL VECTOR SERAPH: BROKEN HALO HERESY
+The boss creates safe zones that later invert into danger zones.
+Educational value:
+Shows delayed hazard states and telegraphed arena control.
+
+Implementation notes:
+- Do not duplicate entire boss scripts unless unavoidable.
+- Prefer wrappers, mutation resources, configuration resources, or modifier scripts.
+- Each mutation should be optional and registered through the mod.
+- Add comments showing which parts are mutation-specific.
+- Add clear telegraphs so the variants feel intense but fair.
+- Include README notes explaining how to create a new mutation.
+
+============================================================
+MOD 5: RELIC SINGULARITY FORGE
+============================================================
+
+Purpose:
+Teach modders how to create upgrades, relics, passives, and build synergies.
+
+Theme:
+The player finds relics from failed timelines. Every gift from the void sends an invoice.
+
+Add at least 8 example relics:
+
+A. ORBIT RECEIPT
+Perfect slingshots grant stacks.
+At 5 stacks, the next shot releases a mini gravity pulse.
+
+B. BORROWED MOMENTUM
+Near misses steal a small amount of enemy velocity and add it to the next dash.
+
+C. DEAD STAR COUPON
+When the shield breaks, spawn a tiny temporary singularity at the break location.
+
+D. COWARD’S CROWN
+Direct damage is reduced, but gravity-assisted damage is increased.
+Encourages weird skilled play.
+
+E. WRONG EQUATION
+Every few seconds, the next projectile ignores normal rules and curves toward the strongest gravity source.
+
+F. EVENT HORIZON POCKET
+Collecting several pickups quickly compresses them into a delayed burst reward.
+
+G. APOGEE NEEDLE
+At the highest point of a strong slingshot arc, the player charges a piercing shot.
+
+H. KINETIC GUILT
+Taking damage stores kinetic guilt.
+The next perfect slingshot releases a revenge shockwave.
+
+Educational value:
+Shows how to:
+- create passive upgrades
+- listen for player events
+- modify projectile behavior
+- modify shield break behavior
+- add stack counters
+- add synergy hooks
+- register relics into drop tables
+
+Implementation notes:
+- Use existing upgrade/relic systems if they exist.
+- Otherwise create a clean example registry.
+- Each relic should have metadata: name, description, rarity, tags, icon placeholder, and script/resource path.
+- Include comments explaining event hooks.
+- Add simple placeholder icons if possible.
+- Make the relics available only when this mod is enabled.
+
+============================================================
+DOCUMENTATION REQUIREMENTS
+============================================================
+
+Add clear documentation for future modders.
+
+Create:
+
+1. res://mods/README_MODDING.md
+
+Include:
+- What a mod is in this project
+- How official example mods are structured
+- How to create a new mod folder
+- How to write mod metadata
+- How to register content
+- How to test a mod
+- How to disable a broken mod
+- Best practices for performance and fairness
+
+2. README.md inside each example mod folder
+
+Each mod README should include:
+- What the mod does
+- What systems it demonstrates
+- Important files
+- How to copy it as a template
+- Common things to change
+- Common things not to change
+
+3. Template docs:
+
+MOD_TEMPLATE_BASIC_ENEMY.md
+MOD_TEMPLATE_BASIC_RELIC.md
+MOD_TEMPLATE_BASIC_ARENA_LAW.md
+MOD_TEMPLATE_BASIC_MODE.md
+
+These should be simple enough that a new modder can follow them.
+
+============================================================
+QUALITY REQUIREMENTS
+============================================================
+
+The example mods should be:
+- exciting to play
+- useful to learn from
+- commented clearly
+- modular
+- safe to disable
+- easy to copy
+- not dependent on paid plugins
+- compatible with Godot 4.x
+- friendly to future Steam Workshop-style support
+- performance-conscious
+
+Add debug logging with a consistent prefix, for example:
+
+[ModManager]
+[ExampleMod: Cosmic Lawbreaker Pack]
+[ExampleMod: Anomaly Bestiary]
+
+Do not spam logs every frame.
+
+Use exported variables where modders would want to tweak values.
+
+Use readable names. Avoid mystery spaghetti.
+
+============================================================
+BALANCE REQUIREMENTS
+============================================================
+
+These mods should feel intense but not unfair.
+
+For every dangerous mechanic:
+- add a visual telegraph
+- add a short warning window
+- give the player a way to respond
+- avoid unavoidable damage
+- avoid stacking too many hazards at once
+
+The game’s design goal is readable chaos, not random soup.
+
+============================================================
+SAVE / SETTINGS REQUIREMENTS
+============================================================
+
+If the game has save/settings support:
+- Save which example mods are enabled.
+- Make sure disabling mods does not corrupt saves.
+- If a save references disabled mod content, fail safely and use fallback behavior.
+- Add a “disable all official example mods” option.
+
+If save support is too risky to touch:
+- Keep mod toggles session-only and document that clearly.
+
+============================================================
+IMPLEMENTATION STEPS
+============================================================
+
+Step 1:
+Inspect the project structure.
+Find existing systems for:
+- enemies
+- bosses
+- gravity sources
+- arena rules
+- upgrades/relics
+- wave spawning
+- menus/settings
+- save data
+- debug overlays
+
+Step 2:
+Create or adapt a ModManager system.
+
+Step 3:
+Create the Anomaly Workshop menu.
+
+Step 4:
+Implement the 5 official example mods in separate folders.
+
+Step 5:
+Register content only when the corresponding mod is enabled.
+
+Step 6:
+Add documentation and template files.
+
+Step 7:
+Add comments in scripts/resources explaining how modders can copy and modify them.
+
+Step 8:
+Test enabling/disabling each mod individually.
+
+Step 9:
+Test enabling all mods together.
+
+Step 10:
+Fix errors, duplicate registrations, missing paths, crashes, and obvious balance problems.
+
+============================================================
+DEFINITION OF DONE
+============================================================
+
+This task is complete when:
+
+- The project runs without errors.
+- An Anomaly Workshop menu exists or existing menu integration is complete.
+- The 5 official example mods appear in the menu.
+- Each mod can be enabled/disabled.
+- Each mod has playable or testable content.
+- Modded enemies appear only when Anomaly Bestiary is enabled.
+- Modded relics appear only when Relic Singularity Forge is enabled.
+- Collapsing Microverse Mode can be launched or selected.
+- Boss mutations can be previewed, enabled, or used through the boss system.
+- Arena laws can be activated through Cosmic Lawbreaker Pack.
+- Documentation exists in res://mods/.
+- Scripts are commented enough for modders to learn from.
+- No major existing gameplay systems are broken.
+
+When finished, give me:
+1. A summary of all files created/changed.
+2. A list of how to test each mod.
+3. Any systems you could not fully integrate.
+4. Any recommended follow-up tasks.

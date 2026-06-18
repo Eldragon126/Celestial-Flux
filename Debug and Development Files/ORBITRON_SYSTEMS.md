@@ -368,15 +368,16 @@ Drops are arena entities with decay, readable glyphs, gravity interaction where 
 
 ## Production Simulation Runner
 
-`production_simulation_runner.gd` boots `the_abyss.tscn`, disables default developer UI, enables the stress harness, samples warmup and production frames, and validates explicit budgets:
+`production_simulation_runner.gd` boots `the_abyss.tscn`, disables default developer UI, enables the stress harness, samples warmup and production frames, and validates explicit budgets. For normal project autoloads and the Steam demo profile, run it through `res://Nodes/production_simulation_runner.tscn` instead of a headless script launch:
 
 - average frame time
 - max frame time
 - projectile count
 - VFX burst cap
 - stress harness budget report
+- Steam demo budget report when launched with `-- --demo-profile`
 
-The runner is a progress/performance validator, not a live-state save or deterministic replay. It proves the production systems remain bounded under late-wave-style projectile and gravity pressure.
+The runner is a progress/performance validator, not a live-state save or deterministic replay. It proves the production systems remain bounded under late-wave-style projectile and gravity pressure while keeping validation separated from player-facing run state.
 
 ## Apex Vector Core
 
@@ -455,3 +456,18 @@ Production behavior:
 - Readability, death diagnostics, adaptive music, stress reporting, and multiplayer sync risk read cached projectile/boss/gravity counts before falling back to direct scans.
 
 This keeps high-chaos combat deterministic-feeling, readable, and bounded under late-wave projectile/enemy load.
+
+## 2026-06-18 Stability, Opening, And Creator Pass
+
+- Reduced Flash now distinguishes transient flashes from persistent readability geometry. Player projectiles use a projectile-specific alpha floor, while gravity/resonance circles keep a persistent alpha floor.
+- Black-hole spaghettification no longer non-uniformly scales live collision bodies. Consumption avoids mutating the player's collision tree inside the black-hole physics callback, and the decorative core no longer owns a blocking physics shape.
+- Optional orbiting celestial events default off in `Settings`. When enabled, binary/structure orbit radius and angular direction are captured from the player's position and velocity at spawn rather than continuously chasing the player; LAN runs replicate the host's choice in protocol 6 run config.
+- Waves 1-4 now use explicit tutorial-readable rosters. Procedural gravity spawners move to wave 6 and gravity-wave makers to wave 8, preventing the old wave-4 overlap of new AI families and authored gravity fields.
+- `ModContentRegistry` can validate manifest text/files and export a creator diagnostics report. The Mods screen exposes that report, and `website/modding/` is the dedicated public Creator Lab.
+
+## 2026-06-18 Mod Contract Expansion
+
+- Manifest schema 4 adds bounded creator options, dependency min/max versions, explicit conflicts, and deterministic `load_before` / `load_after` ordering.
+- Creator options persist beside mod toggles, render as native controls in the Mods screen, and can gate safe hooks through typed `mod_option` comparisons.
+- Gameplay-affecting option values participate in LAN compatibility signatures; local visual choices remain signature-exempt.
+- Creator diagnostics now include conflict state and resolved option values, while the public Creator Lab can forge, import, validate, and export schema 4 starter contracts.

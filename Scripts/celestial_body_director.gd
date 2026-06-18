@@ -18,6 +18,13 @@ const DYNAMIC_BODY_SCENE = preload("res://Nodes/dynamic_celestial_body.tscn")
 @export var pair_check_interval: float = 0.45
 @export var spawn_min_radius: float = 760.0
 @export var spawn_max_radius: float = 1600.0
+@export_group("Optional Orbit Events")
+@export var dynamic_orbit_min_radius: float = 130.0
+@export var dynamic_orbit_max_radius: float = 360.0
+@export var dynamic_orbit_distance_scale: float = 0.18
+@export var dynamic_orbit_velocity_scale: float = 0.08
+@export var dynamic_orbit_min_angular_speed: float = 0.2
+@export var dynamic_orbit_max_angular_speed: float = 0.78
 
 var _player: Node2D = null
 var _arena_manager: Node = null
@@ -104,9 +111,12 @@ func _spawn_binary_system(data: Dictionary) -> void:
 	anchor.global_position = _spawn_position()
 	add_child(anchor)
 	_anchors.append({"node": anchor, "velocity": _orbit_axis().orthogonal() * 36.0, "age": 0.0, "lifetime": 36.0})
-	var base_angle := float(data.get("sequence", 0)) * 0.72
-	var body_a := _spawn_body(DynamicCelestialBody.BodyKind.PLANET, anchor.global_position, 180000.0, 78.0, 34.0, Vector2.ZERO, anchor, 155.0, base_angle, 0.58)
-	var body_b := _spawn_body(DynamicCelestialBody.BodyKind.MOON, anchor.global_position, 94000.0, 48.0, 34.0, Vector2.ZERO, anchor, 155.0, base_angle + PI, -0.58)
+	var orbit_state := _dynamic_orbit_state(anchor.global_position, float(data.get("sequence", 0)) * 0.72)
+	var orbit_radius := float(orbit_state.get("radius", 155.0))
+	var base_angle := float(orbit_state.get("angle", 0.0))
+	var angular_speed := float(orbit_state.get("angular_speed", 0.58))
+	var body_a := _spawn_body(DynamicCelestialBody.BodyKind.PLANET, anchor.global_position, 180000.0, 78.0, 34.0, Vector2.ZERO, anchor, orbit_radius, base_angle, angular_speed)
+	var body_b := _spawn_body(DynamicCelestialBody.BodyKind.MOON, anchor.global_position, 94000.0, 48.0, 34.0, Vector2.ZERO, anchor, orbit_radius, base_angle + PI, -angular_speed)
 	celestial_body_split.emit(anchor.get_instance_id(), [body_a, body_b], {"source": &"binary_system"})
 
 
@@ -130,6 +140,10 @@ func _spawn_orbital_structure(data: Dictionary) -> void:
 	anchor.global_position = _spawn_position()
 	add_child(anchor)
 	_anchors.append({"node": anchor, "velocity": _orbit_axis() * 24.0, "age": 0.0, "lifetime": 42.0})
+	var orbit_state := _dynamic_orbit_state(anchor.global_position, float(data.get("sequence", 0)) * 0.47)
+	var structure_radius := float(orbit_state.get("radius", 210.0))
+	var structure_angle := float(orbit_state.get("angle", 0.0))
+	var structure_speed := float(orbit_state.get("angular_speed", 0.44))
 	for i in range(3):
 		_spawn_body(
 			DynamicCelestialBody.BodyKind.ORBITAL_STRUCTURE,
@@ -139,9 +153,9 @@ func _spawn_orbital_structure(data: Dictionary) -> void:
 			38.0,
 			Vector2.ZERO,
 			anchor,
-			210.0,
-			TAU * float(i) / 3.0,
-			0.44
+			structure_radius,
+			structure_angle + TAU * float(i) / 3.0,
+			structure_speed
 		)
 
 
@@ -280,10 +294,12 @@ func _update_anchors(delta: float) -> void:
 
 
 func _choose_event() -> StringName:
-	var events: Array[StringName] = [&"rogue_planet", &"binary_system"]
+	var events: Array[StringName] = [&"rogue_planet"]
+	if _auto_orbiting_celestials_enabled():
+		events.append(&"binary_system")
 	if _current_wave() >= 7:
 		events.append(&"wandering_singularity")
-	if _instability() >= 0.42:
+	if _auto_orbiting_celestials_enabled() and _instability() >= 0.42:
 		events.append(&"orbital_structure")
 	var seed := int(RunProgress.run_seed if RunProgress != null else 0)
 	return events[absi(hash("%d:%d:%d:%d" % [seed, _current_wave(), _sequence, int(_instability() * 1000.0)])) % events.size()]
@@ -304,6 +320,38 @@ func _orbit_axis() -> Vector2:
 	if velocity is Vector2 and velocity.length_squared() > 1.0:
 		return velocity.normalized()
 	return Vector2.RIGHT.rotated(float(_sequence) * 0.47)
+
+
+func _auto_orbiting_celestials_enabled() -> bool:
+	if NetworkSession != null and NetworkSession.has_method("is_network_active") and NetworkSession.is_network_active():
+		return RunProgress != null and bool(RunProgress.arena_flags.get("auto_orbiting_celestials", false))
+	return Settings != null and bool(Settings.auto_orbiting_celestials_enabled)
+
+
+func _dynamic_orbit_state(anchor_position: Vector2, fallback_angle: float) -> Dictionary:
+	if _player == null or not is_instance_valid(_player):
+		return {"radius": dynamic_orbit_min_radius, "angle": fallback_angle, "angular_speed": dynamic_orbit_min_angular_speed}
+
+	# Capture the player's approach before the bodies spawn. The orbit is then
+	# stable for its lifetime instead of continuously chasing the player.
+	var relative := _player.global_position - anchor_position
+	var velocity_value: Variant = _player.get("velocity")
+	var player_velocity: Vector2 = velocity_value if velocity_value is Vector2 else Vector2.ZERO
+	var radius := clampf(
+		relative.length() * dynamic_orbit_distance_scale + player_velocity.length() * dynamic_orbit_velocity_scale,
+		dynamic_orbit_min_radius,
+		dynamic_orbit_max_radius
+	)
+	var angle := relative.angle() if relative.length_squared() > 1.0 else fallback_angle
+	var direction := signf(relative.cross(player_velocity))
+	if is_zero_approx(direction):
+		direction = 1.0 if _sequence % 2 == 0 else -1.0
+	var angular_speed := clampf(
+		player_velocity.length() / maxf(radius * 5.5, 1.0),
+		dynamic_orbit_min_angular_speed,
+		dynamic_orbit_max_angular_speed
+	) * direction
+	return {"radius": radius, "angle": angle, "angular_speed": angular_speed}
 
 
 func _remove_oldest_body() -> void:

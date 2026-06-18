@@ -250,6 +250,10 @@ func _simulate_branch(branch_index: int, signed_index: float, is_uncertain_branc
 	var distance_traveled := 0.0
 	var slingshot_factor := _safe_player_float(&"slingshot_factor", 1.5)
 	var orbit_control_bonus := _safe_player_float(&"orbit_control_bonus", 0.0)
+	var proximity_boost_scale := _safe_player_float(&"slingshot_proximity_boost_scale", 0.0)
+	var proximity_max_impulse_per_second := _safe_player_float(&"slingshot_proximity_max_impulse_per_second", 0.0)
+	var proximity_close_margin := _safe_player_float(&"slingshot_proximity_close_margin", 48.0)
+	var proximity_curve := _safe_player_float(&"slingshot_proximity_curve", 1.35)
 	var drag_enabled := bool(_player.get("DRAG_enabled")) if typeof(_player.get("DRAG_enabled")) == TYPE_BOOL else true
 
 	for step in range(prediction_steps):
@@ -265,7 +269,11 @@ func _simulate_branch(branch_index: int, signed_index: float, is_uncertain_branc
 				closest_source,
 				slingshot_factor,
 				orbit_control_bonus,
-				drag_enabled
+				drag_enabled,
+				proximity_boost_scale,
+				proximity_max_impulse_per_second,
+				proximity_close_margin,
+				proximity_curve
 			)
 
 		var resonance_accel := _calculate_resonance_acceleration(pos, vel)
@@ -329,7 +337,11 @@ func _apply_predicted_slingshot(
 	source: Node2D,
 	slingshot_factor: float,
 	orbit_control_bonus: float,
-	drag_enabled: bool
+	drag_enabled: bool,
+	proximity_boost_scale: float,
+	proximity_max_impulse_per_second: float,
+	proximity_close_margin: float,
+	proximity_curve: float
 ) -> Vector2:
 	var offset := source.global_position - position
 	var raw_dist := offset.length()
@@ -352,7 +364,61 @@ func _apply_predicted_slingshot(
 		var accel_tangent := gravity.length() * clampf(tangent_ratio, 0.0, 1.0)
 		velocity_value += tangent * accel_tangent * (slingshot_factor + orbit_control_bonus) * time_step
 
+	if tangential_speed >= min_tangential_speed and proximity_boost_scale > 0.0:
+		var proximity_score := _predicted_slingshot_proximity_score(source, raw_dist, proximity_close_margin)
+		if proximity_score > 0.001:
+			var curve := maxf(proximity_curve, 0.01)
+			var tangent_ratio := tangential_speed / maxf(velocity_value.length(), 1.0)
+			var proximity_strength := (
+				gravity.length()
+				* clampf(tangent_ratio, 0.0, 1.0)
+				* proximity_boost_scale
+				* pow(proximity_score, curve)
+				* (slingshot_factor + orbit_control_bonus)
+			)
+			proximity_strength = minf(proximity_strength, maxf(proximity_max_impulse_per_second, 0.0))
+			var impulse := tangent * proximity_strength * time_step
+			var proximity_cap := (
+				_safe_player_float(&"slingshot_speed_cap", 2480.0)
+				+ _safe_player_float(&"slingshot_mastery_cap_bonus", 300.0) * maxf(proximity_score * 0.65, 0.0)
+			)
+			var proposed := velocity_value + impulse
+			if proposed.length() <= proximity_cap:
+				velocity_value = proposed
+			else:
+				var allowed := maxf(proximity_cap - velocity_value.length(), 0.0)
+				if allowed > 0.001 and impulse.length_squared() > 0.001:
+					velocity_value += impulse.normalized() * minf(impulse.length(), allowed)
+
 	return velocity_value
+
+
+func _predicted_slingshot_proximity_score(source: Node2D, raw_dist: float, close_margin: float) -> float:
+	if source == null or not is_instance_valid(source):
+		return 0.0
+	var source_radius := _source_radius(source)
+	var close_distance := maxf(source_radius + maxf(close_margin, 0.0), 70.0)
+	var far_distance := maxf(500.0, close_distance + 1.0)
+	return 1.0 - clampf(
+		(raw_dist - close_distance) / maxf(far_distance - close_distance, 1.0),
+		0.0,
+		1.0
+	)
+
+
+func _source_radius(source: Node2D) -> float:
+	if source == null or not is_instance_valid(source):
+		return 70.0
+	var radius_value: Variant = source.get("radius")
+	if radius_value is float or radius_value is int:
+		return maxf(float(radius_value), 24.0) * maxf(source.scale.x, source.scale.y)
+	var base_radius_value: Variant = source.get("base_radius")
+	if base_radius_value is float or base_radius_value is int:
+		return maxf(float(base_radius_value), 24.0) * maxf(source.scale.x, source.scale.y)
+	var collision := source.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		return maxf((collision.shape as CircleShape2D).radius, 24.0) * maxf(source.scale.x, source.scale.y)
+	return 70.0 * maxf(source.scale.x, source.scale.y)
 
 
 func _calculate_resonance_acceleration(position: Vector2, velocity_value: Vector2) -> Vector2:

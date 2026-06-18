@@ -19,7 +19,7 @@ enum SessionMode {
 
 const DEFAULT_PORT := 28942
 const DEFAULT_MAX_PEERS := 4
-const NETWORK_PROTOCOL_VERSION := 5
+const NETWORK_PROTOCOL_VERSION := 6
 const RUN_SCENE_PATH := "res://Nodes/the_abyss.tscn"
 const RUN_LOADING_SCENE_PATH := "res://Nodes/run_loading_screen.tscn"
 const PLAYER_SCENE := preload("res://Nodes/player.tscn")
@@ -477,12 +477,15 @@ func _begin_host_run(seed_override: int = 0) -> void:
 		_fail_session("RUN START FAILED: RunProgress missing")
 		return
 	RunProgress.begin_new_run(false, seed_override)
+	var orbiting_celestials := Settings != null and bool(Settings.auto_orbiting_celestials_enabled)
+	RunProgress.arena_flags["auto_orbiting_celestials"] = orbiting_celestials
 	_run_config = {
 		"scene_path": RUN_SCENE_PATH,
 		"seed": int(RunProgress.run_seed),
 		"challenge_mode": false,
 		"boss_rush_mode": false,
 		"phase": int(RunProgress.phase),
+		"auto_orbiting_celestials": orbiting_celestials,
 		"network_protocol": NETWORK_PROTOCOL_VERSION,
 		"mod_signature": _local_mod_signature(),
 	}
@@ -505,6 +508,7 @@ func _apply_run_config(config: Dictionary) -> void:
 	RunProgress.wave_index = 0
 	RunProgress.bosses_defeated = 0
 	RunProgress.run_finished = false
+	RunProgress.arena_flags["auto_orbiting_celestials"] = bool(config.get("auto_orbiting_celestials", false))
 	RunProgress.clear_anchor()
 
 

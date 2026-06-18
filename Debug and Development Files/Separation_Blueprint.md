@@ -306,7 +306,7 @@ Late-wave spectacle now has explicit technical boundaries:
 - `OrbitalVFXDirector` owns pooled particle bursts; gameplay systems emit events instead of duplicating particles.
 - `PowerupInventory` owns pooled law/powerup rings and reusable target buffers for upgrade effects.
 - Barycentric Tether and Frame-Dragging Anchor remain inventory-owned field effects: definitions live in resources, target selection uses capped registry queries, and runtime work stays throttled without scene creation.
-- `production_simulation_runner.gd` owns headless stress validation and reports frame/projectile/VFX budgets without becoming part of gameplay state.
+- `production_simulation_runner.gd` owns stress validation and reports frame/projectile/VFX budgets without becoming part of gameplay state; use the non-headless runner scene when project autoloads or the Steam demo profile must be present.
 - Resonance, momentum, boss field, replay, paralysis, readability, death-readout, music-pressure, stress, and sync systems consume registry buffers/counts instead of owning separate scene-tree discovery.
 - Opening prompts and credits now use the Vector Anomaly identity directly, keeping presentation labels separate from retired internal names.
 - Settings persistence lives in the `Settings` autoload and is consumed by pause/HUD/VFX systems instead of each UI surface owning separate config state.

@@ -10,11 +10,14 @@ signal manifest_failed(source_path: String, reason: String)
 signal manifest_validated(manifest_id: StringName, source_path: String)
 signal content_registered(content_type: StringName, entry_id: StringName, manifest_id: StringName, entry: Dictionary)
 signal dependency_warning(manifest_id: StringName, dependency_id: StringName, reason: String)
+signal manifest_conflict(manifest_id: StringName, conflicting_id: StringName, reason: String)
 signal mod_catalog_changed(snapshot: Dictionary)
 signal mod_hook_registered(hook_id: StringName, entry_id: StringName, manifest_id: StringName, entry: Dictionary)
 signal manifest_toggle_changed(manifest_id: StringName, enabled: bool)
+signal mod_option_changed(manifest_id: StringName, option_id: StringName, value: Variant)
+signal creator_report_exported(report_path: String)
 
-const MAX_SCHEMA_VERSION := 3
+const MAX_SCHEMA_VERSION := 4
 const DEFAULT_MANIFEST_FILE_NAME := "vector_anomaly_mod.json"
 const DEFAULT_MOD_STATE_PATH := "user://mod_state.json"
 const LEGACY_MANIFEST_FILE_NAMES := ["mod.json"]
@@ -105,6 +108,8 @@ const CREATOR_ENTITY_BUCKETS := ["enemies", "enemy_packs", "enemy_behaviors", "b
 const CREATOR_EXPANSION_BUCKETS := ["total_conversions", "expansion_packs", "calamity_mods", "gamemodes", "rules", "waves", "upgrades", "powerups", "mechanics", "status_effects"]
 const WEAPON_FIRE_MODES := ["catalog", "projectile", "beam"]
 const NETWORK_CATEGORIES := ["local_visual", "exported_state", "reliable_event", "deterministic_seed"]
+const MOD_OPTION_TYPES := ["bool", "int", "float", "string", "choice", "color"]
+const MOD_OPTION_OPERATORS := ["equals", "not_equals", "greater_than", "greater_or_equal", "less_than", "less_or_equal"]
 const WEAPON_PATTERN_MODES := ["single", "spread", "parallel", "braid", "helix", "ring", "converge", "scissor", "pinwheel"]
 const MOD_HOOKS := [
 	"run_start",
@@ -199,6 +204,7 @@ const MOD_CONDITION_TYPES := [
 	"near_gravity_source",
 	"black_hole_active",
 	"accessibility_mode",
+	"mod_option",
 ]
 const WEAPON_NUMERIC_FIELDS := [
 	"energy_per_shot",
@@ -350,6 +356,7 @@ const GRAVITY_SCAR_NAME_TO_ID := {
 var _manifests: Dictionary = {}
 var _failed_manifests: Dictionary = {}
 var _dependency_warnings: Dictionary = {}
+var _conflict_warnings: Dictionary = {}
 var _disabled_manifests: Dictionary = {}
 var _content: Dictionary = {}
 var _content_index: Dictionary = {}
@@ -358,6 +365,7 @@ var _load_order: Array[StringName] = []
 var _scan_roots: Array[Dictionary] = []
 var _loaded_manifest_paths: Dictionary = {}
 var _user_disabled_manifests: Dictionary = {}
+var _mod_option_values: Dictionary = {}
 
 
 func _ready() -> void:
@@ -374,6 +382,7 @@ func reload_registry() -> void:
 	_manifests.clear()
 	_failed_manifests.clear()
 	_dependency_warnings.clear()
+	_conflict_warnings.clear()
 	_disabled_manifests.clear()
 	_content_index.clear()
 	_hook_index.clear()
@@ -385,7 +394,9 @@ func reload_registry() -> void:
 	if enabled:
 		_scan_configured_mod_roots()
 
+	_resolve_manifest_load_order()
 	_resolve_dependency_warnings()
+	_resolve_manifest_conflicts()
 	_apply_manifest_enabled_state()
 	_rebuild_hook_index()
 	var summary := get_registry_summary()
@@ -399,6 +410,7 @@ func get_registry_summary() -> Dictionary:
 		"manifest_count": _manifests.size(),
 		"failed": _failed_manifests.size(),
 		"dependency_warnings": _dependency_warnings.size(),
+		"conflict_warnings": _conflict_warnings.size(),
 		"disabled": _disabled_manifests.size(),
 		"user_disabled": _loaded_user_disabled_count(),
 		"content_total": _content_index.size(),
@@ -418,6 +430,7 @@ func get_registry_snapshot() -> Dictionary:
 		"manifests": _manifests.duplicate(true),
 		"failed_manifests": _failed_manifests.duplicate(true),
 		"dependency_warnings": _dependency_warnings.duplicate(true),
+		"conflict_warnings": _conflict_warnings.duplicate(true),
 		"disabled_manifests": _disabled_manifests.duplicate(true),
 		"user_disabled_manifests": _user_disabled_manifests.duplicate(true),
 		"content": _content.duplicate(true),
@@ -428,7 +441,76 @@ func get_registry_snapshot() -> Dictionary:
 		"install_paths": get_mod_install_paths(),
 		"buckets": CONTENT_BUCKETS.duplicate(),
 		"capabilities": get_modding_capabilities(),
+		"mod_option_values": _mod_option_values.duplicate(true),
 	}
+
+
+func validate_manifest_text(json_text: String, source_path: String = "memory://vector_anomaly_mod.json") -> Dictionary:
+	var parser := JSON.new()
+	var parse_error := parser.parse(json_text)
+	if parse_error != OK:
+		return {
+			"valid": false,
+			"manifest_id": "",
+			"errors": ["JSON line %d: %s" % [parser.get_error_line(), parser.get_error_message()]],
+			"source_path": source_path,
+		}
+	var parsed: Variant = parser.data
+	if not (parsed is Dictionary):
+		return {"valid": false, "manifest_id": "", "errors": ["Manifest root must be an object."], "source_path": source_path}
+	var manifest := parsed as Dictionary
+	var context := _manifest_context(source_path, {"source_kind": "creator_validation"})
+	var errors := _validate_manifest(manifest, context)
+	return {
+		"valid": errors.is_empty(),
+		"manifest_id": str(manifest.get("id", "")),
+		"schema_version": int(manifest.get("schema_version", 1)),
+		"errors": errors,
+		"source_path": source_path,
+	}
+
+
+func validate_manifest_file(source_path: String) -> Dictionary:
+	var clean_path := _normalize_path_text(source_path)
+	if clean_path.is_empty() or not FileAccess.file_exists(clean_path):
+		return {"valid": false, "manifest_id": "", "errors": ["Manifest file was not found."], "source_path": clean_path}
+	var file := FileAccess.open(clean_path, FileAccess.READ)
+	if file == null:
+		return {"valid": false, "manifest_id": "", "errors": ["Manifest file could not be opened."], "source_path": clean_path}
+	var json_text := file.get_as_text()
+	file.close()
+	return validate_manifest_text(json_text, clean_path)
+
+
+func export_creator_report(report_path: String = "user://mod_creator_report.json") -> String:
+	var clean_path := _normalize_path_text(report_path)
+	if clean_path.is_empty():
+		return ""
+	var parent_dir := clean_path.get_base_dir()
+	if not parent_dir.is_empty() and parent_dir != ".":
+		_ensure_mod_root(parent_dir)
+	var report := {
+		"format": "vector_anomaly_mod_creator_report",
+		"schema_version": MAX_SCHEMA_VERSION,
+		"generated_unix_time": int(Time.get_unix_time_from_system()),
+		"summary": get_registry_summary(),
+		"manifests": _manifests.duplicate(true),
+		"failed_manifests": _failed_manifests.duplicate(true),
+		"dependency_warnings": _dependency_warnings.duplicate(true),
+		"conflict_warnings": _conflict_warnings.duplicate(true),
+		"disabled_manifests": _disabled_manifests.duplicate(true),
+		"mod_option_values": _mod_option_values.duplicate(true),
+		"compatibility_signature": get_compatibility_signature(),
+		"capabilities": get_modding_capabilities(),
+		"install_paths": get_mod_install_paths(),
+	}
+	var file := FileAccess.open(clean_path, FileAccess.WRITE)
+	if file == null:
+		return ""
+	file.store_string(JSON.stringify(report, "\t"))
+	file.close()
+	creator_report_exported.emit(clean_path)
+	return ProjectSettings.globalize_path(clean_path)
 
 
 func get_content_buckets() -> Array:
@@ -530,6 +612,8 @@ func get_modding_capabilities() -> Dictionary:
 		"weapon_fire_modes": WEAPON_FIRE_MODES.duplicate(),
 		"weapon_patterns": WEAPON_PATTERN_MODES.duplicate(),
 		"network_categories": NETWORK_CATEGORIES.duplicate(),
+		"mod_option_types": MOD_OPTION_TYPES.duplicate(),
+		"mod_option_operators": MOD_OPTION_OPERATORS.duplicate(),
 		"script_buckets": SCRIPT_CONTENT_BUCKETS.duplicate(),
 		"creator_surfaces": {
 			"levels": CREATOR_LEVEL_BUCKETS.duplicate(),
@@ -677,6 +761,88 @@ func get_dependency_warnings() -> Dictionary:
 	return _dependency_warnings.duplicate(true)
 
 
+func get_conflict_warnings() -> Dictionary:
+	return _conflict_warnings.duplicate(true)
+
+
+func get_manifest_options(manifest_id: StringName) -> Array:
+	var manifest := get_manifest(manifest_id)
+	var options_value: Variant = manifest.get("options", [])
+	if not (options_value is Array):
+		return []
+	var options: Array = []
+	for option_value in options_value as Array:
+		if not (option_value is Dictionary):
+			continue
+		var option := (option_value as Dictionary).duplicate(true)
+		option["value"] = get_mod_option(manifest_id, StringName(str(option.get("id", ""))), option.get("default"))
+		options.append(option)
+	return options
+
+
+func get_mod_option(manifest_id: StringName, option_id: StringName, fallback: Variant = null) -> Variant:
+	var manifest_key := str(manifest_id)
+	var option_key := str(option_id)
+	var values_value: Variant = _mod_option_values.get(manifest_key, {})
+	if values_value is Dictionary and (values_value as Dictionary).has(option_key):
+		return (values_value as Dictionary).get(option_key)
+	var manifest := get_manifest(manifest_id)
+	var options_value: Variant = manifest.get("options", [])
+	if options_value is Array:
+		for option_value in options_value as Array:
+			if option_value is Dictionary and str((option_value as Dictionary).get("id", "")) == option_key:
+				return (option_value as Dictionary).get("default", fallback)
+	return fallback
+
+
+func set_mod_option(manifest_id: StringName, option_id: StringName, value: Variant) -> bool:
+	var manifest_key := str(manifest_id)
+	var option_key := str(option_id)
+	var option := _find_manifest_option(manifest_id, option_id)
+	if option.is_empty():
+		return false
+	var normalized: Variant = _normalize_option_value(option, value)
+	if normalized == null and str(option.get("type", "string")) != "string":
+		return false
+	var values_value: Variant = _mod_option_values.get(manifest_key, {})
+	var values: Dictionary = values_value.duplicate(true) if values_value is Dictionary else {}
+	if values.get(option_key, option.get("default")) == normalized:
+		return false
+	values[option_key] = normalized
+	_mod_option_values[manifest_key] = values
+	if persist_mod_toggles:
+		_save_mod_toggle_state()
+	mod_option_changed.emit(manifest_id, option_id, normalized)
+	mod_catalog_changed.emit(get_registry_snapshot())
+	return true
+
+
+func reset_manifest_options(manifest_id: StringName) -> bool:
+	var manifest_key := str(manifest_id)
+	if not _mod_option_values.has(manifest_key):
+		return false
+	_mod_option_values.erase(manifest_key)
+	if persist_mod_toggles:
+		_save_mod_toggle_state()
+	mod_catalog_changed.emit(get_registry_snapshot())
+	return true
+
+
+func get_entries_by_network_category(network_category: StringName) -> Array:
+	var category := str(network_category)
+	if not NETWORK_CATEGORIES.has(category):
+		return []
+	var matches: Array = []
+	for bucket in CONTENT_BUCKETS:
+		for entry_value in (_content[bucket] as Dictionary).values():
+			if not (entry_value is Dictionary):
+				continue
+			var entry := entry_value as Dictionary
+			if bool(entry.get("enabled", true)) and str(entry.get("network_category", _default_network_category(bucket))) == category:
+				matches.append(entry.duplicate(true))
+	return matches
+
+
 func get_scan_roots() -> Array:
 	var roots := []
 	for root_value in _scan_roots:
@@ -730,16 +896,29 @@ func get_compatibility_signature() -> String:
 			content_tokens.append(_content_signature_token(bucket, str(qualified_id), entry))
 	for manifest_id in _load_order:
 		var manifest_key := str(manifest_id)
-		if not gameplay_manifest_keys.has(manifest_key):
-			continue
 		var manifest: Dictionary = _manifests.get(manifest_key, {})
 		if manifest.is_empty() or not bool(manifest.get("enabled", true)):
+			continue
+		var gameplay_options: Array[String] = []
+		for option_value in manifest.get("options", []):
+			if not (option_value is Dictionary):
+				continue
+			var option := option_value as Dictionary
+			if str(option.get("network_category", "local_visual")) == "local_visual":
+				continue
+			gameplay_manifest_keys[manifest_key] = true
+			var option_id := str(option.get("id", ""))
+			gameplay_options.append("%s=%s" % [option_id, _stable_value_text(get_mod_option(manifest_id, StringName(option_id), option.get("default")))])
+		if not gameplay_manifest_keys.has(manifest_key):
 			continue
 		tokens.append("%s:%s:%d" % [
 			manifest_key,
 			str(manifest.get("version", "1")),
 			int(manifest.get("schema_version", 1)),
 		])
+		gameplay_options.sort()
+		for option_token in gameplay_options:
+			tokens.append("option:%s:%s" % [manifest_key, option_token])
 	for token in content_tokens:
 		tokens.append(token)
 	tokens.sort()
@@ -848,6 +1027,7 @@ func _append_unique_string(values: Array[String], value: String) -> void:
 
 func _load_mod_toggle_state() -> void:
 	_user_disabled_manifests.clear()
+	_mod_option_values.clear()
 	var clean_path := _normalize_path_text(mod_state_path)
 	if clean_path.is_empty() or not FileAccess.file_exists(clean_path):
 		return
@@ -868,6 +1048,13 @@ func _load_mod_toggle_state() -> void:
 		for key in disabled_map.keys():
 			if bool(disabled_map.get(key, false)):
 				_add_user_disabled_manifest_id(str(key))
+	var option_values_value: Variant = data.get("mod_option_values", {})
+	if option_values_value is Dictionary:
+		for manifest_key_value in (option_values_value as Dictionary).keys():
+			var manifest_key := str(manifest_key_value).strip_edges()
+			var manifest_values: Variant = (option_values_value as Dictionary).get(manifest_key_value, {})
+			if _is_safe_identifier(manifest_key) and manifest_values is Dictionary:
+				_mod_option_values[manifest_key] = (manifest_values as Dictionary).duplicate(true)
 
 
 func _save_mod_toggle_state() -> bool:
@@ -885,8 +1072,9 @@ func _save_mod_toggle_state() -> bool:
 	if file == null:
 		return false
 	file.store_string(JSON.stringify({
-		"version": 1,
+		"version": 2,
 		"disabled_manifests": ids,
+		"mod_option_values": _mod_option_values,
 	}, "\t"))
 	file.close()
 	return true
@@ -1184,7 +1372,10 @@ func _load_manifest_path(path: String, source_context: Dictionary = {}) -> void:
 		"external_source": bool(manifest_context.get("external_source", false)),
 		"tags": _string_array(manifest.get("tags", [])),
 		"dependencies": _dependency_array(manifest.get("dependencies", [])),
+		"conflicts": _conflict_array(manifest.get("conflicts", [])),
 		"load_after": _string_array(manifest.get("load_after", [])),
+		"load_before": _string_array(manifest.get("load_before", [])),
+		"options": _normalize_manifest_options(manifest.get("options", [])),
 		"enabled": true,
 		"user_enabled": true,
 		"user_disabled": false,
@@ -1218,6 +1409,25 @@ func _validate_manifest(manifest: Dictionary, source_context: Dictionary = {}) -
 	else:
 		var dependency_entries := dependencies as Array
 		_validate_dependencies(dependency_entries, errors)
+	var conflicts: Variant = manifest.get("conflicts", [])
+	if not (conflicts is Array):
+		errors.append("conflicts must be an array")
+	else:
+		_validate_conflicts(conflicts as Array, errors)
+	for ordering_field in ["load_after", "load_before"]:
+		var ordering_value: Variant = manifest.get(ordering_field, [])
+		if not (ordering_value is Array):
+			errors.append("%s must be an array" % ordering_field)
+			continue
+		for ordering_index in range((ordering_value as Array).size()):
+			var ordering_id := str((ordering_value as Array)[ordering_index]).strip_edges()
+			if ordering_id.is_empty() or not _is_safe_identifier(ordering_id) or ordering_id == manifest_id:
+				errors.append("%s[%d] must be a different safe mod id" % [ordering_field, ordering_index])
+	var options: Variant = manifest.get("options", [])
+	if not (options is Array):
+		errors.append("options must be an array")
+	else:
+		_validate_manifest_options(options as Array, errors)
 
 	var content_value: Variant = manifest.get("content", {})
 	if content_value != null and not (content_value is Dictionary):
@@ -1244,8 +1454,59 @@ func _validate_dependencies(entries: Array, errors: Array[String]) -> void:
 			errors.append("dependencies[%d] must be a string or object" % index)
 			continue
 		var dependency := entry as Dictionary
-		if str(dependency.get("id", "")).strip_edges().is_empty():
+		var dependency_id := str(dependency.get("id", "")).strip_edges()
+		if dependency_id.is_empty():
 			errors.append("dependencies[%d] missing id" % index)
+		elif not _is_safe_identifier(dependency_id):
+			errors.append("dependencies[%d].id contains unsafe characters" % index)
+		for version_field in ["min_version", "max_version"]:
+			if dependency.has(version_field) and str(dependency.get(version_field, "")).strip_edges().is_empty():
+				errors.append("dependencies[%d].%s must not be empty" % [index, version_field])
+
+
+func _validate_conflicts(entries: Array, errors: Array[String]) -> void:
+	for index in range(entries.size()):
+		var entry: Variant = entries[index]
+		var conflict_id := str(entry).strip_edges() if entry is String else ""
+		if entry is Dictionary:
+			conflict_id = str((entry as Dictionary).get("id", "")).strip_edges()
+		elif not (entry is String):
+			errors.append("conflicts[%d] must be a string or object" % index)
+			continue
+		if conflict_id.is_empty() or not _is_safe_identifier(conflict_id):
+			errors.append("conflicts[%d] must contain a safe mod id" % index)
+
+
+func _validate_manifest_options(options: Array, errors: Array[String]) -> void:
+	var ids := {}
+	for index in range(options.size()):
+		var option_value: Variant = options[index]
+		if not (option_value is Dictionary):
+			errors.append("options[%d] must be an object" % index)
+			continue
+		var option := option_value as Dictionary
+		var option_id := str(option.get("id", "")).strip_edges()
+		var option_type := str(option.get("type", "bool")).strip_edges()
+		if option_id.is_empty() or not _is_safe_identifier(option_id):
+			errors.append("options[%d].id must be a safe identifier" % index)
+		elif ids.has(option_id):
+			errors.append("options[%d].id is duplicated" % index)
+		ids[option_id] = true
+		if not MOD_OPTION_TYPES.has(option_type):
+			errors.append("options[%d].type is invalid" % index)
+			continue
+		var network_category := str(option.get("network_category", "local_visual"))
+		if not NETWORK_CATEGORIES.has(network_category):
+			errors.append("options[%d].network_category is invalid" % index)
+		if not option.has("default"):
+			errors.append("options[%d].default is required" % index)
+			continue
+		if _normalize_option_value(option, option.get("default")) == null and option_type != "string":
+			errors.append("options[%d].default does not match its type or bounds" % index)
+		if option_type == "choice":
+			var choices_value: Variant = option.get("choices", [])
+			if not (choices_value is Array) or (choices_value as Array).is_empty():
+				errors.append("options[%d].choices must be a non-empty array" % index)
 
 
 func _validate_entry_array(entries: Array, key: String, errors: Array[String], source_context: Dictionary = {}) -> void:
@@ -1393,6 +1654,16 @@ func _validate_condition_array(entry: Dictionary, key: String, index: int, error
 		var condition_type := str(condition.get("type", "")).strip_edges()
 		if condition_type.is_empty() or not MOD_CONDITION_TYPES.has(condition_type):
 			errors.append("%s[%d].conditions[%d].type is not supported" % [key, index, condition_index])
+		elif condition_type == "mod_option":
+			var manifest_id := str(condition.get("manifest_id", condition.get("mod_id", ""))).strip_edges()
+			var option_id := str(condition.get("option_id", condition.get("id", ""))).strip_edges()
+			var operator := str(condition.get("operator", "equals"))
+			if manifest_id.is_empty() or not _is_safe_identifier(manifest_id):
+				errors.append("%s[%d].conditions[%d].manifest_id is required" % [key, index, condition_index])
+			if option_id.is_empty() or not _is_safe_identifier(option_id):
+				errors.append("%s[%d].conditions[%d].option_id is required" % [key, index, condition_index])
+			if not MOD_OPTION_OPERATORS.has(operator):
+				errors.append("%s[%d].conditions[%d].operator is invalid" % [key, index, condition_index])
 		if condition.has("script"):
 			errors.append("%s[%d].conditions[%d].script is not allowed" % [key, index, condition_index])
 
@@ -1808,6 +2079,83 @@ func _register_hook_index(entry: Dictionary) -> void:
 			)
 
 
+func _resolve_manifest_load_order() -> void:
+	if _load_order.size() < 2:
+		return
+	var original_index := {}
+	var indegree := {}
+	var edges := {}
+	for index in range(_load_order.size()):
+		var manifest_key := str(_load_order[index])
+		original_index[manifest_key] = index
+		indegree[manifest_key] = 0
+		edges[manifest_key] = []
+	for manifest_id in _load_order:
+		var manifest_key := str(manifest_id)
+		var manifest: Dictionary = _manifests.get(manifest_key, {})
+		for dependency_value in manifest.get("dependencies", []):
+			if dependency_value is Dictionary:
+				_add_load_order_edge(str((dependency_value as Dictionary).get("id", "")), manifest_key, edges, indegree)
+		for after_id in manifest.get("load_after", []):
+			_add_load_order_edge(str(after_id), manifest_key, edges, indegree)
+		for before_id in manifest.get("load_before", []):
+			_add_load_order_edge(manifest_key, str(before_id), edges, indegree)
+	var ready: Array[String] = []
+	for manifest_key in indegree.keys():
+		if int(indegree[manifest_key]) == 0:
+			ready.append(str(manifest_key))
+	ready.sort_custom(func(a: String, b: String) -> bool: return int(original_index.get(a, 0)) < int(original_index.get(b, 0)))
+	var ordered: Array[StringName] = []
+	while not ready.is_empty():
+		var manifest_key = ready.pop_front()
+		ordered.append(StringName(manifest_key))
+		for target_value in edges.get(manifest_key, []):
+			var target := str(target_value)
+			indegree[target] = int(indegree.get(target, 0)) - 1
+			if int(indegree[target]) == 0:
+				ready.append(target)
+				ready.sort_custom(func(a: String, b: String) -> bool: return int(original_index.get(a, 0)) < int(original_index.get(b, 0)))
+	if ordered.size() != _load_order.size():
+		for manifest_id in _load_order:
+			if not ordered.has(manifest_id):
+				ordered.append(manifest_id)
+				_add_dependency_warning(manifest_id, &"load_order", "load order cycle detected")
+	_load_order = ordered
+
+
+func _add_load_order_edge(source: String, target: String, edges: Dictionary, indegree: Dictionary) -> void:
+	if source.is_empty() or target.is_empty() or source == target:
+		return
+	if not indegree.has(source) or not indegree.has(target):
+		return
+	var targets: Array = edges.get(source, [])
+	if targets.has(target):
+		return
+	targets.append(target)
+	edges[source] = targets
+	indegree[target] = int(indegree.get(target, 0)) + 1
+
+
+func _resolve_manifest_conflicts() -> void:
+	for manifest_id in _load_order:
+		var manifest_key := str(manifest_id)
+		var manifest: Dictionary = _manifests.get(manifest_key, {})
+		for conflict_value in manifest.get("conflicts", []):
+			if not (conflict_value is Dictionary):
+				continue
+			var conflict := conflict_value as Dictionary
+			var conflicting_key := str(conflict.get("id", ""))
+			if conflicting_key.is_empty() or not _manifests.has(conflicting_key):
+				continue
+			var reason := str(conflict.get("reason", "declared incompatible"))
+			_add_conflict_warning(manifest_id, StringName(conflicting_key), reason)
+			var manifest_index := _load_order.find(manifest_id)
+			var conflicting_index := _load_order.find(StringName(conflicting_key))
+			var disabled_key := manifest_key if manifest_index >= conflicting_index else conflicting_key
+			if not _disabled_manifests.has(disabled_key):
+				_disabled_manifests[disabled_key] = "conflicts with %s: %s" % [conflicting_key if disabled_key == manifest_key else manifest_key, reason]
+
+
 func _resolve_dependency_warnings() -> void:
 	for manifest_id in _load_order:
 		var manifest_key := str(manifest_id)
@@ -1828,14 +2176,17 @@ func _resolve_dependency_warnings() -> void:
 				if bool(dependency.get("required", true)):
 					_disabled_manifests[manifest_key] = "dependency %s disabled" % str(dependency_id)
 				continue
-			var min_version := str(dependency.get("min_version", "")).strip_edges()
-			if min_version.is_empty():
-				continue
 			var loaded_version := str((_manifests[str(dependency_id)] as Dictionary).get("version", "0"))
-			if _version_sort_value(loaded_version) < _version_sort_value(min_version):
+			var min_version := str(dependency.get("min_version", "")).strip_edges()
+			if not min_version.is_empty() and _compare_versions(loaded_version, min_version) < 0:
 				_add_dependency_warning(manifest_id, dependency_id, "dependency below min_version %s" % min_version)
 				if bool(dependency.get("required", true)):
 					_disabled_manifests[manifest_key] = "dependency %s below %s" % [str(dependency_id), min_version]
+			var max_version := str(dependency.get("max_version", "")).strip_edges()
+			if not max_version.is_empty() and _compare_versions(loaded_version, max_version) > 0:
+				_add_dependency_warning(manifest_id, dependency_id, "dependency above max_version %s" % max_version)
+				if bool(dependency.get("required", true)):
+					_disabled_manifests[manifest_key] = "dependency %s above %s" % [str(dependency_id), max_version]
 
 	if not allow_script_pack_registration:
 		for manifest_id in _load_order:
@@ -1906,6 +2257,18 @@ func _add_dependency_warning(manifest_id: StringName, dependency_id: StringName,
 	dependency_warning.emit(manifest_id, dependency_id, reason)
 
 
+func _add_conflict_warning(manifest_id: StringName, conflicting_id: StringName, reason: String) -> void:
+	var key := "%s:%s:%s" % [str(manifest_id), str(conflicting_id), reason]
+	if _conflict_warnings.has(key):
+		return
+	_conflict_warnings[key] = {
+		"manifest_id": manifest_id,
+		"conflicting_id": conflicting_id,
+		"reason": reason,
+	}
+	manifest_conflict.emit(manifest_id, conflicting_id, reason)
+
+
 func _dependency_array(value: Variant) -> Array:
 	var dependencies := []
 	if not (value is Array):
@@ -1923,6 +2286,81 @@ func _dependency_array(value: Variant) -> Array:
 			dependency["required"] = bool(dependency.get("required", true))
 			dependencies.append(dependency)
 	return dependencies
+
+
+func _conflict_array(value: Variant) -> Array:
+	var conflicts: Array = []
+	if not (value is Array):
+		return conflicts
+	for entry in value as Array:
+		if entry is String:
+			conflicts.append({"id": str(entry), "reason": "declared incompatible"})
+		elif entry is Dictionary:
+			var conflict := (entry as Dictionary).duplicate(true)
+			conflict["id"] = str(conflict.get("id", ""))
+			conflict["reason"] = str(conflict.get("reason", "declared incompatible"))
+			conflicts.append(conflict)
+	return conflicts
+
+
+func _normalize_manifest_options(value: Variant) -> Array:
+	var options: Array = []
+	if not (value is Array):
+		return options
+	for option_value in value as Array:
+		if not (option_value is Dictionary):
+			continue
+		var option := (option_value as Dictionary).duplicate(true)
+		option["id"] = str(option.get("id", ""))
+		option["type"] = str(option.get("type", "bool"))
+		option["display_name"] = str(option.get("display_name", option.get("id", "Option")))
+		option["description"] = str(option.get("description", ""))
+		option["network_category"] = str(option.get("network_category", "local_visual"))
+		option["default"] = _normalize_option_value(option, option.get("default"))
+		options.append(option)
+	return options
+
+
+func _find_manifest_option(manifest_id: StringName, option_id: StringName) -> Dictionary:
+	var manifest := get_manifest(manifest_id)
+	var options_value: Variant = manifest.get("options", [])
+	if not (options_value is Array):
+		return {}
+	for option_value in options_value as Array:
+		if option_value is Dictionary and str((option_value as Dictionary).get("id", "")) == str(option_id):
+			return (option_value as Dictionary).duplicate(true)
+	return {}
+
+
+func _normalize_option_value(option: Dictionary, value: Variant) -> Variant:
+	var option_type := str(option.get("type", "bool"))
+	match option_type:
+		"bool":
+			if value is bool:
+				return value
+		"int":
+			if value is int or value is float:
+				var int_value := int(value)
+				var minimum := int(option.get("min", -2147483648))
+				var maximum := int(option.get("max", 2147483647))
+				return clampi(int_value, minimum, maximum)
+		"float":
+			if value is int or value is float:
+				var float_value := float(value)
+				var minimum := float(option.get("min", -1.0e20))
+				var maximum := float(option.get("max", 1.0e20))
+				return clampf(float_value, minimum, maximum)
+		"string":
+			if value is String:
+				return str(value).substr(0, 256)
+		"choice":
+			var choices_value: Variant = option.get("choices", [])
+			if choices_value is Array and (choices_value as Array).has(value):
+				return value
+		"color":
+			if value is String and Color.from_string(str(value), Color(-1.0, -1.0, -1.0, -1.0)) != Color(-1.0, -1.0, -1.0, -1.0):
+				return str(value)
+	return null
 
 
 func _string_array(value: Variant) -> Array[String]:
@@ -1999,6 +2437,26 @@ func _version_sort_value(version_text: String) -> int:
 		value += int(part) * multiplier
 		multiplier = maxi(int(multiplier / 1000), 1)
 	return value
+
+
+func _compare_versions(left: String, right: String) -> int:
+	var left_core := left.strip_edges().split("-", false, 1)[0]
+	var right_core := right.strip_edges().split("-", false, 1)[0]
+	var left_parts := left_core.split(".")
+	var right_parts := right_core.split(".")
+	var count := maxi(left_parts.size(), right_parts.size())
+	for index in range(count):
+		var left_value := int(left_parts[index]) if index < left_parts.size() and str(left_parts[index]).is_valid_int() else 0
+		var right_value := int(right_parts[index]) if index < right_parts.size() and str(right_parts[index]).is_valid_int() else 0
+		if left_value < right_value:
+			return -1
+		if left_value > right_value:
+			return 1
+	var left_prerelease := left.contains("-")
+	var right_prerelease := right.contains("-")
+	if left_prerelease != right_prerelease:
+		return -1 if left_prerelease else 1
+	return 0
 
 
 func _join_errors(errors: Array[String]) -> String:

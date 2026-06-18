@@ -2,7 +2,7 @@ extends CharacterBody2D
 
 @export var thrust_power: float = 3000.0
 @export var rotation_speed: float = 10.0
-@export var max_speed: float = 650.0
+@export var max_speed: float = 750.0
 @export var drag: float = 0.55
 @export var gravity_constant: float = 500.0
 @export var min_grav_dist: float = 50.0

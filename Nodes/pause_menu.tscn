@@ -169,6 +169,11 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "READABILITY HALOS"
 
+[node name="AutoOrbitingCelestialsCheck" type="CheckBox" parent="MenuPanel/MenuRows/FlashRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "ORBIT EVENTS"
+
 [node name="ColorRow" type="HBoxContainer" parent="MenuPanel/MenuRows" unique_id=234854737]
 layout_mode = 2
 theme_override_constants/separation = 12

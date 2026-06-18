@@ -4,13 +4,14 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>VECTOR ANOMALY - Physics Collapse Survival</title>
-	<meta name="description" content="A physics roguelike where survival is skill expression through gravity, momentum, and collapsing arena laws.">
-	<meta name="theme-color" content="#000000">
+	<meta name="description" content="A physics roguelike where survival is gravity manipulation, orbital prediction, and impossible momentum made readable.">
+	<meta name="theme-color" content="#020506">
 	<meta property="og:title" content="VECTOR ANOMALY">
-	<meta property="og:description" content="A hostile vector simulation where movement is the weapon.">
+	<meta property="og:description" content="Survive collapsing gravity, unstable spacetime, and boss laws that rewrite the arena mid-fight.">
 	<meta property="og:type" content="website">
 	<meta property="og:image" content="assets/og-image.svg">
 	<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+	<link rel="preload" href="assets/vector-anomaly-key-art.png" as="image">
 	<link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -19,14 +20,14 @@
 		<div class="scroll-progress-bar" data-scroll-progress></div>
 	</div>
 
-	<header class="control-header" data-header>
-		<a class="brand" href="#top" aria-label="VECTOR ANOMALY home">
-			<span class="brand-glyph" aria-hidden="true"></span>
+	<header class="site-header" data-header>
+		<a class="brand" href="#top" aria-label="Vector Anomaly home">
+			<img src="assets/favicon.svg" alt="" class="brand-mark">
 			<span>VECTOR ANOMALY</span>
 		</a>
-		<div class="header-telemetry" aria-hidden="true">
-			<span>VERSION: 4.4_STABLE</span>
-			<span>WISH_COUNT: ACTIVE</span>
+		<div class="header-readout" aria-hidden="true">
+			<span>BUILD: PLAYTEST_SIGNAL</span>
+			<span>HOOK: WATCHABLE_IMPOSSIBILITY</span>
 			<span data-header-integrity>INTEGRITY: 087%</span>
 		</div>
 		<button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>
@@ -35,261 +36,351 @@
 			<span></span>
 		</button>
 		<nav id="site-nav" class="site-nav" aria-label="Primary" data-site-nav>
-			<a href="#trailer">Trailer</a>
+			<a href="#trailer">Signal</a>
+			<a href="#trajectory">Trajectory</a>
 			<a href="#systems">Systems</a>
-			<a href="#simulation-log">Log</a>
-			<a href="#clips">Clips</a>
-			<a href="#codex">Codex</a>
-			<a class="nav-action" href="#wishlist">Wishlist</a>
+			<a href="#bosses">Bosses</a>
+			<a href="#build">Build</a>
+			<a href="modding/">Creator Lab</a>
+			<a href="wiki/">Wiki</a>
+			<a class="nav-action" href="#wishlist">Follow</a>
 		</nav>
 	</header>
 
 	<main id="main">
-		<section id="top" class="hero terminal-section" aria-label="VECTOR ANOMALY landing terminal">
+		<section id="top" class="launch-hero" aria-label="Vector Anomaly launch signal">
+			<img class="hero-art" src="assets/vector-anomaly-key-art.png" alt="Vector Anomaly key art showing a ship slingshotting around a collapsing gravity field">
 			<canvas id="hero-field-canvas" class="hero-field-canvas" aria-hidden="true"></canvas>
 			<div class="hero-grid" aria-hidden="true"></div>
-
-			<div class="hero-shell">
-				<div class="hero-readout hero-readout-left" aria-hidden="true">
-					<span>VECTOR FIELD: LIVE</span>
-					<span>MODE: STANDARD</span>
-					<span>SEED: STD:7F3A:W35</span>
-					<span>LAW: MIRROR WELL</span>
+			<div class="hero-content">
+				<p class="kicker">PHYSICS COLLAPSE SIMULATOR // SIGNAL ONLINE</p>
+				<h1>VECTOR ANOMALY</h1>
+				<p class="hero-copy">A physics roguelike where you do not just dodge bullets. You survive collapsing gravity, unstable spacetime, and orbital combat that rewrites itself mid-fight.</p>
+				<div class="hero-actions">
+					<a class="button primary" href="#wishlist" data-wishlist-cta>Join Discord</a>
+					<a class="button secondary" href="#trajectory">View Movement Loop</a>
+					<a class="button ghost" href="wiki/">Open Wiki</a>
+					<a class="button ghost" href="modding/">Make Mods</a>
 				</div>
+				<div class="hero-telemetry" aria-label="Game pillars">
+					<span>Movement = readable genius</span>
+					<span>Physics = controlled collapse</span>
+					<span>Death = diagnostic readout</span>
+				</div>
+			</div>
+			<div class="hero-bottom" aria-hidden="true">
+				<span>calm baseline physics</span>
+				<span>gravity distortion</span>
+				<span>event horizon survival</span>
+			</div>
+		</section>
 
-				<div class="hero-core">
-					<p class="terminal-kicker reveal">SIMULATION WINDOW // LIVE CAPTURE</p>
-					<h1 class="reveal reveal-delay-1">VECTOR ANOMALY</h1>
-					<p class="hero-hook reveal reveal-delay-2">A physics roguelike where you do not dodge the collapse. You calculate your way through it.</p>
+		<section class="proof-strip" aria-label="Vector Anomaly promise">
+			<div>
+				<strong>5 sec</strong>
+				<span>Explainable hook</span>
+			</div>
+			<div>
+				<strong>40 waves</strong>
+				<span>Boss-law anchors</span>
+			</div>
+			<div>
+				<strong>75 sec</strong>
+				<span>Rupture finale bridge</span>
+			</div>
+			<div>
+				<strong>mode:seed:wave</strong>
+				<span>Shareable run seeds</span>
+			</div>
+		</section>
 
-					<div id="trailer" class="trailer-terminal reveal reveal-delay-3" data-trailer-frame>
-						<div class="window-bar">
-							<span>PLAYBACK: NEAR_DEATH_ORBIT_ESCAPE</span>
-							<span>LAWS CRACKING: WAVE GENERATOR OFFLINE</span>
-						</div>
-						<div class="simulation-window">
-							<canvas id="trailer-sim-canvas" aria-label="Stylized Vector Anomaly gameplay simulation preview"></canvas>
-							<div class="window-reticle" aria-hidden="true"></div>
-							<div class="window-caption">
-								<span>player visible / threat readable / orbit recovery verified</span>
-							</div>
-						</div>
-						<div class="window-footer" aria-hidden="true">
-							<span>VEC_DELTA: +842</span>
-							<span>APEX_GRADE: PERFECT</span>
-							<span>SURVIVAL: 0.22S</span>
+		<section id="trailer" class="band trailer-band">
+			<div class="split-layout">
+				<div class="section-copy reveal-section">
+					<p class="kicker">TRAILER SIGNAL // FIRST THREE SECONDS</p>
+					<h2>Show the impossible save before the player has time to blink.</h2>
+					<p>The landing page now frames the game around the commercial hook from the blueprints: familiar arena survival structure, then an unfamiliar physics reality engine.</p>
+					<ul class="check-list">
+						<li>Visible player, gravity source, threat, and recovery path.</li>
+						<li>Trajectory prediction stays bright because it is player-facing, not debug noise.</li>
+						<li>Late-game chaos escalates through red warnings and broken geometry, not unreadable fog.</li>
+					</ul>
+				</div>
+				<div class="sim-terminal reveal-section" data-trailer-frame>
+					<div class="terminal-bar">
+						<span>PLAYBACK: NEAR_DEATH_ORBIT_ESCAPE</span>
+						<span>CAPTURE: CLEAN_VECTOR_READ</span>
+					</div>
+					<div class="simulation-window">
+						<canvas id="trailer-sim-canvas" aria-label="Stylized Vector Anomaly gameplay simulation preview"></canvas>
+						<div class="window-reticle" aria-hidden="true"></div>
+						<div class="window-caption">
+							<span>player visible</span>
+							<strong>0.22 sec recovery</strong>
 						</div>
 					</div>
-
-					<div class="hero-actions reveal reveal-delay-4">
-						<a class="terminal-button primary" href="#wishlist" data-wishlist-cta>Wishlist on Steam</a>
-						<a class="terminal-button secondary" href="#" data-demo-link>Play Demo</a>
+					<div class="terminal-footer" aria-hidden="true">
+					<span>SEED: standard:7135:35</span>
+						<span>GRADE: APEX</span>
 					</div>
 				</div>
+			</div>
+		</section>
 
-				<div class="hero-readout hero-readout-right" aria-hidden="true">
-					<span>GRAVITY: HOSTILE</span>
-					<span>PROJECTILES: CURVED</span>
-					<span>TIME: LOCALIZED</span>
-					<span>STATUS: SURVIVE</span>
+		<section id="trajectory" class="band trajectory-band">
+			<div class="section-head reveal-section">
+				<p class="kicker">MOVEMENT READOUT // TRAJECTORY PROOF</p>
+				<h2>Readable trajectory is the selling image.</h2>
+				<p>A capture-ready view of the slingshot loop: entry vector, gravity exposure, tangent exit, and death diagnosis. The real interaction belongs in the game; the site sells the readable shape of mastery.</p>
+			</div>
+			<div class="trajectory-shell reveal-section">
+				<div class="trajectory-hud" aria-label="Movement readout">
+					<span>VELOCITY: HIGH</span>
+					<span>PERIAPSIS: SWEET BAND</span>
+					<span>GRADE: APEX</span>
+					<span>STATUS: TANGENT EXIT VERIFIED</span>
+				</div>
+				<div class="trajectory-diagram" aria-label="Static slingshot trajectory diagram">
+					<div class="gravity-core" aria-hidden="true"></div>
+					<div class="trajectory-path path-entry" aria-hidden="true"></div>
+					<div class="trajectory-path path-exit" aria-hidden="true"></div>
+					<div class="trajectory-ship" aria-hidden="true"></div>
+					<div class="trajectory-label label-entry">entry vector</div>
+					<div class="trajectory-label label-core">gravity exposure</div>
+					<div class="trajectory-label label-exit">recoverable tangent</div>
+				</div>
+				<div class="trajectory-notes">
+					<article>
+						<span>01</span>
+						<strong>Enter near the sweet-distance band.</strong>
+					</article>
+					<article>
+						<span>02</span>
+						<strong>Carry tangential speed instead of fighting the pull.</strong>
+					</article>
+					<article>
+						<span>03</span>
+						<strong>Exit with a route the player can still read.</strong>
+					</article>
+					<a class="button compact ghost" href="wiki/#slingshot">Open Slingshot Notes</a>
 				</div>
 			</div>
 		</section>
 
 		<section id="systems" class="band systems-band">
-			<div class="section-grid">
-				<div class="section-copy reveal-section">
-					<p class="terminal-kicker">IN-GAME SYSTEMS // REAL BUILD READOUT</p>
-					<h2>What You See Is What You Play</h2>
-					<p>No fake web toy, no disconnected minigame. This section describes the actual run systems: movement, gravity fields, resonance, time scars, weapons, co-op events, and deterministic challenge seeds.</p>
-					<div class="mini-spec">
-						<span>REAL GAMEPLAY SYSTEMS</span>
-						<span>DETERMINISTIC RUNS</span>
-						<span>READABLE COLLAPSE</span>
-					</div>
+			<div class="section-head reveal-section">
+				<p class="kicker">FAMILIAR HANDSHAKE // UNFAMILIAR SHOCKWAVE</p>
+				<h2>The run structure stays legible while physics becomes strange.</h2>
+				<p>Players recognize waves, builds, boss anchors, and quick retry. The difference is that every choice bends motion, time, gravity, or field rules instead of adding flat damage numbers.</p>
+			</div>
+			<div class="system-grid">
+				<article class="system-card reveal-section">
+					<span>01</span>
+					<h3>Orbit Combat</h3>
+					<p>Precision drag, momentum mode, tangent exits, dash recovery, and gravity-window energy returns keep movement as the primary survival skill.</p>
+				</article>
+				<article class="system-card reveal-section">
+					<span>02</span>
+					<h3>Resonance Fields</h3>
+					<p>Compression, inversion, slipstream, temporal scars, and harmonic orbit use action language: pull, push, flow, slow, and orbit.</p>
+				</article>
+				<article class="system-card reveal-section">
+					<span>03</span>
+					<h3>Seeded Arena Laws</h3>
+					<p>Clean Vector Lattice, Mirror Well, Tidal Skein, Chronal Shoal, and Harmonic Boneyard change decision space before art direction.</p>
+				</article>
+				<article class="system-card reveal-section">
+					<span>04</span>
+					<h3>Watchable Scores</h3>
+					<p>RunScoreTracker turns kinetic kills, vector shears, event-horizon escapes, and apex slingshots into challenge codes.</p>
+				</article>
+			</div>
+			<div class="run-stack reveal-section">
+				<div>
+					<p class="kicker">STANDARD RUN STACK</p>
+					<h3>Calm, tension, overload, recovery.</h3>
 				</div>
-				<div class="systems-panel reveal-section">
-					<div class="panel-topline">
-						<span>RUN SYSTEM STACK</span>
-						<span>BUILD: ACTIVE</span>
-					</div>
-					<div class="systems-grid">
-						<article>
-							<span>01</span>
-							<h3>Orbital Movement</h3>
-							<p>Velocity, tangent exits, drag mode, and slingshot mastery define survival routes.</p>
-						</article>
-						<article>
-							<span>02</span>
-							<h3>Resonance Fields</h3>
-							<p>Compression, inversion, slipstream, temporal scar, and harmonic orbit alter combat space.</p>
-						</article>
-						<article>
-							<span>03</span>
-							<h3>Gravity Weapons</h3>
-							<p>Beams and projectile profiles manipulate bodies, fields, planets, and hostile paths.</p>
-						</article>
-						<article>
-							<span>04</span>
-							<h3>Seed Challenges</h3>
-							<p>Run laws, rare events, bosses, and score states can be reproduced from challenge codes.</p>
-						</article>
-					</div>
-				</div>
+				<ol>
+					<li><span>Waves 1-4</span><strong>Baseline movement and readable pressure</strong></li>
+					<li><span>Waves 5-25</span><strong>Boss laws, resonance, time pockets, rare events</strong></li>
+					<li><span>Waves 30-40</span><strong>The Polymorph, Centrifuge Marshal, The Extradimensional Breacher</strong></li>
+					<li><span>Rupture</span><strong>Wave generator offline, music finale begins</strong></li>
+				</ol>
 			</div>
 		</section>
 
-		<section id="simulation-log" class="band log-band">
+		<section id="bosses" class="band boss-band">
 			<div class="section-head reveal-section">
-				<p class="terminal-kicker">SIMULATION LOG // WAVE MUTATION INDEX</p>
-				<h2>Bosses That Rewrite Physics In Real Time</h2>
-				<p>Every major encounter is a named arena law with a silhouette, a readable mutation, and a survival route you can master.</p>
+				<p class="kicker">SIMULATION LOG // BOSS LAWS</p>
+				<h2>Bosses are physics rules with bodies.</h2>
+				<p>Each anchor is designed to be readable in the same way a genre player expects, then memorable because the arena itself changes under the fight.</p>
 			</div>
-
-			<div class="log-grid" data-boss-grid>
-				<article class="boss-card reveal-section" tabindex="0" data-law="ARENA LAW: COMPRESSION DOMINANCE" data-boss="Gravity Warden">
-					<div class="wave-index">W05</div>
-					<div class="boss-wire wire-warden" aria-hidden="true"></div>
+			<div class="boss-grid" data-boss-grid>
+				<article class="boss-card reveal-section" tabindex="0" data-boss="Gravity Warden" data-law="resonance field control" data-wave="W05">
+					<div class="boss-visual warden" aria-hidden="true"></div>
+					<span>W05</span>
 					<h3>Gravity Warden</h3>
-					<p>Forces resonance fields into readable traps and escape lanes.</p>
+					<p>Turns field overlap into traps and escape lanes.</p>
 				</article>
-				<article class="boss-card reveal-section" tabindex="0" data-law="ARENA LAW: DEBRIS COLLAPSE" data-boss="Accretion Core">
-					<div class="wave-index">W10</div>
-					<div class="boss-wire wire-core" aria-hidden="true"></div>
-					<h3>Accretion Core</h3>
-					<p>Compresses bodies inward until routing becomes a pressure problem.</p>
+				<article class="boss-card reveal-section" tabindex="0" data-boss="The Accretion Core" data-law="debris compression and collision pressure" data-wave="W10">
+					<div class="boss-visual core" aria-hidden="true"></div>
+					<span>W10</span>
+					<h3>The Accretion Core</h3>
+					<p>Collapses objects inward until routing becomes pressure math.</p>
 				</article>
-				<article class="boss-card reveal-section" tabindex="0" data-law="ARENA LAW: NULL VECTOR LANES" data-boss="Null Vector Seraph">
-					<div class="wave-index">W15</div>
-					<div class="boss-wire wire-seraph" aria-hidden="true"></div>
+				<article class="boss-card reveal-section" tabindex="0" data-boss="Null Vector Seraph" data-law="local ability and time disruption lanes" data-wave="W15">
+					<div class="boss-visual seraph" aria-hidden="true"></div>
+					<span>W15</span>
 					<h3>Null Vector Seraph</h3>
-					<p>Interrupts clean movement with exact disruption corridors.</p>
+					<p>Interrupts clean movement through exact disruption corridors.</p>
 				</article>
-				<article class="boss-card reveal-section" tabindex="0" data-law="ARENA LAW: DUAL POLARITY" data-boss="Magnetar Twins">
-					<div class="wave-index">W20</div>
-					<div class="boss-wire wire-twins" aria-hidden="true"></div>
+				<article class="boss-card reveal-section" tabindex="0" data-boss="Magnetar Twins" data-law="synchronized push/pull polarity" data-wave="W20">
+					<div class="boss-visual twins" aria-hidden="true"></div>
+					<span>W20</span>
 					<h3>Magnetar Twins</h3>
-					<p>Alternates push and pull windows across mirrored anchors.</p>
+					<p>Forces mirrored polarity decisions across paired anchors.</p>
 				</article>
-				<article class="boss-card reveal-section" tabindex="0" data-law="ARENA LAW: ROTATING RIFT TIDE" data-boss="Tidal Rift Weaver">
-					<div class="wave-index">W25</div>
-					<div class="boss-wire wire-rift" aria-hidden="true"></div>
+				<article class="boss-card reveal-section" tabindex="0" data-boss="Tidal Rift Weaver" data-law="rotating rift lanes and tide pockets" data-wave="W25">
+					<div class="boss-visual rift" aria-hidden="true"></div>
+					<span>W25</span>
 					<h3>Tidal Rift Weaver</h3>
-					<p>Turns the arena into a moving tide puzzle with hostile rhythm.</p>
+					<p>Moves the safe path while the player is already committed.</p>
 				</article>
-				<article class="boss-card reveal-section" tabindex="0" data-law="ARENA LAW: PARAMETRIC BODY SHIFT" data-boss="The Polymorph">
-					<div class="wave-index">W30</div>
-					<div class="boss-wire wire-poly" aria-hidden="true"></div>
+				<article class="boss-card reveal-section" tabindex="0" data-boss="The Polymorph" data-law="parametric body shift" data-wave="W30">
+					<div class="boss-visual poly" aria-hidden="true"></div>
+					<span>W30</span>
 					<h3>The Polymorph</h3>
 					<p>Changes its equation until pattern recognition becomes survival.</p>
 				</article>
-				<article class="boss-card capstone reveal-section" tabindex="0" data-law="ARENA LAW: SHEAR HALO CASCADE" data-boss="Centrifuge Marshal">
-					<div class="wave-index">W35</div>
-					<div class="boss-wire wire-marshal" aria-hidden="true"></div>
+				<article class="boss-card reveal-section" tabindex="0" data-boss="Centrifuge Marshal" data-law="shear halos bending crossed trajectories" data-wave="W35">
+					<div class="boss-visual marshal" aria-hidden="true"></div>
+					<span>W35</span>
 					<h3>Centrifuge Marshal</h3>
-					<p>Bends crossed trajectories through escalating shear halos.</p>
+					<p>Turns late-game motion into a shear-lane mastery check.</p>
 				</article>
-				<article class="boss-card breach reveal-section" tabindex="0" data-law="ARENA LAW: OUTSIDE SPACE BREACH" data-boss="Extradimensional Breacher">
-					<div class="wave-index">W40</div>
-					<div class="boss-wire wire-breach" aria-hidden="true"></div>
-					<h3>Extradimensional Breacher</h3>
-					<p>Leaves the viewport, returns through broken boundaries, and forces final routing.</p>
+				<article class="boss-card final reveal-section" tabindex="0" data-boss="The Extradimensional Breacher" data-law="outside-space breaches and deterministic survival telegraphs" data-wave="W40">
+					<div class="boss-visual breach" aria-hidden="true"></div>
+					<span>W40</span>
+					<h3>The Extradimensional Breacher</h3>
+					<p>Leaves the viewport, tears back through the boundary, and starts Rupture.</p>
 				</article>
 			</div>
-
-			<div class="mutation-readout reveal-section" aria-live="polite">
+			<div class="law-readout reveal-section" aria-live="polite">
 				<span>PHYSICS MUTATION DETECTED:</span>
-				<strong data-mutation-readout>SELECT AN ANOMALY PROFILE</strong>
+				<strong data-boss-readout>GRAVITY WARDEN - resonance field control</strong>
+			</div>
+		</section>
+
+		<section id="build" class="band build-band">
+			<div class="split-layout reverse">
+				<div class="section-copy reveal-section">
+					<p class="kicker">PRODUCTION SYSTEMS // SEPARATION KEPT CLEAN</p>
+					<h2>Impossible physics on screen, bounded systems underneath.</h2>
+					<p>The website now advertises the hidden strength of the build: cached runtime discovery, pooled VFX, safe mod manifests, LAN co-op through one session layer, and accessibility controls that keep spectacle readable.</p>
+					<div class="wiki-cta">
+						<a class="button primary" href="wiki/">Read the Wiki</a>
+						<a class="button secondary" href="modding/">Open Creator Lab</a>
+					</div>
+				</div>
+				<div class="build-console reveal-section">
+					<div class="build-row">
+						<span>RuntimeRegistry</span>
+						<strong>cached gravity, projectile, enemy, boss, player queries</strong>
+					</div>
+					<div class="build-row">
+						<span>ModContentRegistry</span>
+						<strong>safe manifests, law weaves, recipes, challenge cards</strong>
+					</div>
+					<div class="build-row">
+						<span>NetworkSession</span>
+						<strong>LAN host/join, shared seed, vector events, co-op payoff</strong>
+					</div>
+					<div class="build-row">
+						<span>Settings</span>
+						<strong>UI scale, shake, reduced flash, colorblind palettes</strong>
+					</div>
+					<div class="build-row">
+						<span>Clip Lab</span>
+						<strong>hook, mastery, resonance, boss law, Rupture, finale presets</strong>
+					</div>
+				</div>
 			</div>
 		</section>
 
 		<section id="clips" class="band clips-band">
-			<div class="section-head reveal-section">
-				<p class="terminal-kicker">WATCHABLE IMPOSSIBILITY TELEMETRY</p>
-				<h2>Clip Loops Built For Seed Sharing</h2>
-				<p>Short, readable run moments: survival vector, seed code, and why the clip mattered.</p>
+			<div class="creator-signal reveal-section">
+				<div class="creator-signal-copy">
+					<p class="kicker">CREATOR SIGNAL // SCHEMA 4</p>
+					<h2>Build new laws without breaking the simulation.</h2>
+					<p>The Creator Lab now forges and validates configurable packs with dependency bounds, conflict diagnostics, deterministic load order, live mod options, and co-op-safe signatures.</p>
+					<a class="button primary" href="modding/">Launch Creator Lab</a>
+				</div>
+				<div class="creator-capabilities" aria-label="Creator Lab capabilities">
+					<div><span>PACK GRAPH</span><strong>dependencies // ordering // conflicts</strong></div>
+					<div><span>LIVE OPTIONS</span><strong>typed // persisted // hookable</strong></div>
+					<div><span>SAFE RUNTIME</span><strong>hooks // conditions // bounded effects</strong></div>
+					<div><span>SHIP PROOF</span><strong>schema // diagnostics // report export</strong></div>
+				</div>
 			</div>
-
+			<div class="section-head reveal-section">
+				<p class="kicker">COMMUNITY LOOP // PLAY TO CLIP TO SHARE</p>
+				<h2>Seed codes make impossible moments repeatable.</h2>
+				<p>Every shareable moment should answer the same questions: where was the player, what force acted, what danger mattered, and how did recovery happen?</p>
+			</div>
 			<div class="clip-console reveal-section">
-				<button type="button" class="clip-arrow" data-clip-prev aria-label="Previous clip">PREV</button>
+				<button type="button" class="clip-arrow" data-clip-prev aria-label="Previous seed">Prev</button>
 				<div class="clip-viewport">
 					<div class="clip-track" data-clip-track>
-						<article class="clip-card is-active" data-seed="standard:7F3A:wave35">
-							<div class="clip-visual clip-visual-orbit" aria-hidden="true"></div>
+						<article class="clip-card is-active" data-seed="standard:7135:35">
+							<div class="clip-visual orbit" aria-hidden="true"></div>
 							<div class="clip-meta">
 								<span>APEX RECOVERY</span>
-								<strong>0.22 seconds from collision</strong>
+								<strong>0.22 seconds from collision.</strong>
 								<button type="button" data-copy-seed>Copy Seed</button>
 							</div>
 						</article>
-						<article class="clip-card" data-seed="bossrush:C0RE:wave10">
-							<div class="clip-visual clip-visual-core" aria-hidden="true"></div>
+						<article class="clip-card" data-seed="boss_rush:4010:10">
+							<div class="clip-visual core" aria-hidden="true"></div>
 							<div class="clip-meta">
 								<span>GRAVITY ASSIST KILL</span>
-								<strong>Accretion Core collapses its own debris</strong>
+								<strong>The Accretion Core compresses its own debris.</strong>
 								<button type="button" data-copy-seed>Copy Seed</button>
 							</div>
 						</article>
-						<article class="clip-card" data-seed="challenge:RUPT:wave40">
-							<div class="clip-visual clip-visual-rupture" aria-hidden="true"></div>
+						<article class="clip-card" data-seed="challenge:9040:40:12840_9F3AC12B0E">
+							<div class="clip-visual rupture" aria-hidden="true"></div>
 							<div class="clip-meta">
-								<span>RUPTURE LOOP</span>
-								<strong>Wave generator offline, music defines reality</strong>
+								<span>RUPTURE ENTRY</span>
+								<strong>Wave generator offline. Music becomes timing authority.</strong>
 								<button type="button" data-copy-seed>Copy Seed</button>
 							</div>
 						</article>
 					</div>
 				</div>
-				<button type="button" class="clip-arrow" data-clip-next aria-label="Next clip">NEXT</button>
+				<button type="button" class="clip-arrow" data-clip-next aria-label="Next seed">Next</button>
 			</div>
 			<p class="copy-status" data-copy-status aria-live="polite">COPY BUFFER: EMPTY</p>
 		</section>
 
-		<section class="rupture-barrier" aria-label="Rupture visual transition">
+		<section class="rupture-band" aria-label="Rupture visual transition">
 			<div class="rupture-grid" aria-hidden="true"></div>
 			<div class="rupture-copy reveal-section">
 				<p>RUPTURE STATE</p>
-				<h2>WAVE GENERATOR OFFLINE</h2>
-				<span>laws recombining // player still visible</span>
+				<h2>LAWS CRACKING: WAVE GENERATOR OFFLINE</h2>
+				<span>controlled instability // player still visible</span>
 			</div>
 		</section>
 
-		<section id="codex" class="band codex-band">
-			<div class="section-grid codex-grid">
-				<div class="section-copy reveal-section">
-					<p class="terminal-kicker">ANOMALOUS SYSTEMS CODEX</p>
-					<h2>Read The Rules Before They Break</h2>
-					<p>A keyboard-friendly terminal for the actual mechanics. No fantasy fog, no empty lore: just how survival works.</p>
-					<div class="codex-tabs" role="tablist" aria-label="Codex systems">
-						<button type="button" role="tab" aria-selected="true" data-codex-tab="vectorfall">Vectorfall</button>
-						<button type="button" role="tab" aria-selected="false" data-codex-tab="arena-laws">Arena Laws</button>
-						<button type="button" role="tab" aria-selected="false" data-codex-tab="resonance">Resonance</button>
-						<button type="button" role="tab" aria-selected="false" data-codex-tab="temporal">Temporal Scars</button>
-						<button type="button" role="tab" aria-selected="false" data-codex-tab="gravity-scars">Gravity Scars</button>
-					</div>
-				</div>
-				<div class="codex-terminal reveal-section">
-					<div class="terminal-topline">
-						<span data-codex-title>VECTORFALL</span>
-						<span>ACCESS: READ_ONLY</span>
-					</div>
-					<canvas id="codex-diagram" aria-label="Codex vector diagram"></canvas>
-					<div class="codex-body">
-						<p data-codex-description></p>
-						<ul data-codex-points></ul>
-					</div>
-				</div>
-			</div>
-		</section>
-
-		<section id="wishlist" class="wishlist-terminal">
-			<div class="wishlist-prompt reveal-section">
-				<p class="terminal-kicker">FINAL COMMAND // CONVERSION PANEL</p>
-				<h2>EXECUTE_WISHLIST_REDIRECT</h2>
-				<p>The build is unstable in the correct direction. Wishlist now, play the demo when the signal opens, and bring your own seed codes to the collapse.</p>
+		<section id="wishlist" class="wishlist-band">
+			<div class="wishlist-panel reveal-section">
+				<p class="kicker">FINAL COMMAND // CONVERSION PANEL</p>
+				<h2>JOIN DEVELOPMENT SIGNAL</h2>
+				<p>Join the Discord, open the wiki for the mechanics map, and bring your own seed codes when the collapse starts.</p>
 				<div class="hero-actions">
-					<a class="terminal-button primary" href="#" data-footer-steam>Wishlist on Steam</a>
-					<a class="terminal-button secondary" href="#" data-demo-link>Play Demo</a>
+					<a class="button primary" href="#wishlist" data-footer-steam>Join Discord</a>
+					<a class="button secondary" href="#" data-demo-link>Download Windows Build</a>
+				<a class="button ghost" href="wiki/">Open Wiki</a>
+				<a class="button ghost" href="modding/">Creator Lab</a>
 				</div>
 			</div>
 		</section>
@@ -297,13 +388,15 @@
 
 	<footer class="site-footer">
 		<div class="footer-panel">
-			<p>SIMULATION CONTACT: <a href="mailto:press@vectoranomaly.game" data-press-email>press@vectoranomaly.game</a></p>
-			<nav aria-label="Social links">
+			<p>CONTACT: <a href="mailto:eldensimmons1@gmail.com" data-press-email>eldensimmons1@gmail.com</a></p>
+			<nav aria-label="Footer links">
+				<a href="wiki/">Wiki</a>
+				<a href="modding/">Modding</a>
+				<a href="#trajectory">Trajectory</a>
 				<a href="#" data-footer-discord hidden>Discord</a>
 				<a href="#" data-twitter-link hidden>TikTok / Shorts Signal</a>
-				<a href="#clips">Seed Challenges</a>
 			</nav>
-			<p>BUILD_YEAR: <span data-year></span> // VECTOR ANOMALY</p>
+			<p>BUILD_YEAR: <span data-year></span></p>
 		</div>
 	</footer>
 

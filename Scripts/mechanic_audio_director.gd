@@ -820,12 +820,12 @@ func _play_positional_cue(stream: AudioStream, position: Vector2, volume_db: flo
 	if _active_players.size() >= max_simultaneous_cues:
 		return
 	_last_cue_time = now
-	var scene
-
-	if get_tree().current_scene != null and is_instance_valid(get_tree().current_scene):
-		scene = get_tree().current_scene
-		if scene == null:
-			return
+	if not is_inside_tree():
+		return
+	var tree := get_tree()
+	if tree == null or tree.current_scene == null or not is_instance_valid(tree.current_scene):
+		return
+	var scene := tree.current_scene
 	var player := AudioStreamPlayer2D.new()
 	player.name = "MechanicCue"
 	player.stream = stream

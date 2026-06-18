@@ -30,15 +30,20 @@ position = Vector2(-1380, -560)
 
 [node name="OrbitalJuiceManager" type="Node2D" parent="." groups=["Orbital_Juice_Manager"]]
 script = ExtResource("4_juice")
+attach_planet_atmospheres = false
+enable_gravity_heat_map_overlay = false
 enable_debug_balance_overlay = false
 enable_secret_bosses = false
 enable_late_game_instability = false
 enable_spacetime_tear_spawns = false
 enable_reality_collapse = false
+enable_dynamic_celestial_bodies = false
 enable_stress_test_tools = false
 enable_dev_hotkeys = false
-resonance_visual_quality = 2
-low_performance_mode = false
+resonance_visual_quality = 1
+enable_tide_particles = false
+enable_time_afterimages = false
+low_performance_mode = true
 
 [node name="TimeDilationManager" type="Node" parent="."]
 process_mode = 3

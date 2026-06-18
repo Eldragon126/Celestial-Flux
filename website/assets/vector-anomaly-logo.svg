@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="500" viewBox="0 0 1600 500" role="img" aria-label="Vector Anomaly wordmark">
+  <rect width="1600" height="500" fill="#05080d"/>
+  <g transform="translate(70 70)">
+    <circle cx="180" cy="180" r="142" fill="none" stroke="#29d8ff" stroke-width="10" opacity="0.72"/>
+    <circle cx="180" cy="180" r="70" fill="none" stroke="#ffbe3d" stroke-width="8" opacity="0.84"/>
+    <path d="M180 12 L218 170 L348 180 L218 218 L180 348 L142 218 L12 180 L142 170 Z" fill="#07131d" stroke="#d9fbff" stroke-width="9" stroke-linejoin="round"/>
+    <path d="M180 76 L208 180 L180 284 L152 180 Z" fill="#29d8ff"/>
+    <path d="M54 292 C128 244 230 238 334 46" fill="none" stroke="#ff4e3f" stroke-width="9" stroke-linecap="round"/>
+  </g>
+  <text x="430" y="214" fill="#ecfbff" font-family="Orbitron, Rajdhani, Arial, sans-serif" font-size="116" font-weight="800" letter-spacing="4">VECTOR</text>
+  <text x="430" y="338" fill="#29d8ff" font-family="Orbitron, Rajdhani, Arial, sans-serif" font-size="116" font-weight="800" letter-spacing="4">ANOMALY</text>
+  <line x1="432" y1="374" x2="1410" y2="374" stroke="#ffbe3d" stroke-width="8" opacity="0.82"/>
+  <text x="432" y="420" fill="#93aeb8" font-family="Rajdhani, Arial, sans-serif" font-size="34" letter-spacing="8">MASTER MOMENTUM. SURVIVE COLLAPSE.</text>
+</svg>

@@ -158,12 +158,30 @@ func _apply_spaghettification(body: Node2D, radial: Vector2, intensity: float, d
 		return
 	var clamped := clampf(intensity, 0.0, 1.0)
 	if not _spaghettified_ids.has(body.get_instance_id()):
-		_spaghettified_ids[body.get_instance_id()] = body.scale
+		var visual := _spaghettification_visual(body)
+		_spaghettified_ids[body.get_instance_id()] = {
+			"visual_id": visual.get_instance_id() if visual != null else 0,
+			"scale": visual.scale if visual != null else Vector2.ONE,
+			"rotation": visual.rotation if visual != null else 0.0,
+		}
 		spaghettification_started.emit(body, clamped)
-	body.rotation = lerp_angle(body.rotation, radial.angle(), clampf(delta * 5.0, 0.0, 1.0))
-	var stretch := 1.0 + clamped * 1.45
-	var pinch := maxf(1.0 - clamped * 0.42, 0.34)
-	body.scale = Vector2(stretch, pinch)
+	# Never non-uniformly scale or rotate a live CollisionObject2D here. That
+	# rebuilds physics shapes while the object is already overlapping the core
+	# and can terminate the physics backend without a GDScript error. Consumers
+	# render the distortion from metadata instead.
+	body.set_meta(&"spaghettification_axis", radial)
+	var visual_entry_value: Variant = _spaghettified_ids.get(body.get_instance_id(), {})
+	var visual_entry: Dictionary = visual_entry_value if visual_entry_value is Dictionary else {}
+	var visual_id := int(visual_entry.get("visual_id", 0))
+	if visual_id > 0 and is_instance_id_valid(visual_id):
+		var visual_value := instance_from_id(visual_id)
+		var visual_node := visual_value as Node2D
+		if visual_node != null and is_instance_valid(visual_node):
+			var stretch := 1.0 + clamped * 1.45
+			var pinch := maxf(1.0 - clamped * 0.42, 0.34)
+			var original_scale: Vector2 = visual_entry.get("scale", Vector2.ONE)
+			visual_node.scale = original_scale * Vector2(stretch, pinch)
+			visual_node.rotation = lerp_angle(float(visual_entry.get("rotation", 0.0)), radial.angle(), clampf(clamped * 0.72, 0.0, 0.72))
 	if body.has_method("take_damage"):
 		_queue_damage(body, minf(spaghettify_damage_per_second * clamped * delta, spaghettify_damage_per_second * 0.18))
 	body.set_meta(&"spaghettification_intensity", clamped)
@@ -175,13 +193,32 @@ func _restore_spaghettified_shape(body: Node2D) -> void:
 	var id := body.get_instance_id()
 	if not _spaghettified_ids.has(id):
 		return
-	var original_scale: Vector2 = _spaghettified_ids[id]
-	body.scale = body.scale.lerp(original_scale, 0.12)
-	if body.scale.distance_to(original_scale) < 0.02:
-		body.scale = original_scale
-		_spaghettified_ids.erase(id)
+	var visual_entry_value: Variant = _spaghettified_ids.get(id, {})
+	var visual_entry: Dictionary = visual_entry_value if visual_entry_value is Dictionary else {}
+	var visual_id := int(visual_entry.get("visual_id", 0))
+	if visual_id > 0 and is_instance_id_valid(visual_id):
+		var visual_value := instance_from_id(visual_id)
+		var visual_node := visual_value as Node2D
+		if visual_node != null and is_instance_valid(visual_node):
+			visual_node.scale = visual_entry.get("scale", Vector2.ONE)
+			visual_node.rotation = float(visual_entry.get("rotation", 0.0))
+	_spaghettified_ids.erase(id)
 	if body.has_meta(&"spaghettification_intensity"):
 		body.remove_meta(&"spaghettification_intensity")
+	if body.has_meta(&"spaghettification_axis"):
+		body.remove_meta(&"spaghettification_axis")
+
+
+func _spaghettification_visual(body: Node) -> Node2D:
+	if body == null or not is_instance_valid(body):
+		return null
+	var direct := body.get_node_or_null("Polygon2D") as Node2D
+	if direct != null:
+		return direct
+	var polygons := body.find_children("*", "Polygon2D", true, false)
+	if polygons.is_empty():
+		return null
+	return polygons[0] as Node2D
 
 
 func _consume_body(body: Node) -> void:
@@ -195,7 +232,10 @@ func _consume_body(body: Node) -> void:
 	_consumed_ids[id] = true
 	_pending_consumption_ids[id] = true
 	body.set_meta(&"black_hole_consumed", true)
-	_make_body_safe_for_consumption(body)
+	# The player owns its death transition. Mutating its collision tree from a
+	# black-hole physics callback used to race move_and_slide and scene teardown.
+	if not body.is_in_group("Player"):
+		_make_body_safe_for_consumption(body)
 	horizon_body_consumed.emit(body)
 	call_deferred("_finish_consumption", id)
 

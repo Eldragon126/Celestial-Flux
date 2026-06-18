@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#030807">
+	<meta name="description" content="Build, validate, and package safe data-driven mods for Vector Anomaly.">
+	<title>Creator Lab // Vector Anomaly</title>
+	<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+	<link rel="stylesheet" href="creator.css">
+</head>
+<body>
+	<a class="skip-link" href="#main">Skip to creator tools</a>
+	<div class="scroll-meter" aria-hidden="true"><span data-scroll-meter></span></div>
+
+	<header class="topbar">
+		<a class="brand" href="../" aria-label="Vector Anomaly home">
+			<img src="../assets/favicon.svg" alt="">
+			<span>VECTOR ANOMALY</span><b>CREATOR LAB</b>
+		</a>
+		<button class="nav-toggle" type="button" aria-expanded="false" aria-controls="creator-nav">Menu</button>
+		<nav id="creator-nav" aria-label="Creator Lab">
+			<a href="#workbench">Workbench</a>
+			<a href="#runtime">Runtime</a>
+			<a href="#reference">Reference</a>
+			<a href="#ship">Ship check</a>
+			<a href="../wiki/#modding">Wiki</a>
+		</nav>
+	</header>
+
+	<main id="main">
+		<section class="hero">
+			<div class="vector-field" aria-hidden="true"><i></i><i></i><i></i></div>
+			<div class="hero-copy">
+				<p class="eyebrow">DECLARATIVE PHYSICS // SCHEMA 4</p>
+				<h1>Rewrite the laws.<em>Keep the collapse readable.</em></h1>
+				<p>Compose weapons, law weaves, challenges, campaigns, bosses, audio, and visual systems without handing arbitrary code control of the simulation.</p>
+				<div class="actions">
+					<a class="button primary" href="#workbench">Open workbench</a>
+					<a class="button" href="examples/vector_anomaly_mod.json" download>Download starter</a>
+					<a class="button quiet" href="manifest.schema.json" download>Schema JSON</a>
+				</div>
+			</div>
+			<aside class="telemetry" aria-label="Mod system capabilities">
+				<p><span>CONTRACT</span><strong>SAFE DATA ONLY</strong></p>
+				<p><span>SURFACES</span><strong>54 CATALOGS</strong></p>
+				<p><span>HOOKS</span><strong>32 EVENTS</strong></p>
+				<p><span>OPTIONS</span><strong>LIVE + PERSISTED</strong></p>
+				<p><span>CO-OP</span><strong>SIGNATURE LOCKED</strong></p>
+				<div class="signal"><i></i> REGISTRY SIGNAL NOMINAL</div>
+			</aside>
+		</section>
+
+		<section class="quickstart band" aria-labelledby="quick-title">
+			<div class="section-heading">
+				<p class="eyebrow">FOUR MOVES TO FIRST LOAD</p>
+				<h2 id="quick-title">From empty folder to live law.</h2>
+			</div>
+			<ol class="steps">
+				<li><b>01</b><div><h3>Create the pack</h3><p>Make a folder in <code>user://mods</code>, an export-adjacent <code>mods</code> folder, or <code>res://Mods</code>.</p></div></li>
+				<li><b>02</b><div><h3>Declare the contract</h3><p>Add <code>vector_anomaly_mod.json</code> with stable lowercase IDs and portable relative paths.</p></div></li>
+				<li><b>03</b><div><h3>Compose behavior</h3><p>Connect typed hooks, conditions, effects, and creator options. Set explicit multiplayer categories.</p></div></li>
+				<li><b>04</b><div><h3>Prove the package</h3><p>Rescan in Mods, resolve diagnostics, test reduced flash, and export the creator report.</p></div></li>
+			</ol>
+		</section>
+
+		<section class="workbench band" id="workbench" aria-labelledby="forge-title">
+			<div class="section-heading split-heading">
+				<div><p class="eyebrow">MANIFEST WORKBENCH</p><h2 id="forge-title">Forge, inspect, import, export.</h2></div>
+				<p>Your draft is stored in this browser only. The same contract is validated again by the in-game registry.</p>
+			</div>
+
+			<div class="forge" data-workbench>
+				<form class="forge-controls" data-builder-form novalidate>
+					<fieldset>
+						<legend>Identity</legend>
+						<label>Mod ID <input name="id" value="my_vector_pack" pattern="[a-z0-9_-]+" autocomplete="off" required><small>lowercase letters, numbers, _ or -</small></label>
+						<label>Display name <input name="display_name" value="My Vector Pack" required></label>
+						<div class="field-pair"><label>Author <input name="author" value="Creator" required></label><label>Version <input name="version" value="1.0.0" required></label></div>
+						<label>Description <textarea name="description" rows="3">A focused extension of Vector Anomaly's physics language.</textarea></label>
+					</fieldset>
+					<fieldset>
+						<legend>Capability</legend>
+						<div class="field-pair"><label>Starter surface <select name="preset"><option value="weapon">Projectile weapon</option><option value="weave">Law weave</option><option value="challenge">Challenge card</option><option value="visual">Visual pack</option><option value="level">Level pack</option><option value="expansion">Expansion pack</option></select></label><label>Network category <select name="network"><option value="reliable_event">Reliable event</option><option value="deterministic_seed">Deterministic seed</option><option value="exported_state">Exported state</option><option value="local_visual">Local visual</option></select></label></div>
+						<label>Dependencies <input name="dependencies" placeholder="core_pack@1.2.0, optional_music?" autocomplete="off"><small>comma separated; @ sets minimum version, ? marks optional</small></label>
+						<label>Conflicts <input name="conflicts" placeholder="legacy_physics_pack" autocomplete="off"></label>
+						<label class="check-row"><input type="checkbox" name="creator_options" checked><span>Include player-facing creator options</span></label>
+					</fieldset>
+					<div class="form-actions">
+						<button type="button" class="button primary" data-copy-manifest>Copy JSON</button>
+						<button type="button" class="button" data-download-manifest>Download</button>
+						<label class="button quiet file-button">Import JSON<input type="file" accept="application/json,.json" data-import-manifest></label>
+						<button type="button" class="text-button" data-reset-manifest>Reset draft</button>
+					</div>
+				</form>
+
+				<div class="output-stack">
+					<div class="diagnostics" data-diagnostics aria-live="polite">
+						<div><span>CONTRACT STATUS</span><strong data-validation-status>VALID</strong></div>
+						<div class="diagnostic-grid"><p><span>Schema</span><b data-schema-readout>4</b></p><p><span>Entries</span><b data-entry-readout>1</b></p><p><span>Network</span><b data-network-readout>RELIABLE</b></p></div>
+						<ul data-validation-list><li>No blocking issues.</li></ul>
+					</div>
+					<div class="code-window">
+						<div><span>vector_anomaly_mod.json</span><b data-builder-status>READY</b></div>
+						<pre tabindex="0"><code data-manifest-output></code></pre>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<section class="runtime band" id="runtime" aria-labelledby="runtime-title">
+			<div class="section-heading"><p class="eyebrow">RUNTIME GRAMMAR</p><h2 id="runtime-title">When. If. Then. Bounded.</h2></div>
+			<div class="grammar">
+				<article><span>01 // HOOK</span><h3><code>slingshot_apex</code></h3><p>Subscribe to a stable game signal. Hooks replace polling and keep high-chaos runs bounded.</p></article>
+				<article><span>02 // CONDITION</span><h3><code>mod_option</code></h3><p>Gate by wave, velocity, build, gravity state, accessibility mode, or a persisted creator option.</p></article>
+				<article><span>03 // EFFECT</span><h3><code>create_resonance_zone</code></h3><p>Ask a trusted director for a capped effect. No scene-tree escape hatch and no default script execution.</p></article>
+			</div>
+			<div class="architecture" aria-label="Mod runtime flow">
+				<div><small>DISCOVER</small><strong>Manifest folders</strong></div><i>→</i><div><small>VALIDATE</small><strong>Schema + paths</strong></div><i>→</i><div><small>ORDER</small><strong>Dependencies + conflicts</strong></div><i>→</i><div><small>INDEX</small><strong>Typed catalogs</strong></div><i>→</i><div><small>CONSUME</small><strong>Trusted directors</strong></div>
+			</div>
+		</section>
+
+		<section class="reference band" id="reference" aria-labelledby="reference-title">
+			<div class="section-heading reference-heading">
+				<div><p class="eyebrow">CAPABILITY ATLAS</p><h2 id="reference-title">Find the right surface.</h2></div>
+				<label>Filter capabilities <input type="search" placeholder="Try boss, audio, hook, local..." data-reference-search></label>
+			</div>
+			<div class="filter-chips" role="group" aria-label="Capability category"><button type="button" class="is-active" data-filter="all">All</button><button type="button" data-filter="playable">Playable</button><button type="button" data-filter="world">World</button><button type="button" data-filter="presentation">Presentation</button><button type="button" data-filter="contract">Contract</button></div>
+			<div class="reference-grid" data-reference-grid>
+				<article data-category="playable" data-search="weapons projectile profiles patterns payload"><b>PLAYABLE</b><h3>Weapons</h3><p>Projectile profiles, nine formations, payload tuning, HUD exposure, and co-op event replication.</p><span>live consumer</span></article>
+				<article data-category="playable" data-search="law weaves anomaly recipes challenge cards hooks conditions effects"><b>REACTIVE</b><h3>Law Weaves</h3><p>Hooks, typed conditions, bounded effects, cooldowns, trigger caps, and exclusivity groups.</p><span>live consumer</span></article>
+				<article data-category="world" data-search="levels arenas maps campaigns biomes missions wave tables"><b>WORLD</b><h3>Levels & campaigns</h3><p>Catalog arenas, maps, missions, biomes, and deterministic wave tables for trusted loaders.</p><span>catalog + roadmap</span></article>
+				<article data-category="world" data-search="enemies bosses behavior rules prefabs entities"><b>THREATS</b><h3>Enemy & boss packs</h3><p>Describe entities, behavior profiles, boss rules, prefab dependencies, and physics pressure.</p><span>catalog + roadmap</span></article>
+				<article data-category="presentation" data-search="shader texture ui skins palette accessibility visual local"><b>LOCAL SAFE</b><h3>Visual systems</h3><p>Shader overrides, texture packs, palettes, UI skins, HUD badges, and accessibility profiles.</p><span>signature exempt</span></article>
+				<article data-category="presentation" data-search="music soundtrack sfx audio localization language"><b>PRESENTATION</b><h3>Audio & language</h3><p>Portable soundtrack, SFX, localization, and creator-note assets resolved beside the manifest.</p><span>portable assets</span></article>
+				<article data-category="contract" data-search="dependencies order before after versions conflicts compatibility multiplayer"><b>CONTRACT</b><h3>Pack graph</h3><p>Required and optional dependencies, min/max versions, load ordering, and explicit incompatibilities.</p><span>schema 4</span></article>
+				<article data-category="contract" data-search="options configuration settings bool choice color mod option"><b>CONFIG</b><h3>Creator options</h3><p>Typed, persisted settings can drive hook conditions and participate in co-op signatures when needed.</p><span>schema 4</span></article>
+				<article data-category="contract" data-search="validation report diagnostics failures scan roots signature"><b>DEBUG</b><h3>Creator reports</h3><p>Export failures, conflicts, resolved paths, capability maps, settings, and gameplay signatures.</p><span>one bug artifact</span></article>
+				<article data-category="world" data-search="conversion expansion calamity game mode rules mechanics"><b>EXPANSION</b><h3>Large packs</h3><p>Compose campaigns, bosses, laws, weapons, events, presentation, and dependencies as one graph.</p><span>composition first</span></article>
+			</div>
+			<p class="empty-state" data-reference-empty hidden>No matching creator surface. Try a broader system term.</p>
+		</section>
+
+		<section class="ship band" id="ship" aria-labelledby="ship-title">
+			<div class="section-heading"><p class="eyebrow">RELEASE GATE</p><h2 id="ship-title">A pack ships when another machine agrees.</h2></div>
+			<div class="ship-layout">
+				<ul class="ship-list">
+					<li><input type="checkbox" id="check-paths"><label for="check-paths">All assets use manifest-relative, <code>res://</code>, or <code>user://</code> paths.</label></li>
+					<li><input type="checkbox" id="check-network"><label for="check-network">Gameplay entries and options declare a multiplayer category.</label></li>
+					<li><input type="checkbox" id="check-bounds"><label for="check-bounds">Hooks have cooldown, trigger, effect, and spawn bounds.</label></li>
+					<li><input type="checkbox" id="check-flash"><label for="check-flash">Presentation was tested with reduced flash enabled.</label></li>
+					<li><input type="checkbox" id="check-report"><label for="check-report">The in-game creator report contains zero failures or unresolved conflicts.</label></li>
+					<li><input type="checkbox" id="check-portable"><label for="check-portable">The pack was loaded from an executable-adjacent <code>mods</code> folder.</label></li>
+				</ul>
+				<aside class="release-readout"><span>RELEASE CONFIDENCE</span><strong data-release-score>0%</strong><div><i data-release-bar></i></div><p data-release-message>Complete the portability checks before publishing.</p></aside>
+			</div>
+		</section>
+	</main>
+
+	<footer><span>VECTOR ANOMALY CREATOR LAB // EXTEND THE PHYSICS LANGUAGE</span><a href="../">Main site</a><a href="../wiki/">Wiki</a><a href="#main">Back to top</a></footer>
+	<script src="creator.js"></script>
+</body>
+</html>

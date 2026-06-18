@@ -64,7 +64,7 @@ Every entry needs a stable local `id`. The registry stores it as a namespaced `q
   "display_name": "Example Vector Laws",
   "author": "Vector Anomaly Team",
   "version": 1,
-  "schema_version": 3,
+  "schema_version": 4,
   "description": "A safe sample content pack.",
   "tags": ["sample", "physics"],
   "dependencies": [
@@ -84,6 +84,33 @@ Every entry needs a stable local `id`. The registry stores it as a namespaced `q
   }
 }
 ```
+
+## Schema 4 Pack Graph And Creator Options
+
+Schema 4 makes large mod collections deterministic and configurable without widening the script safety boundary.
+
+- `dependencies` accept `min_version`, `max_version`, and `required`. Required version mismatches block the dependent pack; optional mismatches stay visible as diagnostics.
+- `load_after` and `load_before` build a stable topological load order. Cycles are reported and fall back to discovery order for the unresolved members.
+- `conflicts` explicitly names incompatible packs and may include a creator-facing `reason`. When both are installed, the later pack in resolved load order is blocked.
+- `options` declares typed `bool`, `int`, `float`, `string`, `choice`, or `color` settings. Values persist in `user://mod_state.json`, appear in the Mods screen, and can be read with `get_mod_option()`.
+- Options declare a `network_category`. Non-local option values participate in the gameplay compatibility signature, while presentation-only choices remain LAN-signature exempt.
+
+Example option:
+
+```json
+{
+  "id": "intensity",
+  "display_name": "Resonance Intensity",
+  "type": "float",
+  "default": 0.6,
+  "min": 0.25,
+  "max": 1.0,
+  "step": 0.05,
+  "network_category": "deterministic_seed"
+}
+```
+
+Hookable entries can gate on a persisted option with the `mod_option` condition. Supported operators are `equals`, `not_equals`, `greater_than`, `greater_or_equal`, `less_than`, and `less_or_equal`.
 
 ## Hookable Content
 
@@ -292,6 +319,12 @@ Useful calls:
 - `get_manifest(manifest_id)`
 - `get_manifest_load_order()`
 - `get_dependency_warnings()`
+- `get_conflict_warnings()`
+- `get_manifest_options(manifest_id)`
+- `get_mod_option(manifest_id, option_id, fallback)`
+- `set_mod_option(manifest_id, option_id, value)`
+- `reset_manifest_options(manifest_id)`
+- `get_entries_by_network_category(network_category)`
 - `get_compatibility_signature()`
 - `get_scan_roots()`
 - `get_mod_install_paths()`
@@ -308,6 +341,8 @@ Useful signals:
 - `content_registered(content_type, entry_id, manifest_id, entry)`
 - `mod_hook_registered(hook_id, entry_id, manifest_id, entry)`
 - `dependency_warning(manifest_id, dependency_id, reason)`
+- `manifest_conflict(manifest_id, conflicting_id, reason)`
+- `mod_option_changed(manifest_id, option_id, value)`
 - `mod_catalog_changed(snapshot)`
 - `ModHookDirector.mod_hook_triggered(hook_id, entry_id, data)`
 - `ModHookDirector.mod_effect_applied(action, entry_id, data)`
@@ -338,8 +373,20 @@ Missing required dependencies disable the manifest and its content. Optional dep
 
 ## Current Runtime Status
 
-The registry, sample manifest, mod-manager scan-root readout, pause-menu status readout, compatibility signature, playable projectile weapon loading, safe hook activation, and LAN hook replay are code-side foundations now. Hookable law weaves, recipes, and challenge cards can apply bounded live effects through `ModHookDirector`, while higher-level requests are recorded for trusted directors instead of spawning arbitrary scenes.
+The registry, schema 4 pack graph, persisted creator options, sample manifest, mod-manager controls, scan-root readout, compatibility signature, playable projectile weapon loading, safe hook activation, and LAN hook replay are code-side foundations now. Hookable law weaves, recipes, and challenge cards can apply bounded live effects through `ModHookDirector`, while higher-level requests are recorded for trusted directors instead of spawning arbitrary scenes.
 
 Export portability is now part of the contract: the runtime scans `user://mods`, optional executable-adjacent folders, bundled `res://Mods`, and nested mod directories; accepts `vector_anomaly_mod.json` plus the legacy `mod.json`; resolves manifest-relative asset paths without baking local machine paths into multiplayer compatibility hashes; and lets mod SFX load from exported external folders when the file type is supported by Godot's runtime audio streams.
 
 That separation is intentional. It lets the game grow toward a wild modding ecosystem while keeping V1 runtime behavior deterministic, inspectable, multiplayer-aware, and production-safe.
+
+## Creator Lab And Diagnostics
+
+The dedicated static creator site lives at `website/modding/index.html`. It includes a browser-local schema 4 workbench with draft persistence, JSON import/export, live contract diagnostics, dependency/conflict authoring, typed option templates, searchable creator surfaces, hook grammar, install guidance, and a persistent release checklist.
+
+`ModContentRegistry` now also exposes:
+
+- `validate_manifest_text(json_text, source_path)`
+- `validate_manifest_file(source_path)`
+- `export_creator_report(report_path)`
+
+The in-game Mods screen has an **Export Creator Report** action. The report contains loaded/failed/disabled manifests, dependency warnings, resolved install paths, registry capabilities, and the gameplay compatibility signature. Its resolved path is copied to the clipboard so creators can attach one deterministic diagnostic artifact to bug reports.

@@ -20,7 +20,7 @@ signal projectile_hit(hit_data: Dictionary)
 @export var debug_logging: bool = false
 
 @export_group("Projectile Readability")
-@export var windowkill_visual_scale: float = 1.34
+@export var visual_scale: float = 1.34
 @export var vector_trail_alpha: float = 0.66
 @export var vector_core_color: Color = Color(0.62, 1.0, 0.98, 1.0)
 @export var vector_trail_fade_color: Color = Color(1.0, 0.35, 0.1, 0.95) # Danger Orange
@@ -591,7 +591,7 @@ func _configure_windowkill_visuals() -> void:
 	var polygon := get_node_or_null("Polygon2D") as Polygon2D
 	if polygon != null:
 		polygon.color = _safe_projectile_color(vector_core_color)
-		polygon.scale = Vector2.ONE * windowkill_visual_scale
+		polygon.scale = Vector2.ONE * visual_scale
 
 	var light := get_node_or_null("PointLight2D") as PointLight2D
 	if light != null:
@@ -654,8 +654,8 @@ func _ensure_vector_trail() -> void:
 	_vector_trail.lifetime = 0.45
 	
 	var alpha := clampf(vector_trail_alpha, 0.0, 1.0)
-	if Settings != null and bool(Settings.reduce_flash) and Settings.has_method("flash_alpha"):
-		alpha = minf(Settings.flash_alpha(alpha), vector_trail_alpha)
+	if Settings != null and Settings.has_method("projectile_alpha"):
+		alpha = minf(Settings.projectile_alpha(alpha), vector_trail_alpha)
 		
 	# Mimics the visualizer fade: Main color fading into the danger color, then to transparent
 	var ramp = Gradient.new()
@@ -812,8 +812,8 @@ func _safe_visual_alpha(alpha: float, fallback_alpha: float = 1.0) -> float:
 	if is_nan(resolved_alpha) or is_inf(resolved_alpha):
 		resolved_alpha = fallback_alpha
 
-	if Settings != null and bool(Settings.reduce_flash) and Settings.has_method("flash_alpha"):
-		resolved_alpha = minf(float(Settings.flash_alpha(resolved_alpha)), fallback_alpha)
+	if Settings != null and Settings.has_method("projectile_alpha"):
+		resolved_alpha = minf(float(Settings.projectile_alpha(resolved_alpha)), fallback_alpha)
 
 	if is_nan(resolved_alpha) or is_inf(resolved_alpha):
 		resolved_alpha = fallback_alpha
@@ -926,7 +926,7 @@ func _is_projectile_payload_property(property_name: String) -> bool:
 		"gravity_constant",
 		"gravity_pull_radius",
 		"player_gravity_deadzone_radius",
-		"windowkill_visual_scale",
+		"visual_scale",
 		"vector_core_color",
 		"vector_trail_fade_color",
 		"weapon_axis_impulse",
@@ -1083,8 +1083,8 @@ func _safe_projectile_color(color: Color) -> Color:
 	if Settings != null and Settings.has_method("apply_readability_color"):
 		adjusted = Settings.apply_readability_color(adjusted)
 	var alpha := minf(adjusted.a, vector_core_alpha_cap)
-	if Settings != null and bool(Settings.reduce_flash) and Settings.has_method("flash_alpha"):
-		alpha = minf(Settings.flash_alpha(alpha), vector_core_alpha_cap)
+	if Settings != null and Settings.has_method("projectile_alpha"):
+		alpha = minf(Settings.projectile_alpha(alpha), vector_core_alpha_cap)
 	return Color(adjusted.r, adjusted.g, adjusted.b, alpha)
 
 

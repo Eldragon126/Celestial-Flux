@@ -158,14 +158,14 @@ enum MusicMode { NONE, WAVE, BOSS, INTERMISSION }
 
 @export_group("Player Authored Run Hazards")
 @export var enable_gravity_wave_maker_hazards: bool = true
-@export var gravity_wave_maker_start_wave: int = 4
+@export var gravity_wave_maker_start_wave: int = 8
 @export var gravity_wave_maker_interval: int = 4
 @export var gravity_wave_maker_lifetime: float = 30.0
 @export var gravity_wave_maker_points: int = 24
 @export var gravity_wave_maker_max_groups: int = 3
 @export var gravity_wave_maker_physics_points: int = 8
 @export var enable_pulsating_gravity_spawner_hazards: bool = true
-@export var pulsating_gravity_spawner_start_wave: int = 3
+@export var pulsating_gravity_spawner_start_wave: int = 6
 @export var pulsating_gravity_spawner_interval: int = 3
 @export var pulsating_gravity_spawner_lifetime: float = 42.0
 @export var pulsating_gravity_spawner_max_fields: int = 2
@@ -191,6 +191,23 @@ enum MusicMode { NONE, WAVE, BOSS, INTERMISSION }
 @export var pebble_auto_vanish_seconds: float = 11.0
 @export var pebble_music_swell_seconds: float = 2.2
 @export_range(0.0, 1.0, 0.01) var boss_pause_dialogue_chance: float = 0.35
+
+@export_group("Steam Demo Profile")
+@export var demo_profile_enabled: bool = false
+@export var demo_last_wave: int = 7
+@export var demo_boss_wave: int = 7
+@export_file("*.tscn") var demo_showcase_boss_scene_path: String = "res://Nodes/gravity_warden_boss.tscn"
+@export var demo_max_enemies: int = 9
+@export var demo_max_projectiles: int = 260
+@export var demo_max_enemy_projectiles: int = 72
+@export var demo_max_gravity_sources: int = 18
+@export var demo_max_resonance_zones: int = 4
+@export var demo_max_active_vfx_bursts: int = 8
+@export var demo_max_particles_per_burst: int = 28
+@export var demo_max_active_particles: int = 520
+@export var demo_boss_health_multiplier: float = 0.72
+@export var demo_boss_pressure_multiplier: float = 0.72
+@export var demo_budget_check_interval: float = 0.5
 
 var _player: Node2D = null
 var _level_root: Node = null
@@ -241,6 +258,8 @@ var _boss_pause_count: int = 0
 var _boss_pause_dialogue_used: bool = false
 var _boss_pause_dialogue_trigger_count: int = 0
 var _audio_stream_cache: Dictionary = {}
+var _demo_budget_elapsed: float = 999.0
+var _demo_run_complete: bool = false
 var _planet_spawn_blockers: Array[Node2D] = []
 var _wave_music_tracks: Array[String] = [
 	SONG_THE_ABYSS_PATH,
@@ -405,6 +424,7 @@ func _process(delta: float) -> void:
 		_connect_pause_menu()
 	_update_status(delta)
 	_update_anomaly_easter_eggs(delta)
+	_update_demo_budget_enforcement(delta)
 
 	if not _wave_running or _spawning:
 		return
@@ -646,23 +666,18 @@ func _spawn_boss_wave() -> void:
 	await get_tree().create_timer(1.2).timeout
 
 func _build_wave_roster() -> Array:
+	if demo_profile_enabled:
+		return _build_demo_wave_roster()
 	if _is_late_game_wave():
 		return _build_late_game_roster()
+	if _wave <= 4:
+		return _build_early_wave_roster()
 
 	var roster: Array = []
 	var count = int(min(4 + _wave, max_regular_enemies))
 
 	for i in range(count):
-		if _wave <= 1:
-			roster.append(BASE_ENEMY_SCENE if i % 3 != 0 else ORBITER_DRONE_SCENE)
-		elif _wave == 2:
-			roster.append([BASE_ENEMY_SCENE, GRAVITY_LEECH_SCENE, ORBITER_DRONE_SCENE][i % 3])
-		elif _wave == 3:
-			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, SEEKER_FRAGMENT_SCENE, CHAOS_WISP_SCENE, PARAMETRIC_1_SCENE, PHASE_SLIP_SWARM_SCENE][i % 6])
-		elif _wave == 4:
-			roster.append([BASE_SHOOTER_SCENE, HARASSER_SCENE, GRAVITY_LEECH_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, PARAMETRIC_2_SCENE, PHASE_SLIP_SWARM_SCENE][i % 7])
-		else:
-			roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, ORBITER_DRONE_SCENE, GRAVITY_LEECH_SCENE, SEEKER_FRAGMENT_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, HARASSER_SCENE, SNIPER_SCENE, PARAMETRIC_1_SCENE, PARAMETRIC_2_SCENE, PARAMETRIC_4_SCENE, PARAMETRIC_5_SCENE, PHASE_SLIP_SWARM_SCENE, GRAVIMETRIC_ECHO_DRONE_SCENE, VECTOR_TAX_COLLECTOR_SCENE, PERIAPSIS_MANTIS_SCENE, CAUSALITY_SHRIKE_SCENE, ORBIT_WEAVER_SCENE, GRAVITY_UNDERTAKER_SCENE][i % 20])
+		roster.append([BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, ORBITER_DRONE_SCENE, GRAVITY_LEECH_SCENE, SEEKER_FRAGMENT_SCENE, SHIELD_BREAKER_SCENE, CHAOS_WISP_SCENE, HARASSER_SCENE, SNIPER_SCENE, PARAMETRIC_1_SCENE, PARAMETRIC_2_SCENE, PARAMETRIC_4_SCENE, PARAMETRIC_5_SCENE, PHASE_SLIP_SWARM_SCENE, GRAVIMETRIC_ECHO_DRONE_SCENE, VECTOR_TAX_COLLECTOR_SCENE, PERIAPSIS_MANTIS_SCENE, CAUSALITY_SHRIKE_SCENE, ORBIT_WEAVER_SCENE, GRAVITY_UNDERTAKER_SCENE][i % 20])
 
 	if _wave >= 3:
 		roster.insert(int(min(2, roster.size())), SHIELDER_SCENE)
@@ -687,6 +702,38 @@ func _build_wave_roster() -> Array:
 	if _wave >= 12:
 		roster.insert(int(min(13, roster.size())), GRAVITY_UNDERTAKER_SCENE)
 
+	return roster
+
+
+func _build_early_wave_roster() -> Array:
+	# Waves 1-2 deliberately preserve the tutorial's one-idea-at-a-time grammar.
+	# Waves 3-4 add one readable role per wave without stacking parametric AI,
+	# phase slipping, and authored gravity hazards in the same frame window.
+	var rosters := {
+		1: [BASE_ENEMY_SCENE, BASE_ENEMY_SCENE, ORBITER_DRONE_SCENE, BASE_ENEMY_SCENE],
+		2: [BASE_ENEMY_SCENE, ORBITER_DRONE_SCENE, GRAVITY_LEECH_SCENE, BASE_SHOOTER_SCENE, BASE_ENEMY_SCENE],
+		3: [BASE_ENEMY_SCENE, BASE_SHOOTER_SCENE, SEEKER_FRAGMENT_SCENE, ORBITER_DRONE_SCENE, GRAVITY_LEECH_SCENE, BASE_SHOOTER_SCENE],
+		4: [BASE_SHOOTER_SCENE, HARASSER_SCENE, GRAVITY_LEECH_SCENE, SHIELD_BREAKER_SCENE, SEEKER_FRAGMENT_SCENE, ORBITER_DRONE_SCENE, SHIELDER_SCENE],
+	}
+	var value: Variant = rosters.get(_wave, [])
+	return (value as Array).duplicate() if value is Array else []
+
+
+func _build_demo_wave_roster() -> Array:
+	var rosters := {
+		1: [BASE_ENEMY_SCENE, ORBITER_DRONE_SCENE, BASE_ENEMY_SCENE, ORBITER_DRONE_SCENE],
+		2: [BASE_ENEMY_SCENE, GRAVITY_LEECH_SCENE, ORBITER_DRONE_SCENE, BASE_ENEMY_SCENE, GRAVITY_LEECH_SCENE],
+		3: [BASE_SHOOTER_SCENE, SEEKER_FRAGMENT_SCENE, ORBITER_DRONE_SCENE, GRAVITY_LEECH_SCENE, BASE_SHOOTER_SCENE, SEEKER_FRAGMENT_SCENE],
+		4: [HARASSER_SCENE, BASE_SHOOTER_SCENE, SHIELDER_SCENE, GRAVITY_LEECH_SCENE, SEEKER_FRAGMENT_SCENE, SHIELD_BREAKER_SCENE],
+		5: [CHAOS_WISP_SCENE, HARASSER_SCENE, BASE_SHOOTER_SCENE, SHIELD_BREAKER_SCENE, ORBITER_DRONE_SCENE, GRAVITY_LEECH_SCENE, SEEKER_FRAGMENT_SCENE],
+		6: [PERIAPSIS_MANTIS_SCENE, CHAOS_WISP_SCENE, SHIELDER_SCENE, HARASSER_SCENE, BASE_SHOOTER_SCENE, SHIELD_BREAKER_SCENE, GRAVITY_LEECH_SCENE, SEEKER_FRAGMENT_SCENE],
+	}
+	var source_value: Variant = rosters.get(_wave, rosters.get(6, []))
+	var source_roster: Array = source_value if source_value is Array else []
+	var roster: Array = []
+	var limit := mini(source_roster.size(), maxi(demo_max_enemies, 1))
+	for i in range(limit):
+		roster.append(source_roster[i])
 	return roster
 
 
@@ -948,9 +995,13 @@ func _seed_galaxy_arrival_field(center: Vector2) -> void:
 
 func _seed_wave_hazards() -> void:
 	_refresh_planet_spawn_blockers()
-	if _wave % 2 == 0:
+	if demo_profile_enabled:
+		_seed_demo_wave_hazards()
+		_refresh_player_planet_cache()
+		return
+	if _wave >= 6 and _wave % 2 == 0:
 		_spawn_hazard(UNSTABLE_MOON_SCENE, "Wave%dUnstableMoon" % _wave, _spawn_position_for_index(_wave + 3))
-	if _wave % 3 == 0:
+	if _wave >= 5 and _wave % 3 == 0:
 		_spawn_hazard(NEBULA_SCENE, "Wave%dNebulaCloud" % _wave, _spawn_position_for_index(_wave + 7))
 	if _wave == 19:
 		_spawn_hazard(NEBULA_SCENE, "Wave19BoogieNebula", _spawn_position_for_index(_wave + 11))
@@ -958,6 +1009,29 @@ func _seed_wave_hazards() -> void:
 	_seed_player_authored_run_hazards()
 
 	_refresh_player_planet_cache()
+
+
+func _seed_demo_wave_hazards() -> void:
+	if _wave == 2:
+		_spawn_hazard_once(UNSTABLE_MOON_SCENE, "DemoWave2OrbitMoon", _spawn_position_for_index(_wave + 3))
+	elif _wave == 3:
+		var spawner := _spawn_hazard_once(
+			PULSATING_GRAVITY_SPAWNER_SCENE,
+			"DemoWave3PulsatingGravitySpawner",
+			_spawn_position_for_index(_wave + 23, true, far_planet_clearance)
+		)
+		_configure_pulsating_gravity_spawner(spawner)
+		_schedule_hazard_retire(spawner, 70.0)
+	elif _wave == 5:
+		var maker := _spawn_hazard_once(
+			GRAVITY_WAVE_MAKER_SCENE,
+			"DemoWave5GravityWaveMaker",
+			_spawn_position_for_index(_wave + 31, true, far_planet_clearance)
+		)
+		_configure_gravity_wave_maker(maker)
+		_schedule_hazard_retire(maker, 74.0)
+	elif _wave == 6:
+		_spawn_hazard_once(NEBULA_SCENE, "DemoWave6ReadableNebula", _spawn_position_for_index(_wave + 7))
 
 
 func _seed_player_authored_run_hazards() -> void:
@@ -1033,6 +1107,304 @@ func _set_if_present(target: Node, property_name: StringName, value: Variant) ->
 	if target == null or target.get(property_name) == null:
 		return
 	target.set(property_name, value)
+
+
+func _update_demo_budget_enforcement(delta: float) -> void:
+	if not demo_profile_enabled:
+		return
+	_demo_budget_elapsed += delta
+	if _demo_budget_elapsed < maxf(demo_budget_check_interval, 0.1):
+		return
+	_demo_budget_elapsed = 0.0
+	_apply_demo_budget_caps()
+
+
+func _apply_demo_budget_caps() -> void:
+	if BulletManager != null and BulletManager.get("max_enemy_bullets") != null:
+		BulletManager.set("max_enemy_bullets", demo_max_enemy_projectiles)
+
+	var resonance := _find_scene_child("GravityResonanceManager")
+	if resonance != null:
+		_set_if_present(resonance, &"maximum_resonance_zones", demo_max_resonance_zones)
+		_set_if_present(resonance, &"resonance_visual_quality", 1)
+		_set_if_present(resonance, &"max_visual_particles_per_zone", mini(demo_max_particles_per_burst, 8))
+		_set_if_present(resonance, &"max_projectiles_per_zone", 14)
+		_set_if_present(resonance, &"max_bodies_per_zone", 18)
+
+	var vfx := _find_scene_child("OrbitalVFXDirector")
+	if vfx != null:
+		_set_if_present(vfx, &"visual_quality", 1)
+		_set_if_present(vfx, &"low_performance_mode", true)
+		_set_if_present(vfx, &"max_active_bursts", demo_max_active_vfx_bursts)
+		_set_if_present(vfx, &"max_particles_per_burst", demo_max_particles_per_burst)
+
+	var scars := _find_scene_child("GravityScarManager")
+	if scars != null:
+		_set_if_present(scars, &"max_active_scars", 4)
+		_set_if_present(scars, &"max_particles_per_scar", 10)
+
+	var budget := _find_scene_child("PerformanceBudgetDirector")
+	if budget != null:
+		_set_if_present(budget, &"quality_tier", 0)
+		_set_if_present(budget, &"projectile_pressure_threshold", demo_max_projectiles)
+		_set_if_present(budget, &"enemy_pressure_threshold", demo_max_enemies)
+
+	_cap_group_nodes(&"enemy_projectiles", demo_max_enemy_projectiles)
+	_cap_group_nodes(&"Projectiles", demo_max_projectiles)
+	_cap_demo_wave_enemies()
+	_cap_demo_dynamic_gravity_sources()
+	_cap_demo_boss_effects()
+	_cap_demo_projectile_particles()
+	_cap_demo_persistent_particles()
+
+
+func validate_demo_budgets() -> Dictionary:
+	var report := get_demo_budget_report()
+	var failures: Array[String] = []
+	if int(report.get("enemies", 0)) > demo_max_enemies:
+		failures.append("enemy count %d > %d" % [int(report.get("enemies", 0)), demo_max_enemies])
+	if int(report.get("projectiles", 0)) > demo_max_projectiles:
+		failures.append("projectile count %d > %d" % [int(report.get("projectiles", 0)), demo_max_projectiles])
+	if int(report.get("enemy_projectiles", 0)) > demo_max_enemy_projectiles:
+		failures.append("enemy projectile count %d > %d" % [int(report.get("enemy_projectiles", 0)), demo_max_enemy_projectiles])
+	if int(report.get("gravity_sources", 0)) > demo_max_gravity_sources:
+		failures.append("gravity source count %d > %d" % [int(report.get("gravity_sources", 0)), demo_max_gravity_sources])
+	if int(report.get("resonance_zones", 0)) > demo_max_resonance_zones:
+		failures.append("resonance zones %d > %d" % [int(report.get("resonance_zones", 0)), demo_max_resonance_zones])
+	if int(report.get("active_vfx_bursts", 0)) > demo_max_active_vfx_bursts:
+		failures.append("active VFX bursts %d > %d" % [int(report.get("active_vfx_bursts", 0)), demo_max_active_vfx_bursts])
+	if int(report.get("active_particles", 0)) > demo_max_active_particles:
+		failures.append("active particles %d > %d" % [int(report.get("active_particles", 0)), demo_max_active_particles])
+	report["within_budget"] = failures.is_empty()
+	report["failures"] = failures
+	return report
+
+
+func get_demo_budget_report() -> Dictionary:
+	var vfx_state := _vfx_debug_state()
+	var resonance_state := _resonance_debug_state()
+	var budget_state := _budget_debug_state()
+	var stress_state := _stress_validation_state()
+	return {
+		"profile": "steam_demo" if demo_profile_enabled else "standard",
+		"wave": _wave,
+		"fps": Engine.get_frames_per_second(),
+		"enemies": _demo_enemy_count(),
+		"projectiles": _group_count(&"Projectiles"),
+		"enemy_projectiles": _group_count(&"enemy_projectiles"),
+		"gravity_sources": _group_count(&"Objects_With_Gravity"),
+		"resonance_zones": int(resonance_state.get("active", 0)),
+		"active_vfx_bursts": int(vfx_state.get("active_bursts", 0)),
+		"vfx_burst_cap": int(vfx_state.get("burst_cap", demo_max_active_vfx_bursts)),
+		"active_particles": _active_particle_count(),
+		"budget": budget_state,
+		"vfx": vfx_state,
+		"resonance": resonance_state,
+		"stress": stress_state,
+	}
+
+
+func _cap_group_nodes(group_name: StringName, limit: int) -> void:
+	if limit <= 0:
+		return
+	var nodes := get_tree().get_nodes_in_group(group_name)
+	if nodes.size() <= limit:
+		return
+	for i in range(nodes.size() - 1, limit - 1, -1):
+		var node := nodes[i] as Node
+		if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+			continue
+		node.queue_free()
+
+
+func _cap_demo_wave_enemies() -> void:
+	var live: Array[Node] = []
+	for enemy in _active_enemies:
+		if enemy == null or not is_instance_valid(enemy) or enemy.is_queued_for_deletion():
+			continue
+		live.append(enemy)
+	_active_enemies = live
+
+	var allowed_regular := demo_max_enemies
+	if _boss != null and is_instance_valid(_boss):
+		allowed_regular = maxi(demo_max_enemies - 1, 1)
+
+	var kept := 0
+	for enemy in _active_enemies:
+		if enemy == _boss:
+			continue
+		kept += 1
+		if kept <= allowed_regular:
+			continue
+		if enemy != null and is_instance_valid(enemy) and not enemy.is_queued_for_deletion():
+			enemy.queue_free()
+
+
+func _cap_demo_dynamic_gravity_sources() -> void:
+	var count := _group_count(&"Objects_With_Gravity")
+	if count <= demo_max_gravity_sources:
+		return
+	var sources := get_tree().get_nodes_in_group("Objects_With_Gravity")
+	for i in range(sources.size() - 1, -1, -1):
+		if count <= demo_max_gravity_sources:
+			return
+		var node := sources[i] as Node
+		if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+			continue
+		if node.is_in_group("planets") or String(node.name).to_lower().contains("blackhole") or String(node.name).to_lower().contains("black_hole"):
+			continue
+		node.queue_free()
+		count -= 1
+
+
+func _cap_demo_boss_effects() -> void:
+	if _boss == null or not is_instance_valid(_boss):
+		return
+	_set_if_present(_boss, &"max_active_projectiles", demo_max_enemy_projectiles)
+	_set_if_present(_boss, &"max_active_bullets", demo_max_enemy_projectiles)
+	_set_if_present(_boss, &"max_active_effects", demo_max_active_vfx_bursts)
+	_set_if_present(_boss, &"max_particles_per_burst", demo_max_particles_per_burst)
+
+
+func _cap_demo_projectile_particles() -> void:
+	for group_name in [&"Projectiles", &"enemy_projectiles"]:
+		for value in get_tree().get_nodes_in_group(group_name):
+			var node := value as Node
+			if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+				continue
+			_cap_particles_under(node, 5)
+
+
+func _cap_demo_persistent_particles() -> void:
+	var seen := {}
+	for group_name in [&"enemies", &"wave_enemy", &"bosses"]:
+		for value in get_tree().get_nodes_in_group(group_name):
+			var node := value as Node
+			if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+				continue
+			var id := node.get_instance_id()
+			if seen.has(id):
+				continue
+			seen[id] = true
+			_cap_particles_under(node, 14)
+	for value in get_tree().get_nodes_in_group("planets"):
+		var node := value as Node
+		if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+			continue
+		var id := node.get_instance_id()
+		if seen.has(id):
+			continue
+		seen[id] = true
+		var cap := 40 if String(node.name).to_lower().contains("blackhole") or String(node.name).to_lower().contains("black_hole") else 8
+		_cap_particles_under(node, cap)
+	var player := get_tree().get_first_node_in_group("Player")
+	if player != null:
+		_cap_particles_under(player, 28)
+	var vfx := _find_scene_child("OrbitalVFXDirector")
+	if vfx != null:
+		_cap_particles_under(vfx, mini(demo_max_particles_per_burst, 14))
+	_cap_all_demo_particles(10)
+
+
+func _cap_particles_under(root: Node, limit: int) -> void:
+	if root == null or limit <= 0:
+		return
+	for child_value in root.find_children("*", "GPUParticles2D", true, false):
+		var particles := child_value as GPUParticles2D
+		if particles != null:
+			particles.amount = mini(particles.amount, limit)
+	for child_value in root.find_children("*", "CPUParticles2D", true, false):
+		var particles := child_value as CPUParticles2D
+		if particles != null:
+			particles.amount = mini(particles.amount, limit)
+
+
+func _cap_all_demo_particles(limit: int) -> void:
+	var scene := get_tree().current_scene
+	if scene == null or limit <= 0:
+		return
+	_cap_particles_under(scene, limit)
+
+
+func _demo_enemy_count() -> int:
+	var count := 0
+	var seen := {}
+	for group_name in [&"enemies", &"wave_enemy", &"bosses"]:
+		for value in get_tree().get_nodes_in_group(group_name):
+			var node := value as Node
+			if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+				continue
+			var id := node.get_instance_id()
+			if seen.has(id):
+				continue
+			seen[id] = true
+			count += 1
+	return count
+
+
+func _group_count(group_name: StringName) -> int:
+	if RuntimeRegistry != null:
+		return RuntimeRegistry.get_count(group_name)
+	return get_tree().get_nodes_in_group(group_name).size()
+
+
+func _active_particle_count() -> int:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return 0
+	var count := 0
+	for value in scene.find_children("*", "GPUParticles2D", true, false):
+		var particles := value as GPUParticles2D
+		if particles != null and particles.visible and particles.emitting:
+			count += int(particles.amount)
+	for value in scene.find_children("*", "CPUParticles2D", true, false):
+		var particles := value as CPUParticles2D
+		if particles != null and particles.visible and particles.emitting:
+			count += int(particles.amount)
+	return count
+
+
+func _vfx_debug_state() -> Dictionary:
+	var vfx := _find_scene_child("OrbitalVFXDirector")
+	if vfx != null and vfx.has_method("get_vfx_debug_state"):
+		var value: Variant = vfx.call("get_vfx_debug_state")
+		if value is Dictionary:
+			return value as Dictionary
+	return {}
+
+
+func _resonance_debug_state() -> Dictionary:
+	var resonance := _find_scene_child("GravityResonanceManager")
+	if resonance != null and resonance.has_method("get_resonance_debug_state"):
+		var value: Variant = resonance.call("get_resonance_debug_state")
+		if value is Dictionary:
+			return value as Dictionary
+	return {}
+
+
+func _budget_debug_state() -> Dictionary:
+	var budget := _find_scene_child("PerformanceBudgetDirector")
+	if budget != null and budget.has_method("get_budget_debug_state"):
+		var value: Variant = budget.call("get_budget_debug_state")
+		if value is Dictionary:
+			return value as Dictionary
+	return {}
+
+
+func _stress_validation_state() -> Dictionary:
+	var stress := _find_scene_child("StressTestDirector")
+	if stress != null and stress.has_method("validate_performance_budgets"):
+		var value: Variant = stress.call("validate_performance_budgets")
+		if value is Dictionary:
+			return value as Dictionary
+	return {}
+
+
+func _find_scene_child(child_name: String) -> Node:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return null
+	return scene.find_child(child_name, true, false)
 
 func _spawn_hazard(scene: PackedScene, node_name: String, global_pos: Vector2) -> Node:
 	var hazard = scene.instantiate()
@@ -1261,6 +1633,18 @@ func _complete_wave(network_forced: bool = false) -> void:
 	if _is_network_client():
 		return
 
+	if demo_profile_enabled and _wave >= demo_last_wave:
+		_demo_run_complete = true
+		if RunProgress != null:
+			RunProgress.run_finished = true
+			RunProgress.arena_flags["demo_completed"] = true
+			RunProgress.arena_flags["demo_completed_wave"] = _wave
+			RunProgress.run_completed.emit()
+			RunProgress.clear_anchor()
+		_stop_all_music()
+		_banner_label.text = "STEAM DEMO COMPLETE"
+		return
+
 	if _waves_halted or not _waves_enabled():
 		if RunProgress and RunProgress.boss_rush_mode and RunProgress.run_finished:
 			_banner_label.text = "BOSS RUSH CLEARED"
@@ -1450,6 +1834,8 @@ func _cleanup_tracking() -> void:
 		_external_enemy_ids.erase(enemy_id)
 
 func _is_boss_wave() -> bool:
+	if demo_profile_enabled:
+		return _wave == demo_boss_wave
 	if RunProgress and RunProgress.boss_rush_mode:
 		return true
 	if RunProgress and not RunProgress.challenge_mode:
@@ -1460,6 +1846,8 @@ func _is_late_game_wave() -> bool:
 	return RunProgress and _wave >= RunProgress.LATE_GAME_START_WAVE and _wave <= RunProgress.LATE_GAME_END_WAVE
 
 func _waves_enabled() -> bool:
+	if demo_profile_enabled:
+		return not _demo_run_complete and _wave < demo_last_wave
 	if RunProgress == null:
 		return true
 	return RunProgress.waves_enabled()
@@ -1471,6 +1859,8 @@ func _refresh_player_planet_cache() -> void:
 		_player.set("planets", get_tree().get_nodes_in_group("planets"))
 
 func _choose_boss_scene() -> PackedScene:
+	if demo_profile_enabled:
+		return _boss_scene_from_path(demo_showcase_boss_scene_path)
 	if RunProgress and RunProgress.boss_rush_mode:
 		var index = max(_wave - 1, 0) % RunProgress.BOSS_SCENE_PATHS.size()
 		return _boss_scene_from_path(RunProgress.BOSS_SCENE_PATHS[index])
@@ -1576,6 +1966,8 @@ func _boss_health_for_scene(scene: PackedScene) -> float:
 		base_health = 6800.0
 	var wave_pressure := 1.0 + 0.055 * float(maxi(_wave - boss_every_waves, 0))
 	var health := base_health * wave_pressure
+	if demo_profile_enabled:
+		health *= maxf(demo_boss_health_multiplier, 0.1)
 	if RunProgress and RunProgress.boss_rush_mode:
 		health *= float(RunProgress.challenge_modifiers.get("boss_health_multiplier", 1.18))
 	return health
@@ -1584,6 +1976,8 @@ func _apply_boss_pressure_tuning(boss: Node, scene: PackedScene, boss_health: fl
 	if boss == null or not is_instance_valid(boss):
 		return
 	var pressure := 1.08 + 0.08 * float(_boss_pressure_index(scene)) + 0.018 * float(_wave)
+	if demo_profile_enabled:
+		pressure *= maxf(demo_boss_pressure_multiplier, 0.1)
 	if RunProgress and RunProgress.boss_rush_mode:
 		pressure *= 1.08
 

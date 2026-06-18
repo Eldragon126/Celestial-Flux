@@ -1,6 +1,0 @@
-Quick test in Godot
-Play The Abyss → F8 for projectile + gravity-well storm → check Stress on F3 overlay.
-F6 for full showcase including Centrifuge Marshal north of spawn.
-F9 to clear stress spawns.
-For wave 35 boss: play through milestones or jump waves via your usual debug path — boss index 6 is Centrifuge Marshal.
-To auto-run stress on load: enable run_stress_test_on_ready on OrbitalJuiceManager. For showcase on load without waves: enable spawn_showcase_content (leave showcase_alongside_wave_game off for a pure VFX sandbox).

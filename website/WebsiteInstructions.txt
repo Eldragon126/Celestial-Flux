@@ -1,27 +1,120 @@
-# VECTOR ANOMALY — WEBSITE SPECIFICATION SYSTEM BRIEF
+# VECTOR ANOMALY - Website Consistency Brief
 
-This master specification defines the architectural, visual, structural, and behavioral requirements for the **VECTOR ANOMALY Web Terminal Landing Page**. This document serves as a high-fidelity, actionable system prompt optimized for deployment within AI-driven engineering spaces (such as **Cursor, Windsurf, Codex, and Antigravity environments**). It translates game mechanics, telemetry architecture, and brand logic directly into web constructs.
+This website must reflect the current game, not an older prototype plan.
 
----
+## Current Public Surfaces
 
-Establish the website's visual foundation to mirror the game's identity as a collapsing, hostile vector simulation. The landing page must feel like an operational physics telemetry terminal or diagnostic HUD rather than a generic video game website. The color palette must strictly obey the game's progression cycle: starting completely stark with true `#000000` black backgrounds, pure `#FFFFFF` white sharp vector geometry, and crisp telemetry typography (`JetBrains Mono` or similar system font), then intentionally fracturing into cold cyan, warning amber, and critical red as the user scrolls. Avoid muddy background gradients, generic space fantasy nebulae, or unreadable bloom fog; everything must feel precise, dangerous, intelligent, and completely deterministic, delivering the core market hook within three seconds of loading.
+- Primary public follow link: Discord, currently `https://discord.gg/HstMJMkCtb`.
+- Current Windows playtest build: `https://github.com/Eldragon126/VECTOR-ANOMALY-WINDOWS-BUILD`.
+- Current contact email from the repo README: `eldensimmons1@gmail.com`.
+- Steam wishlist copy should only be shown when a real Steam app URL is configured in `site.config.js`.
 
-The fold of the page must prioritize immediate cognitive capture using a centered, raw-canvas layout that houses the primary gameplay trailer framed like an active simulation window. The trailer itself must not display abstract neon decoration or cinematic fluff, but rather start immediately with a high-intensity, 3-second hook clip showing a near-death orbit escape or high-speed gravity collapse. Encircling this media window, an active vector-line container should render automated system diagnostics: real-time frame timing, simulated seed codes (`mode:seed:wave`), and flashing alerts reading `LAWS CRACKING: WAVE GENERATOR OFFLINE`. Flanking the video element, prominent, low-latency call-to-action buttons for "Wishlist on Steam" and "Play Demo" must be rendered with razor-sharp geometric borders that subtly pulse with a physics-driven hover velocity effect, rather than generic CSS color fades.
+## Core Positioning
 
-Directly below the fold, implement an interactive, ultra-lightweight HTML5 Canvas or WebGL canvas element that serves as a playable, miniature gravity-slingshot simulator. This sandbox allows visitors to click and drag to launch a vector probe (representing the player control vector) around a central, pulsing black hole mass node (the Accretion Core). The canvas must mirror the game's actual physics principles: momentum inheritance, vector trajectories drawn via dotted `Line2D` styled lines, and localized time dilation pockets that slow down the probe when it enters an explicit zone circle. If the user successfully executes a perfect apex slingshot recovery, the sandbox emits a controlled, low-alpha burst flash utilizing `Settings.flash_alpha()` logic, momentarily rendering glowing resonance glyphs (compression, slipstream, inversion) on-screen to trigger the realization that "you do not shoot in this game; you orbit your way out of mistakes."
+Vector Anomaly is a physics-driven arena survival roguelike where the player survives by reading gravity, preserving momentum, slingshotting around mass, and turning dangerous physics into recovery routes.
 
-The middle segment of the page must feature a highly modular, data-driven "Simulation Log" grid that acts as the game's features and mechanics overview. Instead of boring marketing paragraphs or listicles, this panel breaks down the standard run progression structure from Waves 1 through 35, detailing boss anomalies like the Gravity Warden, Null Vector Seraph, and Magnetar Twins using stark, interactive wireframe silhouettes. Hovering over a boss profile triggers an audio-reactive glitch effect and displays their systemic mutation law (e.g., "PHYSICS MUTATION DETECTED: ARENA LAW: MIRROR WELL"). This section must communicate to roguelike build experimenters and speedrunners that the game is a deterministic, skill-based physics playground, using system readout language that frames encounters not as combat fights, but as spatial control and movement puzzles.
+The site should sell:
 
-To leverage the game's core viral loop architecture (PLAY → CHAOS MOMENT → CLIP → SHARE → WISHLIST), design a dedicated, high-performance media slider titled "Watchable Impossibility Telemetry." This segment must natively stream ultra-short, high-frame-rate clips demonstrating true high-skill expression: gravity-assisted kills, frame-perfect recovery moments, and late-game Rupture escalation loops. Each clip container should display its associated run seed code overlayed on top, allowing users to hit a "Copy Seed" button to copy the string format `mode:seed:wave` straight to their clipboard. This architecture directly addresses secondary streaming audiences, presenting the website as an active terminal capturing real-time player reactions and community challenge runs rather than static marketing text.
+- movement as the primary survival skill
+- readable trajectory and gravity pressure
+- boss encounters as physics-rule mutations
+- deterministic seed/run sharing
+- watchable impossibility that remains fair in retrospect
 
-As the visitor scrolls towards the bottom third of the layout, the website must undergo a calculated, scroll-driven visual mutation simulating the game’s late-game "Rupture" state. The clean, predictable grid geometry must intentionally distort; vector borders fracture across their axes, font weights shift randomly into corrupted character streams, and the background shifts into overlapping physics states with broken color logic. This is achieved via a performant fragment shader or CSS-driven transform layer that simulates a total wave generator failure, throwing warnings like `SYSTEM STABILITY CRITICAL` and `MUSIC DEFINES REALITY` across the layout. This transition must feel deeply impactful but strictly optimized, ensuring that layout adjustments do not drop frames or disrupt the user’s scrolling performance, serving as an automatic visual metaphor for the intense escalation players experience in-game.
+Avoid framing the game as a generic twin-stick shooter, loot fantasy, bullet spam game, or pure power fantasy. The game has weapons and projectiles, so do not claim that the player literally does not shoot. Say that movement is the primary survival skill and that weapons support field control.
 
-Beneath the Rupture barrier, provide an expandable, keyboard-navigable interactive terminal designated as the "Anomalous Systems Codex." This interface breaks down the primary mechanical pillars of the game—Vectorfall, Arena Laws, Resonance Fields, Temporal Scars, and Gravity Scars—allowing optimization-focused players to read precise behavioral tooltips. Clicking a system term displays a clean vector diagram showing how overlapping gravity lines generate tactical field rules or how a local time wound alters projectile vectors. The writing style here must strictly conform to the developer-facing documentation: analytical, diagnostic, entirely objective, and absolutely devoid of generic sci-fi space fantasy lore, reinforcing the premise that survival is solely a product of analytical mastery.
+## No Web Slingshot Sandbox
 
-The persistent footer and navigation layer must be framed as an active control panel anchored to the viewport boundaries to maximize conversion metrics. The header menu should be a minimalist, space-conscious bar tracking simulation metrics (e.g., `WISH_COUNT: ACTIVE`, `VERSION: 4.4_STABLE`) alongside instantaneous anchors to the Trailer, Sandbox, Codex, and Dev Progress logs. The footer must feature a massive, high-contrast terminal prompt block inviting the user to initialize a sequence by typing or clicking a single command: `EXECUTE_WISHLIST_REDIRECT`. This final call-to-action is flanked by direct social links to the high-priority platforms (TikTok for discovery, YouTube Shorts for replay loops, and Discord for seed challenges), driving the consumer directly into the game's self-sustaining community cycle.
+Do not ship a runnable web slingshot sandbox. Represent slingshot mastery as static trajectory/readout proof and route deeper mechanics to the wiki. The real interaction belongs in the Godot game.
 
-When converting this blueprint into code using Cursor, Windsurf, or an AI agent, performance constraints must mirror the game's `PerformanceBudgetDirector` logic to prevent resource exhaustion and overdraw. All vector line animations must utilize native SVG operations, CSS hardware-accelerated transforms, or pre-allocated object pools within the HTML5 Canvas to guarantee a locked 60 FPS profile even on mobile browsers. Avoid loading heavy external UI packages, massive unoptimized tracking scripts, or raw, bloated video payloads; use deferred loading for all background clips, clamp maximum particle burst limits on the interactive canvas, and ensure that every visual pulse respects a global alpha restriction equivalent to the game's `Settings.flash_alpha()` safety cap to protect users from sudden fullscreen strobing.
+The trajectory section should show:
 
-This comprehensive blueprint serves as a definitive system prompt for automated workspace generation within Godot-adjacent web tooling or standard front-end frameworks like Svelte or Tailwind/TypeScript. When executing this plan, your codebase generation brain must treat this document as a strict specification matrix: variables must be strongly typed, assets must map to the explicit files documented in the development assets list, and typography choices must enforce simulation telemetry aesthetics. Reject any generated design component that introduces generic space capsule vectors, soft neon clouds, or power fantasy visual noise. The target deliverable must stand as a survivable visual paradox generator on the web—a digital asset that looks entirely unfakeable in motion, cleanly bridging the gap between immediate cognitive confusion and absolute structural mastery.
+- entry vector
+- gravity exposure
+- tangent exit
+- slingshot grade language
+- a link to the wiki slingshot section
 
-The current website is good, however, it must be better.
+## Actual Run Progression
+
+Use the current `RunProgress` and `WaveDirector` structure:
+
+- Boss milestones are waves 5, 10, 15, 20, 25, 30, 35, and 40.
+- Wave 5: Gravity Warden.
+- Wave 10: The Accretion Core.
+- Wave 15: Null Vector Seraph.
+- Wave 20: Magnetar Twins.
+- Wave 25: Tidal Rift Weaver.
+- Wave 30: The Polymorph.
+- Wave 35: Centrifuge Marshal.
+- Wave 40: The Extradimensional Breacher.
+- Defeating the wave-40 capstone enters Rupture.
+- Rupture lasts 75 seconds.
+- Music Finale spawns The Resonance Singularity.
+- Defeating The Resonance Singularity transitions to credits.
+
+Older copy that says the authored run ends at wave 35 is stale.
+
+## Seed And Challenge Code Formats
+
+Use the actual formats:
+
+- Pause/run seed code: `mode:seed:wave`, for example `standard:7135:35`.
+- Boss Rush mode id: `boss_rush`.
+- Challenge/score code: `mode:seed:wave:score_checksum`, where the suffix is the numeric score, an underscore, then the checksum. Example: `standard:7135:35:12840_9F3AC12B0E`.
+
+Avoid old hex-plus-wave-label marketing placeholders; they are not the current code format.
+
+## Wiki Scope
+
+The separate wiki site should stay factual and mechanics-first. It should cover:
+
+- overview and positioning
+- movement and trajectory prediction
+- slingshot mastery
+- resonance fields
+- arena laws and chaos tiers
+- run progression
+- bosses and hidden bosses
+- enemies
+- powerups, law fusions, and physics drops
+- seeds, scores, and challenge codes
+- LAN co-op and future Steam transport
+- safe modding manifests and hookable content
+- accessibility and death readouts
+- production architecture boundaries
+
+## Production Architecture Claims
+
+Only claim systems that exist in the docs/code:
+
+- `RuntimeRegistry` cached discovery
+- `OrbitalVFXDirector` pooled VFX
+- `ParticleFocusCuller`
+- `PerformanceBudgetDirector`
+- `RunScoreTracker`
+- `ModContentRegistry` and `ModHookDirector`
+- `NetworkSession` LAN session layer
+- `CoopComboDirector`
+- `Production Simulation Runner`
+- accessibility settings through `Settings`
+
+## Visual Rules
+
+Use the game's actual visual identity:
+
+- stark black foundation
+- crisp vector geometry
+- cyan for gravity/readability
+- amber for warning/trajectory
+- red for critical/Rupture/boss pressure
+
+Do not use generic space fantasy, muddy nebula fog, decorative bokeh, or abstract neon visuals that are disconnected from gameplay state.
+
+Every marketing visual should answer at least one gameplay question:
+
+- Where is the player?
+- What force is acting?
+- What danger is present?
+- What recovery route exists?
+- Why is this not a normal shooter?

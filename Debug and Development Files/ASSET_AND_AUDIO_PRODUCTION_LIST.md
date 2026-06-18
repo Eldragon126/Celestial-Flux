@@ -93,3 +93,5 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 - Every bright effect needs a reduced-flash path through `Settings.flash_alpha()` or equivalent alpha caps.
 - Audio should bind to existing gameplay hooks instead of requiring a large global audio manager.
 - Marketing assets should show real gameplay state, not abstract neon decoration.
+- CODEX Completion 2026-06-18: The public website now includes a dedicated Creator Lab with a live manifest forge, downloadable starter/schema, searchable mod surfaces, and cross-platform release checklist. Main site and wiki navigation link directly to it.
+- CODEX Completion 2026-06-18: Creator Lab schema 4 pass added an importable local workbench, live diagnostics, dependency/conflict authoring, typed option templates, capability filters, persistent release gates, and cohesive responsive polish across the main site, wiki, and modding site.

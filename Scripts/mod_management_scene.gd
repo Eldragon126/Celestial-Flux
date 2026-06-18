@@ -49,7 +49,7 @@ func _build_ui() -> void:
 	_summary_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rows.add_child(_summary_label)
 
-	var button_row := HBoxContainer.new()
+	var button_row := HFlowContainer.new()
 	button_row.add_theme_constant_override("separation", 10)
 	rows.add_child(button_row)
 
@@ -64,6 +64,10 @@ func _build_ui() -> void:
 	var copy_all_button := _make_button("Copy All Mod Paths")
 	copy_all_button.pressed.connect(_copy_all_mod_paths)
 	button_row.add_child(copy_all_button)
+
+	var report_button := _make_button("Export Creator Report")
+	report_button.pressed.connect(_export_creator_report)
+	button_row.add_child(report_button)
 
 	var back_button := _make_button("Title Screen")
 	back_button.pressed.connect(_on_back_pressed)
@@ -119,12 +123,14 @@ func _render_registry(feedback_text: String = "") -> void:
 	var manifest_count := int(summary.get("manifest_count", 0))
 	var content_total := int(summary.get("content_total", 0))
 	var failed := int(summary.get("failed", 0))
+	var conflicts := int(summary.get("conflict_warnings", 0))
 	var disabled := int(summary.get("disabled", 0))
 	var user_disabled := int(summary.get("user_disabled", 0))
-	_summary_label.text = "Loaded %d manifests, %d content entries, %d failed, %d off (%d toggled). Gameplay signature: %s" % [
+	_summary_label.text = "Loaded %d manifests, %d content entries, %d failed, %d conflicts, %d off (%d toggled). Gameplay signature: %s" % [
 		manifest_count,
 		content_total,
 		failed,
+		conflicts,
 		disabled,
 		user_disabled,
 		signature,
@@ -235,6 +241,20 @@ func _populate_detail_cards(summary: Dictionary) -> void:
 		for path in failed.keys():
 			failed_lines.append("%s: %s" % [str(path), str(failed[path])])
 		_details_box.add_child(_make_detail_section("Failed Manifests", failed_lines))
+	var conflicts_value: Variant = snapshot.get("conflict_warnings", {})
+	var conflicts: Dictionary = conflicts_value if conflicts_value is Dictionary else {}
+	if not conflicts.is_empty():
+		var conflict_lines: Array[String] = []
+		for warning_value in conflicts.values():
+			if not (warning_value is Dictionary):
+				continue
+			var warning := warning_value as Dictionary
+			conflict_lines.append("%s conflicts with %s: %s" % [
+				str(warning.get("manifest_id", "unknown")),
+				str(warning.get("conflicting_id", "unknown")),
+				str(warning.get("reason", "declared incompatible")),
+			])
+		_details_box.add_child(_make_detail_section("Conflict Diagnostics", conflict_lines))
 	var count_lines: Array[String] = []
 	if _registry != null and _registry.has_method("get_content_buckets"):
 		var buckets_value: Variant = _registry.call("get_content_buckets")
@@ -327,7 +347,94 @@ func _make_manifest_toggle_section(load_order: Array, manifests: Dictionary) -> 
 		meta.add_theme_font_size_override("font_size", 12)
 		meta.modulate = Color(0.66, 0.82, 0.9, 0.82)
 		rows.add_child(meta)
+
+		if _registry != null and _registry.has_method("get_manifest_options"):
+			var options_value: Variant = _registry.call("get_manifest_options", StringName(manifest_key))
+			if options_value is Array and not (options_value as Array).is_empty():
+				var options_title := Label.new()
+				options_title.text = "CREATOR OPTIONS"
+				options_title.add_theme_font_size_override("font_size", 12)
+				options_title.modulate = Color(1.0, 0.82, 0.42, 0.94)
+				rows.add_child(options_title)
+				for option_value in options_value as Array:
+					if option_value is Dictionary:
+						rows.add_child(_make_mod_option_control(manifest_key, option_value as Dictionary))
 	return panel
+
+
+func _make_mod_option_control(manifest_id: String, option: Dictionary) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var option_id := str(option.get("id", "option"))
+	var option_type := str(option.get("type", "bool"))
+	var value: Variant = option.get("value", option.get("default"))
+
+	var label := Label.new()
+	label.text = str(option.get("display_name", option_id)).capitalize()
+	label.tooltip_text = str(option.get("description", ""))
+	label.custom_minimum_size = Vector2(260.0, 0.0)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(label)
+
+	match option_type:
+		"bool":
+			var toggle := CheckBox.new()
+			toggle.button_pressed = bool(value)
+			toggle.toggled.connect(_on_mod_option_changed.bind(manifest_id, option_id))
+			row.add_child(toggle)
+		"int", "float":
+			var spinner := SpinBox.new()
+			spinner.custom_minimum_size = Vector2(150.0, 0.0)
+			spinner.min_value = float(option.get("min", -1000000.0))
+			spinner.max_value = float(option.get("max", 1000000.0))
+			spinner.step = 1.0 if option_type == "int" else float(option.get("step", 0.1))
+			spinner.value = float(value)
+			spinner.value_changed.connect(_on_numeric_mod_option_changed.bind(manifest_id, option_id, option_type))
+			row.add_child(spinner)
+		"choice":
+			var choices := OptionButton.new()
+			choices.custom_minimum_size = Vector2(190.0, 0.0)
+			var choice_values: Array = option.get("choices", [])
+			for choice_index in range(choice_values.size()):
+				choices.add_item(str(choice_values[choice_index]))
+				if choice_values[choice_index] == value:
+					choices.select(choice_index)
+			choices.item_selected.connect(_on_choice_mod_option_changed.bind(manifest_id, option_id, choice_values))
+			row.add_child(choices)
+		"color":
+			var color_picker := ColorPickerButton.new()
+			color_picker.custom_minimum_size = Vector2(150.0, 34.0)
+			color_picker.color = Color.from_string(str(value), Color.WHITE)
+			color_picker.color_changed.connect(_on_color_mod_option_changed.bind(manifest_id, option_id))
+			row.add_child(color_picker)
+		_:
+			var text_input := LineEdit.new()
+			text_input.custom_minimum_size = Vector2(240.0, 0.0)
+			text_input.text = str(value)
+			text_input.text_submitted.connect(_on_mod_option_changed.bind(manifest_id, option_id))
+			row.add_child(text_input)
+	return row
+
+
+func _on_mod_option_changed(value: Variant, manifest_id: String, option_id: String) -> void:
+	if _registry == null or not _registry.has_method("set_mod_option"):
+		return
+	if bool(_registry.call("set_mod_option", StringName(manifest_id), StringName(option_id), value)):
+		call_deferred("_render_registry", "Updated %s.%s" % [manifest_id, option_id])
+
+
+func _on_numeric_mod_option_changed(value: float, manifest_id: String, option_id: String, option_type: String) -> void:
+	_on_mod_option_changed(int(value) if option_type == "int" else value, manifest_id, option_id)
+
+
+func _on_choice_mod_option_changed(index: int, manifest_id: String, option_id: String, choices: Array) -> void:
+	if index >= 0 and index < choices.size():
+		_on_mod_option_changed(choices[index], manifest_id, option_id)
+
+
+func _on_color_mod_option_changed(value: Color, manifest_id: String, option_id: String) -> void:
+	_on_mod_option_changed(value.to_html(true), manifest_id, option_id)
 
 
 func _on_manifest_toggled(enabled_state: bool, manifest_id: String) -> void:
@@ -444,6 +551,18 @@ func _copy_all_mod_paths() -> void:
 	DisplayServer.clipboard_set("\n".join(lines))
 	if _summary_label != null:
 		_summary_label.text = "Copied mod install and scan paths."
+
+
+func _export_creator_report() -> void:
+	if _registry == null or not _registry.has_method("export_creator_report"):
+		_render_registry("Creator diagnostics are unavailable for this registry.")
+		return
+	var report_path := str(_registry.call("export_creator_report"))
+	if report_path.is_empty():
+		_render_registry("Could not write the creator diagnostics report.")
+		return
+	DisplayServer.clipboard_set(report_path)
+	_render_registry("Exported creator report and copied its path: %s" % report_path)
 
 
 func _on_back_pressed() -> void:

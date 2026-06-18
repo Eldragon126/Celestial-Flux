@@ -29,7 +29,7 @@ Use manifest-relative asset paths for portable mods:
 {
   "id": "example_mod",
   "version": "1.0.0",
-  "schema_version": 3,
+  "schema_version": 4,
   "content": {
     "sfx": [
       { "id": "mirror_ping", "stream": "assets/mirror_ping.ogg", "network_category": "local_visual" }
@@ -41,6 +41,8 @@ Use manifest-relative asset paths for portable mods:
 ## Build Checklist
 
 - Keep `id`, `version`, and `schema_version` stable for released mods.
+- Declare dependency version bounds, ordering hints, and conflicts for packs that overlap another pack's physics contract.
+- Mark creator options with a network category so gameplay-affecting values join the LAN compatibility signature and visual preferences stay local.
 - Prefer manifest-relative paths over machine-specific absolute paths.
 - Put deterministic gameplay content in `weapons`, `waves`, `wave_tables`, `rules`, `arenas`, `levels`, `boss_rules`, `enemy_packs`, `mechanics`, `calamity_mods`, `arena_events`, or hookable buckets.
 - Mark cosmetic-only entries with `network_category: "local_visual"` when applicable. Shader packs, shader overrides, UI skins, texture packs, soundtrack packs, localization, HUD badges, palettes, and creator notes should usually stay local-only.

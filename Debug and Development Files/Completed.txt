@@ -1,8 +1,0 @@
-Rebuilt RunScoreTracker as signal-driven scoring with deterministic score snapshots, SHA-256 challenge codes, kinetic death-time velocity snapshots, vector shear detection, event-horizon graze checks, apex tangential scoring, and RunProgress.arena_flags mirroring: run_score_tracker.gd (line 320)
-Added global particle focus culling for long-lived GPUParticles2D / CPUParticles2D: particle_focus_culler.gd (line 2)
-Added the physics drop ecosystem: physics_drop_system.gd (line 48) and physics_drop.gd (line 7)
-Wired enemy death rewards through WaveDirector, including Energy Droplets and physics drops.
-Added ArenaInstabilityDirector, RecoveryOpportunityDirector, CelestialBodyDirector / DynamicCelestialBody, and RealityCollapseDirector.
-Added THE EXTRADIMENSIONAL BREACHER boss and scheduled it as the wave 40 capstone: extradimensional_breacher_boss.gd (line 2)
-Updated OrbitalJuiceManager, RunProgress, WaveDirector, and transition hooks to install and route the new systems.
-Updated the systems/progression/drop docs to match the new implementation.

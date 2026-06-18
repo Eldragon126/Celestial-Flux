@@ -373,6 +373,8 @@ func _condition_matches(condition: Dictionary, data: Dictionary) -> bool:
 			return _black_hole_active() == bool(condition.get("value", true))
 		&"accessibility_mode":
 			return _accessibility_mode_matches(str(condition.get("value", condition.get("mode", ""))))
+		&"mod_option":
+			return _mod_option_matches(condition)
 	return false
 
 
@@ -861,6 +863,36 @@ func _mod_loaded(mod_id: String) -> bool:
 	if _registry.has_method("get_manifest"):
 		var manifest_value: Variant = _registry.call("get_manifest", StringName(mod_id.strip_edges()))
 		return manifest_value is Dictionary and not (manifest_value as Dictionary).is_empty()
+	return false
+
+
+func _mod_option_matches(condition: Dictionary) -> bool:
+	if _registry == null or not is_instance_valid(_registry) or not _registry.has_method("get_mod_option"):
+		return false
+	var manifest_id := StringName(str(condition.get("manifest_id", condition.get("mod_id", ""))))
+	var option_id := StringName(str(condition.get("option_id", condition.get("id", ""))))
+	if str(manifest_id).is_empty() or str(option_id).is_empty():
+		return false
+	var actual: Variant = _registry.call("get_mod_option", manifest_id, option_id, null)
+	var expected: Variant = condition.get("value")
+	var operator := str(condition.get("operator", "equals"))
+	match operator:
+		"equals":
+			return actual == expected
+		"not_equals":
+			return actual != expected
+		"greater_than", "greater_or_equal", "less_than", "less_or_equal":
+			if not (actual is int or actual is float) or not (expected is int or expected is float):
+				return false
+			var actual_number := float(actual)
+			var expected_number := float(expected)
+			if operator == "greater_than":
+				return actual_number > expected_number
+			if operator == "greater_or_equal":
+				return actual_number >= expected_number
+			if operator == "less_than":
+				return actual_number < expected_number
+			return actual_number <= expected_number
 	return false
 
 

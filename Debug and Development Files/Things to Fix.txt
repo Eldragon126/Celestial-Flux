@@ -616,96 +616,6 @@ Those are future constellations. Right now you need a rocket that survives launc
 [x] The game still crashes when some things go into black holes, or the player is next to the black hole for a long time. This needs to be fixed. Fixed: black holes no longer expose a million-mass generic gravity source to every gravity sampler, player/projectile gravity acceleration is capped, and black-hole RigidBody pulls use safe impulses instead of raw velocity assignment.
 
 [x] The slowing down time overlay effects and similar effects are super glitchy as well. I think it would be best to just overlay the screen with a cool looking shader. Fixed: gameplay time dilation now uses local slow by default instead of global Engine.time_scale, and the SpacetimeSwimDirector uses the CanvasLayer/ColorRect gravity-time shader path with stronger controlled distortion and no idle/glitch-slice noise.
-Canvas layer
-- Color rect 
-That could be a good node setup and this could be the shader (or something similar):
-shader_type canvas_item;
-render_mode unshaded;
-
-uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
-
-uniform vec2 gravity_center = vec2(0.5, 0.5);
-uniform float radius = 0.28;
-uniform float strength = 0.0;
-
-uniform float distortion_strength = 0.18;
-uniform float swirl_strength = 3.5;
-uniform float chromatic_aberration = 0.006;
-
-uniform float ring_density = 46.0;
-uniform float ring_speed = 3.0;
-uniform float ring_alpha = 0.35;
-
-uniform float dark_core = 0.45;
-uniform float core_alpha = 0.55;
-
-uniform vec4 core_color : source_color = vec4(0.15, 0.85, 1.0, 1.0);
-uniform vec4 edge_color : source_color = vec4(0.75, 0.15, 1.0, 1.0);
-
-vec2 rotate_vec(vec2 v, float a) {
-	float s = sin(a);
-	float c = cos(a);
-	return vec2(c * v.x - s * v.y, s * v.x + c * v.y);
-}
-
-void fragment() {
-	vec2 uv = SCREEN_UV;
-
-	// Keeps the effect circular on widescreen displays.
-	vec2 aspect = vec2(SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x, 1.0);
-
-	vec2 from_center = uv - gravity_center;
-	float dist = length(from_center * aspect);
-
-	float feather = radius * 0.22;
-	float field = 1.0 - smoothstep(radius, radius + feather, dist);
-	float inner_core = 1.0 - smoothstep(0.0, radius * 0.22, dist);
-
-	float falloff = pow(field, 1.65) * strength;
-
-	vec2 dir = normalize(from_center + vec2(0.00001));
-
-	// Animated gravity rings.
-	float ring_wave = sin(dist * ring_density - TIME * ring_speed);
-	float rings = smoothstep(0.55, 1.0, ring_wave) * field * (1.0 - inner_core);
-
-	// Swirl spacetime inward.
-	float swirl_angle = falloff * swirl_strength * (1.0 - clamp(dist / radius, 0.0, 1.0));
-	swirl_angle *= sin(TIME * 0.75 + dist * 10.0);
-
-	vec2 swirled = rotate_vec(from_center, swirl_angle);
-
-	// Compression toward the gravity center.
-	float sink = distortion_strength * falloff * (1.0 + rings * 0.35);
-	vec2 warped_uv = gravity_center + swirled * (1.0 - sink);
-
-	// Small ripple wobble.
-	warped_uv += dir * sin(dist * ring_density - TIME * ring_speed) * 0.004 * falloff;
-
-	// Chromatic tearing near the gravity edge.
-	float chroma = chromatic_aberration * falloff * (0.5 + rings);
-	vec2 chroma_offset = dir * chroma;
-
-	vec4 col;
-	col.r = texture(screen_texture, warped_uv + chroma_offset).r;
-	col.g = texture(screen_texture, warped_uv).g;
-	col.b = texture(screen_texture, warped_uv - chroma_offset).b;
-	col.a = 1.0;
-
-	// Neon gravity glow.
-	vec3 edge_glow = edge_color.rgb * rings * ring_alpha * strength;
-	vec3 core_glow = core_color.rgb * inner_core * core_alpha * strength;
-
-	col.rgb += edge_glow + core_glow;
-
-	// Darken the very center, like time is thickening.
-	col.rgb -= inner_core * dark_core * strength;
-
-	// Slight cold tint inside the field.
-	col.rgb = mix(col.rgb, col.rgb * vec3(0.82, 0.95, 1.15), field * strength * 0.22);
-
-	COLOR = col;
-}
 
 [x] I want the modding capabilities for users to be extended by exponential amounts. I want the users to be able to modify everything about the game, and even make their own levels, own enemies, add shader packs like in Minecraft, make their own "calamity" mod, ext. This is one of the key sellable items of the game. Fixed: ModContentRegistry now catalogs expanded creator surfaces for biomes, mission packs, wave tables, boss rules, enemy behaviors, projectile/gravity/planet profiles, mechanics, status effects, shader overrides, UI skins, localization, creator tools, and calamity-style mods, with safe hooks/effects and updated docs/sample manifest.
 
@@ -720,3 +630,27 @@ void fragment() {
 [x] The loading screen needs to look much more visually appealing. Fixed: the loading screen now layers animated orbit rings and vector ticks over the gravity shader, scaling with load progress while keeping the text and progress bar readable.
 
 [x] I can't see the player bullets AT ALL. Fixed: Vector Bolt now has an always-visible high-z core, readability halo, brighter uncapped player-projectile alpha, visible wake by default, and capped gravity forces so shots remain readable under pressure.
+
+[x] Gravity slingshots should also increase as you get closer on top of the one time boost. Fixed: slingshots now add a capped continuous tangent-only proximity boost that strengthens near gravity-source surfaces, while the one-shot mastery burst also gets a small proximity-based cap increase. The movement predictor mirrors the new close-pass acceleration.
+
+[x] When I reduce flash I can't see my bullets and background circles anymore. Fixed: Reduced Flash now separates transient flash suppression from persistent readability, gives player projectiles a dedicated alpha floor, and keeps gravity/resonance circles visible without restoring flash-bang bursts.
+
+[x] The game still crashes without any error when the player goes into a black hole. This has already been "fixed" 4+ times but hasn't actually been fixed. Fixed at the physics boundary: black holes no longer non-uniformly scale/rotate live collision bodies, no longer mutate the player's collision tree inside the field callback, and no longer use a blocking core collision shape before deferred player-owned death flow.
+
+[x] I'd like to make the auto-orbiting planets an optional, auto-off setting. I also want it to dynamically set the orbit distance based on where the player was and what his velocity was originally. Fixed: orbiting celestial events now have a persisted pause-menu toggle that defaults off; when enabled, their radius, entry angle, angular speed, and direction are captured from the player's position/velocity at spawn.
+
+[ ] I DID NOT MEAN CELESTIAL EVENTS, I meant the player auto-orbits planets, and I want that to be something you can toggle in settings or in the pause menu. Turn the celestial events that were auto orbiting auto on.
+
+[x] The game randomly crashed on wave 4. This needs to be fixed. Fixed the wave-4 pressure overlap: early rosters no longer combine parametric/phase-slip families with authored gravity fields, unstable moons begin later, Pulsating Gravity Spawner begins at wave 6, and Gravity Wave Maker begins at wave 8.
+
+[x] I like the simplicity of the tutorial level. I'd like it if the first couple waves kept it that simple (but obviously more difficult than the tutorial). Fixed: waves 1-4 now use explicit one-role-at-a-time rosters, with waves 1-2 preserving the tutorial's clean movement/shooting/gravity grammar before support and specialist threats arrive.
+
+[x] The game still needs better optimization, but I don't want to simplify it. I need ideas brainstormed for how we could "simplify" without taking out key gameplay and increasing performance. Completed: `PERFORMANCE_WITHOUT_SIMPLIFICATION.md` prioritizes shared pressure budgets, temporal-coherent gravity caching, event-driven field sets, multi-rate simulation, analytic fields, projectile data paths, overdraw budgets, staggered work, deterministic degradation, and crash telemetry; this pass also delays early system overlap without deleting content.
+
+[x] The game needs to be more sellable. Completed: strengthened the first-wave teaching ladder and accessibility legibility, connected the public site to the new Creator Lab, and added `SELLABILITY_EXECUTION_PLAN.md` with a three-second-to-demo conversion path, concrete capture needs, and measurable success tests.
+
+[ ] There needs to be more support for modding in the game. ModContentRegistry now validates manifest text/files and exports creator diagnostics; the Mods screen can export/copy a report containing failures, dependencies, capabilities, install paths, disabled state, and the multiplayer compatibility signature. Continue.
+
+[ ] Polish a entire website dedicated to helping players make mods. Fixed: added `website/modding/` as a responsive Creator Lab with quickstart, live manifest forge, starter download, JSON schema, hook grammar, searchable creator surfaces, shipping checklist, and links from the main site/wiki. Continue.
+
+[ ] 

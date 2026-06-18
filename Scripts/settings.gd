@@ -11,6 +11,9 @@ const WORLD_LIGHT_ALPHA_CAP: float = 0.2
 const WORLD_EFFECT_RADIUS_CAP: float = 420.0
 const WORLD_POLYGON_SEGMENT_CAP: int = 32
 const REDUCED_FLASH_ALPHA_SCALE: float = 0.45
+const REDUCED_FLASH_PERSISTENT_ALPHA_SCALE: float = 0.82
+const REDUCED_FLASH_PERSISTENT_ALPHA_FLOOR: float = 0.075
+const REDUCED_FLASH_PROJECTILE_ALPHA_FLOOR: float = 0.72
 
 enum ColorblindMode {
 	OFF,
@@ -30,6 +33,7 @@ var camera_follow_strength: float = 1.0
 var alternate_movement_enabled: bool = false
 var reverse_thrust_scale: float = 0.46
 var strafe_turn_assist: float = 0.22
+var auto_orbiting_celestials_enabled: bool = false
 
 
 func _ready() -> void:
@@ -84,6 +88,12 @@ func set_alternate_movement_enabled(value: bool) -> void:
 	save_settings()
 
 
+func set_auto_orbiting_celestials_enabled(value: bool) -> void:
+	auto_orbiting_celestials_enabled = value
+	_emit_accessibility_changed()
+	save_settings()
+
+
 func set_reverse_thrust_scale(value: float) -> void:
 	reverse_thrust_scale = clampf(value, 0.15, 0.8)
 	_emit_accessibility_changed()
@@ -115,6 +125,7 @@ func load_settings() -> void:
 	trackpad_direct_camera = bool(config.get_value(SECTION_INPUT, "trackpad_direct_camera", trackpad_direct_camera))
 	camera_follow_strength = clampf(float(config.get_value(SECTION_INPUT, "camera_follow_strength", camera_follow_strength)), 0.25, 2.5)
 	alternate_movement_enabled = bool(config.get_value(SECTION_INPUT, "alternate_movement_enabled", alternate_movement_enabled))
+	auto_orbiting_celestials_enabled = bool(config.get_value(SECTION_INPUT, "auto_orbiting_celestials_enabled", false))
 	reverse_thrust_scale = clampf(float(config.get_value(SECTION_INPUT, "reverse_thrust_scale", reverse_thrust_scale)), 0.15, 0.8)
 	strafe_turn_assist = clampf(float(config.get_value(SECTION_INPUT, "strafe_turn_assist", strafe_turn_assist)), 0.0, 0.6)
 	_emit_accessibility_changed()
@@ -130,6 +141,7 @@ func save_settings() -> void:
 	config.set_value(SECTION_INPUT, "trackpad_direct_camera", trackpad_direct_camera)
 	config.set_value(SECTION_INPUT, "camera_follow_strength", camera_follow_strength)
 	config.set_value(SECTION_INPUT, "alternate_movement_enabled", alternate_movement_enabled)
+	config.set_value(SECTION_INPUT, "auto_orbiting_celestials_enabled", auto_orbiting_celestials_enabled)
 	config.set_value(SECTION_INPUT, "reverse_thrust_scale", reverse_thrust_scale)
 	config.set_value(SECTION_INPUT, "strafe_turn_assist", strafe_turn_assist)
 	config.save(SETTINGS_PATH)
@@ -168,7 +180,19 @@ func flash_alpha(alpha: float) -> float:
 
 func world_visual_alpha(alpha: float, hard_cap: float = WORLD_ALPHA_CAP) -> float:
 	var capped_alpha: float = clampf(alpha, 0.0, minf(hard_cap, WORLD_ALPHA_CAP))
-	return flash_alpha(capped_alpha)
+	if not reduce_flash or capped_alpha <= 0.0:
+		return capped_alpha
+	# Reduced flash limits sudden luminance changes, not persistent navigation
+	# geometry. Keep gravity rings readable instead of dimming them like bursts.
+	var readable_floor := minf(REDUCED_FLASH_PERSISTENT_ALPHA_FLOOR, capped_alpha)
+	return maxf(capped_alpha * REDUCED_FLASH_PERSISTENT_ALPHA_SCALE, readable_floor)
+
+
+func projectile_alpha(alpha: float) -> float:
+	var capped_alpha := clampf(alpha, 0.0, 1.0)
+	if not reduce_flash or capped_alpha <= 0.0:
+		return capped_alpha
+	return maxf(capped_alpha * 0.92, minf(REDUCED_FLASH_PROJECTILE_ALPHA_FLOOR, capped_alpha))
 
 
 func world_fill_alpha(alpha: float) -> float:
@@ -197,6 +221,7 @@ func export_accessibility_settings() -> Dictionary:
 		"trackpad_direct_camera": trackpad_direct_camera,
 		"camera_follow_strength": camera_follow_strength,
 		"alternate_movement_enabled": alternate_movement_enabled,
+		"auto_orbiting_celestials_enabled": auto_orbiting_celestials_enabled,
 		"reverse_thrust_scale": reverse_thrust_scale,
 		"strafe_turn_assist": strafe_turn_assist,
 	}

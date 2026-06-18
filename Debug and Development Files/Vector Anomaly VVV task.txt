@@ -1,0 +1,632 @@
+You are working on my Godot 4.x game Vector Anomaly, a physics-driven arena survival game built around gravity, slingshots, momentum, resonance fields, bosses, waves, and readable chaos.
+
+I want to add optional gameplay systems inspired by the design philosophy of games like Celeste and VVVVVV.
+
+Important:
+Do not copy Celeste or VVVVVV directly.
+Instead, use the same design philosophy:
+
+* simple movement rules
+* optional high-skill challenges
+* fast retries
+* collectible mastery rewards
+* secret movement tech
+* brutal but fair challenge rooms
+* mechanics that make the player say, “I do not have to do this, but I know I can.”
+
+The main game should still be beatable without these systems.
+These features should be optional mastery content that makes the game deeper, more replayable, and more fun for skilled players.
+
+Do not rewrite the whole game.
+Do not break existing gameplay.
+Do not remove existing systems.
+Build these features in a modular way so they can be enabled, expanded, balanced, or removed safely.
+
+============================================================
+CORE DESIGN GOAL
+================
+
+Vector Anomaly’s core mastery fantasy is:
+
+“Slingshot mastery through dangerous gravity spaces.”
+
+The optional gameplay systems should reward:
+
+* precise slingshots
+* clean orbits
+* risky movement
+* momentum control
+* gravity reading
+* fast decision making
+* creative route solving
+* challenge mastery
+
+They should not just add more enemies or more damage.
+They should make movement itself feel like a puzzle, weapon, key, and reward.
+
+============================================================
+FEATURE 1: ANOMALY RIFTS
+========================
+
+Create optional challenge rooms called Anomaly Rifts.
+
+These are short, focused challenge rooms that appear during runs or can be accessed from a challenge menu.
+
+Each Anomaly Rift should be built around one clear mechanical idea.
+
+Requirements:
+
+* Fast retry
+* Short duration
+* Optional reward
+* Clear entrance and exit
+* No major penalty for failure, unless the game already has a safe challenge-room failure system
+* Strong visual identity
+* Mechanics that teach or test advanced movement
+
+Add a basic Rift system that supports:
+
+* entering a rift
+* restarting a rift quickly
+* clearing a rift
+* failing a rift
+* awarding optional rewards
+* returning to the normal game
+* registering new rifts easily
+
+Add at least 5 example Anomaly Rifts:
+
+1. NO-THRUST RIFT
+   The player cannot use normal thrust.
+   They must move using gravity wells and slingshot momentum only.
+
+Teaches:
+
+* gravity reading
+* controlled slingshots
+* movement planning
+
+2. ONE-DASH RIFT
+   The player gets only one dash until they collect a recharge crystal.
+
+Teaches:
+
+* dash conservation
+* route planning
+* precision timing
+
+3. INVERTED ORBIT RIFT
+   Gravity behaves differently for the player than for enemies.
+   The player may be repelled by certain gravity sources while enemies are attracted.
+
+Teaches:
+
+* reading modified force rules
+* adapting movement habits
+
+4. PERSONAL GRAVITY FLIP RIFT
+   The player can flip their personal gravity polarity or gravity direction inside the rift.
+   This should be inspired by the idea of gravity flipping, but adapted to Vector Anomaly’s own systems.
+
+Possible versions:
+
+* attracted to gravity wells vs repelled from gravity wells
+* clockwise orbit bias vs counterclockwise orbit bias
+* gravity anchor switches between two sources
+
+Teaches:
+
+* polarity switching
+* timing
+* special movement rules
+
+5. TIME SCAR RIFT
+   The player’s previous movement path becomes dangerous after a delay.
+   A ghost trail follows the player’s past path and turns into a hazard.
+
+Teaches:
+
+* route awareness
+* planning ahead
+* avoiding repeated movement loops
+
+Implementation notes:
+
+* Use existing arena, player, hazard, and gravity systems where possible.
+* Do not hardcode these rifts into unrelated systems.
+* Create reusable RiftData / RiftResource / RiftConfig resources if appropriate.
+* Add comments so future me or modders can create more rifts.
+
+============================================================
+FEATURE 2: ANOMALY SHARDS
+=========================
+
+Create optional collectibles called Anomaly Shards.
+
+These are Vector Anomaly’s version of optional mastery collectibles.
+They should be tempting, difficult, and not required to beat the game.
+
+Important:
+Do not make Anomaly Shards required for basic progression.
+Avoid making them mandatory power upgrades.
+They should mostly unlock cosmetics, challenge content, lore fragments, music tracks, medals, visual trails, or optional boss variants.
+
+Add a system for:
+
+* placing Anomaly Shards in risky locations
+* detecting collection
+* saving collected shards if save support exists
+* showing shard count in a menu or HUD
+* supporting special collection conditions
+
+Create several example shard types:
+
+1. ORBIT SHARD
+   Only becomes collectible after the player maintains a clean orbit for a short time.
+
+2. APEX SHARD
+   Appears only when the player performs a perfect or apex slingshot near it.
+
+3. THREAD-THE-NEEDLE SHARD
+   Placed between moving gravity hazards or rotating danger zones.
+
+4. MERCY SHARD
+   Can only be collected if the player avoids killing enemies during a short challenge section.
+
+5. PANIC SHARD
+   Appears during a dangerous boss attack or arena event and disappears when the attack ends.
+
+6. VELOCITY SHARD
+   Can only be collected while moving above a certain speed.
+
+7. ECHO SHARD
+   Can only be collected if the player avoids crossing their own recent ghost trail.
+
+Implementation notes:
+
+* Shards should be readable and fair.
+* Use distinct visual effects.
+* Show when a shard is locked, unlocked, collected, or failed.
+* Add exported variables for conditions like required speed, orbit duration, or time limit.
+* Include comments explaining how to create new shard conditions.
+
+============================================================
+FEATURE 3: BLACKBOX TAPES
+=========================
+
+Create rare optional collectibles called Blackbox Tapes.
+
+Blackbox Tapes unlock harder remixed content, similar in spirit to secret challenge unlocks.
+
+They should unlock:
+
+* harder rift variants
+* remixed boss fights
+* challenge versions of existing arenas
+* special movement trials
+* optional “corrupted” rule sets
+
+Add a Blackbox Tape system that supports:
+
+* finding a tape
+* collecting it
+* saving unlock state if save support exists
+* showing unlocked Blackbox content
+* launching Blackbox challenges from a menu
+
+Create at least 4 example Blackbox unlocks:
+
+1. GRAVITY WARDEN BLACKBOX
+   A harder version of a boss fight where the arena includes moving gravity wells or rotating pull zones.
+
+2. MICROVERSE BLACKBOX
+   A collapsing tiny solar system challenge with shrinking safe space.
+
+3. SLINGSHOT BLACKBOX
+   The player gains massive slingshot power, but mistakes are more dangerous.
+
+4. NO-ANCHOR BLACKBOX
+   Gravity wells decay or disappear after the player uses them, forcing constant movement.
+
+Implementation notes:
+
+* Use actual boss and arena names from the current project.
+* If these names do not exist, adapt to the closest existing systems.
+* Blackbox content should be optional and clearly marked as difficult.
+* Do not block normal progression behind Blackbox Tapes.
+
+============================================================
+FEATURE 4: PERSONAL GRAVITY FLIP SYSTEM
+=======================================
+
+Create an optional movement mechanic called Personal Gravity Flip.
+
+This should not be active everywhere by default.
+It should be available in certain Anomaly Rifts, Blackbox challenges, special arenas, or optional upgrades.
+
+Possible modes:
+
+1. POLARITY FLIP
+   The player switches between attraction and repulsion relative to gravity wells.
+
+2. ORBIT FLIP
+   The player reverses orbit direction or tangent bias around gravity sources.
+
+3. ANCHOR FLIP
+   The player switches between two gravity anchors.
+
+4. AXIS FLIP
+   Inside certain challenge rooms, the player’s gravity orientation changes between axes.
+
+Requirements:
+
+* Add a clean system for enabling/disabling this mechanic per room or mode.
+* Add input support only where needed.
+* Add UI/visual feedback showing current polarity or gravity state.
+* Add cooldown or limitations if needed for balance.
+* Make the mechanic feel crisp, readable, and skill-based.
+
+Do not make the normal game suddenly depend on this mechanic unless explicitly enabled.
+
+============================================================
+FEATURE 5: MOMENTUM DOORS
+=========================
+
+Create optional skill gates called Momentum Doors.
+
+These are doors, portals, locks, or barriers that open only when the player demonstrates specific movement mastery.
+
+Types:
+
+1. VELOCITY DOOR
+   Opens only if the player hits it above a required speed.
+
+2. ANGLE DOOR
+   Opens only if the player enters from the correct direction or vector.
+
+3. ORBIT DOOR
+   Opens only if the player has recently completed a clean orbit.
+
+4. PERFECT DOOR
+   Opens only after a perfect or apex slingshot.
+
+5. DAMAGE-FREE DOOR
+   Opens only if the player has not taken damage in the current room or challenge.
+
+6. ECHO DOOR
+   Opens only if the player reaches it before their ghost echo catches up.
+
+Requirements:
+
+* Doors must clearly show their condition.
+* If the player fails, show why.
+* Doors should lead to optional rewards, secret rifts, Blackbox Tapes, lore rooms, or bonus challenges.
+* Do not use them to block required main progression unless there is an alternate route.
+
+Implementation notes:
+
+* Make a reusable MomentumDoor scene/script.
+* Use exported variables for door type and thresholds.
+* Add clear debug labels or icons if the game has a debug overlay.
+* Add comments explaining how to make new door conditions.
+
+============================================================
+FEATURE 6: VECTOR TUNNELS
+=========================
+
+Create optional movement objects called Vector Tunnels.
+
+These are gravity/dreamlike movement lanes that carry, bend, launch, or redirect the player.
+
+They are not teleporters.
+They should preserve or transform momentum in satisfying ways.
+
+Types:
+
+1. LAUNCH TUNNEL
+   Carries the player along a short path and launches them out with extra speed.
+
+2. ORBIT TUNNEL
+   Wraps the player around a gravity source and throws them out at a tangent.
+
+3. SPLIT TUNNEL
+   Branches based on the player’s entry angle or speed.
+
+4. DECAY TUNNEL
+   Can only be used once before collapsing.
+
+5. REVERSE TUNNEL
+   Throws the player backward unless they enter with enough speed or the right angle.
+
+Requirements:
+
+* Use clear visuals showing tunnel direction.
+* Preserve readability.
+* Add strong feedback on entry and exit.
+* Make them usable in Anomaly Rifts and optional rooms.
+* Make them reusable and configurable.
+
+Implementation notes:
+
+* Create a reusable VectorTunnel scene/script.
+* Use Curve2D, Path2D, or a simple custom path system if appropriate.
+* Add exported variables for launch speed, path duration, one-use behavior, branch conditions, and exit mode.
+
+============================================================
+FEATURE 7: STYLE CONTRACTS
+==========================
+
+Create optional challenge modifiers called Style Contracts.
+
+Before entering certain Anomaly Rifts or Blackbox challenges, the player can choose an extra restriction for bonus rewards.
+
+Example contracts:
+
+1. NO DASH CONTRACT
+   Clear the challenge without using dash.
+
+2. PERFECT ORBIT CONTRACT
+   Clear the challenge while completing at least one perfect orbit chain.
+
+3. PACIFIST CONTRACT
+   Clear without destroying enemies.
+
+4. GLASS CONTRACT
+   One hit fails the challenge.
+
+5. SPEED CONTRACT
+   Clear under a strict time limit.
+
+6. NO THRUST CONTRACT
+   Clear without normal thrust.
+
+7. CLEAN VECTOR CONTRACT
+   Clear without crossing your own echo trail.
+
+Requirements:
+
+* Style Contracts are optional.
+* They should give bonus rewards, badges, cosmetics, or extra shard credit.
+* They should be shown before entering a challenge.
+* They should display success/failure clearly.
+* Failure of a contract should not necessarily fail the whole challenge unless the selected contract says so.
+
+Implementation notes:
+
+* Create a contract system that can track conditions.
+* Allow multiple contracts only if it is easy and safe.
+* Start with one contract at a time if that is simpler.
+* Add comments so new contracts can be added easily.
+
+============================================================
+FEATURE 8: GHOST ECHO CHALLENGES
+================================
+
+Create a Ghost Echo system for challenge rooms.
+
+After the player clears a rift, save or temporarily store their movement path as a ghost replay.
+
+Use this ghost in optional ways:
+
+1. ECHO RACE
+   Player races against their previous best clear.
+
+2. ECHO HAZARD
+   In harder versions, the player’s old path becomes a delayed hazard trail.
+
+3. ECHO SWITCH
+   The ghost can trigger certain switches or markers if the system supports it.
+
+4. ECHO AVOIDANCE
+   The player must avoid crossing their previous movement path.
+
+Requirements:
+
+* Start simple.
+* If persistent replay saving is too risky, implement temporary session-based ghosts first.
+* Add a clean GhostRecorder and GhostPlayback system.
+* Store position, rotation, velocity if useful, and timestamp.
+* Keep performance reasonable.
+* Do not save huge files.
+
+Implementation notes:
+
+* Use a sampling interval instead of recording every frame if needed.
+* Add interpolation for smooth playback.
+* Add a visual ghost trail.
+* Allow rifts to opt into ghost behavior.
+* Add documentation explaining the system.
+
+============================================================
+FEATURE 9: SECRET MOVEMENT TECH SUPPORT
+=======================================
+
+Support secret advanced movement tech.
+
+These should not all need huge new systems.
+They can be detected and rewarded through existing movement data.
+
+Add detection hooks or badges for:
+
+1. APEX CANCEL
+   Player cancels or redirects movement near the highest/strongest point of a slingshot.
+
+2. ORBIT TAP
+   Player uses a small thrust input during orbit to tighten or redirect the arc.
+
+3. GRAVITY SKIM
+   Player passes close to a gravity well at high speed without hitting danger.
+
+4. VECTOR SNAP
+   Player exits a gravity field or Vector Tunnel at a precise angle and gains a clean launch.
+
+5. REBOUND SLINGSHOT
+   Player chains attraction into repulsion or one gravity source into another quickly.
+
+6. NEEDLE THREAD
+   Player passes between two hazards at high speed.
+
+Requirements:
+
+* Do not overwhelm new players with tutorials.
+* Advanced tech can be quietly detected first.
+* Optional challenge rooms can later teach these techniques.
+* Add debug logging or overlay support for detecting these events.
+* Use these detections for shards, doors, contracts, achievements, or scoring.
+
+============================================================
+PRIORITY ORDER
+==============
+
+Implement in this order:
+
+1. Anomaly Rifts
+2. Anomaly Shards
+3. Momentum Doors
+4. Personal Gravity Flip in selected rifts only
+5. Vector Tunnels
+6. Blackbox Tapes
+7. Style Contracts
+8. Ghost Echo Challenges
+9. Secret Movement Tech detection
+
+If the task is too large for one pass, implement the foundation and 1 to 2 polished examples of each system first, then leave clean TODOs.
+
+============================================================
+MENU / UI REQUIREMENTS
+======================
+
+Add or update UI for optional gameplay systems.
+
+Possible menu names:
+
+* Challenge Archive
+* Anomaly Rifts
+* Blackbox Archive
+* Rift Select
+* Optional Challenges
+
+The UI should show:
+
+* available rifts
+* collected Anomaly Shards
+* collected Blackbox Tapes
+* unlocked Blackbox challenges
+* selected Style Contract
+* best clear time if available
+* perfect clear status if available
+
+If a full UI is too much, create a simple functional debug menu first.
+
+============================================================
+SAVE REQUIREMENTS
+=================
+
+If the game has save support, save:
+
+* collected Anomaly Shards
+* collected Blackbox Tapes
+* unlocked rifts
+* cleared rifts
+* best times
+* completed contracts
+* perfect clears
+* optional challenge settings
+
+If save integration is risky:
+
+* make the systems session-only first
+* document what still needs save support
+
+Never corrupt existing saves.
+If missing optional content is referenced, fail safely.
+
+============================================================
+BALANCE REQUIREMENTS
+====================
+
+These systems should be hard but fair.
+
+For every dangerous mechanic:
+
+* add clear visual telegraphing
+* give the player enough time to react
+* allow quick retry
+* avoid unavoidable damage
+* avoid random unfair hazard stacking
+* respect the game’s readable chaos philosophy
+
+Optional challenge content can be brutal.
+Main progression should remain approachable.
+
+============================================================
+DOCUMENTATION REQUIREMENTS
+==========================
+
+Create documentation files explaining these systems:
+
+res://docs/OPTIONAL_GAMEPLAY_SYSTEMS.md
+
+Include:
+
+* What Anomaly Rifts are
+* How to create a new Rift
+* How to place Anomaly Shards
+* How Momentum Doors work
+* How to enable Personal Gravity Flip in a room
+* How Vector Tunnels work
+* How Blackbox Tapes unlock content
+* How Style Contracts work
+* How Ghost Echo recording works
+* How secret movement tech detection works
+* Best practices for fair challenge design
+
+Also add comments in all new scripts explaining important exported variables and extension points.
+
+============================================================
+TESTING REQUIREMENTS
+====================
+
+After implementation, test:
+
+1. Normal game still launches.
+2. Existing gameplay still works.
+3. Player can enter and exit an Anomaly Rift.
+4. Player can retry a Rift quickly.
+5. At least one Anomaly Shard can be collected.
+6. At least one Momentum Door opens correctly.
+7. Personal Gravity Flip only works where enabled.
+8. At least one Vector Tunnel launches the player correctly.
+9. Blackbox Tape collection unlocks optional content.
+10. Style Contract success/failure is tracked.
+11. Ghost Echo recording/playback works if implemented.
+12. No major errors appear in the console.
+13. Disabling or ignoring optional systems does not block main progression.
+
+============================================================
+DEFINITION OF DONE
+==================
+
+This task is complete when:
+
+* Optional challenge systems exist in a modular form.
+* At least 5 example Anomaly Rifts exist or are scaffolded with 2 to 3 fully playable ones.
+* Anomaly Shards exist and can be collected.
+* Momentum Doors exist and can be configured.
+* Personal Gravity Flip works in selected optional areas.
+* Vector Tunnels exist and are usable.
+* Blackbox Tapes exist as unlockable optional challenge content.
+* Style Contracts exist or are scaffolded.
+* Ghost Echo support exists or is clearly scaffolded.
+* Secret movement tech detection has basic hooks.
+* Documentation exists.
+* The main game still works.
+* Nothing important is broken.
+
+When finished, give me:
+
+1. Summary of all files created or changed.
+2. How to test every new system.
+3. Any systems that were scaffolded but not fully completed.
+4. Any bugs or risks you found.
+5. Recommended next steps for polish.

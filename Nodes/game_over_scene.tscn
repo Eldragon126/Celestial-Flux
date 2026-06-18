@@ -77,27 +77,27 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -520.0
-offset_top = -210.0
+offset_top = -300.0
 offset_right = 520.0
-offset_bottom = 210.0
+offset_bottom = 300.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="Rows" type="VBoxContainer" parent="CenterPanel"]
 layout_mode = 2
-theme_override_constants/separation = 22
+theme_override_constants/separation = 14
 
 [node name="TitleLabel" type="Label" parent="CenterPanel/Rows"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 54
+theme_override_font_sizes/font_size = 46
 text = "SIMULATION FAILURE"
 horizontal_alignment = 1
 
 [node name="DeathVectorLabel" type="Label" parent="CenterPanel/Rows"]
-custom_minimum_size = Vector2(900, 92)
+custom_minimum_size = Vector2(900, 82)
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 21
 text = "DEATH VECTOR: unresolved"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -109,18 +109,18 @@ theme_override_constants/separation = 18
 alignment = 1
 
 [node name="TryAgainButton" type="Button" parent="CenterPanel/Rows/Buttons"]
-custom_minimum_size = Vector2(280, 58)
+custom_minimum_size = Vector2(260, 52)
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
 text = "TRY AGAIN"
 
 [node name="TitleButton" type="Button" parent="CenterPanel/Rows/Buttons"]
-custom_minimum_size = Vector2(280, 58)
+custom_minimum_size = Vector2(260, 52)
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")

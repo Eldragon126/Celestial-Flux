@@ -44,6 +44,7 @@ const SECTION_ACCENTS := {
 @onready var color_mode_option: OptionButton = find_child("ColorModeOption", true, false) as OptionButton
 @onready var trackpad_camera_check: CheckBox = find_child("TrackpadCameraCheck", true, false) as CheckBox
 @onready var alternate_movement_check: CheckBox = find_child("AlternateMovementCheck", true, false) as CheckBox
+@onready var auto_orbiting_celestials_check: CheckBox = find_child("AutoOrbitingCelestialsCheck", true, false) as CheckBox
 @onready var seed_label: Label = find_child("SeedLabel", true, false) as Label
 @onready var copy_seed_button: Button = find_child("CopySeedButton", true, false) as Button
 @onready var mod_summary_label: Label = find_child("ModSummaryLabel", true, false) as Label
@@ -472,6 +473,11 @@ func _setup_accessibility_controls() -> void:
 		if not alternate_movement_check.toggled.is_connected(_on_alternate_movement_toggled):
 			alternate_movement_check.toggled.connect(_on_alternate_movement_toggled)
 
+	if auto_orbiting_celestials_check != null:
+		auto_orbiting_celestials_check.button_pressed = bool(Settings.auto_orbiting_celestials_enabled)
+		if not auto_orbiting_celestials_check.toggled.is_connected(_on_auto_orbiting_celestials_toggled):
+			auto_orbiting_celestials_check.toggled.connect(_on_auto_orbiting_celestials_toggled)
+
 
 func _ensure_optional_input_rows() -> void:
 	var rows := find_child("MenuRows", true, false) as VBoxContainer
@@ -483,6 +489,8 @@ func _ensure_optional_input_rows() -> void:
 		trackpad_camera_check = _make_pause_checkbox_row(rows, "TRACKPAD DIRECT CAMERA", "TrackpadCameraCheck")
 	if alternate_movement_check == null:
 		alternate_movement_check = _make_pause_checkbox_row(rows, "ALT MOVEMENT: BACK / A-D AIM NUDGE", "AlternateMovementCheck")
+	if auto_orbiting_celestials_check == null:
+		auto_orbiting_celestials_check = _make_pause_checkbox_row(rows, "ORBITING CELESTIAL EVENTS", "AutoOrbitingCelestialsCheck")
 
 
 func _make_pause_checkbox_row(parent: VBoxContainer, label_text: String, checkbox_name: String) -> CheckBox:
@@ -879,6 +887,11 @@ func _on_trackpad_camera_toggled(enabled: bool) -> void:
 
 func _on_alternate_movement_toggled(enabled: bool) -> void:
 	Settings.set_alternate_movement_enabled(enabled)
+	_play_settings_sound()
+
+
+func _on_auto_orbiting_celestials_toggled(enabled: bool) -> void:
+	Settings.set_auto_orbiting_celestials_enabled(enabled)
 	_play_settings_sound()
 
 

@@ -31,8 +31,9 @@ max_contacts_reported = 2
 linear_damp_mode = 1
 angular_damp_mode = 1
 script = ExtResource("1_a85iw")
+max_gravity_sources = 3
 gravity_constant = 100.0
-enable_vector_wake = true
+enable_vector_wake = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=740035178]
 shape = SubResource("CircleShape2D_dgwo2")
@@ -50,13 +51,13 @@ color = Color(0.62, 1, 0.98, 1)
 polygon = PackedVector2Array(-55, -24, -43, -12, -31, -24, -43, -36)
 uv = PackedVector2Array(-89.76105, -18.890343, -43.38037, 27.039673, 16.760986, -21.552338, -36.281677, -86.56702)
 
-[node name="ReadabilityHalo" type="Line2D" parent="."]
+[node name="ReadabilityHalo" type="Line2D" parent="." unique_id=727334120]
 visible = false
 z_index = 6
 points = PackedVector2Array(-14, 0, 0, -14, 18, 0, 0, 14, -14, 0)
+closed = true
 width = 3.7
 default_color = Color(0.85, 1, 1, 0.95)
-closed = true
 begin_cap_mode = 2
 end_cap_mode = 2
 antialiased = true
