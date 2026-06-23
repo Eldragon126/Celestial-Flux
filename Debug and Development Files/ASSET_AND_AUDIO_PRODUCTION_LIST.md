@@ -13,6 +13,7 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 - Trailer capture scenes for early clean vectors, mid-run resonance, late collapse, Rupture, and the music finale.
 - CODEX Completion 2026-06-12: Clip Lab now includes number-key capture presets for early clean vectors, slingshot mastery, mid-run resonance, boss-rule mutation, late collapse, and music finale staging. Actual recording still requires a normal non-headless run.
 - CODEX Completion 2026-06-13: Clip Lab now includes a seventh reduced-flash accessibility preset plus `F9` PNG capture and `F10` JSON capture-slate export to `user://marketing_captures`, so press stills and trailer slates can be produced from a normal run without headless Godot.
+- CODEX Completion 2026-06-23: Steam page discovery list expanded in `Debug and Development Files/MARKETING_CAPTURE_MANIFEST.md` to cover clean early movement, apex slingshotting, resonance, boss-law mutation, gravity heat map, late-game reduced flash, black-hole safety, LAN co-op, controller settings, and Steam Deck validation footage.
 - Boss silhouette polish for Gravity Warden, Accretion Core, Null Vector Seraph, Magnetar Twins, Tidal Rift Weaver, The Polymorph, Centrifuge Marshal, and The Resonance Singularity.
 - CODEX Completion 2026-06-12: Boss readability now has a shared silhouette-outline pass in `EnemyReadabilityDirector`, covering authored bosses and secret bosses without baking non-editable art into scenes.
 - Resonance zone glyphs for compression, slipstream, inversion, temporal scar, and harmonic orbit.
@@ -45,6 +46,7 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 - CODEX Completion 2026-06-23: HUD readouts now use code-native vector glyphs for hull, shield, energy, speed, gravity, field rules, time dilation, event horizons, chaos, slingshots, weapons, and run phase. The glyphs inherit readability palettes and respond to live severity instead of waiting on final bitmap art.
 - CODEX Completion 2026-06-23: Gravity Ghost now includes a speed/pressure lane, component pressure bands, incident markers, and event timeline markers, turning the game-over panel into a compact post-run vector black box without replaying live combat state.
 - CODEX Completion 2026-06-23: Pause UI now has smoothed panel entry, a scroll-safe content shell, softer shader/grid settings, context-aware tutorial/demo/Clip Lab restart and exit labels, and loading-screen progress easing so cached run loads no longer snap straight through 50% and 100%.
+- CODEX Completion 2026-06-23: Pause UI now exposes controller deadzone/right-stick aim, keeps checkbox rows full-width, and avoids hover/press scale tweens on checkboxes so labels no longer overlap their boxes.
 - HUD icons for energy, shield, slingshot grade, local field rule, chaos tier, and run arc phase.
 - Weapon HUD slots for future gravity-energy weapons.
 - Mod manifest status icons: loaded, failed, disabled, and future dependency warning.
@@ -91,6 +93,7 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 - Accessibility/readability capture: late-game spectacle that still shows where the player and threats are.
 - CODEX Prepared 2026-06-06: Shot and clip requirements are formalized in `Debug and Development Files/MARKETING_CAPTURE_MANIFEST.md`; actual media capture requires a normal non-headless run.
 - CODEX Completion 2026-06-13: The Clip Lab preset map now covers the hook, mastery, resonance, boss-rule, Rupture, finale, and reduced-flash accessibility capture needs, with clean still capture and metadata export available during normal play.
+- CODEX Completion 2026-06-23: Add capture targets for controller/Steam Deck layout proof, F10 gravity heat map, black-hole event-horizon safety, and LAN NET7 co-op readability. Actual media still requires a normal non-headless recording pass.
 
 ## Implementation Notes
 

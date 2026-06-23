@@ -203,6 +203,50 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 
+[node name="ControllerDeadzoneRow" type="HBoxContainer" parent="MenuPanel/MenuRows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ControllerDeadzoneLabel" type="Label" parent="MenuPanel/MenuRows/ControllerDeadzoneRow"]
+custom_minimum_size = Vector2(220, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "CONTROLLER DEADZONE"
+vertical_alignment = 1
+clip_text = true
+autowrap_mode = 3
+
+[node name="ControllerDeadzoneSlider" type="HSlider" parent="MenuPanel/MenuRows/ControllerDeadzoneRow"]
+custom_minimum_size = Vector2(230, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.08
+max_value = 0.55
+step = 0.01
+value = 0.24
+
+[node name="ControllerDeadzoneValueLabel" type="Label" parent="MenuPanel/MenuRows/ControllerDeadzoneRow"]
+custom_minimum_size = Vector2(54, 32)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "0.24"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="ControllerRightStickRow" type="HBoxContainer" parent="MenuPanel/MenuRows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ControllerRightStickCheck" type="CheckBox" parent="MenuPanel/MenuRows/ControllerRightStickRow"]
+custom_minimum_size = Vector2(280, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+button_pressed = true
+text = "RIGHT STICK AIM"
+clip_text = true
+
 [node name="SeedRow" type="HBoxContainer" parent="MenuPanel/MenuRows" unique_id=2036584576]
 layout_mode = 2
 theme_override_constants/separation = 12

@@ -6,12 +6,14 @@ signal visual_state_changed(state_name: StringName, intensity: float)
 @export var player_path: NodePath = ^".."
 @export_group("Phase Aura")
 @export var enable_phase_aura: bool = true
-@export var aura_radius: float = 48.0
-@export var aura_segments: int = 40
-@export var aura_width: float = 2.2
-@export var inner_aura_radius: float = 28.0
-@export var wing_length: float = 72.0
-@export var wing_width: float = 1.6
+@export var aura_radius: float = 58.0
+@export var aura_segments: int = 48
+@export var aura_width: float = 3.0
+@export var inner_aura_radius: float = 34.0
+@export var wing_length: float = 88.0
+@export var wing_width: float = 2.1
+@export var purpose_tick_length: float = 18.0
+@export var purpose_tick_width: float = 2.0
 @export var speed_glint_threshold: float = 0.42
 
 var _player: Node2D = null
@@ -22,6 +24,7 @@ var _phase_ring: Line2D = null
 var _inner_ring: Line2D = null
 var _left_wing: Line2D = null
 var _right_wing: Line2D = null
+var _purpose_ticks: Array[Line2D] = []
 var _current_state: StringName = &"stable"
 var _intensity: float = 0.0
 var _pulse_time: float = 0.0
@@ -130,6 +133,9 @@ func _ensure_phase_aura() -> void:
 	_inner_ring = _make_line("PhaseInnerRing", true, aura_width * 0.65)
 	_left_wing = _make_line("LeftVectorWing", false, wing_width)
 	_right_wing = _make_line("RightVectorWing", false, wing_width)
+	for i in range(4):
+		var tick := _make_line("PurposeTick%d" % i, false, purpose_tick_width)
+		_purpose_ticks.append(tick)
 
 
 func _make_line(node_name: String, closed: bool, width: float) -> Line2D:
@@ -165,15 +171,16 @@ func _update_phase_aura() -> void:
 	if _phase_ring != null:
 		_phase_ring.points = _ring_points(outer_radius, aura_segments, pulse)
 		_phase_ring.width = aura_width * lerpf(0.82, 1.34, visual_energy)
-		_phase_ring.default_color = _safe_color(color, lerpf(0.08, 0.32, visual_energy))
+		_phase_ring.default_color = _safe_color(color, lerpf(0.12, 0.38, visual_energy), 0.36)
 		_phase_ring.visible = true
 	if _inner_ring != null:
 		_inner_ring.points = _ring_points(inner_radius, maxi(18, int(aura_segments / 2)), 1.0 - pulse)
 		_inner_ring.width = aura_width * 0.58
-		_inner_ring.default_color = _safe_color(color.lerp(Color.WHITE, 0.32), lerpf(0.05, 0.18, visual_energy))
+		_inner_ring.default_color = _safe_color(color.lerp(Color.WHITE, 0.32), lerpf(0.08, 0.24, visual_energy), 0.32)
 		_inner_ring.visible = true
 	_update_vector_wing(_left_wing, -1.0, color, visual_energy, pulse)
 	_update_vector_wing(_right_wing, 1.0, color, visual_energy, 1.0 - pulse)
+	_update_purpose_ticks(color, visual_energy, pulse)
 
 
 func _update_vector_wing(line: Line2D, side: float, color: Color, visual_energy: float, pulse: float) -> void:
@@ -187,8 +194,30 @@ func _update_vector_wing(line: Line2D, side: float, color: Color, visual_energy:
 		Vector2(-length, side * spread * 0.42),
 	])
 	line.width = wing_width * lerpf(0.8, 1.55, visual_energy)
-	line.default_color = _safe_color(color, lerpf(0.04, 0.24, visual_energy))
+	line.default_color = _safe_color(color, lerpf(0.06, 0.28, visual_energy), 0.3)
 	line.visible = visual_energy > 0.08
+
+
+func _update_purpose_ticks(color: Color, visual_energy: float, pulse: float) -> void:
+	if _purpose_ticks.is_empty():
+		return
+	var radius := aura_radius * lerpf(0.94, 1.18, visual_energy)
+	for i in range(_purpose_ticks.size()):
+		var line := _purpose_ticks[i]
+		if line == null:
+			continue
+		var angle := -PI * 0.5 + TAU * float(i) / float(maxi(_purpose_ticks.size(), 1))
+		var dir := Vector2(cos(angle), sin(angle))
+		var tangent := dir.orthogonal()
+		var half_length := purpose_tick_length * lerpf(0.62, 1.25, visual_energy) * (1.0 + pulse * 0.12)
+		var center := dir * radius
+		line.points = PackedVector2Array([
+			center - tangent * half_length,
+			center + tangent * half_length,
+		])
+		line.width = purpose_tick_width * lerpf(0.75, 1.4, visual_energy)
+		line.default_color = _safe_color(color.lerp(Color.WHITE, 0.22), lerpf(0.08, 0.28, visual_energy), 0.32)
+		line.visible = visual_energy > 0.05
 
 
 func _update_speed_ratio() -> void:
@@ -230,12 +259,12 @@ func _ring_points(radius: float, segments: int, pulse: float) -> PackedVector2Ar
 	return points
 
 
-func _safe_color(color: Color, alpha: float) -> Color:
+func _safe_color(color: Color, alpha: float, hard_cap: float = 0.3) -> Color:
 	var safe_alpha := alpha
 	if Settings != null and Settings.has_method("world_visual_alpha"):
-		safe_alpha = Settings.world_visual_alpha(alpha, 0.28)
+		safe_alpha = Settings.world_visual_alpha(alpha, hard_cap)
 	elif Settings != null and Settings.has_method("flash_alpha"):
-		safe_alpha = minf(Settings.flash_alpha(alpha), 0.28)
+		safe_alpha = minf(Settings.flash_alpha(alpha), hard_cap)
 	else:
-		safe_alpha = minf(alpha, 0.28)
+		safe_alpha = minf(alpha, hard_cap)
 	return Color(color.r, color.g, color.b, safe_alpha)

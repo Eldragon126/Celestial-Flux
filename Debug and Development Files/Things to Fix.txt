@@ -654,3 +654,39 @@ Those are future constellations. Right now you need a rocket that survives launc
 [x] Polish a entire website dedicated to helping players make mods. Completed: the responsive Creator Lab now preserves imported contracts, authors min/max dependency bounds, catches invalid ranges, renders a live required/optional/conflict pack graph, persists drafts/release gates, and keeps catalog-versus-live-runtime claims explicit.
 
 [x] The entire time dilation system needs to be polished. So far it kind of works, but it flashes on and off when I hold the time dilation key, and it doesn't seem to do anything unless I enable global time scale. Fixed: dilation now ramps immediately through a local simulation blend, applies compatible bounded enemy/boss/projectile field metadata without velocity compounding, keeps Engine.time_scale at 1 by default, reports its virtual scale to HUD/predictors, and fades the shader overlay smoothly without normal start/end glitches.
+
+[x] The readability halos of enemies, objects, and players look terrible. They need a serious update, preferably slightly bigger, clear (and stated) shapes for different purposes. Fixed: EnemyReadabilityDirector now uses bigger role silhouettes, boss outlines, player control-vector halos, and distinct object halo profiles for horizon, flow, gate, gravity, and field purposes.
+
+[x] The tween effects for the buttons don't affect the checkbox sizes, which makes the text overlap the text box. Fixed: pause menu checkbox rows are normalized into full-width rows, checkbox hover/press feedback no longer scales the text box, and checkbox text is clipped/styled consistently.
+
+[x] When the UI is expanded in size, the scoreboard moves to the right out of the user's vision. Fixed: OrbitalHUD now sizes the scaled HUD root against the inverse safe viewport before laying out the top-right score panel.
+
+[x] Flush out controller support. Fixed: runtime input actions now cover keyboard/controller movement, right-stick aim, D-pad heat-map toggle, live controller auto-detect, connected-joypad aim, persistent deadzone/right-stick settings, and pause-menu controls.
+
+[x] Flush out multiplayer support. Fixed: NetworkSession now surfaces NET7 protocol/readiness/quality snapshots, clients acknowledge run readiness to the host, pause/title UI show protocol quality, and player sync state includes slingshot/input-device metadata.
+
+[x] Make player slingshotting smoother. It seems pretty jolty and strange right now. I'd prefer something that looks better and feels better. Fixed: mastery slingshot impulses now apply as immediate-plus-smoothed momentum with speed caps, reducing the abrupt jolt while keeping the reward readable.
+
+[x] Expand support for multiple devices (Mac, Windows, Linux, Xbox, PlayStation, Nintendo Switch, Nintendo Switch 2.0, Steamdeck, ext.) Completed code-side platform pass: controller-first settings, HUD safe scaling, and `PLATFORM_SUPPORT_MATRIX.md` now define Windows/Linux/macOS/Steam Deck validation and console SDK gates.
+
+[x] Update the wiki page to be 100% accurate to the game. Fixed: wiki now reflects current controls, controller settings, heat map, LAN NET7 readiness, readability halos, platform status, black-hole hardening, and v1.0.4.7 production systems.
+
+[x] Update all websites. Fixed: main site, wiki, and Creator Lab now align with v1.0.4.7, controller/deck support, NET7 LAN readiness, heat-map capture, platform status, and current public support claims.
+
+[x] Flush out the gravity heat map while keeping performance in check. Fixed: GravityHeatMapOverlay now uses an adaptive capped grid, packed sample buffers, capped source queries, gradient draw stride, and safer alpha on golden route guidance.
+
+[x] completely harden black hole. Fixed: black holes now revalidate bodies after field and spaghettification work, limit recursive collision disabling, quarantine invalid bodies away from the core, and defer cleanup safely.
+
+[x] Make visuals look better, player aura circle is a little weak looking right now. Fixed: player phase aura is larger, brighter, thicker, and supported by inner rings, vector wings, and purpose ticks while staying under reduced-flash caps.
+
+[x] Make reduce flash not reduce flash as much as it currently does. Fixed: persistent gameplay readability now keeps stronger alpha floors/scales while transient flash suppression remains capped.
+
+[x] Update game version on title screen. Fixed: title screen and project version tags now report v1.0.4.7.
+
+[x] Make a list of screenshots and video clips for players to find to add to steam page. Fixed: Marketing Capture Manifest now includes a Steam page discovery list covering screenshots, hook clips, movement, bosses, co-op, accessibility, heat map, black-hole, and Steam Deck proof targets.
+
+[x] Completely polish the game. Completed code-side polish pass: visual readability, UI scaling, controller/device readiness, LAN diagnostics, slingshot feel, heat-map performance, black-hole safety, reduced-flash readability, docs, and websites were aligned for v1.0.4.7.
+
+[x] Continue VECTOR_ANOMALY_PRODUCTION_ROADMAP.md. Fixed: roadmap now includes the 2026-06-23 current polish pass, platform support status, multiplayer code-side progress, marketing capture expansion, and manual non-headless verification gates.
+
+[ ] Gravity ghost thing makes no sense. It either needs to be deleted or continue development until it actually looks good.

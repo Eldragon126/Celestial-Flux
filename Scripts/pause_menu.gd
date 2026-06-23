@@ -50,6 +50,9 @@ const SECTION_ACCENTS := {
 @onready var color_mode_option: OptionButton = find_child("ColorModeOption", true, false) as OptionButton
 @onready var trackpad_camera_check: CheckBox = find_child("TrackpadCameraCheck", true, false) as CheckBox
 @onready var alternate_movement_check: CheckBox = find_child("AlternateMovementCheck", true, false) as CheckBox
+@onready var controller_deadzone_slider: HSlider = find_child("ControllerDeadzoneSlider", true, false) as HSlider
+@onready var controller_deadzone_value_label: Label = find_child("ControllerDeadzoneValueLabel", true, false) as Label
+@onready var controller_right_stick_check: CheckBox = find_child("ControllerRightStickCheck", true, false) as CheckBox
 @onready var player_auto_orbit_check: CheckBox = find_child("PlayerAutoOrbitCheck", true, false) as CheckBox
 @onready var auto_orbiting_celestials_check: CheckBox = find_child("AutoOrbitingCelestialsCheck", true, false) as CheckBox
 @onready var seed_label: Label = find_child("SeedLabel", true, false) as Label
@@ -80,6 +83,7 @@ var _button_tweens: Dictionary = {}
 
 func _ready() -> void:
 	_ensure_pause_scroll_shell()
+	_normalize_pause_checkbox_layout()
 	if ui_scale_slider != null:
 		ui_scale_slider.grab_focus()
 	add_to_group("PauseMenu")
@@ -316,6 +320,61 @@ func _ensure_pause_scroll_shell() -> void:
 	margin.add_child(rows)
 
 
+func _normalize_pause_checkbox_layout() -> void:
+	var rows := find_child("MenuRows", true, false) as VBoxContainer
+	if rows == null:
+		return
+	for checkbox in [
+		reduce_flash_check,
+		readability_halos_check,
+		player_auto_orbit_check,
+		auto_orbiting_celestials_check,
+		trackpad_camera_check,
+		alternate_movement_check,
+		controller_right_stick_check,
+	]:
+		var check := checkbox as CheckBox
+		if check == null:
+			continue
+		_apply_checkbox_readability_style(check)
+		var parent := check.get_parent()
+		if parent is HBoxContainer and parent.name == "FlashRow":
+			_move_checkbox_to_solo_row(rows, check, parent as HBoxContainer)
+	var flash_row := rows.get_node_or_null("FlashRow") as HBoxContainer
+	if flash_row != null and flash_row.get_child_count() == 0:
+		flash_row.visible = false
+
+
+func _move_checkbox_to_solo_row(rows: VBoxContainer, checkbox: CheckBox, old_row: HBoxContainer) -> void:
+	var row_name := "%sSoloRow" % checkbox.name
+	if rows.get_node_or_null(row_name) != null:
+		return
+	var insert_index := old_row.get_index() + 1
+	old_row.remove_child(checkbox)
+	var row := HBoxContainer.new()
+	row.name = row_name
+	row.add_theme_constant_override("separation", 10)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rows.add_child(row)
+	rows.move_child(row, mini(insert_index, rows.get_child_count() - 1))
+	checkbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(checkbox)
+
+
+func _apply_checkbox_readability_style(checkbox: CheckBox) -> void:
+	if checkbox == null:
+		return
+	checkbox.scale = Vector2.ONE
+	checkbox.pivot_offset = Vector2.ZERO
+	checkbox.clip_text = true
+	checkbox.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	checkbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	checkbox.custom_minimum_size = Vector2(maxf(checkbox.custom_minimum_size.x, 280.0), maxf(checkbox.custom_minimum_size.y, 34.0))
+	checkbox.add_theme_font_size_override("font_size", 14)
+	checkbox.add_theme_color_override("font_color", Color(0.78, 0.98, 1.0, 0.96))
+	checkbox.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0, 1.0))
+
+
 func _apply_section_accents() -> void:
 	for node_name in SECTION_ACCENTS.keys():
 		var label := find_child(String(node_name), true, false) as Label
@@ -357,6 +416,9 @@ func _apply_button_readability_style(button: Button, accent: Color, hot: Color, 
 	if button == null:
 		return
 	button.custom_minimum_size.y = maxf(button.custom_minimum_size.y, 38.0)
+	if button is CheckBox:
+		_apply_checkbox_readability_style(button as CheckBox)
+		return
 	button.add_theme_color_override("font_color", Color(0.78, 0.98, 1.0, 0.96))
 	button.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0, 1.0))
 	button.add_theme_color_override("font_pressed_color", Color(0.02, 0.08, 0.09, 1.0))
@@ -442,6 +504,10 @@ func _setup_button_tweens() -> void:
 	var buttons: Array[Button] = []
 	_collect_buttons(self, buttons)
 	for button in buttons:
+		if button is CheckBox:
+			(button as CheckBox).scale = Vector2.ONE
+			_apply_checkbox_readability_style(button as CheckBox)
+			continue
 		button.pivot_offset = button.size * 0.5
 		var hover_callable := Callable(self, "_on_pause_button_hovered").bind(button)
 		if not button.mouse_entered.is_connected(hover_callable):
@@ -490,6 +556,10 @@ func _tween_pause_button(button: Button, scale_value: Vector2, color: Color, dur
 	var tween := create_tween()
 	_button_tweens[id] = tween
 	tween.set_ignore_time_scale(true)
+	if button is CheckBox:
+		button.scale = Vector2.ONE
+		tween.tween_property(button, "modulate", color, duration)
+		return
 	tween.tween_property(button, "scale", scale_value, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.parallel().tween_property(button, "modulate", color, duration)
 
@@ -553,6 +623,20 @@ func _setup_accessibility_controls() -> void:
 		if not color_mode_option.item_selected.is_connected(_on_color_mode_selected):
 			color_mode_option.item_selected.connect(_on_color_mode_selected)
 
+	if controller_deadzone_slider != null:
+		controller_deadzone_slider.min_value = 0.08
+		controller_deadzone_slider.max_value = 0.55
+		controller_deadzone_slider.step = 0.01
+		controller_deadzone_slider.value = Settings.controller_deadzone
+		_update_controller_deadzone_value(Settings.controller_deadzone)
+		if not controller_deadzone_slider.value_changed.is_connected(_on_controller_deadzone_changed):
+			controller_deadzone_slider.value_changed.connect(_on_controller_deadzone_changed)
+
+	if controller_right_stick_check != null:
+		controller_right_stick_check.button_pressed = bool(Settings.controller_right_stick_aim)
+		if not controller_right_stick_check.toggled.is_connected(_on_controller_right_stick_toggled):
+			controller_right_stick_check.toggled.connect(_on_controller_right_stick_toggled)
+
 	if trackpad_camera_check != null:
 		trackpad_camera_check.button_pressed = bool(Settings.trackpad_direct_camera)
 		if not trackpad_camera_check.toggled.is_connected(_on_trackpad_camera_toggled):
@@ -580,35 +664,99 @@ func _ensure_optional_input_rows() -> void:
 		return
 	if readability_halos_check == null:
 		readability_halos_check = _make_pause_checkbox_row(rows, "READABILITY HALOS", "ReadabilityHalosCheck")
+	if controller_deadzone_slider == null:
+		controller_deadzone_slider = _make_pause_slider_row(rows, "CONTROLLER DEADZONE", "ControllerDeadzoneSlider", 0.08, 0.55, 0.01)
+		controller_deadzone_value_label = find_child("ControllerDeadzoneValueLabel", true, false) as Label
+	if controller_right_stick_check == null:
+		controller_right_stick_check = _make_pause_checkbox_row(rows, "RIGHT STICK AIM", "ControllerRightStickCheck")
 	if trackpad_camera_check == null:
-		trackpad_camera_check = _make_pause_checkbox_row(rows, "TRACKPAD DIRECT CAMERA", "TrackpadCameraCheck")
+		trackpad_camera_check = _make_pause_checkbox_row(rows, "TRACKPAD LOW-MOTION CAMERA", "TrackpadCameraCheck")
 	if alternate_movement_check == null:
 		alternate_movement_check = _make_pause_checkbox_row(rows, "ALT MOVEMENT: BACK / A-D AIM NUDGE", "AlternateMovementCheck")
 	if player_auto_orbit_check == null:
 		player_auto_orbit_check = _make_pause_checkbox_row(rows, "PLAYER AUTO-ORBIT ASSIST", "PlayerAutoOrbitCheck")
 	if auto_orbiting_celestials_check == null:
 		auto_orbiting_celestials_check = _make_pause_checkbox_row(rows, "ORBITING CELESTIAL EVENTS", "AutoOrbitingCelestialsCheck")
+	_move_control_row_before(rows, controller_deadzone_slider, "SeedRow")
+	_move_control_row_before(rows, controller_right_stick_check, "SeedRow")
+	_move_control_row_before(rows, trackpad_camera_check, "SeedRow")
+	_move_control_row_before(rows, alternate_movement_check, "SeedRow")
 
 
 func _make_pause_checkbox_row(parent: VBoxContainer, label_text: String, checkbox_name: String) -> CheckBox:
 	var row := HBoxContainer.new()
 	row.name = "%sRow" % checkbox_name.trim_suffix("Check")
 	row.add_theme_constant_override("separation", 10)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(row)
-
-	var label := Label.new()
-	label.text = label_text
-	label.clip_text = true
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.add_theme_font_size_override("font_size", 14)
-	label.modulate = Color(0.76, 0.94, 0.95, 0.92)
-	row.add_child(label)
 
 	var checkbox := CheckBox.new()
 	checkbox.name = checkbox_name
+	checkbox.text = label_text
 	checkbox.focus_mode = Control.FOCUS_ALL
+	_apply_checkbox_readability_style(checkbox)
 	row.add_child(checkbox)
 	return checkbox
+
+
+func _make_pause_slider_row(parent: VBoxContainer, label_text: String, slider_name: String, minimum: float, maximum: float, step_value: float) -> HSlider:
+	var row := HBoxContainer.new()
+	var base_name := slider_name.trim_suffix("Slider")
+	row.name = "%sRow" % base_name
+	row.add_theme_constant_override("separation", 10)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(row)
+
+	var label := Label.new()
+	label.name = "%sLabel" % base_name
+	label.text = label_text
+	label.clip_text = true
+	label.custom_minimum_size = Vector2(220.0, 32.0)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", 14)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.modulate = Color(0.76, 0.94, 0.95, 0.92)
+	row.add_child(label)
+
+	var slider := HSlider.new()
+	slider.name = slider_name
+	slider.min_value = minimum
+	slider.max_value = maximum
+	slider.step = step_value
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.custom_minimum_size = Vector2(230.0, 32.0)
+	row.add_child(slider)
+
+	var value_label := Label.new()
+	value_label.name = "%sValueLabel" % base_name
+	value_label.text = "%.2f" % minimum
+	value_label.custom_minimum_size = Vector2(54.0, 32.0)
+	value_label.add_theme_font_size_override("font_size", 14)
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	value_label.modulate = Color(0.78, 0.98, 1.0, 0.96)
+	row.add_child(value_label)
+	return slider
+
+
+func _move_control_row_before(rows: VBoxContainer, control: Control, anchor_name: String) -> void:
+	if rows == null or control == null:
+		return
+	var row := control.get_parent() as Control
+	var anchor := rows.get_node_or_null(anchor_name) as Control
+	if row == null or anchor == null or row == anchor or row.get_parent() != rows:
+		return
+	if row.get_index() < anchor.get_index():
+		return
+	rows.move_child(row, anchor.get_index())
+
+
+func _update_controller_deadzone_value(value: float) -> void:
+	if controller_deadzone_value_label == null:
+		controller_deadzone_value_label = find_child("ControllerDeadzoneValueLabel", true, false) as Label
+	if controller_deadzone_value_label != null:
+		controller_deadzone_value_label.text = "%.2f" % clampf(value, 0.08, 0.55)
 
 
 func _on_resume_pressed() -> void:
@@ -968,17 +1116,25 @@ func _update_multiplayer_menu() -> void:
 	var network_active := bool(network_status.get("active", false))
 	var host_controls := network_active and multiplayer.is_server()
 	_configure_network_pause_buttons(network_active, host_controls)
+	var quality := String(network_status.get("connection_quality", "OFFLINE")).to_upper()
+	var protocol := int(network_status.get("network_protocol", 0))
 	var sync := _get_multiplayer_foundation()
 	if sync == null or not sync.has_method("get_readability_budget"):
-		multiplayer_status_label.text = "%s | SYNC FOUNDATION OFFLINE" % String(network_status.get("mode_label", "OFFLINE"))
+		multiplayer_status_label.text = "%s | %s | NET%d | SYNC FOUNDATION OFFLINE" % [
+			String(network_status.get("mode_label", "OFFLINE")),
+			quality,
+			protocol,
+		]
 		return
 	var budget_value: Variant = sync.call("get_readability_budget")
 	var budget: Dictionary = budget_value if budget_value is Dictionary else {}
 	multiplayer_status_label.text = (
-		"%s | P%d | ARROWS %d | WARN %d"
+		"%s | P%d | %s | NET%d | ARROWS %d | WARN %d"
 		% [
 			String(network_status.get("mode_label", "OFFLINE")),
 			int(budget.get("peer_count", 1)),
+			quality,
+			protocol,
 			int(budget.get("enemy_arrow_limit", 0)),
 			int(budget.get("projectile_warning_limit", 0)),
 		]
@@ -1103,6 +1259,17 @@ func _on_color_mode_selected(index: int) -> void:
 	Settings.set_colorblind_mode(color_mode_option.get_item_id(index))
 	_play_settings_sound()
 	_apply_pause_readability_palette()
+
+
+func _on_controller_deadzone_changed(value: float) -> void:
+	Settings.set_controller_deadzone(value)
+	_update_controller_deadzone_value(value)
+	_play_settings_sound()
+
+
+func _on_controller_right_stick_toggled(enabled: bool) -> void:
+	Settings.set_controller_right_stick_aim(enabled)
+	_play_settings_sound()
 
 
 func _on_trackpad_camera_toggled(enabled: bool) -> void:

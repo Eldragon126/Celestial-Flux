@@ -54,7 +54,7 @@ uv = PackedVector2Array(-89.76105, -18.890343, -43.38037, 27.039673, 16.760986, 
 [node name="ReadabilityHalo" type="Line2D" parent="." unique_id=727334120]
 visible = false
 z_index = 6
-points = PackedVector2Array(-14, 0, 0, -14, 18, 0, 0, 14, -14, 0)
+points = PackedVector2Array(-18, 0, 0, -18, 18, 0, 0, 18, -18, 0)
 closed = true
 width = 3.7
 default_color = Color(0.85, 1, 1, 0.95)

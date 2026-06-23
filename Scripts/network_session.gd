@@ -19,7 +19,7 @@ enum SessionMode {
 
 const DEFAULT_PORT := 28942
 const DEFAULT_MAX_PEERS := 4
-const NETWORK_PROTOCOL_VERSION := 6
+const NETWORK_PROTOCOL_VERSION := 7
 const RUN_SCENE_PATH := "res://Nodes/the_abyss.tscn"
 const RUN_LOADING_SCENE_PATH := "res://Nodes/run_loading_screen.tscn"
 const PLAYER_SCENE := preload("res://Nodes/player.tscn")
@@ -117,6 +117,7 @@ var _status_label := "OFFLINE"
 var _last_heartbeat_sent := 0.0
 var _heartbeat_nonce := 1
 var _peer_ping_ms: Dictionary = {}
+var _session_ready_ack: Dictionary = {}
 
 
 func _ready() -> void:
@@ -225,6 +226,7 @@ func leave_session(publish: bool = true) -> void:
 	_last_wave_state.clear()
 	_player_nodes_by_peer.clear()
 	_peer_ping_ms.clear()
+	_session_ready_ack.clear()
 	_status_label = "OFFLINE"
 	_reset_roster()
 	if publish:
@@ -260,6 +262,8 @@ func get_status_snapshot() -> Dictionary:
 		"network_protocol": NETWORK_PROTOCOL_VERSION,
 		"mod_signature": _local_mod_signature(),
 		"diagnostics": get_network_diagnostics(),
+		"connection_quality": _connection_quality_label(),
+		"readiness": get_multiplayer_readiness_snapshot(),
 		"steam_available": is_steam_multiplayer_available(),
 		"steam_message": get_steam_support_message(),
 	}
@@ -268,10 +272,28 @@ func get_status_snapshot() -> Dictionary:
 func get_network_diagnostics() -> Dictionary:
 	return {
 		"peer_ping_ms": _peer_ping_ms.duplicate(true),
+		"average_ping_ms": _average_peer_ping_ms(),
+		"quality": _connection_quality_label(),
 		"run_seed": int(_run_config.get("seed", 0)),
 		"last_wave": int(_last_wave_state.get("wave", 0)),
 		"heartbeat_nonce": _heartbeat_nonce,
 		"protocol": NETWORK_PROTOCOL_VERSION,
+	}
+
+
+func get_multiplayer_readiness_snapshot() -> Dictionary:
+	return {
+		"protocol": NETWORK_PROTOCOL_VERSION,
+		"transport": _mode_label(),
+		"lan_ready": true,
+		"steam_transport_available": is_steam_multiplayer_available(),
+		"mod_signature": _local_mod_signature(),
+		"late_join_reconciliation": not _run_config.is_empty() and (_last_wave_state.has("wave") or not _run_in_progress),
+		"host_authoritative": not is_network_active() or multiplayer.is_server() or mode == SessionMode.LAN_CLIENT,
+		"peer_count": _sorted_peer_records().size(),
+		"average_ping_ms": _average_peer_ping_ms(),
+		"quality": _connection_quality_label(),
+		"platform": OS.get_name(),
 	}
 
 
@@ -329,6 +351,8 @@ func configure_arena_players(level_root: Node) -> void:
 			continue
 		used_ids[player.get_instance_id()] = true
 		_configure_player_node(player, record, index)
+		if multiplayer.is_server():
+			_session_ready_ack[peer_id] = true
 
 	for node in level_root.get_tree().get_nodes_in_group("Player"):
 		var player_2d := node as Node2D
@@ -602,8 +626,19 @@ func _rpc_begin_network_run(config: Dictionary) -> void:
 	_status_label = "RUN CLIENT"
 	_apply_run_config(_run_config)
 	network_run_started.emit(_run_config.duplicate(true))
+	_rpc_client_run_ready.rpc_id(1, _effective_local_peer_id(), get_multiplayer_readiness_snapshot())
 	_publish_status()
 	call_deferred("_change_to_network_run_scene", String(_run_config.get("scene_path", RUN_SCENE_PATH)))
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_client_run_ready(peer_id: int, readiness: Dictionary) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	var effective_peer := peer_id if peer_id > 0 else sender
+	_session_ready_ack[effective_peer] = readiness.duplicate(true)
+	_publish_status()
 
 
 @rpc("any_peer", "call_remote", "unreliable")
@@ -722,6 +757,28 @@ func _rpc_heartbeat_pong(sent_msec: int, nonce: int) -> void:
 	_peer_ping_ms[sender] = maxi(Time.get_ticks_msec() - sent_msec, 0)
 	_heartbeat_nonce = maxi(_heartbeat_nonce, nonce)
 	_publish_status()
+
+
+func _average_peer_ping_ms() -> int:
+	if _peer_ping_ms.is_empty():
+		return 0
+	var total := 0
+	for value in _peer_ping_ms.values():
+		total += int(value)
+	return int(round(float(total) / float(maxi(_peer_ping_ms.size(), 1))))
+
+
+func _connection_quality_label() -> String:
+	if not is_network_active():
+		return "offline"
+	var average := _average_peer_ping_ms()
+	if average <= 0:
+		return "local"
+	if average < 80:
+		return "stable"
+	if average < 160:
+		return "watch"
+	return "high-latency"
 
 
 func _publish_roster_to_clients() -> void:

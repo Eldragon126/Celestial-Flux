@@ -5,14 +5,16 @@ class_name GravityHeatMapOverlay
 @export var enabled_on_start: bool = false
 @export var enable_toggle: bool = true
 @export var toggle_key: Key = KEY_F10
-@export var refresh_interval: float = 0.09
+@export var refresh_interval: float = 0.13
 @export var screen_margin_world: float = 200.0
 
 @export_group("Grid & Performance")
-@export var sample_columns: int = 42
-@export var sample_rows: int = 28
-@export var max_gravity_sources: int = 8
+@export var sample_columns: int = 34
+@export var sample_rows: int = 22
+@export var max_gravity_sources: int = 6
 @export var gravity_softener: float = 64.0
+@export var max_sample_cells: int = 760
+@export var gradient_draw_stride: int = 3
 
 @export_group("Visuals & Telemetry")
 @export var contour_levels: Array[float] = [0.15, 0.30, 0.45, 0.65, 0.85]
@@ -31,7 +33,13 @@ class_name GravityHeatMapOverlay
 
 var _player: Node2D = null
 var _gravity_sources: Array[Node2D] = []
-var _samples: Array[Dictionary] = []
+var _source_buffer: Array[Node2D] = []
+var _sample_positions := PackedVector2Array()
+var _sample_gradients := PackedVector2Array()
+var _sample_heat := PackedFloat32Array()
+var _sample_field_heat := PackedFloat32Array()
+var _active_columns: int = 1
+var _active_rows: int = 1
 
 # Stability variables to stop the screen from flashing/glitching
 var _stable_max_potential: float = 1.0
@@ -103,10 +111,23 @@ func _update_visible_world_rect() -> void:
 		var center := _player.global_position if _player else Vector2.ZERO
 		_visible_world_rect = Rect2(center - Vector2(1280.0, 720.0), Vector2(2560.0, 1440.0))
 		
+	_update_active_grid()
 	_cell_size = Vector2(
-		_visible_world_rect.size.x / float(maxi(sample_columns - 1, 1)),
-		_visible_world_rect.size.y / float(maxi(sample_rows - 1, 1))
+		_visible_world_rect.size.x / float(maxi(_active_columns - 1, 1)),
+		_visible_world_rect.size.y / float(maxi(_active_rows - 1, 1))
 	)
+
+
+func _update_active_grid() -> void:
+	var columns := maxi(sample_columns, 4)
+	var rows := maxi(sample_rows, 4)
+	var cells := columns * rows
+	if cells > max_sample_cells:
+		var scale := sqrt(float(max_sample_cells) / float(cells))
+		columns = maxi(4, int(floor(float(columns) * scale)))
+		rows = maxi(4, int(floor(float(rows) * scale)))
+	_active_columns = columns
+	_active_rows = rows
 
 func _refresh_sources() -> void:
 	_gravity_sources.clear()
@@ -114,8 +135,15 @@ func _refresh_sources() -> void:
 
 	var seen := {}
 	for group_name in [&"Objects_With_Gravity", &"planets"]:
-		for value in get_tree().get_nodes_in_group(group_name):
-			var source := value as Node2D
+		_source_buffer.clear()
+		if RuntimeRegistry != null:
+			RuntimeRegistry.fill_group(group_name, _source_buffer, max_gravity_sources * 3)
+		else:
+			for value in get_tree().get_nodes_in_group(group_name):
+				var source_value := value as Node2D
+				if source_value != null:
+					_source_buffer.append(source_value)
+		for source in _source_buffer:
 			if source == null or not is_instance_valid(source) or source == _player:
 				continue
 			if absf(_source_mass(source)) <= 0.001:
@@ -152,10 +180,13 @@ func _calculate_stable_bounds() -> void:
 			_stable_max_strength = surface_strength
 
 func _rebuild_samples() -> void:
-	_samples.clear()
+	_sample_positions.clear()
+	_sample_gradients.clear()
+	_sample_heat.clear()
+	_sample_field_heat.clear()
 	
-	for y in range(sample_rows):
-		for x in range(sample_columns):
+	for y in range(_active_rows):
+		for x in range(_active_columns):
 			var pos := _sample_position(x, y)
 			var field := _field_at(pos)
 			var potential: float = field["potential"]
@@ -165,12 +196,10 @@ func _rebuild_samples() -> void:
 			var heat := clampf(potential / _stable_max_potential, 0.0, 1.0)
 			var field_heat := clampf(gradient.length() / _stable_max_strength, 0.0, 1.0)
 			
-			_samples.append({
-				"position": pos,
-				"gradient": gradient,
-				"heat": heat,
-				"field_heat": field_heat
-			})
+			_sample_positions.append(pos)
+			_sample_gradients.append(gradient)
+			_sample_heat.append(heat)
+			_sample_field_heat.append(field_heat)
 
 func _sample_position(x: int, y: int) -> Vector2:
 	return _visible_world_rect.position + Vector2(float(x) * _cell_size.x, float(y) * _cell_size.y)
@@ -222,7 +251,7 @@ func _best_slingshot_source() -> Node2D:
 	return best
 
 func _draw() -> void:
-	if not visible or _samples.is_empty():
+	if not visible or _sample_positions.is_empty():
 		return
 		
 	_draw_contours()
@@ -231,14 +260,14 @@ func _draw() -> void:
 
 func _draw_contours() -> void:
 	for level in contour_levels:
-		for y in range(sample_rows - 1):
-			for x in range(sample_columns - 1):
+		for y in range(_active_rows - 1):
+			for x in range(_active_columns - 1):
 				_draw_contour_cell(x, y, level)
 
 func _draw_contour_cell(x: int, y: int, level: float) -> void:
-	var corners = [
-		_sample_at(x, y), _sample_at(x + 1, y),
-		_sample_at(x + 1, y + 1), _sample_at(x, y + 1)
+	var corners := [
+		_sample_index(x, y), _sample_index(x + 1, y),
+		_sample_index(x + 1, y + 1), _sample_index(x, y + 1)
 	]
 	
 	var crossings: Array[Vector2] = []
@@ -249,39 +278,41 @@ func _draw_contour_cell(x: int, y: int, level: float) -> void:
 	
 	if crossings.size() == 2:
 		var color = _heat_color(level)
-		color.a = 0.6
+		color.a = _safe_alpha(0.46, 0.46)
 		draw_line(to_local(crossings[0]), to_local(crossings[1]), color, 2.0, true)
 	elif crossings.size() == 4:
 		var color = _heat_color(level)
-		color.a = 0.6
+		color.a = _safe_alpha(0.46, 0.46)
 		draw_line(to_local(crossings[0]), to_local(crossings[1]), color, 2.0, true)
 		draw_line(to_local(crossings[2]), to_local(crossings[3]), color, 2.0, true)
 
-func _add_crossing(out_points: Array[Vector2], a: Dictionary, b: Dictionary, level: float) -> void:
-	var ah: float = a["heat"]
-	var bh: float = b["heat"]
+func _add_crossing(out_points: Array[Vector2], a: int, b: int, level: float) -> void:
+	if a < 0 or b < 0:
+		return
+	var ah: float = _sample_heat[a]
+	var bh: float = _sample_heat[b]
 	if (ah < level and bh < level) or (ah >= level and bh >= level):
 		return
 	var t := clampf((level - ah) / (bh - ah), 0.0, 1.0)
-	out_points.append(a["position"].lerp(b["position"], t))
+	out_points.append(_sample_positions[a].lerp(_sample_positions[b], t))
 
 func _draw_gradient_vectors() -> void:
-	# Draw vectors every 2nd grid point for clean visuals
-	for y in range(0, sample_rows, 2):
-		for x in range(0, sample_columns, 2):
-			var sample = _sample_at(x, y)
-			if sample.is_empty(): continue
-			
-			var strength: float = sample["field_heat"]
+	var stride := maxi(gradient_draw_stride, 2)
+	for y in range(0, _active_rows, stride):
+		for x in range(0, _active_columns, stride):
+			var index := _sample_index(x, y)
+			if index < 0:
+				continue
+			var strength: float = _sample_field_heat[index]
 			if strength < 0.05: continue # Don't draw tiny useless lines
 				
-			var gradient: Vector2 = sample["gradient"]
+			var gradient: Vector2 = _sample_gradients[index]
 			var dir := gradient.normalized()
 			var length := lerpf(10.0, gradient_vector_length, strength)
-			var pos: Vector2 = sample["position"]
+			var pos: Vector2 = _sample_positions[index]
 			
 			var end_pos = pos + dir * length
-			var color = Color(0.6, 0.8, 1.0, gradient_alpha * strength * 2.0)
+			var color = Color(0.6, 0.8, 1.0, _safe_alpha(gradient_alpha * strength * 1.55, gradient_alpha))
 			
 			draw_line(to_local(pos), to_local(end_pos), color, 1.5, true)
 
@@ -289,12 +320,13 @@ func _draw_golden_slingshot_line() -> void:
 	if _golden_path.size() < 2: return
 	
 	# Draw the optimal orbit path
-	var glow := Color(golden_line_color.r, golden_line_color.g, golden_line_color.b, 0.2)
+	var glow := Color(golden_line_color.r, golden_line_color.g, golden_line_color.b, _safe_alpha(0.2, 0.22))
+	var path_color := Color(golden_line_color.r, golden_line_color.g, golden_line_color.b, _safe_alpha(golden_line_color.a, 0.72))
 	for i in range(1, _golden_path.size()):
 		var a = _golden_path[i - 1]
 		var b = _golden_path[i]
 		draw_line(to_local(a), to_local(b), glow, golden_line_width * 2.5, true)
-		draw_line(to_local(a), to_local(b), golden_line_color, golden_line_width, true)
+		draw_line(to_local(a), to_local(b), path_color, golden_line_width, true)
 
 	# Draw a vector from player to the closest point on the golden path to guide them
 	if _player and is_instance_valid(_player):
@@ -308,18 +340,27 @@ func _draw_golden_slingshot_line() -> void:
 				closest = pt
 		
 		# Draw the guidance line
-		draw_line(to_local(p_pos), to_local(closest), Color(1.0, 1.0, 1.0, 0.592), 2.0, true)
-		draw_circle(to_local(closest), 6.0, golden_line_color)
+		draw_line(to_local(p_pos), to_local(closest), Color(1.0, 1.0, 1.0, _safe_alpha(0.592, 0.64)), 2.0, true)
+		draw_circle(to_local(closest), 6.0, path_color)
 
-func _sample_at(x: int, y: int) -> Dictionary:
-	if x < 0 or x >= sample_columns or y < 0 or y >= sample_rows:
-		return {}
-	return _samples[y * sample_columns + x]
+func _sample_index(x: int, y: int) -> int:
+	if x < 0 or x >= _active_columns or y < 0 or y >= _active_rows:
+		return -1
+	var index := y * _active_columns + x
+	return index if index >= 0 and index < _sample_positions.size() else -1
 
 func _heat_color(heat: float) -> Color:
 	if heat < 0.5:
 		return low_gravity_color.lerp(mid_gravity_color, heat * 2.0)
 	return mid_gravity_color.lerp(high_gravity_color, (heat - 0.5) * 2.0)
+
+
+func _safe_alpha(alpha: float, hard_cap: float) -> float:
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		return Settings.world_visual_alpha(alpha, hard_cap)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return minf(Settings.flash_alpha(alpha), hard_cap)
+	return minf(alpha, hard_cap)
 
 func _source_mass(source: Node) -> float:
 	var mass_value = source.get("mass") if "mass" in source else 1000.0

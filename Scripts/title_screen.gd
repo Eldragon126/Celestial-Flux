@@ -18,7 +18,7 @@ const PHASE_SLIP_SWARM_SCENE := "res://Nodes/phase_slip_swarm.tscn"
 const SHIELD_BREAKER_SCENE := "res://Nodes/shield_breaker_unit.tscn"
 const SEEKER_FRAGMENT_SCENE := "res://Nodes/seeker_fragment.tscn"
 
-@export var version_string: String = "v1.0.4.6"
+@export var version_string: String = "v1.0.4.7"
 @export var secret_completion_check_interval: float = 0.25
 @export var alternate_title_music: bool = true
 @export var use_brand_logo_texture: bool = false #keep this false. I don't want the logo to be there.
@@ -443,7 +443,17 @@ func _update_multiplayer_ui() -> void:
 	var steam_message := String(status.get("steam_message", "STEAM NEEDS PLUGIN"))
 	if _mp_address_edit != null and _mp_address_edit.text.strip_edges().is_empty():
 		_mp_address_edit.text = hint
-	var status_text := "%s | P%d | %s:%d" % [mode_label, peer_count, hint, port]
+	var diagnostics_value: Variant = status.get("diagnostics", {})
+	var diagnostics: Dictionary = diagnostics_value if diagnostics_value is Dictionary else {}
+	var quality := String(status.get("connection_quality", diagnostics.get("quality", "OFFLINE"))).to_upper()
+	var status_text := "%s | P%d | %s:%d | %s | NET%d" % [
+		mode_label,
+		peer_count,
+		hint,
+		port,
+		quality,
+		int(status.get("network_protocol", 0)),
+	]
 	if not error.is_empty() and mode_label == "OFFLINE":
 		status_text = error
 	_mp_status_label.text = "%s\n%s" % [status_text, steam_message]

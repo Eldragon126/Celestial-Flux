@@ -10,9 +10,9 @@ const WORLD_FILL_ALPHA_CAP: float = 0.055
 const WORLD_LIGHT_ALPHA_CAP: float = 0.2
 const WORLD_EFFECT_RADIUS_CAP: float = 420.0
 const WORLD_POLYGON_SEGMENT_CAP: int = 32
-const REDUCED_FLASH_ALPHA_SCALE: float = 0.45
-const REDUCED_FLASH_PERSISTENT_ALPHA_SCALE: float = 0.82
-const REDUCED_FLASH_PERSISTENT_ALPHA_FLOOR: float = 0.075
+const REDUCED_FLASH_ALPHA_SCALE: float = 0.58
+const REDUCED_FLASH_PERSISTENT_ALPHA_SCALE: float = 0.9
+const REDUCED_FLASH_PERSISTENT_ALPHA_FLOOR: float = 0.095
 const REDUCED_FLASH_PROJECTILE_ALPHA_FLOOR: float = 0.72
 
 enum ColorblindMode {
@@ -23,10 +23,13 @@ enum ColorblindMode {
 }
 
 var input_type: bool = false # Controller true; mouse aim if false.
+var controller_deadzone: float = 0.24
+var controller_detect_threshold: float = 0.42
+var controller_right_stick_aim: bool = true
 var ui_scale: float = 1.0
 var screen_shake_scale: float = 1.0
 var reduce_flash: bool = false
-var readability_halos_enabled: bool = false
+var readability_halos_enabled: bool = true
 var colorblind_mode: int = ColorblindMode.OFF
 var trackpad_direct_camera: bool = false
 var camera_follow_strength: float = 1.0
@@ -38,7 +41,27 @@ var auto_orbiting_celestials_enabled: bool = true
 
 
 func _ready() -> void:
+	_ensure_runtime_input_actions()
 	load_settings()
+	set_process_input(true)
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventJoypadButton:
+		set_input_type(true)
+	elif event is InputEventJoypadMotion:
+		var motion := event as InputEventJoypadMotion
+		if absf(motion.axis_value) >= controller_detect_threshold:
+			set_input_type(true)
+	elif event is InputEventMouseButton or event is InputEventMouseMotion or event is InputEventKey:
+		set_input_type(false)
+
+
+func set_input_type(use_controller: bool) -> void:
+	if input_type == use_controller:
+		return
+	input_type = use_controller
+	_emit_accessibility_changed()
 
 
 func set_ui_scale(value: float) -> void:
@@ -61,6 +84,18 @@ func set_reduce_flash(value: bool) -> void:
 
 func set_readability_halos_enabled(value: bool) -> void:
 	readability_halos_enabled = value
+	_emit_accessibility_changed()
+	save_settings()
+
+
+func set_controller_deadzone(value: float) -> void:
+	controller_deadzone = clampf(value, 0.08, 0.55)
+	_emit_accessibility_changed()
+	save_settings()
+
+
+func set_controller_right_stick_aim(value: bool) -> void:
+	controller_right_stick_aim = value
 	_emit_accessibility_changed()
 	save_settings()
 
@@ -129,6 +164,8 @@ func load_settings() -> void:
 		ColorblindMode.OFF,
 		ColorblindMode.TRITANOPIA
 	)
+	controller_deadzone = clampf(float(config.get_value(SECTION_INPUT, "controller_deadzone", controller_deadzone)), 0.08, 0.55)
+	controller_right_stick_aim = bool(config.get_value(SECTION_INPUT, "controller_right_stick_aim", controller_right_stick_aim))
 	trackpad_direct_camera = bool(config.get_value(SECTION_INPUT, "trackpad_direct_camera", trackpad_direct_camera))
 	camera_follow_strength = clampf(float(config.get_value(SECTION_INPUT, "camera_follow_strength", camera_follow_strength)), 0.25, 2.5)
 	alternate_movement_enabled = bool(config.get_value(SECTION_INPUT, "alternate_movement_enabled", alternate_movement_enabled))
@@ -148,6 +185,8 @@ func save_settings() -> void:
 	config.set_value(SECTION_ACCESSIBILITY, "reduce_flash", reduce_flash)
 	config.set_value(SECTION_ACCESSIBILITY, "readability_halos_enabled", readability_halos_enabled)
 	config.set_value(SECTION_ACCESSIBILITY, "colorblind_mode", colorblind_mode)
+	config.set_value(SECTION_INPUT, "controller_deadzone", controller_deadzone)
+	config.set_value(SECTION_INPUT, "controller_right_stick_aim", controller_right_stick_aim)
 	config.set_value(SECTION_INPUT, "trackpad_direct_camera", trackpad_direct_camera)
 	config.set_value(SECTION_INPUT, "camera_follow_strength", camera_follow_strength)
 	config.set_value(SECTION_INPUT, "alternate_movement_enabled", alternate_movement_enabled)
@@ -230,6 +269,9 @@ func export_accessibility_settings() -> Dictionary:
 		"reduce_flash": reduce_flash,
 		"readability_halos_enabled": readability_halos_enabled,
 		"colorblind_mode": colorblind_mode,
+		"input_type": input_type,
+		"controller_deadzone": controller_deadzone,
+		"controller_right_stick_aim": controller_right_stick_aim,
 		"trackpad_direct_camera": trackpad_direct_camera,
 		"camera_follow_strength": camera_follow_strength,
 		"alternate_movement_enabled": alternate_movement_enabled,
@@ -242,3 +284,89 @@ func export_accessibility_settings() -> Dictionary:
 
 func _emit_accessibility_changed() -> void:
 	accessibility_changed.emit(export_accessibility_settings())
+
+
+func _ensure_runtime_input_actions() -> void:
+	_ensure_action_exists(&"back", 0.2)
+	_ensure_action_exists(&"move_left", 0.2)
+	_ensure_action_exists(&"move_right", 0.2)
+	_ensure_action_exists(&"move_down", 0.2)
+	_ensure_action_exists(&"aim_left", 0.2)
+	_ensure_action_exists(&"aim_right", 0.2)
+	_ensure_action_exists(&"aim_up", 0.2)
+	_ensure_action_exists(&"aim_down", 0.2)
+	_ensure_action_exists(&"gravity_heat_map", 0.2)
+
+	_add_key_event(&"back", KEY_S)
+	_add_key_event(&"move_down", KEY_DOWN)
+	_add_key_event(&"move_left", KEY_A)
+	_add_key_event(&"move_left", KEY_LEFT)
+	_add_key_event(&"move_right", KEY_D)
+	_add_key_event(&"move_right", KEY_RIGHT)
+	_add_key_event(&"gravity_heat_map", KEY_F10)
+
+	_add_joy_axis_event(&"move_left", JOY_AXIS_LEFT_X, -1.0)
+	_add_joy_axis_event(&"move_right", JOY_AXIS_LEFT_X, 1.0)
+	_add_joy_axis_event(&"back", JOY_AXIS_LEFT_Y, 1.0)
+	_add_joy_axis_event(&"move_down", JOY_AXIS_LEFT_Y, 1.0)
+	_add_joy_axis_event(&"aim_left", JOY_AXIS_RIGHT_X, -1.0)
+	_add_joy_axis_event(&"aim_right", JOY_AXIS_RIGHT_X, 1.0)
+	_add_joy_axis_event(&"aim_up", JOY_AXIS_RIGHT_Y, -1.0)
+	_add_joy_axis_event(&"aim_down", JOY_AXIS_RIGHT_Y, 1.0)
+	_add_joy_button_event(&"gravity_heat_map", JOY_BUTTON_DPAD_UP)
+
+
+func _ensure_action_exists(action_name: StringName, deadzone: float) -> void:
+	if InputMap.has_action(action_name):
+		InputMap.action_set_deadzone(action_name, deadzone)
+		return
+	InputMap.add_action(action_name, deadzone)
+
+
+func _add_key_event(action_name: StringName, key: Key) -> void:
+	if not InputMap.has_action(action_name) or _has_key_event(action_name, key):
+		return
+	var event := InputEventKey.new()
+	event.physical_keycode = key
+	InputMap.action_add_event(action_name, event)
+
+
+func _add_joy_button_event(action_name: StringName, button: int) -> void:
+	if not InputMap.has_action(action_name) or _has_joy_button_event(action_name, button):
+		return
+	var event := InputEventJoypadButton.new()
+	event.button_index = button
+	InputMap.action_add_event(action_name, event)
+
+
+func _add_joy_axis_event(action_name: StringName, axis: int, axis_value: float) -> void:
+	if not InputMap.has_action(action_name) or _has_joy_axis_event(action_name, axis, axis_value):
+		return
+	var event := InputEventJoypadMotion.new()
+	event.axis = axis
+	event.axis_value = axis_value
+	InputMap.action_add_event(action_name, event)
+
+
+func _has_key_event(action_name: StringName, key: Key) -> bool:
+	for event in InputMap.action_get_events(action_name):
+		var key_event := event as InputEventKey
+		if key_event != null and (key_event.physical_keycode == key or key_event.keycode == key):
+			return true
+	return false
+
+
+func _has_joy_button_event(action_name: StringName, button: int) -> bool:
+	for event in InputMap.action_get_events(action_name):
+		var button_event := event as InputEventJoypadButton
+		if button_event != null and button_event.button_index == button:
+			return true
+	return false
+
+
+func _has_joy_axis_event(action_name: StringName, axis: int, axis_value: float) -> bool:
+	for event in InputMap.action_get_events(action_name):
+		var axis_event := event as InputEventJoypadMotion
+		if axis_event != null and axis_event.axis == axis and signf(axis_event.axis_value) == signf(axis_value):
+			return true
+	return false

@@ -34,6 +34,7 @@ signal projectile_hit(hit_data: Dictionary)
 @export var enable_vector_wake: bool = true
 @export var vector_wake_length: float = 90.0
 @export var vector_wake_width: float = 5.4
+@export var readability_halo_padding: float = 5.0
 @export_range(0.0, 1.0, 0.01) var vector_core_alpha_cap: float = 1.0
 @export_range(0.0, 1.0, 0.01) var vector_wake_alpha_cap: float = 0.5
 @export var projectile_light_energy_cap: float = 1.85
@@ -592,6 +593,7 @@ func _configure_windowkill_visuals() -> void:
 	if polygon != null:
 		polygon.color = _safe_projectile_color(vector_core_color)
 		polygon.scale = Vector2.ONE * visual_scale
+		_center_polygon_visual(polygon)
 
 	var light := get_node_or_null("PointLight2D") as PointLight2D
 	if light != null:
@@ -620,7 +622,71 @@ func _configure_readability_halo() -> void:
 	if _readability_halo == null:
 		return
 	_readability_halo.default_color = _safe_projectile_color(Color(0.85, 1.0, 1.0, 0.95))
+	_sync_readability_halo_to_core()
 	_update_readability_halo_visibility()
+
+
+func _sync_readability_halo_to_core() -> void:
+	if _readability_halo == null:
+		return
+	var polygon := get_node_or_null("Polygon2D") as Polygon2D
+	if polygon != null and polygon.polygon.size() >= 3:
+		var transformed_points := PackedVector2Array()
+		for point in polygon.polygon:
+			transformed_points.append(polygon.position + Vector2(point.x * polygon.scale.x, point.y * polygon.scale.y))
+		var center := _points_bounds_center(transformed_points)
+		var halo_points := PackedVector2Array()
+		var padding := maxf(readability_halo_padding, 0.0)
+		for point in transformed_points:
+			var offset := point - center
+			var halo_point := point
+			if offset.length_squared() > 0.001:
+				halo_point = center + offset.normalized() * (offset.length() + padding)
+			halo_points.append(halo_point)
+		if not halo_points.is_empty():
+			halo_points.append(halo_points[0])
+			_readability_halo.points = halo_points
+			_readability_halo.position = Vector2.ZERO
+			_readability_halo.rotation = 0.0
+			_readability_halo.scale = Vector2.ONE
+			_readability_halo.width = maxf(2.4, 2.5 * maxf(visual_scale, 0.7))
+			return
+
+	var radius := _projectile_collision_radius() * maxf(visual_scale, 1.0) + maxf(readability_halo_padding, 0.0)
+	_readability_halo.points = PackedVector2Array([
+		Vector2(-radius, 0.0),
+		Vector2(0.0, -radius),
+		Vector2(radius, 0.0),
+		Vector2(0.0, radius),
+		Vector2(-radius, 0.0),
+	])
+
+
+func _center_polygon_visual(polygon: Polygon2D) -> void:
+	if polygon == null or polygon.polygon.is_empty():
+		return
+	var center := _points_bounds_center(polygon.polygon)
+	polygon.position = -Vector2(center.x * polygon.scale.x, center.y * polygon.scale.y)
+
+
+func _points_bounds_center(points: PackedVector2Array) -> Vector2:
+	if points.is_empty():
+		return Vector2.ZERO
+	var min_point := points[0]
+	var max_point := points[0]
+	for point in points:
+		min_point.x = minf(min_point.x, point.x)
+		min_point.y = minf(min_point.y, point.y)
+		max_point.x = maxf(max_point.x, point.x)
+		max_point.y = maxf(max_point.y, point.y)
+	return (min_point + max_point) * 0.5
+
+
+func _projectile_collision_radius() -> float:
+	var collision := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		return maxf((collision.shape as CircleShape2D).radius, 1.0)
+	return 12.0
 
 
 func _update_readability_halo_visibility() -> void:

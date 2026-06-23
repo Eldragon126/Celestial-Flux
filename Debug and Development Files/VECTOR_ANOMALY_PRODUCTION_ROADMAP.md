@@ -230,9 +230,24 @@ From original + Orbitron Systems long-term notes. Only after V1.0 green.
 [ ] Chronal Refraction Beam, Momentum Conservation Drift, Orbital Memory, Localized Time Debt, Gravitational Scar Formation (permanent), Resonance Cascade
 [ ] New enemy designs: Gravimetric Echo Drone, Event Horizon Warden, Phase-Slip Swarm, Orbital Null Harvester, Resonance Paralytic Construct
 [ ] Full modding UI + editor tooling, including law-weave/recipe/card authoring, validation previews, workshop packaging, loadout selection, and director-by-director activation of safe effect actions.
-[ ] Multiplayer continuity upgrade: automated LAN host/client smoke test, late-join world reconciliation, disconnect recovery UX, version/mod handshake, Steam lobby/transport adapter behind `NetworkSession`, then public drop-in co-op polish.
+[x] Multiplayer continuity upgrade code-side pass 2026-06-23: NET7 protocol surfaced on title/pause UI, readiness snapshots include platform/mod/quality metadata, client run-ready acknowledgements are tracked by the host, player state exports include slingshot/input-device metadata, and hot-path sync queries use capped RuntimeRegistry buffers. Remaining external gates: automated two-instance LAN smoke test, disconnect UX review, and Steam transport adapter after GodotSteam availability.
+[ ] Multiplayer continuity upgrade final verification: automated LAN host/client smoke test, late-join world reconciliation, disconnect recovery UX, version/mod handshake, Steam lobby/transport adapter behind `NetworkSession`, then public drop-in co-op polish.
 [ ] Daily challenges + community scoreboards
 [ ] Galaxy expansion (starmap, travel, region modifiers) â€” only after V1.0 metrics prove retention
+---
+SECTION 7.5: CURRENT POLISH PASS (2026-06-23)
+[x] Readability halo overhaul: enemies keep role silhouettes, bosses keep large outlines, players get control-vector halos, and gravity objects get distinct horizon/flow/gate/gravity/field profiles.
+[x] Pause-menu overlap pass: checkbox rows are moved out of cramped button rows, checkbox hover tweens no longer scale text boxes, and controller deadzone/right-stick options are exposed.
+[x] HUD scale pass: the HUD root now resizes inversely to UI scale so the score panel remains inside the safe viewport.
+[x] Controller and device pass: runtime input actions cover keyboard, joypad axes/buttons, heat-map toggle, controller auto-detect, connected-joypad aim, and persisted controller settings.
+[x] Slingshot feel pass: mastery impulses now apply as immediate-plus-smoothed momentum while preserving speed caps.
+[x] Gravity heat-map performance pass: adaptive sample grid, capped source buffers, packed sample arrays, gradient stride, and capped alpha for the golden route.
+[x] Black-hole hardening pass: invalid bodies are revalidated after field/spaghettification work, collision disabling is depth-limited, and unsafe bodies are quarantined before deferred cleanup.
+[x] Reduced-flash pass: persistent gameplay readability is less aggressively dimmed while transient flash caps remain in place.
+[x] Platform support pass: `PLATFORM_SUPPORT_MATRIX.md` records Windows/Linux/macOS/Steam Deck/console status and validation gates.
+[x] Marketing capture pass: Steam screenshot/clip discovery list expanded with controller, heat-map, black-hole, co-op, accessibility, and Steam Deck proof targets.
+[x] Website/wiki pass: public pages now reference v1.0.4.7, NET7 LAN readiness, controller/deck support path, heat map, halo readability, and accurate platform status.
+Manual verification still required in a normal editor/standalone run because this assignment explicitly forbids opening headless Godot.
 ---
 SECTION 8: PERFORMANCE TARGETS (UPDATED WITH PROFILER EVIDENCE)
 Frame Rate: 60 FPS min / 120 FPS preferred budget path (current spikes must be eliminated)

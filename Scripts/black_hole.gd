@@ -20,6 +20,8 @@ signal horizon_body_consumed(body: Node)
 @export var max_field_impulse_per_tick: float = 145.0
 @export var max_body_speed_after_pull: float = 2600.0
 @export var tracking_prune_interval: float = 1.2
+@export var invalid_body_quarantine_distance: float = 840.0
+@export var max_collision_disable_depth: int = 4
 @export var affected_groups: Array[StringName] = [&"Player", &"enemies", &"wave_enemy", &"bosses", &"Projectiles", &"enemy_projectiles", &"player_projectiles"]
 @export_group("Readability Visuals")
 @export var enable_horizon_rings: bool = true
@@ -114,11 +116,15 @@ func _physics_process(delta: float) -> void:
 		var pull := radial * pull_force * falloff
 		var shear := tangent * tangent_shear_force * falloff * signf(sin(float(body.get_instance_id()) * 0.17 + Time.get_ticks_msec() / 420.0))
 		_apply_safe_field_velocity(body, (pull + shear) * field_delta)
+		if not _body_can_receive_field(body):
+			continue
 
 		if distance <= spaghettify_radius:
 			_apply_spaghettification(body, radial, 1.0 - distance / spaghettify_radius, field_delta)
 		else:
 			_restore_spaghettified_shape(body)
+		if not _body_can_receive_field(body):
+			continue
 
 		if distance <= consume_radius:
 			_consume_body(body)
@@ -294,14 +300,16 @@ func _make_body_safe_for_consumption(body: Node) -> void:
 	elif body is CharacterBody2D:
 		var character := body as CharacterBody2D
 		character.set_deferred("velocity", Vector2.ZERO)
-	_disable_collision_children(body)
+	_disable_collision_children(body, 0)
 
 
-func _disable_collision_children(body: Node) -> void:
+func _disable_collision_children(body: Node, depth: int) -> void:
+	if body == null or not is_instance_valid(body) or depth > max_collision_disable_depth:
+		return
 	for child in body.get_children():
 		if child is CollisionShape2D or child is CollisionPolygon2D:
 			child.set_deferred("disabled", true)
-		_disable_collision_children(child)
+		_disable_collision_children(child, depth + 1)
 
 
 func _queue_free_body(body: Node) -> void:
@@ -372,6 +380,13 @@ func _stabilize_invalid_body(body: Node) -> void:
 		_consume_body(body)
 		return
 	_make_body_safe_for_consumption(body)
+	if body is Node2D:
+		var body_2d := body as Node2D
+		if _finite_vector(global_position):
+			body_2d.set_deferred(
+				"global_position",
+				global_position + Vector2.RIGHT.rotated(float(body.get_instance_id()) * 0.37) * invalid_body_quarantine_distance
+			)
 	_queue_free_body(body)
 
 

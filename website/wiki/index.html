@@ -20,6 +20,7 @@
 		<nav aria-label="Wiki top links">
 			<a href="../">Main Site</a>
 			<a href="#bosses">Bosses</a>
+			<a href="#platforms">Platforms</a>
 			<a href="#modding">Modding</a>
 			<a href="#accessibility">Accessibility</a>
 		</nav>
@@ -50,6 +51,7 @@
 				<a href="#movement">Movement</a>
 				<a href="#slingshot">Slingshot</a>
 				<a href="#resonance">Resonance</a>
+				<a href="#heat-map">Heat Map</a>
 				<a href="#arena-laws">Arena Laws</a>
 				<a href="#progression">Progression</a>
 				<a href="#bosses">Bosses</a>
@@ -57,6 +59,7 @@
 				<a href="#powerups">Powerups</a>
 				<a href="#scores">Scores</a>
 				<a href="#multiplayer">Multiplayer</a>
+				<a href="#platforms">Platforms</a>
 				<a href="#modding">Modding</a>
 				<a href="#accessibility">Accessibility</a>
 				<a href="#production">Production Systems</a>
@@ -109,6 +112,11 @@
 					<strong>Trajectory Predictor</strong>
 					<p>The orbital trajectory predictor is production-facing, not debug clutter. It should stay bright and readable: orange immediate danger, cyan continuation, glow, fade, and compact origin marker.</p>
 				</div>
+				<div class="readout-table">
+					<div><span>Keyboard</span><strong>thrust, rotate, drag, weapons, time, F10 heat map</strong></div>
+					<div><span>Controller</span><strong>left-stick move, right-stick aim, D-pad heat map</strong></div>
+					<div><span>Pause Tuning</span><strong>deadzone, right-stick aim, trackpad low-motion camera, alternate movement</strong></div>
+				</div>
 			</section>
 
 			<section id="slingshot" class="wiki-section" data-topic="slingshot mastery good great perfect apex tangent periapsis orbit">
@@ -139,6 +147,23 @@
 					<article><span>FLOW ARC</span><h3>Slipstream</h3><p>Bodies slide along the tangent. Use it to turn panic into lateral speed.</p></article>
 					<article><span>SLOW SHOTS</span><h3>Temporal Scar</h3><p>Enemies and hostile projectiles lose time locally while the player stays responsive.</p></article>
 					<article><span>ORBIT BEND</span><h3>Harmonic Orbit</h3><p>Bodies curve into stable arcs for trick shots, recovery loops, and apex payoffs.</p></article>
+				</div>
+			</section>
+
+			<section id="heat-map" class="wiki-section" data-topic="gravity heat map contours gradient vectors tangent route f10 dpad performance">
+				<div class="section-title">
+					<p class="kicker">FIELD READING</p>
+					<h2>The gravity heat map makes invisible force tactical.</h2>
+				</div>
+				<div class="wiki-grid two">
+					<article class="wiki-card">
+						<h3>How To Toggle</h3>
+						<p>Press <code>F10</code> on keyboard or D-pad up on controller. The overlay draws relative potential contours, gradient vectors, and a golden tangent guide near the most useful gravity source.</p>
+					</article>
+					<article class="wiki-card">
+						<h3>Performance Contract</h3>
+						<p>The heat map uses an adaptive capped grid, limited source buffers, packed sample arrays, and gradient stride so it can remain a tactical overlay instead of a full simulation tax.</p>
+					</article>
 				</div>
 			</section>
 
@@ -234,6 +259,10 @@
 					<span>Parametric Enemies 1-5</span>
 					<span>Spacetime Tear Emergence</span>
 				</div>
+				<div class="note-panel">
+					<strong>Readability Halos</strong>
+					<p>Enemies use role silhouettes, bosses use reinforced outlines, players use a control-vector halo, and gravity objects use stated horizon, flow, gate, gravity, or field shapes.</p>
+				</div>
 			</section>
 
 			<section id="powerups" class="wiki-section" data-topic="powerups upgrades law fusions drops singularity amplifier time fracture shield overcharge orbital tether apex vector core barycentric tether frame dragging anchor">
@@ -300,10 +329,34 @@
 						<h3>Co-op Payoff</h3>
 						<p>Distinct player vector events can combine into shared resonance/time payoffs through CoopComboDirector without changing solo mechanics.</p>
 					</article>
+					<article class="wiki-card">
+						<h3>NET7 Readiness</h3>
+						<p>Sessions now surface protocol, mod signature, platform, average ping, quality label, and client run-ready acknowledgements in status snapshots.</p>
+					</article>
+					<article class="wiki-card">
+						<h3>Sync Boundaries</h3>
+						<p>Player network state includes input-device and slingshot metadata, while hot-path sync queries use capped RuntimeRegistry buffers.</p>
+					</article>
 				</div>
 				<div class="note-panel">
 					<strong>Steam Roadmap</strong>
 					<p>Steam support should be a transport adapter behind NetworkSession, not a gameplay fork.</p>
+				</div>
+			</section>
+
+			<section id="platforms" class="wiki-section" data-topic="platform devices windows linux mac steam deck xbox playstation switch controller">
+				<div class="section-title">
+					<p class="kicker">PLATFORM STATUS</p>
+					<h2>Advertise only what has been validated.</h2>
+				</div>
+				<div class="readout-table">
+					<div><span>Playable Public Target</span><strong>Windows playtest build</strong></div>
+					<div><span>Next Validation</span><strong>Linux, macOS, Steam Deck exports</strong></div>
+					<div><span>Console Status</span><strong>Xbox, PlayStation, Switch targets require partner SDKs</strong></div>
+				</div>
+				<div class="note-panel">
+					<strong>Controller-First Prep</strong>
+					<p>v1.0.4.7 adds controller auto-detect, first-connected-joypad aim, pause-menu deadzone tuning, right-stick aim toggle, D-pad heat-map toggle, and safe HUD scaling for handheld layouts.</p>
 				</div>
 			</section>
 
@@ -361,7 +414,10 @@
 							<li>UI scale</li>
 							<li>Screen shake intensity</li>
 							<li>Reduced flash</li>
+							<li>Readability halos</li>
 							<li>Colorblind readability modes</li>
+							<li>Controller deadzone and right-stick aim</li>
+							<li>Trackpad camera and alternate movement</li>
 						</ul>
 					</article>
 					<article class="wiki-card">
@@ -379,6 +435,8 @@
 				<div class="system-list">
 					<div><span>RuntimeRegistry</span><strong>Cached gravity, enemy, projectile, boss, and player queries.</strong></div>
 					<div><span>OrbitalVFXDirector</span><strong>Pooled bursts for time dilation, kinetic impact, resonance, and slingshot feedback.</strong></div>
+					<div><span>GravityHeatMapOverlay</span><strong>Adaptive contours, gradient vectors, and tangent guidance with capped sample work.</strong></div>
+					<div><span>BlackHole</span><strong>Validated field pulls, depth-limited collision disabling, and invalid-body quarantine.</strong></div>
 					<div><span>ParticleFocusCuller</span><strong>Focus-gates long-lived particles by screen/player distance.</strong></div>
 					<div><span>PerformanceBudgetDirector</span><strong>Adjusts VFX and event budgets when pressure rises.</strong></div>
 					<div><span>Production Simulation Runner</span><strong>Stress validator for frame time, projectile count, and VFX caps.</strong></div>

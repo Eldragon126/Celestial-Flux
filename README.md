@@ -11,6 +11,7 @@ Current focus areas:
 - Run-defining powerups that turn mastery movement into combat moments.
 - Skill signatures, spacetime swim/tear effects, and gravity-eating boss rules that make mastery visible.
 - Accessibility and performance settings that keep the game readable on weaker hardware.
+- v1.0.4.7 polish: controller auto-detect/deadzone tuning, safer high-UI-scale HUD layout, NET7 LAN readiness readouts, stronger readability halos, and capped gravity heat-map guidance.
 - Documentation that keeps contributors aligned with the current Vector Anomaly direction.
 
 Developer references:
@@ -28,6 +29,11 @@ Made to be pure fun!
 # Current Windows Play Test Build
 - https://github.com/Eldragon126/VECTOR-ANOMALY-WINDOWS-BUILD
 - This is the go to if you want a smooth experience.
+
+# Platform Status
+- Windows is the current public playtest target.
+- Linux, macOS, and Steam Deck are next validation targets for exported builds.
+- Xbox, PlayStation, Nintendo Switch, and Nintendo Switch 2 require partner SDKs and certification work before public support can be claimed.
 
 # To the Players
   For any feedback on the game, please email me (eldensimmons1@gmail.com) or text me (208) 821-0245 your feedback. Any and all feedback is appreciated.

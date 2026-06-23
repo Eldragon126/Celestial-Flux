@@ -64,6 +64,8 @@ signal planet_super_boost_activated(source: Node, impulse: Vector2, energy_spent
 @export var slingshot_camera_roll: float = 0.034
 @export var slingshot_burst_scale: float = 0.46
 @export var slingshot_min_burst_impulse: float = 45.0
+@export_range(0.0, 1.0, 0.01) var slingshot_impulse_immediate_ratio: float = 0.58
+@export var slingshot_impulse_smoothing_time: float = 0.11
 @export var slingshot_precision_grace_duration: float = 0.34
 @export_range(0.0, 1.0, 0.01) var slingshot_precision_grace_blend: float = 0.2
 @export var slingshot_inward_pull_scale: float = 0.2
@@ -113,6 +115,11 @@ signal planet_super_boost_activated(source: Node, impulse: Vector2, energy_spent
 @export var network_nameplate_offset: Vector2 = Vector2(0.0, -72.0)
 @export var network_nameplate_font_size: int = 13
 @export var network_nameplate_visible_for_local: bool = true
+
+@export_group("Camera")
+@export var mouse_camera_offset_distance: float = 180.0
+@export var trackpad_camera_offset_distance: float = 54.0
+@export_range(0.05, 1.0, 0.01) var trackpad_camera_follow_weight_scale: float = 0.72
 
 # ========================
 # == STATE VARIABLES ==
@@ -166,6 +173,9 @@ var _planet_stuck_time: float = 0.0
 var _planet_stuck_source_id: int = 0
 var _last_super_boost_time: float = -999.0
 var _last_pin_escape_time: float = -999.0
+var _pending_slingshot_impulse: Vector2 = Vector2.ZERO
+var _pending_slingshot_cap: float = 0.0
+var _pending_slingshot_time_left: float = 0.0
 var network_peer_id: int = 1
 var network_is_local: bool = true
 var network_display_name: String = "VECTOR"
@@ -239,6 +249,8 @@ func _physics_process(delta: float):
 		return
 
 	if _death_in_progress:
+		_pending_slingshot_impulse = Vector2.ZERO
+		_pending_slingshot_time_left = 0.0
 		velocity = velocity.move_toward(Vector2.ZERO, 2400.0 * delta)
 		_submit_network_state(delta)
 		return
@@ -270,6 +282,7 @@ func _physics_process(delta: float):
 	update_max_speed(delta)
 
 	# Constraints
+	_drain_smoothed_slingshot_impulse(delta)
 	clamp_velocity()
 	move_and_slide()
 
@@ -329,11 +342,7 @@ func calculate_gravity() -> Vector2:
 
 func handle_rotation(delta: float) -> void:
 	if Settings.input_type:
-		var aim_direction := Vector2(
-		Input.get_joy_axis(0, JOY_AXIS_LEFT_X),
-		Input.get_joy_axis(0, JOY_AXIS_LEFT_Y)
-		)
-
+		var aim_direction := _controller_aim_vector()
 		if aim_direction.length() > 0.70:
 			rotation = (-aim_direction).angle()
 	else:
@@ -442,7 +451,7 @@ func apply_slingshot(gravity: Vector2, delta: float):
 			else:
 				impulse = Vector2.ZERO
 
-		velocity += impulse
+		_apply_smoothed_slingshot_impulse(impulse, mastery_speed_cap)
 		current_max_speed = maxf(current_max_speed, minf(mastery_speed_cap, maxf(velocity.length(), max_speed)))
 		_slingshot_precision_until = _now_seconds() + maxf(slingshot_precision_grace_duration, 0.0)
 		var effective_strength := minf(
@@ -573,6 +582,45 @@ func _try_apply_slingshot_proximity_boost(gravity: Vector2, delta: float) -> Vec
 		velocity.length()
 	)
 	return impulse
+
+
+func _apply_smoothed_slingshot_impulse(impulse: Vector2, speed_cap: float) -> void:
+	if impulse.length_squared() <= 0.001:
+		return
+	var immediate_ratio := clampf(slingshot_impulse_immediate_ratio, 0.0, 1.0)
+	var immediate := impulse * immediate_ratio
+	var remaining := impulse - immediate
+	velocity = _velocity_with_speed_cap(velocity, immediate, speed_cap)
+	if remaining.length_squared() <= 0.001 or slingshot_impulse_smoothing_time <= 0.0:
+		velocity = _velocity_with_speed_cap(velocity, remaining, speed_cap)
+		return
+	_pending_slingshot_impulse += remaining
+	_pending_slingshot_cap = maxf(_pending_slingshot_cap, speed_cap)
+	_pending_slingshot_time_left = maxf(_pending_slingshot_time_left, slingshot_impulse_smoothing_time)
+
+
+func _drain_smoothed_slingshot_impulse(delta: float) -> void:
+	if _pending_slingshot_time_left <= 0.0 or _pending_slingshot_impulse.length_squared() <= 0.001:
+		_pending_slingshot_impulse = Vector2.ZERO
+		_pending_slingshot_time_left = 0.0
+		_pending_slingshot_cap = 0.0
+		return
+	var step_ratio := clampf(delta / maxf(_pending_slingshot_time_left, 0.001), 0.0, 1.0)
+	var step_impulse := _pending_slingshot_impulse * step_ratio
+	_pending_slingshot_impulse -= step_impulse
+	_pending_slingshot_time_left = maxf(_pending_slingshot_time_left - delta, 0.0)
+	velocity = _velocity_with_speed_cap(velocity, step_impulse, maxf(_pending_slingshot_cap, slingshot_speed_cap))
+
+
+func _velocity_with_speed_cap(base_velocity: Vector2, impulse: Vector2, speed_cap: float) -> Vector2:
+	var proposed := base_velocity + impulse
+	var cap := maxf(speed_cap, max_speed)
+	if proposed.length() <= cap:
+		return proposed
+	var allowed := maxf(cap - base_velocity.length(), 0.0)
+	if allowed <= 0.001 or impulse.length_squared() <= 0.001:
+		return base_velocity.limit_length(cap)
+	return base_velocity + impulse.normalized() * minf(impulse.length(), allowed)
 
 func apply_regular_slingshot(gravity: Vector2, delta: float):
 	last_slingshot_strength = maxf(last_slingshot_strength - delta * 2.0, 0.0)
@@ -705,6 +753,32 @@ func _alternate_side_input() -> float:
 	return clampf(value, -1.0, 1.0)
 
 
+func _controller_aim_vector() -> Vector2:
+	var deadzone := clampf(float(Settings.controller_deadzone) if Settings != null else 0.24, 0.08, 0.55)
+	var joypad_id := _active_joypad_id()
+	var right_stick := Vector2(
+		Input.get_joy_axis(joypad_id, JOY_AXIS_RIGHT_X),
+		Input.get_joy_axis(joypad_id, JOY_AXIS_RIGHT_Y)
+	)
+	if Settings == null or bool(Settings.controller_right_stick_aim):
+		if right_stick.length() >= deadzone:
+			return right_stick
+	var left_stick := Vector2(
+		Input.get_joy_axis(joypad_id, JOY_AXIS_LEFT_X),
+		Input.get_joy_axis(joypad_id, JOY_AXIS_LEFT_Y)
+	)
+	if left_stick.length() >= maxf(deadzone, 0.42):
+		return left_stick
+	return right_stick if right_stick.length() >= deadzone else Vector2.ZERO
+
+
+func _active_joypad_id() -> int:
+	var connected := Input.get_connected_joypads()
+	if connected.is_empty():
+		return 0
+	return int(connected[0])
+
+
 func _input_action_or_key_pressed(action_name: StringName, key: Key) -> bool:
 	if InputMap.has_action(action_name) and Input.is_action_pressed(action_name):
 		return true
@@ -780,8 +854,8 @@ func _apply_drag_precision_control(
 	thrusting: bool,
 	in_slingshot_band: bool
 ) -> void:
-	var speed := velocity.length()
-	if speed < drag_precision_min_speed:
+	var starting_speed := velocity.length()
+	if starting_speed < drag_precision_min_speed:
 		return
 
 	var blend := 0.0
@@ -841,9 +915,10 @@ func _apply_drag_precision_control(
 	if target_direction.length_squared() <= 0.001 or blend <= 0.0:
 		return
 
+	var adjusted_speed := velocity.length()
 	var gravity_bonus := clampf(gravity.length() / 440.0, 0.0, 0.55)
 	var turn_amount := clampf(delta * drag_precision_alignment_rate * (blend + gravity_bonus), 0.0, 0.34)
-	velocity = velocity.lerp(target_direction.normalized() * speed, turn_amount)
+	velocity = velocity.lerp(target_direction.normalized() * adjusted_speed, turn_amount)
 
 
 func _is_drag_slingshot_band(gravity: Vector2) -> bool:
@@ -1228,6 +1303,8 @@ func _process(delta):
 		shield_process()
 
 func update_camera(delta: float):
+	if camera == null:
+		return
 	_camera_feedback_offset = _camera_feedback_offset.lerp(
 		Vector2.ZERO,
 		clampf(delta * 7.5, 0.0, 1.0)
@@ -1238,12 +1315,18 @@ func update_camera(delta: float):
 		clampf(delta * 8.5, 0.0, 1.0)
 	)
 
-	if Settings.input_type == false:
-		var target = (get_global_mouse_position() - global_position).normalized() * 180
+	var using_controller := Settings != null and bool(Settings.input_type)
+	if not using_controller:
+		var mouse_offset := get_global_mouse_position() - global_position
+		var trackpad_mode := Settings != null and bool(Settings.trackpad_direct_camera)
+		var offset_distance := trackpad_camera_offset_distance if trackpad_mode else mouse_camera_offset_distance
+		var target := mouse_offset.normalized() * offset_distance if mouse_offset.length_squared() > 1.0 else Vector2.ZERO
 		var base_offset = camera.offset - _camera_feedback_offset
-		var follow_weight := clampf(0.075 * float(Settings.camera_follow_strength), 0.035, 0.24) if Settings != null else 0.075
-		if Settings != null and bool(Settings.trackpad_direct_camera):
-			follow_weight = 1.0
+		var follow_strength := float(Settings.camera_follow_strength) if Settings != null else 1.0
+		var follow_weight := 0.075 * follow_strength
+		if trackpad_mode:
+			follow_weight *= trackpad_camera_follow_weight_scale
+		follow_weight = clampf(follow_weight, 0.03 if trackpad_mode else 0.035, 0.12 if trackpad_mode else 0.24)
 		camera.offset = base_offset.lerp(target, follow_weight) + _camera_feedback_offset
 	else:
 		camera.offset = camera.offset.lerp(_camera_feedback_offset, clampf(delta * 8.0, 0.0, 1.0))
@@ -1860,6 +1943,8 @@ func export_network_state() -> Dictionary:
 		"max_energy": max_energy_value,
 		"dead": _death_in_progress,
 		"slingshot_grade": String(last_slingshot_grade),
+		"slingshot_score": last_slingshot_score,
+		"input_device": "controller" if Settings != null and bool(Settings.input_type) else "mouse_keyboard",
 		"weapon_id": weapon_id,
 	}
 
@@ -1874,6 +1959,9 @@ func apply_network_state(state: Dictionary) -> void:
 	DRAG_enabled = bool(state.get("drag_enabled", DRAG_enabled))
 	shields_on = bool(state.get("shield_active", shields_on))
 	set_meta(&"network_weapon_id", String(state.get("weapon_id", "vector_bolt")))
+	set_meta(&"network_input_device", String(state.get("input_device", "mouse_keyboard")))
+	last_slingshot_score = clampf(float(state.get("slingshot_score", last_slingshot_score)), 0.0, 1.0)
+	last_slingshot_grade = StringName(str(state.get("slingshot_grade", String(last_slingshot_grade))))
 
 	if health_component != null:
 		var max_health_value := float(state.get("max_health", health_component.get("max_health")))

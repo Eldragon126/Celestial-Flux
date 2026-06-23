@@ -1738,6 +1738,7 @@ func _apply_accessibility_settings(force: bool = false) -> void:
 	if not force and is_equal_approx(scale_value, _last_ui_scale):
 		return
 	_last_ui_scale = scale_value
+	_sync_hud_root_bounds(scale_value)
 	_hud_root.scale = Vector2.ONE * scale_value
 	_layout_hud(true)
 
@@ -1746,6 +1747,7 @@ func _layout_hud(force: bool = false) -> void:
 	if _hud_root == null:
 		return
 	var scale_value := maxf(_last_ui_scale, 0.75)
+	_sync_hud_root_bounds(scale_value)
 	var viewport_size := _safe_viewport_size() / scale_value
 	if not force and viewport_size.is_equal_approx(_last_layout_viewport_size):
 		return
@@ -1811,6 +1813,15 @@ func _set_label_row_visible(label: Label, visible: bool) -> void:
 		row.visible = visible
 	else:
 		label.visible = visible
+
+
+func _sync_hud_root_bounds(scale_value: float) -> void:
+	if _hud_root == null:
+		return
+	var safe_scale := maxf(scale_value, 0.75)
+	_hud_root.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_hud_root.position = Vector2.ZERO
+	_hud_root.size = _safe_viewport_size() / safe_scale
 
 
 func _resize_readout_bars(width: float) -> void:

@@ -127,7 +127,7 @@ func _hash_group(group_name: StringName, limit: int) -> int:
 func _fill_hash_nodes(group_name: StringName, limit: int) -> void:
 	_hash_nodes.clear()
 	if RuntimeRegistry != null:
-		RuntimeRegistry.fill_group(group_name, _hash_nodes)
+		RuntimeRegistry.fill_group(group_name, _hash_nodes, limit)
 		return
 	for value in get_tree().get_nodes_in_group(group_name):
 		var node_2d := value as Node2D

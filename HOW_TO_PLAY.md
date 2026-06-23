@@ -14,6 +14,13 @@ You survive by mastering momentum inside collapsing gravity rules. Movement is t
 - `PLAYER AUTO-ORBIT` in the pause settings enables continuous tangent/proximity assistance. It defaults off; the one-shot slingshot reward remains available in either mode.
 - `ORBITING CELESTIAL EVENTS` controls binary systems and orbiting structures, not the ship. Those arena events default on.
 
+## Controls And Devices
+
+- Mouse/keyboard remains the primary precision target: thrust, rotate, drag toggle, weapons, time dilation, and F10 heat-map toggle.
+- Controller input now auto-detects from live joypad input. Left stick handles movement/back input, right stick handles aim when enabled, and D-pad up toggles the gravity heat map.
+- The pause menu exposes controller deadzone and right-stick aim so Steam Deck and gamepad users can tune drift without editing project files.
+- Windows is the current public playtest target. Linux, macOS, and Steam Deck are code-side ready for exported-build validation. Console targets require platform SDK/certification work before they can be promised publicly.
+
 ## Slingshot Mastery
 
 Slingshot assists trigger when you pass near a gravity source with enough tangential speed. Better slingshots come from:
@@ -40,6 +47,10 @@ Resonance zones are tactical arena rules created by overlapping gravity sources 
 - `Harmonic Orbit / ORBIT`: bodies curve into stable arcs. Use it for controlled trickshots, recovery loops, and orbit setup.
 
 Zone visuals use color, label, and glyph direction to show the rule. If a zone becomes intense, assume it can alter both movement and projectile paths.
+
+## Gravity Heat Map
+
+Press `F10` or D-pad up to toggle the gravity heat map. The overlay shows relative gravity-potential contours, gradient vectors, and a golden tangent route near strong sources. It is capped to an adaptive grid so it can remain useful during high-chaos play without becoming another frame-rate hazard.
 
 ## Time Dilation
 
@@ -107,7 +118,7 @@ On death, the game over screen shows a death vector lesson plus a concrete reado
 
 ## Co-op Foundation
 
-LAN co-op is now live as the first multiplayer implementation. From the title screen, one player can host and play, while other players join by IP address and port. The host owns the run seed, scene start/restart, and shared run configuration; clients control their own local ship and receive remote player proxies.
+LAN co-op is now live as the first multiplayer implementation. From the title screen, one player can host and play, while other players join by IP address and port. The host owns the run seed, scene start/restart, and shared run configuration; clients control their own local ship and receive remote player proxies. Current sessions use NET7 protocol checks, gameplay mod signature checks, ping quality readouts, and client readiness acknowledgements before run play.
 
 Shared vector events can combine into a co-op resonance payoff that bends local space and slows nearby threats. Projectile spawns, player movement state, peer colors, and peer nameplates are network-aware, while solo mechanics remain unchanged.
 
@@ -142,7 +153,10 @@ The pause menu exposes readability controls:
 - UI scale
 - screen shake intensity
 - reduced flash
+- readability halos
 - colorblind modes for common readability palettes
+- controller deadzone and right-stick aim
+- trackpad low-motion camera and alternate movement toggles
 
 It also exposes the current run seed, mod registry status, active multiplayer status, and co-op readability budget so debugging and sharing stay inside the game UI instead of requiring console inspection.
 

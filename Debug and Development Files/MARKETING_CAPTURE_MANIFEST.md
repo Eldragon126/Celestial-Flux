@@ -19,6 +19,8 @@ Purpose: keep Steam, trailer, and press assets grounded in real gameplay state. 
 - `press_04_boss_rule`: authored boss reshaping space with clear non-bullet physics pressure.
 - `press_05_rupture_readability`: Rupture/law-crack effect active with player and threat still legible.
 - `press_06_accessibility_late_game`: high-chaos late-game state with reduced flash enabled.
+- `press_07_controller_deck_layout`: pause menu/controller HUD state showing controller deadzone/right-stick aim, UI scale, and readable score panel.
+- `press_08_gravity_heat_map`: F10 heat map active with contours, gradient vectors, and a visible tangent route.
 
 ## Trailer Clips
 
@@ -28,12 +30,33 @@ Purpose: keep Steam, trailer, and press assets grounded in real gameplay state. 
 - `clip_04_boss_rule_mutation`: polarity/tide/null/compression/resonance behavior shown as arena pressure.
 - `clip_05_rupture`: waves offline, laws cracking, controlled instability, no unreadable full-screen wash.
 - `clip_06_music_finale`: music pulse, burst, and collapse beat driving readable reality pulses.
+- `clip_07_black_hole_hardened`: event horizon approach, readable danger, no collision/body crash, clean death or escape.
+- `clip_08_lan_coop_signal`: LAN co-op with peer nameplates, NET7 protocol readout, and co-op resonance payoff.
+
+## Steam Page Player Discovery List
+
+Use this as the exact list for finding screenshots and video clips for the Steam page. A good asset should be rejected if the ship, major force, danger source, or recovery route is unclear.
+
+- Header screenshot: clean player slingshot around one gravity source, with predictor and one readable threat.
+- Gameplay screenshot 1: tutorial-like early wave showing simple movement grammar.
+- Gameplay screenshot 2: apex slingshot with new player aura and tangent exit visible.
+- Gameplay screenshot 3: resonance field with readable `PULL`, `PUSH`, `FLOW`, `SLOW`, or `ORBIT` language.
+- Gameplay screenshot 4: boss-law mutation that reads as physics pressure rather than bullet spam.
+- Gameplay screenshot 5: gravity heat map toggled on for contours/gradient vectors.
+- Gameplay screenshot 6: late-game reduced-flash chaos with player/threats still visible.
+- Feature capsule clip: 3 seconds of near-death survival, then title/logo.
+- Movement clip: smooth slingshot impulse, grade readout, recovery route.
+- Boss clip: one authored boss rule changing the arena.
+- Co-op clip: two players producing a co-op vector resonance payoff.
+- Accessibility clip: UI scale, reduced flash, readability halos, and controller settings shown in-game.
+- Steam Deck clip: controller-first play, pause navigation, and 1280x800 HUD proof after validation.
 
 ## Capture Readiness
 
 - Brand/logo/capsule/key-art starter assets exist in `Assets/Brand/`.
 - Clip Lab has number-key capture presets: `1` early clean vectors, `2` slingshot mastery, `3` mid-run resonance, `4` boss rule mutation, `5` Rupture/law-crack readability, `6` music finale staging, and `7` reduced-flash late-game accessibility.
 - Clip Lab exposes `0` for reduced-flash capture toggling, `F9` for PNG stills, `F10` for JSON metadata, and `F1` to hide the capture overlay during manual video recording.
+- Use the platform matrix in `Debug and Development Files/PLATFORM_SUPPORT_MATRIX.md` before claiming Linux, macOS, Steam Deck, or console availability.
 - HUD edge indicators, resource bars, weapon readouts, mod status icons, and game-over glitch treatment are in-game.
 - Rupture, spacetime swim, tear, time-dilation break, gravity scar, and resonance visuals are capped through production readability paths.
 - Music/title/rupture/finale/credits hooks are wired; final mix/master approval remains a creative pass.

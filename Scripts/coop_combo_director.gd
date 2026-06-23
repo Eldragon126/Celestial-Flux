@@ -17,6 +17,7 @@ var _sync_foundation: Node = null
 var _resonance_manager: Node = null
 var _time_manager: Node = null
 var _player: Node2D = null
+var _threat_query: Array[Node2D] = []
 
 
 func _ready() -> void:
@@ -144,7 +145,15 @@ func _nearby_threats(position: Vector2) -> Array[Node]:
 	var threats: Array[Node] = []
 	var seen := {}
 	for group_name in [&"enemies", &"wave_enemy", &"bosses", &"enemy_projectiles"]:
-		for node in get_tree().get_nodes_in_group(group_name):
+		_threat_query.clear()
+		if RuntimeRegistry != null:
+			RuntimeRegistry.fill_group(group_name, _threat_query, max_slow_targets)
+		else:
+			for value in get_tree().get_nodes_in_group(group_name):
+				var node_2d := value as Node2D
+				if node_2d != null:
+					_threat_query.append(node_2d)
+		for node in _threat_query:
 			var node_2d := node as Node2D
 			if node_2d == null or seen.has(node.get_instance_id()):
 				continue
