@@ -2,6 +2,11 @@ extends SceneTree
 
 const SCRIPTS := [
 	"res://Scripts/run_progress.gd",
+	"res://Scripts/gravity_ghost_recorder.gd",
+	"res://Scripts/gravity_ghost_replay_panel.gd",
+	"res://Scripts/game_over_scene.gd",
+	"res://Scripts/orbital_hud.gd",
+	"res://Scripts/vector_hud_glyph.gd",
 	"res://Scripts/run_director.gd",
 	"res://Scripts/rupture_director.gd",
 	"res://Scripts/music_finale_director.gd",

@@ -36,12 +36,29 @@ html {
 
 body {
 	margin: 0;
-	background: var(--black);
+	background:
+		radial-gradient(circle at 75% 12%, rgba(120, 167, 255, 0.12), transparent 30rem),
+		radial-gradient(circle at 12% 20%, rgba(100, 255, 232, 0.1), transparent 26rem),
+		var(--black);
 	color: var(--ink);
 	font-family: var(--font-ui);
 	line-height: 1.55;
 	text-rendering: geometricPrecision;
 	overflow-x: hidden;
+}
+
+body::before {
+	content: "";
+	position: fixed;
+	z-index: 60;
+	inset: 0;
+	pointer-events: none;
+	background:
+		linear-gradient(rgba(255, 255, 255, 0.018) 50%, transparent 50%),
+		radial-gradient(circle at 50% 50%, transparent 0 52%, rgba(0, 0, 0, 0.22) 100%);
+	background-size: 100% 3px, 100% 100%;
+	mix-blend-mode: screen;
+	opacity: 0.32;
 }
 
 body.nav-open {
@@ -270,6 +287,25 @@ button {
 	pointer-events: none;
 }
 
+.launch-hero::before {
+	content: "";
+	position: absolute;
+	z-index: 1;
+	right: -15vw;
+	top: 9vh;
+	width: min(58vw, 780px);
+	aspect-ratio: 1;
+	border: 1px solid rgba(100, 255, 232, 0.28);
+	border-radius: 50%;
+	background:
+		radial-gradient(circle, transparent 0 32%, rgba(100, 255, 232, 0.08) 33% 34%, transparent 35% 49%, rgba(255, 200, 91, 0.09) 50% 51%, transparent 52%),
+		conic-gradient(from 80deg, transparent, rgba(100, 255, 232, 0.2), transparent, rgba(255, 85, 64, 0.16), transparent);
+	filter: blur(0.2px);
+	opacity: 0.78;
+	animation: anomaly-drift 18s linear infinite;
+	pointer-events: none;
+}
+
 .hero-art {
 	position: absolute;
 	inset: 0;
@@ -441,6 +477,46 @@ h3 {
 	font-weight: 900;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
+}
+
+.anomaly-status {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1px;
+	width: min(760px, 100%);
+	margin-top: 16px;
+	padding: 1px;
+	border: 1px solid rgba(100, 255, 232, 0.24);
+	background: rgba(100, 255, 232, 0.12);
+	box-shadow: 0 18px 60px rgba(0, 0, 0, 0.34);
+}
+
+.anomaly-status div {
+	padding: 12px 13px;
+	background:
+		linear-gradient(135deg, rgba(100, 255, 232, 0.08), transparent 62%),
+		rgba(0, 0, 0, 0.78);
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+}
+
+.anomaly-status span,
+.anomaly-status strong {
+	display: block;
+}
+
+.anomaly-status span {
+	color: var(--dim);
+	font-size: 0.6rem;
+	font-weight: 900;
+	letter-spacing: 0.13em;
+}
+
+.anomaly-status strong {
+	margin-top: 4px;
+	color: var(--cyan);
+	font-size: 0.74rem;
+	letter-spacing: 0.06em;
 }
 
 .hero-bottom {
@@ -891,9 +967,25 @@ h3 {
 }
 
 .system-card {
+	position: relative;
 	min-height: 260px;
 	padding: 20px;
+	overflow: hidden;
 	transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.system-card::before,
+.creator-signal::before,
+.wishlist-panel::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background:
+		linear-gradient(90deg, transparent, rgba(100, 255, 232, 0.08), transparent),
+		linear-gradient(rgba(255, 255, 255, 0.036) 1px, transparent 1px);
+	background-size: 140% 100%, 100% 18px;
+	opacity: 0;
+	pointer-events: none;
 }
 
 .system-card:hover,
@@ -901,6 +993,12 @@ h3 {
 	transform: translateY(-2px);
 	border-color: var(--cyan-line);
 	background: rgba(3, 20, 23, 0.82);
+}
+
+.system-card:hover::before,
+.system-card:focus-within::before {
+	opacity: 1;
+	animation: card-scan 1.3s steps(5) infinite;
 }
 
 .system-card > span,
@@ -1224,6 +1322,7 @@ h3 {
 }
 
 .creator-signal {
+	position: relative;
 	display: grid;
 	grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
 	gap: clamp(32px, 6vw, 86px);
@@ -1235,6 +1334,13 @@ h3 {
 		linear-gradient(135deg, rgba(100, 255, 232, 0.08), transparent 52%),
 		rgba(0, 0, 0, 0.75);
 	box-shadow: 22px 22px 0 rgba(100, 255, 232, 0.035);
+	overflow: hidden;
+}
+
+.creator-signal::before,
+.wishlist-panel::before {
+	opacity: 0.62;
+	animation: card-scan 2.8s linear infinite;
 }
 
 .creator-signal h2 {
@@ -1539,6 +1645,7 @@ h3 {
 }
 
 .wishlist-panel {
+	position: relative;
 	padding: 38px;
 	border: 1px solid var(--ink);
 	background:
@@ -1547,6 +1654,7 @@ h3 {
 		var(--black);
 	background-size: 34px 34px;
 	text-align: center;
+	overflow: hidden;
 }
 
 .wishlist-panel h2 {
@@ -1602,6 +1710,15 @@ h3 {
 .reveal-section.is-revealed {
 	opacity: 1;
 	transform: translateY(0);
+}
+
+@keyframes anomaly-drift {
+	to { transform: rotate(1turn); }
+}
+
+@keyframes card-scan {
+	0% { background-position: -30% 0, 0 0; }
+	100% { background-position: 130% 0, 0 18px; }
 }
 
 .button:focus-visible,
@@ -1755,6 +1872,10 @@ button:focus-visible {
 
 	.hero-copy {
 		font-size: 0.78rem;
+	}
+
+	.anomaly-status {
+		grid-template-columns: 1fr;
 	}
 
 	.hero-actions,

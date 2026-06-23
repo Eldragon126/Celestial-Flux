@@ -12,6 +12,8 @@ const GRAVITY_TIME_OVERLAY_SHADER := preload("res://Scripts/gravity_time_overlay
 @export var max_swim_ribbons: int = 7
 @export var max_glitch_slices: int = 5
 @export var overlay_alpha_cap: float = 0.12
+@export var overlay_fade_in_rate: float = 0.42
+@export var overlay_fade_out_rate: float = 0.28
 @export var glitch_cooldown: float = 0.22
 @export var enable_swim_ribbons: bool = false
 @export var enable_glitch_slices: bool = false
@@ -34,6 +36,11 @@ const GRAVITY_TIME_OVERLAY_SHADER := preload("res://Scripts/gravity_time_overlay
 @export var overlay_shader_swirl_strength: float = 3.5
 @export var overlay_shader_chromatic_aberration: float = 0.0048
 @export var overlay_shader_ring_alpha: float = 0.35
+@export_group("Time Field Boundary")
+@export var time_field_boundary_enabled: bool = true
+@export var time_field_boundary_segments: int = 64
+@export var time_field_boundary_width: float = 2.4
+@export_range(0.0, 0.35, 0.01) var time_field_boundary_alpha: float = 0.2
 
 var _player: Node2D = null
 var _time_manager: Node = null
@@ -42,6 +49,7 @@ var _event_horizon: Node = null
 var _canvas: CanvasLayer = null
 var _overlay: ColorRect = null
 var _glitch_root: Control = null
+var _time_field_boundary: Line2D = null
 var _ribbons: Array[Dictionary] = []
 var _glitch_slices: Array[Dictionary] = []
 var _break_rings: Array[Dictionary] = []
@@ -54,18 +62,24 @@ var _last_glitch_time := -999.0
 var _fabric_material: ShaderMaterial = null
 var _fabric_elapsed: float = 999.0
 var _overlay_focus_position: Vector2 = Vector2.ZERO
+var _overlay_alpha: float = 0.0
+var _cached_time_field_radius: float = -1.0
 
 
 func _ready() -> void:
 	add_to_group("spacetime_swim_director")
 	_ensure_screen_nodes()
+	_ensure_time_field_boundary()
 	call_deferred("_bootstrap")
 
 
 func _process(delta: float) -> void:
 	if not enabled:
+		_overlay_alpha = 0.0
 		_set_overlay_alpha(0.0)
 		_set_fabric_intensity(0.0)
+		if _time_field_boundary != null:
+			_time_field_boundary.visible = false
 		return
 	_resolve_player()
 	_update_swim(delta)
@@ -73,6 +87,7 @@ func _process(delta: float) -> void:
 	_update_glitch_slices(delta)
 	_update_break_rings(delta)
 	_update_overlay(delta)
+	_update_time_field_boundary()
 
 
 func _bootstrap() -> void:
@@ -116,11 +131,11 @@ func _connect_once(source: Node, signal_name: StringName, callable: Callable) ->
 
 
 func _on_dilation_started() -> void:
-	_trigger_swim(_player_position(), _player_velocity(), 0.72, 0.9, Color(0.42, 0.9, 1.0, 1.0), true)
+	_trigger_swim(_player_position(), _player_velocity(), 0.28, 0.24, Color(0.42, 0.9, 1.0, 1.0), false)
 
 
 func _on_dilation_ended() -> void:
-	_trigger_glitch(0.34, Color(0.72, 0.42, 1.0, 1.0), 4)
+	_swim_until = minf(_swim_until, _now_seconds() + 0.12)
 
 
 func _on_dilation_break_triggered(data: Dictionary) -> void:
@@ -135,8 +150,8 @@ func _on_dilation_break_triggered(data: Dictionary) -> void:
 
 func _on_time_tear_intensity_changed(intensity: float) -> void:
 	_time_tear_intensity = clampf(intensity, 0.0, 1.0)
-	if _time_tear_intensity > 0.52:
-		_trigger_swim(_player_position(), _player_velocity(), _time_tear_intensity, 0.34, Color(0.48, 0.78, 1.0, 1.0), _time_tear_intensity > 0.72)
+	if _time_tear_intensity > 0.01:
+		_overlay_focus_position = _player_position()
 
 
 func _on_local_time_pocket_entered(target: Node, multiplier: float, _duration: float) -> void:
@@ -423,8 +438,10 @@ func _update_overlay(delta: float) -> void:
 	var target_alpha := minf(overlay_alpha_cap, maxf(active_alpha, idle_alpha))
 	if Settings != null and Settings.has_method("flash_alpha"):
 		target_alpha = Settings.flash_alpha(target_alpha)
-	_set_overlay_alpha(target_alpha)
-	_update_fabric_shader(delta, target_alpha)
+	var fade_rate := overlay_fade_in_rate if target_alpha > _overlay_alpha else overlay_fade_out_rate
+	_overlay_alpha = move_toward(_overlay_alpha, target_alpha, maxf(fade_rate, 0.01) * delta)
+	_set_overlay_alpha(_overlay_alpha)
+	_update_fabric_shader(delta, _overlay_alpha)
 
 
 func _set_overlay_alpha(alpha: float) -> void:
@@ -459,6 +476,45 @@ func _ensure_screen_nodes() -> void:
 		_glitch_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_glitch_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 		_canvas.add_child(_glitch_root)
+
+
+func _ensure_time_field_boundary() -> void:
+	_time_field_boundary = get_node_or_null("TimeFieldBoundary") as Line2D
+	if _time_field_boundary == null:
+		_time_field_boundary = Line2D.new()
+		_time_field_boundary.name = "TimeFieldBoundary"
+		add_child(_time_field_boundary)
+	_time_field_boundary.closed = true
+	_time_field_boundary.antialiased = true
+	_time_field_boundary.z_index = 31
+	_time_field_boundary.visible = false
+
+
+func _update_time_field_boundary() -> void:
+	if _time_field_boundary == null or not time_field_boundary_enabled:
+		if _time_field_boundary != null:
+			_time_field_boundary.visible = false
+		return
+	if _time_manager == null or not is_instance_valid(_time_manager) or _player == null or not is_instance_valid(_player):
+		_time_field_boundary.visible = false
+		return
+	var blend := clampf(float(_time_manager.get("dilation_blend") or 0.0), 0.0, 1.0)
+	if blend <= 0.01:
+		_time_field_boundary.visible = false
+		return
+	var radius := maxf(float(_time_manager.get("field_radius") or 1.0), 1.0)
+	if not is_equal_approx(radius, _cached_time_field_radius):
+		_cached_time_field_radius = radius
+		_time_field_boundary.points = _ring_points(maxi(time_field_boundary_segments, 16), radius)
+	var target_count := maxi(int(_time_manager.get("active_field_target_count") or 0), 0)
+	var pressure := clampf(float(target_count) / 16.0, 0.0, 1.0)
+	var alpha := time_field_boundary_alpha * blend * lerpf(0.72, 1.0, pressure)
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		alpha = Settings.world_visual_alpha(alpha)
+	_time_field_boundary.global_position = _player.global_position
+	_time_field_boundary.width = time_field_boundary_width * lerpf(0.86, 1.18, pressure)
+	_time_field_boundary.default_color = Color(0.3, 0.88, 1.0, alpha)
+	_time_field_boundary.visible = alpha > 0.001
 
 
 func _configure_fabric_material() -> void:

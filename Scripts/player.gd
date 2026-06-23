@@ -68,6 +68,10 @@ signal planet_super_boost_activated(source: Node, impulse: Vector2, energy_spent
 @export_range(0.0, 1.0, 0.01) var slingshot_precision_grace_blend: float = 0.2
 @export var slingshot_inward_pull_scale: float = 0.2
 @export_range(0.0, 1.0, 0.01) var slingshot_outward_damping: float = 0.26
+@export_range(0.0, 1.0, 0.01) var slingshot_min_curve_score: float = 0.28
+@export_range(0.0, 1.0, 0.01) var slingshot_min_entry_factor: float = 0.46
+@export_range(0.0, 1.0, 0.01) var slingshot_passive_curve_scale: float = 0.58
+@export_range(0.0, 1.0, 0.01) var slingshot_departure_penalty: float = 0.72
 @export var recoil_instability: float = 0.0
 @export var max_gravity_anchors: int = 1
 @export var orbit_control_bonus: float = 0.0
@@ -344,7 +348,7 @@ func handle_rotation(delta: float) -> void:
 # ========================
 
 func apply_slingshot(gravity: Vector2, delta: float):
-	if get_tree().get_first_node_in_group("Orbital_Juice_Manager") == null:
+	if not _has_orbital_juice_manager():
 		apply_regular_slingshot(gravity, delta)
 		return
 	last_slingshot_strength = maxf(last_slingshot_strength - delta * 2.0, 0.0)
@@ -383,23 +387,36 @@ func apply_slingshot(gravity: Vector2, delta: float):
 	var quality_data := _score_slingshot_window(gravity, radial_dir, tangent, tangential_speed, inward_speed)
 	var slingshot_score := float(quality_data.get("score", 0.0))
 	var proximity_score := float(quality_data.get("proximity_score", 0.0))
+	var entry_factor := float(quality_data.get("entry_factor", 1.0))
+	if slingshot_score < slingshot_min_curve_score or entry_factor < slingshot_min_entry_factor:
+		return
 	var quality_bonus := lerpf(0.92, 1.24, slingshot_score)
 	var speed_factor = clampf(tangential_speed / maxf(slingshot_speed_cap, 1.0), 0.28, 1.12)
-	var assist_strength = gravity.length() * speed_factor * slingshot_gravity_boost_scale
+	var assist_strength = gravity.length() * speed_factor * slingshot_gravity_boost_scale * lerpf(0.52, 1.0, entry_factor)
 	var inward_pull := Vector2.ZERO
 	var outward_damp := 0.0
 	if assist_strength > 0:
+		var auto_orbit_assist := _player_auto_orbit_enabled()
+		var curve_scale := 1.0 if auto_orbit_assist else slingshot_passive_curve_scale
 		inward_pull = (
 			-radial_dir
 			* minf(
-				gravity.length() * slingshot_inward_pull_scale * lerpf(0.45, 1.0, slingshot_score),
-				slingshot_max_impulse * 0.2
+				gravity.length()
+				* slingshot_inward_pull_scale
+				* curve_scale
+				* lerpf(0.35, 0.95, slingshot_score)
+				* lerpf(0.55, 1.0, entry_factor),
+				slingshot_max_impulse * (0.2 if auto_orbit_assist else 0.12)
 			)
 		)
-		outward_damp = minf(outward_speed * slingshot_outward_damping, slingshot_max_impulse * 0.22)
+		outward_damp = minf(
+			outward_speed * slingshot_outward_damping * curve_scale * lerpf(0.75, 1.35, 1.0 - entry_factor),
+			slingshot_max_impulse * (0.22 if auto_orbit_assist else 0.14)
+		)
 		if outward_damp > 0.0:
 			velocity -= radial_dir * outward_damp
-		velocity += inward_pull
+		if inward_pull.length_squared() > 0.001:
+			velocity += inward_pull
 
 		var burst_scale := maxf(slingshot_burst_scale, 0.0) * lerpf(0.58, 0.92, slingshot_score)
 		impulse = tangent * assist_strength * (slingshot_factor + orbit_control_bonus) * quality_bonus * burst_scale
@@ -495,11 +512,18 @@ func _try_apply_slingshot_proximity_boost(gravity: Vector2, delta: float) -> Vec
 	var tangential_speed := maxf(velocity.dot(tangent), 0.0)
 	if tangential_speed < slingshot_min_tangential_speed:
 		return Vector2.ZERO
+	var inward_speed := maxf(velocity.dot(-radial_dir), 0.0)
+	var outward_speed := maxf(velocity.dot(radial_dir), 0.0)
+	var entry_factor := _slingshot_entry_factor(inward_speed, outward_speed, tangential_speed)
+	if entry_factor < slingshot_min_entry_factor:
+		return Vector2.ZERO
 
 	var proximity_score := _slingshot_proximity_score(source)
 	if proximity_score <= 0.001:
 		return Vector2.ZERO
 
+	var auto_orbit_assist := _player_auto_orbit_enabled()
+	var curve_scale := 1.0 if auto_orbit_assist else slingshot_passive_curve_scale
 	var curve := maxf(slingshot_proximity_curve, 0.01)
 	var tangent_ratio := tangential_speed / maxf(velocity.length(), 1.0)
 	var proximity_strength := (
@@ -508,10 +532,21 @@ func _try_apply_slingshot_proximity_boost(gravity: Vector2, delta: float) -> Vec
 		* slingshot_proximity_boost_scale
 		* pow(proximity_score, curve)
 		* (slingshot_factor + orbit_control_bonus)
+		* curve_scale
+		* entry_factor
 	)
 	proximity_strength = minf(proximity_strength, maxf(slingshot_proximity_max_impulse_per_second, 0.0))
 	if proximity_strength <= 0.001:
 		return Vector2.ZERO
+
+	var inward_bias := gravity.length() * slingshot_inward_pull_scale * 0.18 * curve_scale * entry_factor * delta
+	if inward_bias > 0.0:
+		velocity += -radial_dir * minf(inward_bias, slingshot_max_impulse * (0.04 if auto_orbit_assist else 0.026))
+	if outward_speed > 0.0:
+		velocity -= radial_dir * minf(
+			outward_speed * slingshot_outward_damping * curve_scale * delta * 2.0,
+			slingshot_max_impulse * (0.04 if auto_orbit_assist else 0.03)
+		)
 
 	var impulse: Vector2 = tangent * proximity_strength * delta
 	var proximity_cap := slingshot_speed_cap + slingshot_mastery_cap_bonus * maxf(proximity_score * 0.65, 0.0)
@@ -565,23 +600,27 @@ func apply_regular_slingshot(gravity: Vector2, delta: float):
 		tangent = -tangent
 
 	var tangential_speed := maxf(velocity.dot(tangent), 0.0)
+	var inward_speed := maxf(velocity.dot(-radial_dir), 0.0)
 	var outward_speed := maxf(velocity.dot(radial_dir), 0.0)
+	var entry_factor := _slingshot_entry_factor(inward_speed, outward_speed, tangential_speed)
+	var auto_orbit_assist := _player_auto_orbit_enabled()
+	var curve_scale := 1.0 if auto_orbit_assist else slingshot_passive_curve_scale
 	if DRAG_enabled:
-		var inward_bias := gravity.length() * slingshot_inward_pull_scale * 0.25 * delta
+		var inward_bias := gravity.length() * slingshot_inward_pull_scale * 0.25 * curve_scale * entry_factor * delta
 		if inward_bias > 0.0:
-			velocity += -radial_dir * minf(inward_bias, slingshot_max_impulse * 0.05)
+			velocity += -radial_dir * minf(inward_bias, slingshot_max_impulse * (0.05 if auto_orbit_assist else 0.03))
 		if outward_speed > 0.0:
 			var outward_softening := minf(
-				outward_speed * slingshot_outward_damping * delta * 2.0,
-				slingshot_max_impulse * 0.05
+				outward_speed * slingshot_outward_damping * curve_scale * delta * 2.0,
+				slingshot_max_impulse * (0.05 if auto_orbit_assist else 0.035)
 			)
 			velocity -= radial_dir * outward_softening
 
-	if tangential_speed >= slingshot_min_tangential_speed and DRAG_enabled:
+	if tangential_speed >= slingshot_min_tangential_speed and DRAG_enabled and entry_factor >= slingshot_min_entry_factor:
 		var tangent_ratio := tangential_speed / maxf(velocity.length(), 1.0)
 		var proximity_score := _slingshot_proximity_score(closest_planet)
 		var proximity_multiplier := lerpf(0.76, 1.28, pow(proximity_score, maxf(slingshot_proximity_curve, 0.01)))
-		var accel_tangent := gravity.length() * clampf(tangent_ratio, 0.0, 1.0) * proximity_multiplier
+		var accel_tangent := gravity.length() * clampf(tangent_ratio, 0.0, 1.0) * proximity_multiplier * curve_scale * entry_factor
 		var impulse = tangent * accel_tangent * (slingshot_factor + orbit_control_bonus) * delta
 		velocity += impulse
 		
@@ -757,25 +796,35 @@ func _apply_drag_precision_control(
 				tangent = -tangent
 			var tangential_speed := maxf(old_velocity.dot(tangent), 0.0)
 			var tangent_ratio := tangential_speed / maxf(old_velocity.length(), 1.0)
+			var inward_speed := maxf(old_velocity.dot(-radial_dir), 0.0)
 			var outward_speed := maxf(old_velocity.dot(radial_dir), 0.0)
-			var inward_bias := gravity.length() * slingshot_inward_pull_scale * 0.35 * delta
+			var entry_factor := _slingshot_entry_factor(inward_speed, outward_speed, tangential_speed)
+			var auto_orbit_assist := _player_auto_orbit_enabled()
+			var curve_scale := 1.0 if auto_orbit_assist else slingshot_passive_curve_scale
+			var inward_bias := gravity.length() * slingshot_inward_pull_scale * 0.35 * curve_scale * entry_factor * delta
 			if inward_bias > 0.0:
-				velocity += -radial_dir * minf(inward_bias, slingshot_max_impulse * 0.08)
+				velocity += -radial_dir * minf(inward_bias, slingshot_max_impulse * (0.08 if auto_orbit_assist else 0.04))
 			if outward_speed > 0.0:
 				var outward_softening := minf(
-					outward_speed * slingshot_outward_damping * delta * 3.0,
-					slingshot_max_impulse * 0.08
+					outward_speed * slingshot_outward_damping * curve_scale * delta * 3.0,
+					slingshot_max_impulse * (0.08 if auto_orbit_assist else 0.045)
 				)
 				velocity -= radial_dir * outward_softening
-			if tangent_ratio >= drag_tangent_assist_min_ratio and tangential_speed > outward_speed * 0.72:
+			if (
+				entry_factor >= slingshot_min_entry_factor
+				and tangent_ratio >= drag_tangent_assist_min_ratio
+				and tangential_speed > outward_speed * 0.72
+			):
 				var tangent_boost = (
 					tangent
 					* gravity.length()
 					* drag_gravity_turn_blend
 					* clampf(tangent_ratio, 0.0, 1.0)
+					* curve_scale
+					* entry_factor
 					* delta
 				)
-				velocity += tangent_boost.limit_length(slingshot_max_impulse * 0.1)
+				velocity += tangent_boost.limit_length(slingshot_max_impulse * (0.1 if auto_orbit_assist else 0.055))
 
 	var sling_precision_grace := _now_seconds() <= _slingshot_precision_until
 	if thrusting and (not in_slingshot_band or sling_precision_grace):
@@ -804,6 +853,20 @@ func _is_drag_slingshot_band(gravity: Vector2) -> bool:
 		and closest_dist < 540.0
 		and gravity.length_squared() > 0.001
 		and velocity.length() >= slingshot_min_tangential_speed
+	)
+
+
+func _player_auto_orbit_enabled() -> bool:
+	return Settings != null and bool(Settings.player_auto_orbit_enabled)
+
+
+func _has_orbital_juice_manager() -> bool:
+	var tree := get_tree()
+	if tree == null:
+		return false
+	return (
+		tree.get_first_node_in_group("orbital_juice_manager") != null
+		or tree.get_first_node_in_group("Orbital_Juice_Manager") != null
 	)
 
 # ========================
@@ -1588,8 +1651,11 @@ func _update_slingshot_window(gravity: Vector2) -> void:
 			)
 			window_data.merge(score_data, true)
 			var score := float(score_data.get("score", 0.0))
+			var entry_factor := float(score_data.get("entry_factor", 1.0))
 			if tangential_speed < slingshot_min_tangential_speed:
 				state = &"align"
+			elif entry_factor < slingshot_min_entry_factor or score < slingshot_min_curve_score:
+				state = &"approach"
 			elif score >= slingshot_apex_score:
 				state = &"apex"
 			elif score >= slingshot_perfect_score:
@@ -1631,7 +1697,9 @@ func _score_slingshot_window(
 	var dive_score := clampf(inward_speed / 580.0, 0.0, 1.0)
 	var speed_score := clampf(velocity.length() / maxf(current_max_speed, 1.0), 0.0, 1.0)
 	var gravity_score := clampf(gravity.length() / 400.0, 0.0, 1.0)
-	var score := clampf(
+	var outward_speed := maxf(velocity.dot(radial_dir), 0.0)
+	var entry_factor := _slingshot_entry_factor(inward_speed, outward_speed, tangential_speed)
+	var base_score := clampf(
 		distance_score * 0.4
 		+ tangent_score * 0.38
 		+ dive_score * 0.14
@@ -1640,9 +1708,12 @@ func _score_slingshot_window(
 		0.0,
 		1.0
 	)
+	var score := clampf(base_score * lerpf(0.42, 1.0, entry_factor), 0.0, 1.0)
 
 	return {
 		"score": score,
+		"base_score": base_score,
+		"entry_factor": entry_factor,
 		"distance_score": distance_score,
 		"proximity_score": proximity_score,
 		"tangent_score": tangent_score,
@@ -1651,6 +1722,7 @@ func _score_slingshot_window(
 		"gravity_score": gravity_score,
 		"tangential_speed": tangential_speed,
 		"inward_speed": inward_speed,
+		"outward_speed": outward_speed,
 		"distance": closest_dist,
 		"sweet_distance": slingshot_sweet_spot_distance,
 		"sweet_width": slingshot_sweet_spot_width,
@@ -1658,6 +1730,16 @@ func _score_slingshot_window(
 		"tangent": tangent,
 		"position": global_position,
 	}
+
+
+func _slingshot_entry_factor(inward_speed: float, outward_speed: float, tangential_speed: float) -> float:
+	var departure_speed := maxf(outward_speed - inward_speed * 0.45, 0.0)
+	if departure_speed <= 0.001:
+		return 1.0
+	var curve_speed := maxf(tangential_speed + inward_speed * 0.75, 1.0)
+	var penalty := clampf(departure_speed / curve_speed, 0.0, 1.0) * slingshot_departure_penalty
+	return clampf(1.0 - penalty, 0.28, 1.0)
+
 
 func _slingshot_proximity_score(source: Node) -> float:
 	if source == null or not is_instance_valid(source):

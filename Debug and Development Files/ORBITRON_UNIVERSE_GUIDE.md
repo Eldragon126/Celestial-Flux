@@ -22,6 +22,7 @@ The player is the remaining control vector: a small ship or probe capable of con
 - `Frame-Dragging Anchor`: a rotational distortion around the control vector that turns nearby motion into dragged spin.
 - `Temporal Scar`: a local time wound where enemies and projectiles lose time.
 - `Gravity Scar`: a memory left in the arena after extreme motion or collapse.
+- `Gravity Ghost`: the simulation's final bounded reconstruction of a failed control vector, with exceptional saves retained as stable mastery marks.
 - `Rupture`: the endgame state where the wave generator fails and laws recombine.
 - `Resonance Singularity`: the final music-synchronized failure point of the simulation.
 - `Production Simulation`: a headless validation reconstruction used to prove the arena remains bounded under stress without becoming player-facing fiction.
@@ -94,11 +95,13 @@ The text should make the player feel that the arena is understandable, even when
 - Keep debug and production validation labels clinical: `stress harness`, `runtime registry`, `production simulation`, and `budget report`.
 - Development builds may restore visible telemetry for balance work, but it must remain clinical, toggleable, and removable from launch exports.
 - Player orbit telemetry arcs are development-only diagnostic marks from mastery systems. They explain orbit quality, tangent direction, and vector memory for tuning; player-facing builds should keep those debug rings disabled by default and rely on HUD readouts/arrows instead.
+- Player-facing HUD glyphs are diagnostic instruments, not lore sigils. They may look stylized, but their job is to summarize hull, shield, energy, gravity, fields, time, horizon, chaos, weapons, and run phase without inventing new fiction.
 - The orbital trajectory predictor is different: it is a player-facing control-vector forecast. Its bright orange/cyan path is acceptable in production because it communicates immediate movement consequence, not hidden debug scoring.
 
 ## Readability Commitments
 
 - Death is a diagnostic event, not a fake recovery window. The player may watch the collapse, but input and weapon fire stop immediately.
+- The Gravity Ghost is diagnostic telemetry, not resurrection or a literal time rewind. It should reveal the final route, speed/pressure transition, projectile/hostile/hull/gravity pressure, danger timing, and exceptional recoveries without replaying combat noise.
 - Slingshot copy should reinforce tangent, speed, and distance. The fantasy is controlled momentum, not unexplained particle noise.
 - Resonance and scar language should stay action-first: pull, flow, push, slow, orbit. System names can exist in tooling, but player-facing prompts should describe behavior.
 - Gravity Wave Beam text should communicate field control: the beam bends hostile motion into a visible compression line before it kills.

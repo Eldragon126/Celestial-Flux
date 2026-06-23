@@ -34,6 +34,7 @@ const MULTIPLAYER_SYNC_FOUNDATION_SCENE = preload("res://Nodes/multiplayer_sync_
 const MOD_CONTENT_REGISTRY_SCENE = preload("res://Nodes/mod_content_registry.tscn")
 const MOD_HOOK_DIRECTOR_SCENE = preload("res://Nodes/mod_hook_director.tscn")
 const RUN_SCORE_TRACKER_SCENE = preload("res://Nodes/run_score_tracker.tscn")
+const GRAVITY_GHOST_RECORDER_SCENE = preload("res://Nodes/gravity_ghost_recorder.tscn")
 const PHYSICS_DROP_SYSTEM_SCENE = preload("res://Nodes/physics_drop_system.tscn")
 const ARENA_RULE_DIRECTOR_SCENE = preload("res://Nodes/arena_rule_director.tscn")
 const LATE_GAME_INSTABILITY_DIRECTOR_SCENE = preload("res://Nodes/late_game_instability_director.tscn")
@@ -98,6 +99,7 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var enable_mod_content_registry = true
 @export var enable_mod_hook_director = true
 @export var enable_run_score_tracker = true
+@export var enable_gravity_ghost_replay = true
 @export var enable_physics_drop_system = true
 @export var enable_arena_rule_profiles = true
 @export var enable_late_game_instability = true
@@ -286,6 +288,8 @@ func _install_modular_additions() -> void:
 			_add_child_scene_once(level_root, SECRET_BOSS_DIRECTOR_SCENE, "SecretBossDirector")
 		if enable_run_score_tracker:
 			_add_child_scene_once(level_root, RUN_SCORE_TRACKER_SCENE, "RunScoreTracker")
+		if enable_gravity_ghost_replay:
+			_add_child_scene_once(level_root, GRAVITY_GHOST_RECORDER_SCENE, "GravityGhostRecorder")
 
 	if spread_installation_over_frames:
 		await get_tree().process_frame

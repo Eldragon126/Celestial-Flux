@@ -57,13 +57,17 @@ class_name TimeDilationManager
 @export_group("Local Time Field")
 
 @export var dilation_enemy_multiplier: float = 0.52
+@export var dilation_boss_multiplier: float = 0.72
 @export var dilation_projectile_multiplier: float = 0.68
+@export var field_radius: float = 1100.0
+@export_range(0.0, 1.0, 0.01) var field_edge_strength: float = 0.18
+@export var field_falloff_power: float = 1.6
 
 @export var local_effect_duration: float = 0.16
 @export var field_tick_interval: float = 0.03
 
 @export var max_targets_per_tick: int = 64
-@export var max_local_slow_effects: int = 36
+@export var max_local_slow_effects: int = 64
 @export var minimum_local_slow_multiplier: float = 0.32
 
 # ============================================================
@@ -82,6 +86,8 @@ class_name TimeDilationManager
 
 var current_dilation_capacity: float = 100.0
 var current_time_scale: float = 1.0
+var dilation_blend: float = 0.0
+var active_field_target_count: int = 0
 
 var is_dilating: bool = false
 
@@ -91,7 +97,10 @@ var _afterimage_elapsed := 0.0
 
 var _afterimages: Array[Dictionary] = []
 var _local_slow_effects: Dictionary = {}
+var _player_field_effects: Dictionary = {}
 var _group_slow_targets: Array[Node2D] = []
+var _group_slow_query: Array[StringName] = []
+var _field_seen_ids: Dictionary = {}
 
 var _player: CharacterBody2D = null
 var _pause_menu: Node = null
@@ -132,6 +141,7 @@ func _ready() -> void:
 	
 	current_dilation_capacity = initial_dilation_capacity
 	current_time_scale = base_time_scale
+	dilation_blend = 0.0
 
 	_find_player()
 
@@ -176,6 +186,7 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	var unscaled_delta := _get_unscaled_delta(delta)
 	if _is_gameplay_blocked():
+		active_field_target_count = 0
 		_reset_player_isolation()
 		return
 	
@@ -188,7 +199,7 @@ func _physics_process(delta: float) -> void:
 # ============================================================
 
 func _find_player() -> void:
-	var node := get_tree().get_first_node_in_group("Player")
+	var node := MultiplayerTargeting.local_player(get_tree())
 
 	if node is CharacterBody2D:
 		_player = node
@@ -231,9 +242,10 @@ func _handle_blocked_gameplay() -> void:
 
 	_dilation_input_active = false
 	_afterimage_elapsed = 0.0
-
-	if use_global_time_scale:
-		current_time_scale = base_time_scale
+	dilation_blend = 0.0
+	active_field_target_count = 0
+	current_time_scale = base_time_scale
+	_restore_global_time()
 
 func _is_gameplay_blocked() -> bool:
 	var pause_menu := _get_pause_menu()
@@ -311,39 +323,15 @@ func _update_time_scale(unscaled_delta: float) -> void:
 	if _is_gameplay_blocked():
 		return
 
-	var target_scale := base_time_scale
-
-	if is_dilating:
-		var fraction := current_dilation_capacity / maxf(
-			initial_dilation_capacity,
-			0.001
-		)
-
-		var effective_min_scale := maxf(min_time_scale, safe_global_min_time_scale)
-		target_scale = lerpf(
-			effective_min_scale,
-			base_time_scale,
-			fraction
-		)
-
-		current_time_scale = lerpf(
-			current_time_scale,
-			target_scale,
-			dilation_rate * unscaled_delta
-		)
-
-	else:
-		current_time_scale = lerpf(
-			current_time_scale,
-			base_time_scale,
-			recovery_rate * unscaled_delta
-		)
-
-	current_time_scale = clampf(
-		current_time_scale,
-		maxf(min_time_scale, safe_global_min_time_scale),
-		max_time_scale
+	var blend_rate := dilation_rate if is_dilating else recovery_rate
+	dilation_blend = move_toward(
+		dilation_blend,
+		1.0 if is_dilating else 0.0,
+		maxf(blend_rate, 0.01) * unscaled_delta
 	)
+	var effective_min_scale := maxf(min_time_scale, safe_global_min_time_scale)
+	current_time_scale = lerpf(base_time_scale, effective_min_scale, dilation_blend)
+	current_time_scale = clampf(current_time_scale, effective_min_scale, max_time_scale)
 
 	var applied := current_time_scale
 
@@ -405,29 +393,48 @@ func _update_field(unscaled_delta: float) -> void:
 
 	_field_elapsed = 0.0
 
-	if not is_dilating:
+	if dilation_blend <= 0.01:
+		active_field_target_count = 0
+		return
+	if not is_instance_valid(_player):
+		_find_player()
+	if not is_instance_valid(_player):
+		active_field_target_count = 0
 		return
 
-	var affected := 0
-
-	affected += _apply_group_slow(
+	var remaining := maxi(max_targets_per_tick, 0)
+	if remaining <= 0:
+		active_field_target_count = 0
+		return
+	active_field_target_count = 0
+	_field_seen_ids.clear()
+	var enemy_limit := mini(remaining, maxi(int(round(float(max_targets_per_tick) * 0.5)), 1))
+	var enemy_count := _apply_group_slow(
 		&"enemies",
 		dilation_enemy_multiplier,
-		local_effect_duration
+		local_effect_duration,
+		enemy_limit
 	)
+	active_field_target_count += enemy_count
+	remaining -= enemy_count
 
-	if affected < max_targets_per_tick:
-		affected += _apply_group_slow(
+	if remaining > 0:
+		var boss_limit := mini(remaining, maxi(int(round(float(max_targets_per_tick) * 0.18)), 1))
+		var boss_count := _apply_group_slow(
 			&"bosses",
-			0.72,
-			local_effect_duration
+			dilation_boss_multiplier,
+			local_effect_duration,
+			boss_limit
 		)
+		active_field_target_count += boss_count
+		remaining -= boss_count
 
-	if affected < max_targets_per_tick:
-		affected += _apply_group_slow(
+	if remaining > 0:
+		active_field_target_count += _apply_group_slow(
 			&"enemy_projectiles",
 			dilation_projectile_multiplier,
-			local_effect_duration
+			local_effect_duration,
+			remaining
 		)
 
 # ============================================================
@@ -437,24 +444,41 @@ func _update_field(unscaled_delta: float) -> void:
 func _apply_group_slow(
 	group_name: StringName,
 	multiplier: float,
-	duration: float
+	duration: float,
+	limit: int
 ) -> int:
 
 	var affected := 0
+	if limit <= 0:
+		return affected
 	if RuntimeRegistry != null:
-		RuntimeRegistry.fill_group(group_name, _group_slow_targets, max_targets_per_tick)
+		_group_slow_query.clear()
+		_group_slow_query.append(group_name)
+		RuntimeRegistry.fill_targets_in_radius(
+			_group_slow_query,
+			_player.global_position,
+			maxf(field_radius, 1.0),
+			limit,
+			false,
+			_group_slow_targets
+		)
 		for target in _group_slow_targets:
-			if affected >= max_targets_per_tick:
+			if affected >= limit:
 				break
-			if target == _player:
+			if not is_instance_valid(target) or target == _player:
 				continue
-			apply_local_slow_to_target(target, multiplier, duration)
+			var target_id := target.get_instance_id()
+			if _field_seen_ids.has(target_id):
+				continue
+			if not _apply_player_field_slow(target, _field_multiplier_for_target(target, multiplier), duration):
+				continue
+			_field_seen_ids[target_id] = true
 			affected += 1
 		return affected
 
 	for node in get_tree().get_nodes_in_group(group_name):
 
-		if affected >= max_targets_per_tick:
+		if affected >= limit:
 			break
 
 		if not is_instance_valid(node):
@@ -462,16 +486,58 @@ func _apply_group_slow(
 
 		if node == _player:
 			continue
+		var target_2d := node as Node2D
+		var effective_radius := maxf(field_radius, 1.0)
+		if target_2d == null or target_2d.global_position.distance_squared_to(_player.global_position) > effective_radius * effective_radius:
+			continue
+		var target_id := target_2d.get_instance_id()
+		if _field_seen_ids.has(target_id):
+			continue
 
-		apply_local_slow_to_target(
+		if not _apply_player_field_slow(
 			node,
-			multiplier,
+			_field_multiplier_for_target(target_2d, multiplier),
 			duration
-		)
+		):
+			continue
+		_field_seen_ids[target_id] = true
 
 		affected += 1
 
 	return affected
+
+
+func _field_multiplier_for_target(target: Node2D, core_multiplier: float) -> float:
+	if target == null or not is_instance_valid(_player):
+		return 1.0
+	var normalized_distance := clampf(
+		target.global_position.distance_to(_player.global_position) / maxf(field_radius, 1.0),
+		0.0,
+		1.0
+	)
+	var radial_strength := pow(1.0 - normalized_distance, maxf(field_falloff_power, 0.01))
+	var field_strength := lerpf(clampf(field_edge_strength, 0.0, 1.0), 1.0, radial_strength)
+	return lerpf(1.0, core_multiplier, clampf(dilation_blend * field_strength, 0.0, 1.0))
+
+
+func _apply_player_field_slow(target: Node, multiplier: float, duration: float) -> bool:
+	if not is_instance_valid(target) or target == _player:
+		return false
+	var id := target.get_instance_id()
+	var existing: Dictionary = _player_field_effects.get(id, {})
+	if existing.is_empty() and max_local_slow_effects > 0 and _player_field_effects.size() >= max_local_slow_effects:
+		return false
+	var now_msec := Time.get_ticks_msec()
+	var expires_at_msec := now_msec + int(ceil(maxf(duration, 0.01) * 1000.0))
+	var effective_multiplier := clampf(multiplier, minimum_local_slow_multiplier, 1.0)
+	_player_field_effects[id] = {
+		"target": target,
+		"expires_at_msec": expires_at_msec,
+		"multiplier": effective_multiplier,
+	}
+	target.set_meta(&"player_time_field_scale", effective_multiplier)
+	target.set_meta(&"player_time_field_until_msec", expires_at_msec)
+	return true
 
 # ============================================================
 # APPLY LOCAL SLOW
@@ -481,38 +547,44 @@ func apply_local_slow_to_target(
 	target: Node,
 	multiplier: float,
 	duration: float
-) -> void:
+) -> bool:
 
 	if not is_instance_valid(target) or target == _player:
-		return
+		return false
 
-	var id := target.get_instance_id()
+	var id: int = target.get_instance_id()
 	var existing: Dictionary = _local_slow_effects.get(id, {})
 	if existing.is_empty() and max_local_slow_effects > 0 and _local_slow_effects.size() >= max_local_slow_effects:
-		return
+		return false
 	var clamped_multiplier := clampf(multiplier, minimum_local_slow_multiplier, 1.0)
-	var was_new := existing.is_empty()
 	var previous_multiplier := float(existing.get("multiplier", 1.0))
+	var effective_multiplier := minf(clamped_multiplier, previous_multiplier)
+	var now_msec := Time.get_ticks_msec()
+	var expires_at_msec := maxi(
+		int(existing.get("expires_at_msec", 0)),
+		now_msec + int(ceil(maxf(duration, 0.01) * 1000.0))
+	)
 
 	_local_slow_effects[id] = {
 		"target": target,
-		"remaining": maxf(duration, float(existing.get("remaining", 0.0))),
-		"multiplier": minf(clamped_multiplier, previous_multiplier)
+		"expires_at_msec": expires_at_msec,
+		"multiplier": effective_multiplier,
 	}
 
-	target.set_meta("local_time_scale", minf(clamped_multiplier, previous_multiplier))
-	
-	if was_new or clamped_multiplier < previous_multiplier - 0.01:
-		_dampen_velocity_for_local_slow(target, clamped_multiplier)
-		local_time_pocket_entered.emit(target, clamped_multiplier, duration)
-		pocket_entered.emit(target, clamped_multiplier, duration)
+	target.set_meta(&"time_dilation_field_scale", effective_multiplier)
+	target.set_meta(&"time_dilation_field_until_msec", expires_at_msec)
+	if existing.is_empty():
+		local_time_pocket_entered.emit(target, effective_multiplier, duration)
+		pocket_entered.emit(target, effective_multiplier, duration)
+	return true
 
 # ============================================================
 # UPDATE LOCAL EFFECTS
 # ============================================================
 
-func _update_local_effects(unscaled_delta: float) -> void:
+func _update_local_effects(_unscaled_delta: float) -> void:
 	var expired: Array[int] = []
+	var now_msec := Time.get_ticks_msec()
 
 	for id in _local_slow_effects.keys():
 
@@ -528,15 +600,23 @@ func _update_local_effects(unscaled_delta: float) -> void:
 			expired.append(id)
 			continue
 
-		entry["remaining"] -= unscaled_delta
-
-		if float(entry["remaining"]) <= 0.0:
+		if now_msec >= int(entry.get("expires_at_msec", 0)):
 			expired.append(id)
-		else:
-			_local_slow_effects[id] = entry
 
 	for id in expired:
 		_remove_local_slow(id)
+
+	expired.clear()
+	for id in _player_field_effects.keys():
+		var entry: Variant = _player_field_effects[id]
+		if not (entry is Dictionary):
+			expired.append(id)
+			continue
+		var target: Variant = (entry as Dictionary).get("target")
+		if not is_instance_valid(target) or now_msec >= int((entry as Dictionary).get("expires_at_msec", 0)):
+			expired.append(id)
+	for id in expired:
+		_remove_player_field_slow(id)
 
 # ============================================================
 # REMOVE LOCAL SLOW
@@ -549,23 +629,27 @@ func _remove_local_slow(id: int) -> void:
 		var target = entry.get("target")
 
 		if is_instance_valid(target):
-
-			if target.has_meta("local_time_scale"):
-				target.remove_meta("local_time_scale")
-
-			# Restore original velocity
-			if target.has_meta("original_velocity"):
-				var orig_vel = target.get_meta("original_velocity")
-				if target.get("velocity") is Vector2:
-					target.set("velocity", orig_vel)
-				elif target.get("linear_velocity") is Vector2:
-					target.set("linear_velocity", orig_vel)
-				target.remove_meta("original_velocity")
+			if target.has_meta(&"time_dilation_field_scale"):
+				target.remove_meta(&"time_dilation_field_scale")
+			if target.has_meta(&"time_dilation_field_until_msec"):
+				target.remove_meta(&"time_dilation_field_until_msec")
 
 	_local_slow_effects.erase(id)
 
 	local_time_pocket_expired.emit(id)
 	pocket_exited.emit(id)
+
+
+func _remove_player_field_slow(id: int) -> void:
+	var entry: Variant = _player_field_effects.get(id)
+	if entry is Dictionary:
+		var target: Variant = (entry as Dictionary).get("target")
+		if is_instance_valid(target):
+			if target.has_meta(&"player_time_field_scale"):
+				target.remove_meta(&"player_time_field_scale")
+			if target.has_meta(&"player_time_field_until_msec"):
+				target.remove_meta(&"player_time_field_until_msec")
+	_player_field_effects.erase(id)
 
 # ============================================================
 # CLEAR ALL
@@ -576,6 +660,10 @@ func _clear_all_local_slows() -> void:
 		_remove_local_slow(id)
 
 	_local_slow_effects.clear()
+	for id in _player_field_effects.keys():
+		_remove_player_field_slow(id)
+	_player_field_effects.clear()
+	active_field_target_count = 0
 
 # ============================================================
 # AFTERIMAGES
@@ -630,15 +718,16 @@ func _spawn_afterimage() -> void:
 
 func get_time_scale_for_target(target: Node) -> float:
 	if not is_instance_valid(target):
-		return current_time_scale
+		return current_time_scale if use_global_time_scale else 1.0
 
 	if target == _player:
 		return 1.0
 
-	if target.has_meta("local_time_scale"):
-		return float(target.get_meta("local_time_scale"))
+	var target_scale := CombatStatus.get_time_scale(target)
+	if target_scale < 1.0:
+		return target_scale
 
-	return current_time_scale
+	return current_time_scale if use_global_time_scale else 1.0
 
 func get_active_afterimages() -> Array[Dictionary]:
 	return _afterimages.duplicate(true)
@@ -663,6 +752,8 @@ func force_end_dilation() -> void:
 	_end_dilation()
 
 	current_time_scale = base_time_scale
+	dilation_blend = 0.0
+	active_field_target_count = 0
 
 	_restore_global_time()
 
@@ -673,36 +764,11 @@ func _restore_global_time() -> void:
 		AudioServer.playback_speed_scale = base_time_scale
 
 func _emit_tear_intensity_if_changed() -> void:
-	var dilation_depth := 0.0
-	if is_dilating:
-		dilation_depth = clampf(1.0 - current_time_scale, 0.0, 1.0)
-	var capacity_ratio := 1.0
-	if initial_dilation_capacity > 0.0:
-		capacity_ratio = clampf(current_dilation_capacity / initial_dilation_capacity, 0.0, 1.0)
-	var local_pressure := clampf(float(_local_slow_effects.size()) / 12.0, 0.0, 1.0)
-	var intensity := clampf(dilation_depth * 0.55 + (1.0 - capacity_ratio) * 0.25 + local_pressure * 0.2, 0.0, 1.0)
-	if absf(intensity - _last_tear_intensity) < 0.03:
+	var local_pressure := clampf(float(_local_slow_effects.size() + _player_field_effects.size()) / 12.0, 0.0, 1.0)
+	var intensity := clampf(dilation_blend * 0.82 + local_pressure * 0.18, 0.0, 1.0)
+	var must_clear := intensity <= 0.001 and _last_tear_intensity > 0.001
+	if not must_clear and absf(intensity - _last_tear_intensity) < 0.03:
 		return
 	_last_tear_intensity = intensity
 	time_tear_intensity_changed.emit(intensity)
 	instability_changed.emit(intensity)
-
-
-func _dampen_velocity_for_local_slow(target: Node, multiplier: float) -> void:
-	if target.is_in_group("player_projectiles") or target.is_in_group("Player"):
-		return
-
-	var damping := maxf(multiplier, 0.35)
-	
-	# Save original velocity if we haven't already
-	if not target.has_meta("original_velocity"):
-		if target.get("velocity") is Vector2:
-			target.set_meta("original_velocity", target.get("velocity"))
-		elif target.get("linear_velocity") is Vector2:
-			target.set_meta("original_velocity", target.get("linear_velocity"))
-
-	# Apply dampening
-	if target.get("velocity") is Vector2:
-		target.set("velocity", target.get("velocity") * damping)
-	if target.get("linear_velocity") is Vector2:
-		target.set("linear_velocity", target.get("linear_velocity") * damping)

@@ -33,7 +33,8 @@ var camera_follow_strength: float = 1.0
 var alternate_movement_enabled: bool = false
 var reverse_thrust_scale: float = 0.46
 var strafe_turn_assist: float = 0.22
-var auto_orbiting_celestials_enabled: bool = false
+var player_auto_orbit_enabled: bool = false
+var auto_orbiting_celestials_enabled: bool = true
 
 
 func _ready() -> void:
@@ -94,6 +95,12 @@ func set_auto_orbiting_celestials_enabled(value: bool) -> void:
 	save_settings()
 
 
+func set_player_auto_orbit_enabled(value: bool) -> void:
+	player_auto_orbit_enabled = value
+	_emit_accessibility_changed()
+	save_settings()
+
+
 func set_reverse_thrust_scale(value: float) -> void:
 	reverse_thrust_scale = clampf(value, 0.15, 0.8)
 	_emit_accessibility_changed()
@@ -125,7 +132,10 @@ func load_settings() -> void:
 	trackpad_direct_camera = bool(config.get_value(SECTION_INPUT, "trackpad_direct_camera", trackpad_direct_camera))
 	camera_follow_strength = clampf(float(config.get_value(SECTION_INPUT, "camera_follow_strength", camera_follow_strength)), 0.25, 2.5)
 	alternate_movement_enabled = bool(config.get_value(SECTION_INPUT, "alternate_movement_enabled", alternate_movement_enabled))
-	auto_orbiting_celestials_enabled = bool(config.get_value(SECTION_INPUT, "auto_orbiting_celestials_enabled", false))
+	player_auto_orbit_enabled = bool(config.get_value(SECTION_INPUT, "player_auto_orbit_enabled", false))
+	# The original key was shipped for the wrong feature and defaulted off. Use a
+	# migrated key so existing players receive the corrected on-by-default event setting.
+	auto_orbiting_celestials_enabled = bool(config.get_value(SECTION_INPUT, "orbiting_celestial_events_enabled_v2", true))
 	reverse_thrust_scale = clampf(float(config.get_value(SECTION_INPUT, "reverse_thrust_scale", reverse_thrust_scale)), 0.15, 0.8)
 	strafe_turn_assist = clampf(float(config.get_value(SECTION_INPUT, "strafe_turn_assist", strafe_turn_assist)), 0.0, 0.6)
 	_emit_accessibility_changed()
@@ -141,7 +151,9 @@ func save_settings() -> void:
 	config.set_value(SECTION_INPUT, "trackpad_direct_camera", trackpad_direct_camera)
 	config.set_value(SECTION_INPUT, "camera_follow_strength", camera_follow_strength)
 	config.set_value(SECTION_INPUT, "alternate_movement_enabled", alternate_movement_enabled)
+	config.set_value(SECTION_INPUT, "player_auto_orbit_enabled", player_auto_orbit_enabled)
 	config.set_value(SECTION_INPUT, "auto_orbiting_celestials_enabled", auto_orbiting_celestials_enabled)
+	config.set_value(SECTION_INPUT, "orbiting_celestial_events_enabled_v2", auto_orbiting_celestials_enabled)
 	config.set_value(SECTION_INPUT, "reverse_thrust_scale", reverse_thrust_scale)
 	config.set_value(SECTION_INPUT, "strafe_turn_assist", strafe_turn_assist)
 	config.save(SETTINGS_PATH)
@@ -221,6 +233,7 @@ func export_accessibility_settings() -> Dictionary:
 		"trackpad_direct_camera": trackpad_direct_camera,
 		"camera_follow_strength": camera_follow_strength,
 		"alternate_movement_enabled": alternate_movement_enabled,
+		"player_auto_orbit_enabled": player_auto_orbit_enabled,
 		"auto_orbiting_celestials_enabled": auto_orbiting_celestials_enabled,
 		"reverse_thrust_scale": reverse_thrust_scale,
 		"strafe_turn_assist": strafe_turn_assist,

@@ -6,6 +6,9 @@ var _registry: Node = null
 var _summary_label: Label = null
 var _details_label: Label = null
 var _details_box: VBoxContainer = null
+var _creator_sandbox: PanelContainer = null
+var _creator_manifest_editor: TextEdit = null
+var _creator_validation_label: Label = null
 
 
 func _ready() -> void:
@@ -92,6 +95,8 @@ func _build_ui() -> void:
 	_details_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_details_label.custom_minimum_size = Vector2(860.0, 0.0)
 	_details_box.add_child(_details_label)
+	_creator_sandbox = _build_creator_sandbox()
+	_details_box.add_child(_creator_sandbox)
 
 
 func _ensure_registry() -> void:
@@ -123,13 +128,15 @@ func _render_registry(feedback_text: String = "") -> void:
 	var manifest_count := int(summary.get("manifest_count", 0))
 	var content_total := int(summary.get("content_total", 0))
 	var failed := int(summary.get("failed", 0))
+	var dependency_warnings := int(summary.get("dependency_warnings", 0))
 	var conflicts := int(summary.get("conflict_warnings", 0))
 	var disabled := int(summary.get("disabled", 0))
 	var user_disabled := int(summary.get("user_disabled", 0))
-	_summary_label.text = "Loaded %d manifests, %d content entries, %d failed, %d conflicts, %d off (%d toggled). Gameplay signature: %s" % [
+	_summary_label.text = "Loaded %d manifests, %d content entries, %d failed, %d dependency warnings, %d conflicts, %d off (%d toggled). Gameplay signature: %s" % [
 		manifest_count,
 		content_total,
 		failed,
+		dependency_warnings,
 		conflicts,
 		disabled,
 		user_disabled,
@@ -176,7 +183,7 @@ func _populate_detail_cards(summary: Dictionary) -> void:
 	if _details_box == null:
 		return
 	for child in _details_box.get_children():
-		if child == _details_label:
+		if child == _details_label or child == _creator_sandbox:
 			continue
 		if child != null and is_instance_valid(child) and not child.is_queued_for_deletion():
 			child.queue_free()
@@ -241,6 +248,20 @@ func _populate_detail_cards(summary: Dictionary) -> void:
 		for path in failed.keys():
 			failed_lines.append("%s: %s" % [str(path), str(failed[path])])
 		_details_box.add_child(_make_detail_section("Failed Manifests", failed_lines))
+	var dependency_value: Variant = snapshot.get("dependency_warnings", {})
+	var dependency_warnings: Dictionary = dependency_value if dependency_value is Dictionary else {}
+	if not dependency_warnings.is_empty():
+		var dependency_lines: Array[String] = []
+		for warning_value in dependency_warnings.values():
+			if not (warning_value is Dictionary):
+				continue
+			var warning := warning_value as Dictionary
+			dependency_lines.append("%s -> %s: %s" % [
+				str(warning.get("manifest_id", "unknown")),
+				str(warning.get("dependency_id", "unknown")),
+				str(warning.get("reason", "dependency warning")),
+			])
+		_details_box.add_child(_make_detail_section("Dependency Diagnostics", dependency_lines))
 	var conflicts_value: Variant = snapshot.get("conflict_warnings", {})
 	var conflicts: Dictionary = conflicts_value if conflicts_value is Dictionary else {}
 	if not conflicts.is_empty():
@@ -266,6 +287,87 @@ func _populate_detail_cards(summary: Dictionary) -> void:
 	if count_lines.is_empty():
 		count_lines.append("No content buckets active yet.")
 	_details_box.add_child(_make_detail_section("Content Counts", count_lines))
+
+
+func _build_creator_sandbox() -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_stylebox_override("panel", _panel_style())
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 8)
+	panel.add_child(rows)
+
+	var title := Label.new()
+	title.text = "CREATOR SANDBOX"
+	title.add_theme_font_size_override("font_size", 16)
+	title.modulate = Color(1.0, 0.82, 0.42, 1.0)
+	rows.add_child(title)
+
+	var hint := Label.new()
+	hint.text = "Paste a schema 4 manifest to validate it with the live registry, then install the validated contract into user://mods/<id>. Existing packs are never overwritten."
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.modulate = Color(0.72, 0.9, 0.96, 0.9)
+	rows.add_child(hint)
+
+	_creator_manifest_editor = TextEdit.new()
+	_creator_manifest_editor.custom_minimum_size = Vector2(760.0, 150.0)
+	_creator_manifest_editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_creator_manifest_editor.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	_creator_manifest_editor.placeholder_text = "Paste vector_anomaly_mod.json here"
+	_creator_manifest_editor.text = JSON.stringify({
+		"id": "my_vector_pack",
+		"display_name": "My Vector Pack",
+		"version": "1.0.0",
+		"schema_version": 4,
+		"content": {"creator_notes": [{"id": "first_note", "network_category": "local_visual"}]},
+	}, "\t")
+	rows.add_child(_creator_manifest_editor)
+
+	var actions := HFlowContainer.new()
+	actions.add_theme_constant_override("separation", 8)
+	rows.add_child(actions)
+	var validate_button := _make_button("Validate Draft")
+	validate_button.pressed.connect(_validate_creator_draft)
+	actions.add_child(validate_button)
+	var install_button := _make_button("Install Valid Draft")
+	install_button.pressed.connect(_install_creator_draft)
+	actions.add_child(install_button)
+
+	_creator_validation_label = Label.new()
+	_creator_validation_label.text = "Draft has not been validated yet."
+	_creator_validation_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_creator_validation_label.modulate = Color(0.68, 0.86, 0.94, 0.92)
+	rows.add_child(_creator_validation_label)
+	return panel
+
+
+func _validate_creator_draft() -> bool:
+	if _registry == null or _creator_manifest_editor == null or not _registry.has_method("validate_manifest_text"):
+		return false
+	var result_value: Variant = _registry.call("validate_manifest_text", _creator_manifest_editor.text)
+	var result: Dictionary = result_value if result_value is Dictionary else {}
+	var valid := bool(result.get("valid", false))
+	var errors_value: Variant = result.get("errors", [])
+	var errors: Array = errors_value if errors_value is Array else []
+	if _creator_validation_label != null:
+		_creator_validation_label.text = "VALID // %s" % str(result.get("manifest_id", "unnamed")) if valid else "BLOCKED // %s" % _join_array_text(errors)
+		_creator_validation_label.modulate = Color(0.52, 1.0, 0.72, 0.95) if valid else Color(1.0, 0.58, 0.42, 0.95)
+	return valid
+
+
+func _install_creator_draft() -> void:
+	if not _validate_creator_draft() or _registry == null or not _registry.has_method("install_manifest_text"):
+		return
+	var result_value: Variant = _registry.call("install_manifest_text", _creator_manifest_editor.text, false)
+	var result: Dictionary = result_value if result_value is Dictionary else {}
+	if bool(result.get("installed", false)):
+		_render_registry("Installed %s to %s" % [str(result.get("manifest_id", "mod")), str(result.get("path", "user mods"))])
+		return
+	var errors_value: Variant = result.get("errors", [])
+	var errors: Array = errors_value if errors_value is Array else []
+	if _creator_validation_label != null:
+		_creator_validation_label.text = "INSTALL BLOCKED // %s" % _join_array_text(errors)
+		_creator_validation_label.modulate = Color(1.0, 0.58, 0.42, 0.95)
 
 
 func _make_manifest_toggle_section(load_order: Array, manifests: Dictionary) -> PanelContainer:
@@ -351,11 +453,20 @@ func _make_manifest_toggle_section(load_order: Array, manifests: Dictionary) -> 
 		if _registry != null and _registry.has_method("get_manifest_options"):
 			var options_value: Variant = _registry.call("get_manifest_options", StringName(manifest_key))
 			if options_value is Array and not (options_value as Array).is_empty():
+				var options_header := HBoxContainer.new()
+				options_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				rows.add_child(options_header)
 				var options_title := Label.new()
 				options_title.text = "CREATOR OPTIONS"
 				options_title.add_theme_font_size_override("font_size", 12)
 				options_title.modulate = Color(1.0, 0.82, 0.42, 0.94)
-				rows.add_child(options_title)
+				options_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				options_header.add_child(options_title)
+				var reset_options := Button.new()
+				reset_options.text = "Reset"
+				reset_options.tooltip_text = "Restore this pack's creator options to manifest defaults."
+				reset_options.pressed.connect(_on_reset_manifest_options.bind(manifest_key))
+				options_header.add_child(reset_options)
 				for option_value in options_value as Array:
 					if option_value is Dictionary:
 						rows.add_child(_make_mod_option_control(manifest_key, option_value as Dictionary))
@@ -421,7 +532,8 @@ func _on_mod_option_changed(value: Variant, manifest_id: String, option_id: Stri
 	if _registry == null or not _registry.has_method("set_mod_option"):
 		return
 	if bool(_registry.call("set_mod_option", StringName(manifest_id), StringName(option_id), value)):
-		call_deferred("_render_registry", "Updated %s.%s" % [manifest_id, option_id])
+		var signature := str(_registry.call("get_compatibility_signature")) if _registry.has_method("get_compatibility_signature") else "unknown"
+		_summary_label.text = "Updated %s.%s. Gameplay signature: %s" % [manifest_id, option_id, signature]
 
 
 func _on_numeric_mod_option_changed(value: float, manifest_id: String, option_id: String, option_type: String) -> void:
@@ -435,6 +547,13 @@ func _on_choice_mod_option_changed(index: int, manifest_id: String, option_id: S
 
 func _on_color_mod_option_changed(value: Color, manifest_id: String, option_id: String) -> void:
 	_on_mod_option_changed(value.to_html(true), manifest_id, option_id)
+
+
+func _on_reset_manifest_options(manifest_id: String) -> void:
+	if _registry == null or not _registry.has_method("reset_manifest_options"):
+		return
+	if bool(_registry.call("reset_manifest_options", StringName(manifest_id))):
+		call_deferred("_render_registry", "Reset creator options for %s" % manifest_id)
 
 
 func _on_manifest_toggled(enabled_state: bool, manifest_id: String) -> void:

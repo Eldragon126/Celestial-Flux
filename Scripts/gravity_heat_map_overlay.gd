@@ -5,7 +5,7 @@ class_name GravityHeatMapOverlay
 @export var enabled_on_start: bool = false
 @export var enable_toggle: bool = true
 @export var toggle_key: Key = KEY_F10
-@export var refresh_interval: float = 0.05
+@export var refresh_interval: float = 0.09
 @export var screen_margin_world: float = 200.0
 
 @export_group("Grid & Performance")
@@ -16,16 +16,16 @@ class_name GravityHeatMapOverlay
 
 @export_group("Visuals & Telemetry")
 @export var contour_levels: Array[float] = [0.15, 0.30, 0.45, 0.65, 0.85]
-@export var low_gravity_color: Color = Color(0.02, 0.10, 0.22, 1.0)
-@export var mid_gravity_color: Color = Color(0.00, 0.86, 1.0, 1.0)
-@export var high_gravity_color: Color = Color(1.0, 0.46, 0.12, 1.0)
+@export var low_gravity_color: Color = Color(1.0, 1.0, 1.0, 0.686)
+@export var mid_gravity_color: Color = Color(0.0, 0.592, 1.0, 0.863)
+@export var high_gravity_color: Color = Color(1.0, 0.0, 0.471, 1.0)
 @export var gradient_vector_length: float = 38.0
 @export var gradient_alpha: float = 0.4
 
 @export_group("Golden Slingshot Line")
 @export var show_golden_slingshot_line: bool = true
 ## The optimal radius to orbit a planet (in pixels).
-@export var optimal_slingshot_radius: float = 256.0 
+@export var optimal_slingshot_radius: float = 240.0 
 @export var golden_line_color: Color = Color(1.0, 0.82, 0.18, 1.0)
 @export var golden_line_width: float = 4.0
 
@@ -308,7 +308,7 @@ func _draw_golden_slingshot_line() -> void:
 				closest = pt
 		
 		# Draw the guidance line
-		draw_line(to_local(p_pos), to_local(closest), Color(1, 1, 1, 0.4), 2.0, true)
+		draw_line(to_local(p_pos), to_local(closest), Color(1.0, 1.0, 1.0, 0.592), 2.0, true)
 		draw_circle(to_local(closest), 6.0, golden_line_color)
 
 func _sample_at(x: int, y: int) -> Dictionary:

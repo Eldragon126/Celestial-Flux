@@ -273,14 +273,14 @@ Current built-in projectile catalog includes the original vector/rail/splitter/c
 
 Every new content type should declare how it affects multiplayer and challenges:
 
-- `local_visual`: local UI, palette, SFX, music, or cosmetic-only content.
+- `local_visual`: local UI, palette, SFX, music, localization, or cosmetic-only content.
 - `exported_state`: content whose resulting state can be exported/imported.
 - `reliable_event`: explicit events such as weapon fire or authoritative one-shot activation.
 - `deterministic_seed`: seed-driven law, recipe, arena, or challenge data that must match across peers.
 
 `NetworkSession` hashes the normalized mod registry compatibility signature, including gameplay-affecting weapon and hookable entries, so mismatched gameplay mod packs can fail cleanly before co-op starts. Entries marked `local_visual` are intentionally excluded from the compatibility signature. The title-screen/pre-run fallback also filters manifest hashes to gameplay-affecting entries, so local palettes, music, creator notes, and HUD cosmetics do not falsely block a LAN join.
 
-Hookable entries marked `local_visual` may only request local-safe effect actions: `emit_hud_badge`, `play_sfx`, `request_music_layer`, `apply_shader_pack`, or `apply_texture_pack`.
+Hookable entries marked `local_visual` may only request local-safe effect actions: `emit_hud_badge`, `play_sfx`, `request_music_layer`, `apply_shader_pack`, `apply_texture_pack`, `apply_ui_skin`, or `request_localization`.
 
 ## Larger Creator Surfaces
 
@@ -318,6 +318,7 @@ Useful calls:
 - `get_entries_for_creator_surface(surface)`
 - `get_manifest(manifest_id)`
 - `get_manifest_load_order()`
+- `get_manifest_dependency_graph()`
 - `get_dependency_warnings()`
 - `get_conflict_warnings()`
 - `get_manifest_options(manifest_id)`
@@ -387,6 +388,9 @@ The dedicated static creator site lives at `website/modding/index.html`. It incl
 
 - `validate_manifest_text(json_text, source_path)`
 - `validate_manifest_file(source_path)`
+- `install_manifest_text(json_text, overwrite)`
 - `export_creator_report(report_path)`
 
-The in-game Mods screen has an **Export Creator Report** action. The report contains loaded/failed/disabled manifests, dependency warnings, resolved install paths, registry capabilities, and the gameplay compatibility signature. Its resolved path is copied to the clipboard so creators can attach one deterministic diagnostic artifact to bug reports.
+The in-game Mods screen has an **Export Creator Report** action plus a **Creator Sandbox**. Paste a manifest into the sandbox to run the live schema validator; a valid new ID can then be installed into `user://mods/<id>/vector_anomaly_mod.json`. The installer never overwrites an existing pack. The report contains loaded/failed/disabled manifests, the dependency graph, dependency/conflict warnings, resolved install paths, registry capabilities, creator option values, and the gameplay compatibility signature. Its resolved path is copied to the clipboard so creators can attach one deterministic diagnostic artifact to bug reports.
+
+The public Creator Lab mirrors these contract rules with min/max dependency authoring, imported-manifest preservation, version-range diagnostics, and a live pack graph that distinguishes required, optional, and conflicting relationships before installation.

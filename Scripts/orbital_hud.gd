@@ -1,5 +1,7 @@
 extends CanvasLayer
 
+const HUD_GLYPH_SCENE := preload("res://Nodes/vector_hud_glyph.tscn")
+
 @export var max_arrow_count: int = 8
 @export var max_threat_arrow_count: int = 8
 @export var max_boss_arrow_count: int = 2
@@ -11,6 +13,10 @@ extends CanvasLayer
 @export var enable_player_orbit_telemetry: bool = false
 @export var hud_safe_margin: float = 18.0
 @export var left_panel_gap: float = 28.0
+@export_group("Update Budgets")
+@export_range(0.02, 0.2, 0.01) var gravity_meter_refresh_interval: float = 0.05
+@export_range(0.05, 0.3, 0.01) var field_lens_refresh_interval: float = 0.12
+@export_range(0.08, 0.5, 0.02) var navigation_target_refresh_interval: float = 0.2
 
 var _player: Node2D
 var _resonance_manager: Node
@@ -42,6 +48,20 @@ var _shield_resource_label: Label
 var _shield_resource_bar: ProgressBar
 var _energy_resource_label: Label
 var _energy_resource_bar: ProgressBar
+var _health_glyph: Control
+var _shield_glyph: Control
+var _energy_glyph: Control
+var _speed_glyph: Control
+var _gravity_glyph: Control
+var _field_glyph: Control
+var _time_glyph: Control
+var _horizon_glyph: Control
+var _chaos_glyph: Control
+var _slingshot_glyph: Control
+var _weapon_glyph: Control
+var _phase_glyph: Control
+var _hud_glyphs: Array[Control] = []
+var _glyph_rows: Dictionary = {}
 var _resource_panel: PanelContainer
 var _readout_panel: PanelContainer
 var _score_panel: PanelContainer
@@ -75,6 +95,14 @@ var _resource_previous_values: Dictionary = {}
 var _resource_pulse_tweens: Dictionary = {}
 var _last_weapon_notice_id: String = ""
 var _last_weapon_pool_count: int = 0
+var _gravity_sources: Array[Node2D] = []
+var _planet_arrow_sources: Array[Node2D] = []
+var _group_query_buffer: Array[Node2D] = []
+var _hazard_seen_ids: Dictionary = {}
+var _gravity_meter_elapsed: float = 999.0
+var _field_lens_elapsed: float = 999.0
+var _planet_arrow_refresh_elapsed: float = 999.0
+var _last_layout_viewport_size := Vector2.ZERO
 
 # Cache the current intensity to avoid repeated get_shader_parameter calls
 var _current_vignette_intensity: float = 0.0
@@ -99,9 +127,9 @@ func _process(delta: float) -> void:
 	
 	_update_speedometer()
 	_update_resource_bars()
-	var gravity_strength: float = _update_gravity_meter()
+	_update_gravity_meter(delta)
 	_resolve_rule_systems()
-	_update_field_lens()
+	_update_field_lens(delta)
 	_update_time_lens()
 	_update_horizon_lens()
 	_update_chaos_lens()
@@ -111,7 +139,7 @@ func _process(delta: float) -> void:
 	_update_powerup_notice(delta)
 	_update_health_vignette(delta)
 	_update_orbit_telemetry(delta)
-	_update_nav_arrows(gravity_strength)
+	_update_nav_arrows(delta)
 	_update_threat_arrows(delta)
 	_apply_accessibility_settings()
 	_layout_hud()
@@ -208,17 +236,17 @@ func _build_resource_bars() -> void:
 
 	_health_resource_label = _make_resource_label("HULL 100/100")
 	_health_resource_bar = _make_resource_bar(Color(1.0, 0.22, 0.14, 0.96), 20.0)
-	rows.add_child(_health_resource_label)
+	_health_glyph = _add_glyph_label_row(rows, _health_resource_label, &"hull", Color(1.0, 0.22, 0.14, 0.96))
 	rows.add_child(_health_resource_bar)
 
 	_shield_resource_label = _make_resource_label("SHIELD 000/000")
 	_shield_resource_bar = _make_resource_bar(Color(0.24, 0.72, 1.0, 0.94), 16.0)
-	rows.add_child(_shield_resource_label)
+	_shield_glyph = _add_glyph_label_row(rows, _shield_resource_label, &"shield", Color(0.24, 0.72, 1.0, 0.94))
 	rows.add_child(_shield_resource_bar)
 
 	_energy_resource_label = _make_resource_label("ENERGY 0000/0000")
 	_energy_resource_bar = _make_resource_bar(Color(0.34, 1.0, 0.78, 0.94), 16.0)
-	rows.add_child(_energy_resource_label)
+	_energy_glyph = _add_glyph_label_row(rows, _energy_resource_label, &"energy", Color(0.34, 1.0, 0.78, 0.94))
 	rows.add_child(_energy_resource_bar)
 
 
@@ -237,6 +265,46 @@ func _make_resource_bar(fill_color: Color, height: float) -> ProgressBar:
 	bar.custom_minimum_size = Vector2(350.0, height)
 	_style_progress_bar(bar, fill_color)
 	return bar
+
+
+func _add_glyph_label_row(parent: Container, label: Label, kind: StringName, color: Color) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(row)
+	var glyph := HUD_GLYPH_SCENE.instantiate() as Control
+	glyph.custom_minimum_size = Vector2(18.0, 18.0)
+	glyph.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	glyph.call("configure", kind, color, Color(1.0, 0.84, 0.3, 1.0))
+	row.add_child(glyph)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(label)
+	_hud_glyphs.append(glyph)
+	_glyph_rows[label.get_instance_id()] = row
+	return glyph
+
+
+func _set_glyph_state(glyph: Control, value: float, color: Color = Color.TRANSPARENT) -> void:
+	if glyph == null or not is_instance_valid(glyph):
+		return
+	if color.a > 0.0 and glyph.has_method("set_palette"):
+		glyph.call("set_palette", color)
+	if glyph.has_method("set_signal"):
+		glyph.call("set_signal", value, 0.0)
+	elif glyph.has_method("set_activity"):
+		glyph.call("set_activity", value)
+
+
+func _set_glyph_alert(glyph: Control, value: float, warning: float, color: Color = Color.TRANSPARENT) -> void:
+	if glyph == null or not is_instance_valid(glyph):
+		return
+	if color.a > 0.0 and glyph.has_method("set_palette"):
+		glyph.call("set_palette", color)
+	if glyph.has_method("set_signal"):
+		glyph.call("set_signal", value, warning)
+	elif glyph.has_method("set_activity"):
+		glyph.call("set_activity", maxf(value, warning))
 
 
 func _build_readout_panel() -> void:
@@ -267,7 +335,7 @@ func _build_readout_panel() -> void:
 	_speed_label = Label.new()
 	_speed_label.text = "SPD 0000"
 	_style_hud_label(_speed_label, 12)
-	rows.add_child(_speed_label)
+	_speed_glyph = _add_glyph_label_row(rows, _speed_label, &"speed", Color(0.2, 0.86, 1.0, 1.0))
 	
 	_speed_bar = ProgressBar.new()
 	_speed_bar.show_percentage = false
@@ -278,7 +346,7 @@ func _build_readout_panel() -> void:
 	_g_label = Label.new()
 	_g_label.text = "G 000"
 	_style_hud_label(_g_label, 12)
-	rows.add_child(_g_label)
+	_gravity_glyph = _add_glyph_label_row(rows, _g_label, &"gravity", Color(1.0, 0.58, 0.18, 0.96))
 	
 	_g_bar = ProgressBar.new()
 	_g_bar.show_percentage = false
@@ -291,31 +359,31 @@ func _build_readout_panel() -> void:
 	_field_label.text = "FIELD CLEAR"
 	_field_label.clip_text = true
 	_style_hud_label(_field_label, 12)
-	rows.add_child(_field_label)
+	_field_glyph = _add_glyph_label_row(rows, _field_label, &"field", Color(0.34, 1.0, 0.86, 1.0))
 
 	_time_label = Label.new()
 	_time_label.text = "TIME READY"
 	_time_label.clip_text = true
 	_style_hud_label(_time_label, 12)
-	rows.add_child(_time_label)
+	_time_glyph = _add_glyph_label_row(rows, _time_label, &"time", Color(0.72, 0.38, 1.0, 1.0))
 
 	_horizon_label = Label.new()
 	_horizon_label.text = "HORIZON QUIET"
 	_horizon_label.clip_text = true
 	_style_hud_label(_horizon_label, 12)
-	rows.add_child(_horizon_label)
+	_horizon_glyph = _add_glyph_label_row(rows, _horizon_label, &"horizon", Color(1.0, 0.42, 0.22, 1.0))
 
 	_chaos_label = Label.new()
 	_chaos_label.text = "CHAOS T0 CALIBRATION"
 	_chaos_label.clip_text = true
 	_style_hud_label(_chaos_label, 12)
-	rows.add_child(_chaos_label)
+	_chaos_glyph = _add_glyph_label_row(rows, _chaos_label, &"chaos", Color(1.0, 0.58, 0.18, 1.0))
 
 	_slingshot_label = Label.new()
 	_slingshot_label.text = "SLING SEARCH"
 	_slingshot_label.clip_text = true
 	_style_hud_label(_slingshot_label, 12)
-	rows.add_child(_slingshot_label)
+	_slingshot_glyph = _add_glyph_label_row(rows, _slingshot_label, &"slingshot", Color(0.34, 1.0, 0.82, 1.0))
 
 	_slingshot_bar = ProgressBar.new()
 	_slingshot_bar.show_percentage = false
@@ -334,7 +402,7 @@ func _build_readout_panel() -> void:
 	_weapon_label.text = "WEAPON VECTOR BOLT"
 	_weapon_label.clip_text = true
 	_style_hud_label(_weapon_label, 12)
-	rows.add_child(_weapon_label)
+	_weapon_glyph = _add_glyph_label_row(rows, _weapon_label, &"weapon", Color(1.0, 0.72, 0.24, 0.92))
 
 	_weapon_bar = ProgressBar.new()
 	_weapon_bar.show_percentage = false
@@ -367,7 +435,7 @@ func _build_score_panel() -> void:
 	header.text = "RUN SCORE"
 	header.add_theme_font_size_override("font_size", 12)
 	header.modulate = _readability_color(Color(1.0, 0.78, 0.3, 1.0))
-	rows.add_child(header)
+	_phase_glyph = _add_glyph_label_row(rows, header, &"phase", Color(1.0, 0.78, 0.3, 1.0))
 
 	_score_label = Label.new()
 	_score_label.text = "000000"
@@ -548,6 +616,10 @@ func _update_speedometer() -> void:
 	_speed_bar.max_value = current_max_speed
 	_speed_bar.value = clampf(speed, 0.0, current_max_speed)
 	_speed_label.text = "SPD %04d / %04d" % [int(round(speed)), int(round(current_max_speed))]
+	var speed_ratio := clampf(speed / current_max_speed, 0.0, 1.0)
+	var speed_color := Color(0.2, 0.86, 1.0, 1.0).lerp(Color(1.0, 0.9, 0.24, 1.0), clampf((speed_ratio - 0.68) / 0.32, 0.0, 1.0))
+	_speed_label.modulate = _readability_color(speed_color)
+	_set_glyph_state(_speed_glyph, speed_ratio, speed_color)
 
 
 func _update_resource_bars() -> void:
@@ -563,6 +635,8 @@ func _update_resource_bars() -> void:
 		float(health.get("max", 1.0)),
 		Color(1.0, 0.22, 0.14, 1.0)
 	)
+	var health_ratio := float(health.get("current", 0.0)) / maxf(float(health.get("max", 1.0)), 1.0)
+	_set_glyph_alert(_health_glyph, 1.0 - health_ratio, clampf((0.32 - health_ratio) / 0.32, 0.0, 1.0), Color(1.0, 0.22, 0.14, 1.0))
 
 	var shield := _resource_pair("Shield", "current_energy", "max_capacity")
 	var shield_color := Color(0.24, 0.72, 1.0, 1.0)
@@ -578,6 +652,9 @@ func _update_resource_bars() -> void:
 		float(shield.get("max", 1.0)),
 		shield_color
 	)
+	var shield_ratio := float(shield.get("current", 0.0)) / maxf(float(shield.get("max", 1.0)), 1.0)
+	var shield_broken := typeof(shield_broken_value) == TYPE_BOOL and bool(shield_broken_value)
+	_set_glyph_alert(_shield_glyph, 1.0 if shield_broken else shield_ratio, 1.0 if shield_broken else 0.0, shield_color)
 
 	var energy := _resource_pair("EnergyComponent", "current_energy", "max_energy")
 	_apply_resource_bar(
@@ -588,6 +665,8 @@ func _update_resource_bars() -> void:
 		float(energy.get("max", 1.0)),
 		Color(0.34, 1.0, 0.78, 1.0)
 	)
+	var energy_ratio := float(energy.get("current", 0.0)) / maxf(float(energy.get("max", 1.0)), 1.0)
+	_set_glyph_alert(_energy_glyph, energy_ratio, clampf((0.2 - energy_ratio) / 0.2, 0.0, 1.0), Color(0.34, 1.0, 0.78, 1.0))
 
 
 func _resource_pair(node_name: String, current_property: String, max_property: String) -> Dictionary:
@@ -651,38 +730,62 @@ func _pulse_resource_bar(resource_name: String, bar: ProgressBar, current: float
 # GRAVITY METER
 # ============================
 
-func _update_gravity_meter() -> float:
+func _update_gravity_meter(delta: float) -> void:
+	_gravity_meter_elapsed += delta
+	if _gravity_meter_elapsed < maxf(gravity_meter_refresh_interval, 0.02):
+		return
+	_gravity_meter_elapsed = 0.0
 	var gravity: Vector2 = _calculate_gravity_at_player()
 	var strength: float = gravity.length()
 	
 	_g_bar.value = clampf(strength, 0.0, g_warning_level)
 	_g_label.text = "G %03d" % int(round(strength))
-	_g_label.modulate = _readability_color(Color(1, 0.16, 0.1) if strength >= g_warning_level * 0.72 else Color(0.78, 1, 0.96))
-	
-	return strength
+	var gravity_warning := clampf((strength - g_warning_level * 0.72) / maxf(g_warning_level * 0.28, 1.0), 0.0, 1.0)
+	var gravity_color := Color(0.78, 1.0, 0.96, 1.0).lerp(Color(1.0, 0.16, 0.1, 1.0), gravity_warning)
+	_g_label.modulate = _readability_color(gravity_color)
+	_set_glyph_alert(_gravity_glyph, clampf(strength / maxf(g_warning_level, 1.0), 0.0, 1.0), gravity_warning, gravity_color)
 
 
 func _calculate_gravity_at_player() -> Vector2:
 	var gravity_constant: float = float(_player.get("gravity_constant") or 0.0)
 	var min_grav_dist: float = maxf(float(_player.get("min_grav_dist") or 1.0), 1.0)
-	
-	var total = Vector2.ZERO
-	for planet in get_tree().get_nodes_in_group("planets"):
-		if planet == null or not is_instance_valid(planet):
+	var pull_radius := maxf(float(_player.get("gravity_pull_radius") or 0.0), 0.0)
+	var max_sources := maxi(int(_player.get("max_gravity_sources") or 4), 1)
+	var per_source_cap := maxf(float(_player.get("max_gravity_acceleration_per_source") or 3600.0), 1.0)
+	var total_cap := maxf(float(_player.get("max_total_gravity_acceleration") or 7200.0), 1.0)
+
+	_gravity_sources.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_nearest_gravity_sources(
+			_player.global_position,
+			_gravity_sources,
+			max_sources,
+			pull_radius,
+			_player
+		)
+	else:
+		var cached_sources: Variant = _player.get("planets")
+		if cached_sources is Array:
+			for value in cached_sources:
+				var source := value as Node2D
+				if source != null and is_instance_valid(source) and not source.is_queued_for_deletion():
+					_gravity_sources.append(source)
+					if _gravity_sources.size() >= max_sources:
+						break
+
+	var total := Vector2.ZERO
+	for source in _gravity_sources:
+		if source == null or not is_instance_valid(source) or source.is_queued_for_deletion():
 			continue
-		if not (planet is Node2D):
+		var offset := source.global_position - _player.global_position
+		var raw_distance := offset.length()
+		if raw_distance <= 0.001 or (pull_radius > 0.0 and raw_distance > pull_radius):
 			continue
-		var p: Node2D = planet
-		var mass = p.get("mass")
-		if mass == null:
-			continue
-		
-		var offset: Vector2 = p.global_position - _player.global_position
-		var dist: float = maxf(offset.length(), min_grav_dist)
-		if dist <= 0.0:
-			continue
-		total += offset.normalized() * gravity_constant * float(mass) / (dist * dist)
-	
+		var mass_value: Variant = source.get("mass")
+		var source_mass := float(mass_value) if mass_value is float or mass_value is int else 100.0
+		var distance := maxf(raw_distance, min_grav_dist)
+		var contribution := offset / raw_distance * gravity_constant * source_mass / (distance * distance)
+		total = (total + contribution.limit_length(per_source_cap)).limit_length(total_cap)
 	return total
 
 
@@ -765,31 +868,39 @@ func _resolve_rule_systems() -> void:
 			_weapon_system = weapon_system
 			_connect_weapon_system_signals(weapon_system)
 
-func _update_field_lens() -> void:
+func _update_field_lens(delta: float) -> void:
 	if _field_label == null:
 		return
+	_field_lens_elapsed += delta
+	if _field_lens_elapsed < maxf(field_lens_refresh_interval, 0.05):
+		return
+	_field_lens_elapsed = 0.0
 
 	var tide_state := _local_tide_state()
 	if not tide_state.is_empty():
+		var tide_intensity := clampf(float(tide_state.get("local_intensity", 0.0)), 0.0, 1.0)
 		_set_field_text(
 			"TIDE %s  %s %d%%" % [
 				String(tide_state.get("display_name", "Tide")).to_upper(),
 				String(tide_state.get("rule_name", "FIELD")),
 				int(round(float(tide_state.get("local_intensity", 0.0)) * 100.0)),
 			],
-			tide_state.get("color", Color(0.78, 1.0, 0.96, 1.0))
+			tide_state.get("color", Color(0.78, 1.0, 0.96, 1.0)),
+			tide_intensity
 		)
 		return
 
 	var scar_state := _local_scar_state()
 	if not scar_state.is_empty():
+		var scar_intensity := clampf(float(scar_state.get("local_intensity", 0.0)), 0.0, 1.0)
 		_set_field_text(
 			"SCAR %s  %s %d%%" % [
 				String(scar_state.get("display_name", "Scar")).to_upper(),
 				String(scar_state.get("rule_name", "BEND")),
 				int(round(float(scar_state.get("local_intensity", 0.0)) * 100.0)),
 			],
-			scar_state.get("color", Color(0.78, 1.0, 0.96, 1.0))
+			scar_state.get("color", Color(0.78, 1.0, 0.96, 1.0)),
+			scar_intensity
 		)
 		return
 
@@ -798,13 +909,15 @@ func _update_field_lens() -> void:
 		if typeof(zone_value) == TYPE_DICTIONARY:
 			var zone: Dictionary = zone_value
 			if not zone.is_empty():
+				var zone_intensity := clampf(float(zone.get("local_intensity", 0.0)), 0.0, 1.0)
 				_set_field_text(
 					"FIELD %s  %s %d%%" % [
 						String(zone.get("zone_display_name", "Zone")).to_upper(),
 						String(zone.get("zone_rule_name", "FIELD")),
 						int(round(float(zone.get("local_intensity", 0.0)) * 100.0)),
 					],
-					zone.get("zone_color", Color(0.78, 1.0, 0.96, 1.0))
+					zone.get("zone_color", Color(0.78, 1.0, 0.96, 1.0)),
+					zone_intensity
 				)
 				return
 
@@ -815,11 +928,12 @@ func _update_field_lens() -> void:
 				String(nearest_zone.get("zone_display_name", "Zone")).to_upper(),
 				String(nearest_zone.get("zone_rule_name", "FIELD")),
 			],
-			nearest_zone.get("zone_color", Color(0.48, 0.78, 0.84, 1.0))
+			nearest_zone.get("zone_color", Color(0.48, 0.78, 0.84, 1.0)),
+			0.28
 		)
 		return
 
-	_set_field_text("FIELD CLEAR", Color(0.48, 0.78, 0.84, 1.0))
+	_set_field_text("FIELD CLEAR", Color(0.48, 0.78, 0.84, 1.0), 0.04)
 
 func _update_time_lens() -> void:
 	if _time_label == null:
@@ -828,6 +942,7 @@ func _update_time_lens() -> void:
 	if _time_dilation_manager == null or not is_instance_valid(_time_dilation_manager):
 		_time_label.text = "TIME OFFLINE"
 		_time_label.modulate = _readability_color(Color(0.48, 0.78, 0.84, 1.0))
+		_set_glyph_state(_time_glyph, 0.0, Color(0.48, 0.78, 0.84, 1.0))
 		return
 
 	var capacity := float(_time_dilation_manager.get("current_dilation_capacity") or 0.0)
@@ -835,9 +950,14 @@ func _update_time_lens() -> void:
 	var dilating := bool(_time_dilation_manager.get("is_dilating")) if typeof(_time_dilation_manager.get("is_dilating")) == TYPE_BOOL else false
 	var scale := float(_time_dilation_manager.get("current_time_scale") or Engine.time_scale)
 	var state := "DILATING" if dilating else "READY"
+	var field_targets := int(_time_dilation_manager.get("active_field_target_count") or 0)
 
 	_time_label.text = "TIME %s  x%.2f %d%%" % [state, scale, int(round(capacity / maximum * 100.0))]
-	_time_label.modulate = _readability_color(Color(0.72, 0.38, 1.0, 1.0) if dilating else Color(0.72, 1.0, 0.96, 1.0))
+	if dilating:
+		_time_label.text += "  // %d IN FIELD" % field_targets
+	var time_color := Color(0.72, 0.38, 1.0, 1.0) if dilating else Color(0.72, 1.0, 0.96, 1.0)
+	_time_label.modulate = _readability_color(time_color)
+	_set_glyph_state(_time_glyph, clampf(1.0 - scale, 0.0, 1.0) if dilating else capacity / maximum * 0.18, time_color)
 
 func _update_horizon_lens() -> void:
 	if _horizon_label == null:
@@ -846,6 +966,7 @@ func _update_horizon_lens() -> void:
 	if _event_horizon_manager == null or not is_instance_valid(_event_horizon_manager):
 		_horizon_label.text = "HORIZON QUIET"
 		_horizon_label.modulate = _readability_color(Color(0.48, 0.78, 0.84, 1.0))
+		_set_glyph_state(_horizon_glyph, 0.0, Color(0.48, 0.78, 0.84, 1.0))
 		return
 
 	var state := {}
@@ -859,14 +980,19 @@ func _update_horizon_lens() -> void:
 	var cooldown := float(state.get("cooldown", 0.0))
 
 	if active:
+		var horizon_color := Color(1.0, 0.22, 0.12, 1.0).lerp(Color(0.72, 0.36, 1.0, 1.0), intensity * 0.55)
 		_horizon_label.text = "HORIZON ESCAPE  %03d%%" % int(round(intensity * 100.0))
-		_horizon_label.modulate = _readability_color(Color(1.0, 0.22, 0.12, 1.0).lerp(Color(0.72, 0.36, 1.0, 1.0), intensity * 0.55))
+		_horizon_label.modulate = _readability_color(horizon_color)
+		_set_glyph_alert(_horizon_glyph, intensity, intensity, horizon_color)
 	elif cooldown > 0.0:
+		var cooldown_color := Color(0.78, 0.54, 1.0, 1.0)
 		_horizon_label.text = "HORIZON RECOVER  %.0fs" % cooldown
-		_horizon_label.modulate = _readability_color(Color(0.78, 0.54, 1.0, 1.0))
+		_horizon_label.modulate = _readability_color(cooldown_color)
+		_set_glyph_state(_horizon_glyph, 0.24, cooldown_color)
 	else:
 		_horizon_label.text = "HORIZON QUIET"
 		_horizon_label.modulate = _readability_color(Color(0.48, 0.78, 0.84, 1.0))
+		_set_glyph_state(_horizon_glyph, 0.0, Color(0.48, 0.78, 0.84, 1.0))
 
 func _update_chaos_lens() -> void:
 	if _chaos_label == null:
@@ -875,6 +1001,7 @@ func _update_chaos_lens() -> void:
 	if _arena_destabilization_manager == null or not is_instance_valid(_arena_destabilization_manager):
 		_chaos_label.text = "CHAOS T0 CALIBRATION"
 		_chaos_label.modulate = _readability_color(Color(0.48, 0.78, 0.84, 1.0))
+		_set_glyph_state(_chaos_glyph, 0.0, Color(0.48, 0.78, 0.84, 1.0))
 		return
 
 	var state := {}
@@ -891,7 +1018,9 @@ func _update_chaos_lens() -> void:
 	var tier_name := String(state.get("tier_name", state.get("chaos_tier_name", "calibration"))).to_upper()
 	var instability := clampf(float(state.get("instability", 0.0)), 0.0, 1.0)
 	_chaos_label.text = "CHAOS T%d %s  %03d%%" % [tier, tier_name, int(round(instability * 100.0))]
-	_chaos_label.modulate = _readability_color(_chaos_tier_color(tier))
+	var chaos_color := _chaos_tier_color(tier)
+	_chaos_label.modulate = _readability_color(chaos_color)
+	_set_glyph_state(_chaos_glyph, instability, chaos_color)
 
 func _update_slingshot_lens() -> void:
 	if _slingshot_label == null or _slingshot_bar == null:
@@ -917,6 +1046,7 @@ func _update_slingshot_lens() -> void:
 		int(round(distance)),
 	]
 	_slingshot_label.modulate = _readability_color(color)
+	_set_glyph_state(_slingshot_glyph, score, color)
 
 	if _combo_label == null:
 		return
@@ -955,6 +1085,7 @@ func _update_weapon_lens() -> void:
 		_weapon_label.text = "WEAPON VECTOR BOLT"
 		_weapon_label.modulate = _readability_color(Color(0.48, 0.78, 0.84, 1.0))
 		_weapon_bar.value = 0.0
+		_set_glyph_state(_weapon_glyph, 0.0, Color(0.48, 0.78, 0.84, 1.0))
 		return
 
 	var state_value: Variant = _weapon_system.call("get_weapon_debug_state")
@@ -985,10 +1116,14 @@ func _update_weapon_lens() -> void:
 	_weapon_label.modulate = _readability_color(color)
 	_weapon_bar.modulate = _readability_color(color.lerp(Color.WHITE, 0.16 if ready else 0.46))
 	_weapon_bar.value = energy_percent
+	_set_glyph_alert(_weapon_glyph, 1.0 if active else energy_percent, 0.0 if ready else 0.82, color)
 
 func _update_score_panel(delta: float) -> void:
 	if _score_label == null:
 		return
+	var run_phase := int(RunProgress.get("phase") or 0) if RunProgress != null else 0
+	var phase_ratio := clampf(float(run_phase) / 6.0, 0.0, 1.0)
+	_set_glyph_state(_phase_glyph, phase_ratio, Color(1.0, 0.78, 0.3, 1.0).lerp(Color(0.82, 0.38, 1.0, 1.0), phase_ratio))
 
 	if _score_tracker != null and is_instance_valid(_score_tracker) and _score_tracker.has_method("get_score_snapshot"):
 		var snapshot_value: Variant = _score_tracker.call("get_score_snapshot")
@@ -1012,6 +1147,8 @@ func _update_score_panel(delta: float) -> void:
 	_score_label.modulate = _readability_color(Color(1.0, 0.94, 0.68, 1.0).lerp(Color(0.38, 1.0, 0.86, 1.0), glow))
 	if _score_panel != null:
 		_score_panel.modulate = Color(1.0, 1.0, 1.0, 0.9 + glow * 0.1)
+	if _phase_glyph != null:
+		_set_glyph_alert(_phase_glyph, phase_ratio, glow * 0.35, Color(1.0, 0.78, 0.3, 1.0).lerp(Color(0.82, 0.38, 1.0, 1.0), phase_ratio))
 
 func _on_score_changed(score: int, snapshot: Dictionary) -> void:
 	_apply_score_snapshot(score, snapshot)
@@ -1165,9 +1302,10 @@ func _slingshot_color(state: String, score: float) -> Color:
 			return Color(0.55, 0.62, 0.75, 1.0)
 	return Color(0.48 + score * 0.22, 0.78 + score * 0.18, 0.84 + score * 0.12, 1.0)
 
-func _set_field_text(text: String, color: Color) -> void:
+func _set_field_text(text: String, color: Color, intensity: float = 0.12) -> void:
 	_field_label.text = text
 	_field_label.modulate = _readability_color(Color(color.r, color.g, color.b, 1.0))
+	_set_glyph_state(_field_glyph, intensity, Color(color.r, color.g, color.b, 1.0))
 
 func _on_powerup_applied(definition: PowerupDefinition, stacks: int) -> void:
 	if definition == null or _powerup_notice_label == null:
@@ -1294,16 +1432,17 @@ func _nearest_resonance_zone() -> Dictionary:
 func _local_tide_state() -> Dictionary:
 	var best: Dictionary = {}
 	var best_intensity := 0.0
-	var seen := {}
+	_hazard_seen_ids.clear()
 
 	for group_name in [&"arena_hazard", &"arena_destabilization_hazard"]:
-		for node in get_tree().get_nodes_in_group(group_name):
+		_fill_group_nodes(group_name, _group_query_buffer)
+		for node in _group_query_buffer:
 			if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
 				continue
 			var id := node.get_instance_id()
-			if seen.has(id):
+			if _hazard_seen_ids.has(id):
 				continue
-			seen[id] = true
+			_hazard_seen_ids[id] = true
 			if not node.has_method("get_tide_debug_state"):
 				continue
 
@@ -1370,13 +1509,14 @@ func _update_health_vignette(delta: float) -> void:
 # NAVIGATION ARROWS
 # ============================
 
-func _update_nav_arrows(_gravity_strength: float) -> void:
+func _update_nav_arrows(delta: float) -> void:
+	_refresh_planet_arrow_sources(delta)
 	var viewport_size: Vector2 = _safe_viewport_size()
 	var center: Vector2 = viewport_size * 0.5
 	var canvas_transform: Transform2D = _safe_canvas_transform()
 	var arrow_index: int = 0
 	
-	for planet in get_tree().get_nodes_in_group("planets"):
+	for planet in _planet_arrow_sources:
 		if arrow_index >= _arrows.size():
 			break
 		if planet == null or not is_instance_valid(planet):
@@ -1412,6 +1552,14 @@ func _update_nav_arrows(_gravity_strength: float) -> void:
 		_arrows[i].visible = false
 
 
+func _refresh_planet_arrow_sources(delta: float) -> void:
+	_planet_arrow_refresh_elapsed += delta
+	if _planet_arrow_refresh_elapsed < maxf(navigation_target_refresh_interval, 0.08):
+		return
+	_planet_arrow_refresh_elapsed = 0.0
+	_fill_group_nodes(&"planets", _planet_arrow_sources)
+
+
 func _update_threat_arrows(delta: float) -> void:
 	_threat_refresh_elapsed += delta
 	if _threat_refresh_elapsed >= maxf(threat_arrow_refresh_interval, 0.05):
@@ -1441,7 +1589,8 @@ func _collect_offscreen_targets(group_name: StringName, limit: int, skip_bosses:
 	var viewport_size: Vector2 = _safe_viewport_size()
 	var canvas_transform: Transform2D = _safe_canvas_transform()
 
-	for node in get_tree().get_nodes_in_group(group_name):
+	_fill_group_nodes(group_name, _group_query_buffer)
+	for node in _group_query_buffer:
 		if node == null or not is_instance_valid(node):
 			continue
 		var target := node as Node2D
@@ -1472,19 +1621,20 @@ func _collect_offscreen_targets_from_groups(group_names: Array[StringName], limi
 
 	var viewport_size: Vector2 = _safe_viewport_size()
 	var canvas_transform: Transform2D = _safe_canvas_transform()
-	var seen := {}
+	_hazard_seen_ids.clear()
 
 	for group_name in group_names:
-		for node in get_tree().get_nodes_in_group(group_name):
+		_fill_group_nodes(group_name, _group_query_buffer)
+		for node in _group_query_buffer:
 			if node == null or not is_instance_valid(node):
 				continue
 			var target := node as Node2D
 			if target == null or target == _player or target.is_queued_for_deletion():
 				continue
 			var id := target.get_instance_id()
-			if seen.has(id):
+			if _hazard_seen_ids.has(id):
 				continue
-			seen[id] = true
+			_hazard_seen_ids[id] = true
 			var screen_pos: Vector2 = canvas_transform * target.global_position
 			if not _is_screen_position_offscreen(screen_pos, viewport_size, 18.0):
 				continue
@@ -1552,6 +1702,19 @@ func _project_to_screen_edge(center: Vector2, direction: Vector2, viewport_size:
 	return center + direction * minf(scale_x, scale_y)
 
 
+func _fill_group_nodes(group_name: StringName, out_nodes: Array[Node2D], limit: int = -1) -> void:
+	out_nodes.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(group_name, out_nodes, limit)
+		return
+	for value in get_tree().get_nodes_in_group(group_name):
+		if limit >= 0 and out_nodes.size() >= limit:
+			return
+		var node := value as Node2D
+		if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+			out_nodes.append(node)
+
+
 func _arc_points(radius: float, start_angle: float, end_angle: float, steps: int) -> PackedVector2Array:
 	var points := PackedVector2Array()
 	for i in range(maxi(steps, 2)):
@@ -1562,6 +1725,9 @@ func _arc_points(radius: float, start_angle: float, end_angle: float, steps: int
 
 
 func _on_accessibility_changed(_settings: Dictionary) -> void:
+	for glyph in _hud_glyphs:
+		if glyph != null and is_instance_valid(glyph) and glyph.has_method("refresh_readability"):
+			glyph.call("refresh_readability")
 	_apply_accessibility_settings(true)
 
 
@@ -1573,19 +1739,22 @@ func _apply_accessibility_settings(force: bool = false) -> void:
 		return
 	_last_ui_scale = scale_value
 	_hud_root.scale = Vector2.ONE * scale_value
-	_layout_hud()
+	_layout_hud(true)
 
 
-func _layout_hud() -> void:
+func _layout_hud(force: bool = false) -> void:
 	if _hud_root == null:
 		return
 	var scale_value := maxf(_last_ui_scale, 0.75)
 	var viewport_size := _safe_viewport_size() / scale_value
+	if not force and viewport_size.is_equal_approx(_last_layout_viewport_size):
+		return
+	_last_layout_viewport_size = viewport_size
 	var margin := maxf(hud_safe_margin, 10.0)
 	var compact_width := viewport_size.x < 960.0
 	var compact_height := viewport_size.y < 660.0
 	var resource_width := clampf(viewport_size.x * (0.44 if compact_width else 0.29), 286.0, 382.0)
-	var resource_height := 132.0 if compact_height else 148.0
+	var resource_height := 144.0 if compact_height else 148.0
 
 	if _resource_panel != null:
 		_resource_panel.custom_minimum_size = Vector2(resource_width, resource_height)
@@ -1595,9 +1764,9 @@ func _layout_hud() -> void:
 	if _readout_panel != null:
 		var readout_top := margin + resource_height + left_panel_gap
 		var readout_width := minf(resource_width, 318.0)
-		var readout_height := 318.0
+		var readout_height := 344.0
 		if compact_height:
-			readout_height = clampf(viewport_size.y - readout_top - 150.0, 168.0, 248.0)
+			readout_height = clampf(viewport_size.y - readout_top - 150.0, 168.0, 260.0)
 		else:
 			readout_height = minf(readout_height, maxf(viewport_size.y - readout_top - margin, 220.0))
 		_readout_panel.custom_minimum_size = Vector2(readout_width, readout_height)
@@ -1628,9 +1797,20 @@ func _set_readout_compact(compact: bool) -> void:
 			label.add_theme_font_size_override("font_size", font_size)
 	for label in [_time_label, _horizon_label]:
 		if label != null:
-			label.visible = not compact
+			_set_label_row_visible(label, not compact)
 	if _chaos_label != null:
-		_chaos_label.visible = not compact
+		_set_label_row_visible(_chaos_label, not compact)
+
+
+func _set_label_row_visible(label: Label, visible: bool) -> void:
+	if label == null:
+		return
+	var row_value: Variant = _glyph_rows.get(label.get_instance_id(), null)
+	var row := row_value as Control
+	if row != null:
+		row.visible = visible
+	else:
+		label.visible = visible
 
 
 func _resize_readout_bars(width: float) -> void:

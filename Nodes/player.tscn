@@ -71,9 +71,10 @@ random_pitch = 1.3348398
 streams_count = 1
 stream_0/stream = ExtResource("6_r4ynj")
 
-[node name="Player" type="CharacterBody2D" unique_id=943672105 groups=["Player"]]
+[node name="Player" type="CharacterBody2D" unique_id=943672105 groups=["Player", "gravity_heat_map_overlay"]]
 process_mode = 3
 script = ExtResource("1_qlfej")
+slingshot_sweet_spot_distance = 240.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=203339141]
 position = Vector2(-12, 0)

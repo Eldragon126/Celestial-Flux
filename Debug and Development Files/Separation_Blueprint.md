@@ -134,6 +134,8 @@ After death:
 Purpose:
 > players generate their own marketing clips
 
+Production update (2026-06-21): the local player's final 14 seconds are now retained in a fixed-size sample ring and reconstructed on the game-over screen as a looping Gravity Ghost. Great/apex slingshots, near misses, successful recovery windows, and event-horizon escapes become mastery marks along the route. The 2026-06-23 pass adds a speed/pressure lane, component pressure bands, incident markers, and event-specific timeline markers so the replay explains both motion and danger timing. This is a presentation replay, not a live physics rewind, so it stays bounded and cannot re-trigger combat state.
+
 ---
 
 ## 2. “WHAT JUST HAPPENED?” EVENTS
@@ -315,6 +317,9 @@ Late-wave spectacle now has explicit technical boundaries:
 - Multiplayer gameplay compatibility is routed through `MultiplayerTargeting`, player state import/export, and deterministic vector events so enemies, projectiles, HUD, and co-op combo systems do not assume one hardcoded player.
 - Safe mod hooks now resolve through `ModHookDirector`: manifests declare conditions/effects, the registry validates/indexes them, and a trusted director applies bounded resonance/scar/powerup/weapon/HUD/SFX effects or records higher-level requests. Player-triggered hook effects replay through `NetworkSession` by entry id instead of giving mods script execution or raw scene spawning.
 - Weapon expansion stays catalog-driven. New built-in weapons and mod weapons share the same projectile payload, HUD, prediction, energy, and network projectile path, including the safe pattern vocabulary `converge`, `scissor`, and `pinwheel`.
+- Death presentation now owns a bounded Gravity Ghost reconstruction. `GravityGhostRecorder` samples only the local player's rolling movement history and pressure components, then exports packed display data to `RunProgress`; the game-over panel animates that data without retaining enemies, projectiles, or live scene objects.
+- HUD simulation and HUD presentation are now explicitly separated: `RuntimeRegistry` owns target membership, throttled HUD samplers own readable telemetry, and screen projection/layout work runs only at the cadence each visual actually needs.
+- HUD iconography now lives in `VectorHudGlyph`, a code-native presentation component. OrbitalHUD owns value binding and severity decisions, while the glyph draws compact shapes with `Settings` readability colors, keeping UI art replacement separate from simulation telemetry.
 
 The commercial rule remains unchanged: the player should see impossible physics, while the code keeps discovery, pooling, validation, UI, saves, and content manifests separated into inspectable systems.
 

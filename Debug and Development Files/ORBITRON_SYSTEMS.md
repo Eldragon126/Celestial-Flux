@@ -19,6 +19,7 @@
 - `ModContentRegistry` discovers data-driven mod manifests without executing arbitrary code.
 - `ModHookDirector` consumes safe hookable mod entries, evaluates conditions, applies bounded whitelisted effects, records deferred director requests, and replays player-triggered hook effects through `NetworkSession`.
 - `RunScoreTracker` emits score snapshots and shareable challenge codes.
+- `GravityGhostRecorder` keeps a bounded local-player movement ring and exports the final route plus mastery highlights for game-over reconstruction.
 - `PhysicsDropSystem` spawns physics-based enemy rewards from death signals.
 - `ArenaRuleDirector` applies seeded arena law profiles for alternate arena physics.
 - `ArenaInstabilityDirector` schedules data-driven battlefield mutations.
@@ -68,6 +69,10 @@ Scripts may create fallback nodes when a scene is missing them, but should first
 
 The system samples targets on a short interval and only draws arrows for offscreen targets to avoid UI clutter during late-run chaos.
 
+HUD discovery is registry-backed. Gravity readouts sample the same capped nearest-source model as the player at 20 Hz, field text refreshes at a readable 8 Hz, planet-arrow membership refreshes at 5 Hz, and screen projection remains smooth between membership refreshes. Layout recomputation now occurs only when viewport size or UI scale changes. Rare-event and tide groups are tracked by `RuntimeRegistry`, so the HUD no longer performs live scene-tree group scans during its normal frame loop.
+
+The readout panels now use code-native vector glyphs rather than placeholder bitmap assets. Hull, shield, energy, speed, gravity, field, time, horizon, chaos, slingshot, weapon, and run-phase glyphs are drawn from live HUD state, inherit `Settings` readability colors, and expose separate activity/severity channels so warning states remain scannable under colorblind palettes.
+
 ## Resonance Architecture
 
 `GravityResonanceManager` supports these zone types:
@@ -103,7 +108,7 @@ Chronal Refraction Beam is the time-fantasy beam. It applies local slow, draws c
 
 ## Time Dilation Architecture
 
-`TimeDilationManager` avoids global slowdown by default. It keeps player motion responsive while applying local time pockets to enemies, bosses, and enemy projectiles. Global dilation now has a safe minimum scale, and local slow effects have a max active budget plus a minimum multiplier so temporal effects cannot turn into unbounded performance/readability stalls. Existing signals remain, and aliases are provided for broader system hooks:
+`TimeDilationManager` avoids global slowdown by default. A smoothed activation blend immediately drives the reported field scale, local enemy/boss/projectile multipliers, HUD, and screen shader while `Engine.time_scale` stays at 1. The player-authored field is spatial: registry-backed radius queries select nearby threats, and slow strength falls off toward the boundary. This makes dilation reward entering danger and controlling distance rather than freezing the entire arena. Local fields use their own expiry metadata channel, so `CombatStatus` can combine them with weapon/status slows without either system deleting the other. Velocity is no longer repeatedly multiplied and restored; targets consume scaled simulation time instead. Target counts, minimum multipliers, and group quotas remain bounded. Existing signals remain, and aliases are provided for broader system hooks:
 
 - `dilation_started`
 - `dilation_ended`
@@ -111,7 +116,7 @@ Chronal Refraction Beam is the time-fantasy beam. It applies local slow, draws c
 - `pocket_exited`
 - `instability_changed`
 
-Targets read `local_time_scale` metadata through `CombatStatus` or manager helpers. This keeps future deterministic sync work easier than serializing live physics state.
+Targets read status and time-field metadata through `CombatStatus` or manager helpers. This keeps future deterministic sync work easier than serializing live physics state.
 
 ## Boss Framework
 
@@ -248,6 +253,12 @@ The broken-shield check accepts both exported player references and scene-author
 Player death flow is intentionally short and locked. `player.gd`, `HealthComponent`, and `WeaponSystem` stop repeat death signals, held fire, beam fire, input, and movement acceleration as soon as death begins, while preserving a brief collapse watch before game over.
 
 Player hit flow now includes a short configurable post-hit invulnerability window in `player.gd`. The window applies to shield/hull damage, emits telemetry signals for started/ignored damage, and flashes hull/shield visuals so burst hits feel fair without removing danger.
+
+## Gravity Ghost Replay
+
+`GravityGhostRecorder` samples only the locally owned player at 10 Hz into a fixed-size ring covering the final 14 seconds. Samples contain position, speed, and bounded danger pressure; they never retain scene-object references. Great/perfect/apex slingshots, near misses, successful recovery windows, and event-horizon escapes are recorded as capped highlight markers.
+
+When the player emits the death lesson, the recorder writes packed presentation arrays to transient `RunProgress.last_gravity_ghost_replay` state that is deliberately excluded from the run-anchor save. `GravityGhostReplayPanel` reads that snapshot on the game-over screen, fits the trajectory into a compact cyan/orange vector map, loops an animated ship ghost, graphs speed/danger pressure along the bottom lane, and calls out mastery marks as the playhead reaches them. The recorder also stores component pressure bands for projectiles, hostile density, hull state, and gravity load, then promotes threshold crossings into capped incident markers. This is deliberately not a deterministic world replay: no enemy, projectile, damage, audio, or physics event is re-executed.
 
 ## Freed Object Safety
 
@@ -399,7 +410,9 @@ The runner is a progress/performance validator, not a live-state save or determi
 
 ## Pause And Game Over
 
-`PauseMenu` runs in `PROCESS_MODE_ALWAYS`, fades the simulation into a true paused state, and exposes scene-authored sections for settings/readability, seed sharing, modding status, multiplayer prep, weapon status, and run controls. Resume, restart, and abort-to-title remain real buttons rather than generated UI. Section labels receive runtime color/outline accents so settings, weapon, modding, and multiplayer information stay scannable under the pause shader.
+`PauseMenu` runs in `PROCESS_MODE_ALWAYS`, fades the simulation into a true paused state, and exposes scene-authored sections for settings/readability, seed sharing, modding status, multiplayer prep, weapon status, and run controls. Resume, restart, and abort-to-title remain real buttons rather than generated UI. Section labels receive runtime color/outline accents so settings, weapon, modding, and multiplayer information stay scannable under the pause shader. The current pause pass also wraps the menu content in a runtime scroll shell, smooths panel scale/fade entry, and uses context labels for the normal run, tutorial, Steam demo, and Clip Lab.
+
+Pause restart/exit routing is context aware. Tutorial restart returns to `res://Nodes/playable_tutorial.tscn`, Steam demo retry returns to `res://Nodes/demo_game.tscn`, Clip Lab reset returns to `res://Nodes/clip_lab_scene.tscn`, and the normal campaign still routes through `res://Nodes/run_loading_screen.tscn`. Network clients continue to see host-only restart while hosts keep the existing hosted restart path.
 
 Player death stores `RunProgress.last_death_message`, then changes to `res://Nodes/game_over_scene.tscn`. The game-over scene clears the progress anchor and displays the exact death vector lesson before allowing a retry or title return.
 
@@ -413,7 +426,7 @@ Boss Rush now stays wave-enabled even though it uses challenge state, and it com
 
 The pause menu displays `RunProgress.get_run_seed_code()` and can copy it to the clipboard. The current format is `mode:seed:wave`.
 
-Pause and HUD scaling are separated: the pause panel scales around its center and clamps to the viewport, while offscreen HUD arrows live outside the scaled HUD root so larger UI settings do not push arrows offscreen.
+Pause and HUD scaling are separated: the pause panel scales around its center and clamps to the viewport, while offscreen HUD arrows live outside the scaled HUD root so larger UI settings do not push arrows offscreen. The run loading screen now displays an eased progress ratio instead of raw threaded-loader jumps, so cached loads do not visibly snap from 0 to 50 to 100.
 
 ## Projectile Prediction And Flash Safety
 
@@ -461,7 +474,8 @@ This keeps high-chaos combat deterministic-feeling, readable, and bounded under 
 
 - Reduced Flash now distinguishes transient flashes from persistent readability geometry. Player projectiles use a projectile-specific alpha floor, while gravity/resonance circles keep a persistent alpha floor.
 - Black-hole spaghettification no longer non-uniformly scales live collision bodies. Consumption avoids mutating the player's collision tree inside the black-hole physics callback, and the decorative core no longer owns a blocking physics shape.
-- Optional orbiting celestial events default off in `Settings`. When enabled, binary/structure orbit radius and angular direction are captured from the player's position and velocity at spawn rather than continuously chasing the player; LAN runs replicate the host's choice in protocol 6 run config.
+- Orbiting celestial events default on in `Settings`. Binary/structure orbit radius and angular direction are captured from the player's position and velocity at spawn rather than continuously chasing the player; LAN runs replicate the host's choice in protocol 6 run config.
+- Player auto-orbit assistance is a separate, off-by-default pause setting. It gates continuous proximity/tangent correction while preserving manual gravity and the core one-shot slingshot reward.
 - Waves 1-4 now use explicit tutorial-readable rosters. Procedural gravity spawners move to wave 6 and gravity-wave makers to wave 8, preventing the old wave-4 overlap of new AI families and authored gravity fields.
 - `ModContentRegistry` can validate manifest text/files and export a creator diagnostics report. The Mods screen exposes that report, and `website/modding/` is the dedicated public Creator Lab.
 
@@ -471,3 +485,36 @@ This keeps high-chaos combat deterministic-feeling, readable, and bounded under 
 - Creator options persist beside mod toggles, render as native controls in the Mods screen, and can gate safe hooks through typed `mod_option` comparisons.
 - Gameplay-affecting option values participate in LAN compatibility signatures; local visual choices remain signature-exempt.
 - Creator diagnostics now include conflict state and resolved option values, while the public Creator Lab can forge, import, validate, and export schema 4 starter contracts.
+
+## 2026-06-20 Controls, Time, And Creator Completion
+
+- The Mods screen includes a live Creator Sandbox that validates pasted schema 4 JSON and safely installs new manifests into an isolated `user://mods/<id>` folder without overwriting an existing pack.
+- Registry snapshots and reports expose the resolved dependency graph, and required dependencies are re-evaluated after conflict blocking.
+- Creator Lab preserves imported contracts during edits, validates dependency version ranges, and renders a live required/optional/conflict pack graph.
+- Local time dilation now has immediate mechanical payoff without global time scale, plus smooth shader ingress/egress instead of start/end flashes.
+
+## 2026-06-21 Chronal Bubble Update
+
+- Player time dilation is now a spatial field with an editable radius and radial falloff rather than an arena-wide slow.
+- The player field uses a separate status channel, so targets can move between the core and boundary without weakening stronger temporal scars, weapons, or authored event slows.
+- A scene-editable cyan boundary communicates field reach, and the HUD reports the number of unique enemies, bosses, and hostile projectiles currently affected.
+- RuntimeRegistry supplies bounded radius queries, while a reusable group buffer and cross-group instance filter avoid per-tick allocations and double-counting bosses.
+
+## 2026-06-21 Gravity Ghost Update
+
+- Game over now includes a looping reconstruction of the local player's final 14 seconds, turning failure into an inspectable movement lesson and a clip-friendly recap.
+- The recorder uses a fixed-size sample ring, packed snapshot arrays, capped mastery markers, and cached registry pressure counts; it never snapshots the live physics world.
+- Multiplayer records only the locally owned ship, so remote proxies cannot overwrite the player's death vector.
+
+## 2026-06-21 HUD Performance Boundary Update
+
+- OrbitalHUD gravity strength now mirrors the player's capped nearest-source, pull-radius, and acceleration-limit rules instead of summing every planet discovered from the scene tree.
+- Gravity text, field-rule inspection, and planet-arrow membership have separate inspector-editable refresh budgets; arrow positions still project smoothly every frame.
+- HUD panel layout is recalculated only after viewport/UI-scale changes, and threat/tide/rare-event discovery uses reusable registry buffers rather than frame-loop group scans.
+
+## 2026-06-23 Vector Diagnostic UI Update
+
+- `VectorHudGlyph` provides inspector-editable, code-native icons for the HUD's diagnostic language, covering resources, movement, local fields, time, horizons, chaos, slingshot mastery, weapons, and run phase without adding external asset dependencies.
+- OrbitalHUD binds glyph activity and severity to live values: low hull/energy, broken shield, high gravity, active horizons, weapon readiness, score pulses, and phase progression all change shape intensity as well as text color.
+- Gravity Ghost Replay now renders a speed/pressure lane, component pressure bands, incident markers, and event-specific timeline markers, so the player can read not only where the ship went, but when danger, speed, and exceptional recoveries changed.
+- The game-over summary now includes a `BLACK BOX` row sourced from the Gravity Ghost snapshot's incident summary, keeping the quick retry screen informative without adding a separate report scene.

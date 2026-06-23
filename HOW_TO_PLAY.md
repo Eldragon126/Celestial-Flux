@@ -11,6 +11,8 @@ You survive by mastering momentum inside collapsing gravity rules. Movement is t
 - `Toggle` changes drag mode, letting advanced players preserve speed at the cost of control.
 - Double-tap thrust release to dash when available.
 - Good movement keeps a clean tangent around gravity wells instead of fighting directly against them.
+- `PLAYER AUTO-ORBIT` in the pause settings enables continuous tangent/proximity assistance. It defaults off; the one-shot slingshot reward remains available in either mode.
+- `ORBITING CELESTIAL EVENTS` controls binary systems and orbiting structures, not the ship. Those arena events default on.
 
 ## Slingshot Mastery
 
@@ -41,7 +43,7 @@ Zone visuals use color, label, and glyph direction to show the rule. If a zone b
 
 ## Time Dilation
 
-Time dilation is player-safe by design. The player keeps momentum responsiveness while enemies and projectiles can be locally slowed through time pockets, temporal scars, and near-miss charge.
+Hold `time_dilation` to smoothly deepen a local time field around the ship. The thin cyan boundary marks its reach. Slow is strongest near the player and falls off toward that boundary, turning dilation into a positioning tool instead of a global panic button. The player keeps momentum responsiveness while nearby enemies, bosses, and hostile projectiles consume scaled simulation time. The HUD reports both field strength and how many threats are inside it even though `Engine.time_scale` stays at 1 by default. Releasing the key fades the field and shader overlay instead of flashing them off.
 
 ## Upgrades And Synergies
 
@@ -121,6 +123,10 @@ The pause menu shows the current seed code for sharing a run. `RunScoreTracker` 
 
 Challenge codes are seed-based score summaries. They are meant for friendly competitions and reproducible challenge runs, not as a final online leaderboard yet.
 
+## Gravity Ghost
+
+After a run ends, the game-over screen reconstructs the local player's final movement path. Cyan marks the controlled route, orange marks rising danger, and timeline markers show great slingshots, near misses, successful recovery windows, or event-horizon escapes. A bottom lane graphs speed, overall pressure, and pressure components such as projectiles, hostile density, hull danger, and gravity load, so the replay reads like a compact black box. It loops automatically and never delays the retry buttons.
+
 ## Mods
 
 The first modding foundation is data-driven. `ModContentRegistry` can discover `vector_anomaly_mod.json` manifests from `res://Mods` and `user://mods` with entries for arenas, waves, upgrades, and gameplay rules. The registry does not automatically run mod code.
@@ -140,11 +146,15 @@ The pause menu exposes readability controls:
 
 It also exposes the current run seed, mod registry status, active multiplayer status, and co-op readability budget so debugging and sharing stay inside the game UI instead of requiring console inspection.
 
+Pause now works in the tutorial, Steam demo, Clip Lab, and normal campaign. The restart/exit buttons rename themselves for that context: tutorial restart returns to the playable tutorial, Steam demo retry returns to the demo scene, Clip Lab reset returns to the capture lab, and a normal run restart still routes through the run loading screen.
+
+The HUD uses compact vector glyphs beside the major readouts. These icons react to hull, shield, energy, speed, gravity, field, time, horizon, chaos, slingshot, weapon, and run-phase state while respecting the same readability colors as the text.
+
 ## Developer Notes
 
 - Main playable scene: `res://Nodes/the_abyss.tscn`
 - Progress anchor: `RunProgress` autoload, stored at `user://run_anchor.save`
-- Pause must freeze gameplay and keep UI responsive.
+- Pause must freeze gameplay and keep UI responsive, including tutorial/demo/lab contexts.
 - LAN multiplayer entry point: `NetworkSession` autoload. Keep transport/session behavior there instead of spreading networking through gameplay scripts.
 - Host controls network run start/restart; clients leave cleanly to title if the session ends.
 - Remote players are proxies. They should not process local input, HUD, camera, pause UI, or local trajectory/aim predictors.

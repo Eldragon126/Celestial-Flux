@@ -9,6 +9,8 @@
 	const diagnostics = document.querySelector("[data-diagnostics]");
 	const validationStatus = document.querySelector("[data-validation-status]");
 	const validationList = document.querySelector("[data-validation-list]");
+	const contractGraph = document.querySelector("[data-contract-graph]");
+	let importedBase = null;
 
 	const presets = {
 		weapon: (network) => ({
@@ -45,9 +47,13 @@
 		return splitList(value).map((token) => {
 			const optional = token.endsWith("?");
 			const clean = optional ? token.slice(0, -1) : token;
-			const [rawId, minVersion] = clean.split("@", 2);
+			const [rawId, versionRange] = clean.split("@", 2);
 			const dependency = { id: safeId(rawId, "dependency"), required: !optional };
-			if (minVersion?.trim()) dependency.min_version = minVersion.trim();
+			if (versionRange?.trim()) {
+				const [minVersion, maxVersion] = versionRange.split("..", 2);
+				if (minVersion?.trim()) dependency.min_version = minVersion.trim();
+				if (maxVersion?.trim()) dependency.max_version = maxVersion.trim();
+			}
 			return dependency;
 		});
 	}
@@ -56,25 +62,34 @@
 		const data = new FormData(form);
 		const network = String(data.get("network") || "reliable_event");
 		const preset = String(data.get("preset") || "weapon");
-		const manifest = {
+		const generatedContent = presets[preset](network);
+		const manifest = importedBase ? JSON.parse(JSON.stringify(importedBase)) : {};
+		const importedConflicts = new Map((importedBase?.conflicts || []).map((conflict) => [typeof conflict === "string" ? conflict : conflict.id, conflict]));
+		Object.assign(manifest, {
 			id: safeId(data.get("id")),
 			display_name: String(data.get("display_name") || "My Vector Pack").trim(),
 			author: String(data.get("author") || "Creator").trim(),
 			version: String(data.get("version") || "1.0.0").trim(),
 			schema_version: 4,
 			description: String(data.get("description") || "").trim(),
-			tags: ["community", "physics"],
+			tags: Array.isArray(manifest.tags) && manifest.tags.length ? manifest.tags : ["community", "physics"],
 			dependencies: parseDependencies(data.get("dependencies")),
-			conflicts: splitList(data.get("conflicts")).map((id) => ({ id: safeId(id, "incompatible_pack"), reason: "overlapping physics contract" })),
-			load_after: [],
-			load_before: [],
-			content: presets[preset](network),
-		};
+			conflicts: splitList(data.get("conflicts")).map((id) => {
+				const safeConflictId = safeId(id, "incompatible_pack");
+				const imported = importedConflicts.get(safeConflictId);
+				return typeof imported === "object" ? imported : { id: safeConflictId, reason: "overlapping physics contract" };
+			}),
+			load_after: Array.isArray(manifest.load_after) ? manifest.load_after : [],
+			load_before: Array.isArray(manifest.load_before) ? manifest.load_before : [],
+			content: importedBase?.content && typeof importedBase.content === "object" ? importedBase.content : generatedContent,
+		});
 		if (data.get("creator_options")) {
-			manifest.options = [
+			manifest.options = Array.isArray(importedBase?.options) && importedBase.options.length ? importedBase.options : [
 				{ id: "intensity", display_name: "Effect Intensity", description: "Scales this pack's authored pressure.", type: "float", default: 1, min: 0.25, max: 1.5, step: 0.05, network_category: network === "local_visual" ? "local_visual" : "deterministic_seed" },
 				{ id: "reduced_flash_palette", display_name: "Reduced Flash Palette", type: "bool", default: true, network_category: "local_visual" },
 			];
+		} else {
+			delete manifest.options;
 		}
 		return manifest;
 	}
@@ -91,6 +106,7 @@
 			if (dependency.id === manifest.id) errors.push("A mod cannot depend on itself.");
 			if (dependencyIds.has(dependency.id)) warnings.push(`Dependency ${dependency.id} is listed more than once.`);
 			dependencyIds.add(dependency.id);
+			if (dependency.min_version && dependency.max_version && compareVersions(dependency.min_version, dependency.max_version) > 0) errors.push(`${dependency.id} has a minimum version above its maximum version.`);
 		}
 		for (const conflict of manifest.conflicts) {
 			if (conflict.id === manifest.id) errors.push("A mod cannot conflict with itself.");
@@ -103,10 +119,53 @@
 		return { errors, warnings, entries };
 	}
 
+	function compareVersions(left, right) {
+		const leftText = String(left).trim();
+		const rightText = String(right).trim();
+		const a = leftText.split("-", 1)[0].split(".").map((part) => Number.parseInt(part, 10) || 0);
+		const b = rightText.split("-", 1)[0].split(".").map((part) => Number.parseInt(part, 10) || 0);
+		for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+			if ((a[index] || 0) !== (b[index] || 0)) return (a[index] || 0) - (b[index] || 0);
+		}
+		if (leftText.includes("-") !== rightText.includes("-")) return leftText.includes("-") ? -1 : 1;
+		return 0;
+	}
+
+	function renderContractGraph(manifest) {
+		contractGraph.replaceChildren();
+		const nodes = [{ id: manifest.id, detail: `schema ${manifest.schema_version}`, kind: "root" }];
+		for (const dependency of manifest.dependencies) {
+			const range = [dependency.min_version, dependency.max_version].filter(Boolean).join(" → ") || "any version";
+			nodes.push({ id: dependency.id, detail: range, kind: dependency.required === false ? "optional" : "required" });
+		}
+		for (const conflict of manifest.conflicts) nodes.push({ id: conflict.id, detail: "declared incompatible", kind: "conflict" });
+		for (const item of nodes) {
+			const node = document.createElement("article");
+			node.className = `graph-node ${item.kind}`;
+			const name = document.createElement("b");
+			name.textContent = item.id;
+			const detail = document.createElement("small");
+			detail.textContent = item.detail;
+			node.append(name, detail);
+			contractGraph.appendChild(node);
+		}
+		if (nodes.length === 1) {
+			const empty = document.createElement("article");
+			empty.className = "graph-node optional";
+			const name = document.createElement("b");
+			name.textContent = "standalone pack";
+			const detail = document.createElement("small");
+			detail.textContent = "no dependency pressure";
+			empty.append(name, detail);
+			contractGraph.appendChild(empty);
+		}
+	}
+
 	function saveDraft() {
 		try {
 			const values = Object.fromEntries(new FormData(form).entries());
 			values.creator_options = form.elements.creator_options.checked;
+			values.imported_base = importedBase;
 			localStorage.setItem(STORAGE_KEY, JSON.stringify(values));
 		} catch { /* storage is optional */ }
 	}
@@ -118,6 +177,7 @@
 		status.textContent = result.errors.length ? "BLOCKED" : result.warnings.length ? "READY WITH NOTES" : "READY";
 		validationStatus.textContent = result.errors.length ? `${result.errors.length} BLOCKER${result.errors.length === 1 ? "" : "S"}` : "VALID";
 		diagnostics.classList.toggle("has-errors", result.errors.length > 0);
+		renderContractGraph(manifest);
 		document.querySelector("[data-schema-readout]").textContent = String(manifest.schema_version);
 		document.querySelector("[data-entry-readout]").textContent = String(result.entries.length);
 		document.querySelector("[data-network-readout]").textContent = String(form.elements.network.value).replace("_", " ").toUpperCase();
@@ -154,7 +214,9 @@
 		try {
 			const values = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
 			if (!values) return;
+			importedBase = values.imported_base && typeof values.imported_base === "object" ? values.imported_base : null;
 			for (const [name, value] of Object.entries(values)) {
+				if (name === "imported_base") continue;
 				const field = form.elements[name];
 				if (!field) continue;
 				if (field.type === "checkbox") field.checked = Boolean(value);
@@ -164,6 +226,8 @@
 	}
 
 	function importManifest(manifest) {
+		if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) throw new Error("Manifest root must be an object.");
+		importedBase = JSON.parse(JSON.stringify(manifest));
 		form.elements.id.value = manifest.id || "imported_pack";
 		form.elements.display_name.value = manifest.display_name || manifest.id || "Imported Pack";
 		form.elements.author.value = manifest.author || "Creator";
@@ -171,7 +235,8 @@
 		form.elements.description.value = manifest.description || "";
 		form.elements.dependencies.value = (manifest.dependencies || []).map((dependency) => {
 			if (typeof dependency === "string") return dependency;
-			return `${dependency.id || "dependency"}${dependency.min_version ? `@${dependency.min_version}` : ""}${dependency.required === false ? "?" : ""}`;
+			const range = dependency.min_version || dependency.max_version ? `@${dependency.min_version || ""}${dependency.max_version ? `..${dependency.max_version}` : ""}` : "";
+			return `${dependency.id || "dependency"}${range}${dependency.required === false ? "?" : ""}`;
 		}).join(", ");
 		form.elements.conflicts.value = (manifest.conflicts || []).map((conflict) => typeof conflict === "string" ? conflict : conflict.id).filter(Boolean).join(", ");
 		form.elements.creator_options.checked = Array.isArray(manifest.options) && manifest.options.length > 0;
@@ -210,8 +275,15 @@
 	document.querySelector("[data-reset-manifest]").addEventListener("click", () => {
 		try { localStorage.removeItem(STORAGE_KEY); } catch { /* optional */ }
 		form.reset();
+		importedBase = null;
 		render();
 		status.textContent = "DRAFT RESET";
+	});
+	form.elements.preset.addEventListener("change", () => {
+		if (!importedBase) return;
+		importedBase = null;
+		render();
+		status.textContent = "STARTER SURFACE CHANGED // IMPORTED CONTENT CLEARED";
 	});
 
 	const search = document.querySelector("[data-reference-search]");

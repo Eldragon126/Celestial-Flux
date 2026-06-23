@@ -181,10 +181,6 @@ function initScrollProgress() {
 		bar.style.width = `${Math.min(100, Math.max(0, (window.scrollY / max) * 100))}%`;
 	};
 
-	track.setAttribute("role", "region");
-	track.setAttribute("aria-label", "Repeatable seed highlights");
-	track.tabIndex = 0;
-
 	update();
 	window.addEventListener("scroll", update, { passive: true });
 }
@@ -402,6 +398,10 @@ function initClipConsole() {
 	const status = document.querySelector("[data-copy-status]");
 	if (!track || !cards.length) return;
 	let index = 0;
+
+	track.setAttribute("role", "region");
+	track.setAttribute("aria-label", "Repeatable seed highlights");
+	track.tabIndex = 0;
 
 	const update = () => {
 		track.style.transform = `translateX(${-index * 100}%)`;

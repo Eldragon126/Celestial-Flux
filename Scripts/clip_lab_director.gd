@@ -90,6 +90,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_apply_capture_readability(not _reduced_flash_capture)
 			_refresh_overlay_text("Reduced flash %s" % ("ON" if _reduced_flash_capture else "OFF"))
 		KEY_ESCAPE:
+			if _pause_menu_available():
+				return
 			get_tree().change_scene_to_file("res://Nodes/title_screen.tscn")
 
 
@@ -469,6 +471,11 @@ func _requirements_text(requirements_value: Variant) -> String:
 func _refresh_overlay_text(status: String) -> void:
 	if _instruction_label != null:
 		_instruction_label.text = _capture_overlay_text(status)
+
+
+func _pause_menu_available() -> bool:
+	var pause_menu := get_tree().get_first_node_in_group("PauseMenu")
+	return pause_menu != null and pause_menu.has_method("toggle_pause")
 
 
 func _grant_showcase_upgrades() -> void:

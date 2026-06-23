@@ -508,7 +508,7 @@ func _apply_run_config(config: Dictionary) -> void:
 	RunProgress.wave_index = 0
 	RunProgress.bosses_defeated = 0
 	RunProgress.run_finished = false
-	RunProgress.arena_flags["auto_orbiting_celestials"] = bool(config.get("auto_orbiting_celestials", false))
+	RunProgress.arena_flags["auto_orbiting_celestials"] = bool(config.get("auto_orbiting_celestials", true))
 	RunProgress.clear_anchor()
 
 

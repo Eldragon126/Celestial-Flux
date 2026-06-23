@@ -16,6 +16,7 @@ signal mod_hook_registered(hook_id: StringName, entry_id: StringName, manifest_i
 signal manifest_toggle_changed(manifest_id: StringName, enabled: bool)
 signal mod_option_changed(manifest_id: StringName, option_id: StringName, value: Variant)
 signal creator_report_exported(report_path: String)
+signal creator_manifest_installed(manifest_id: StringName, manifest_path: String)
 
 const MAX_SCHEMA_VERSION := 4
 const DEFAULT_MANIFEST_FILE_NAME := "vector_anomaly_mod.json"
@@ -397,6 +398,7 @@ func reload_registry() -> void:
 	_resolve_manifest_load_order()
 	_resolve_dependency_warnings()
 	_resolve_manifest_conflicts()
+	_resolve_dependency_warnings()
 	_apply_manifest_enabled_state()
 	_rebuild_hook_index()
 	var summary := get_registry_summary()
@@ -442,6 +444,7 @@ func get_registry_snapshot() -> Dictionary:
 		"buckets": CONTENT_BUCKETS.duplicate(),
 		"capabilities": get_modding_capabilities(),
 		"mod_option_values": _mod_option_values.duplicate(true),
+		"dependency_graph": get_manifest_dependency_graph(),
 	}
 
 
@@ -482,6 +485,47 @@ func validate_manifest_file(source_path: String) -> Dictionary:
 	return validate_manifest_text(json_text, clean_path)
 
 
+func install_manifest_text(json_text: String, overwrite: bool = false) -> Dictionary:
+	var validation := validate_manifest_text(json_text)
+	if not bool(validation.get("valid", false)):
+		return {
+			"installed": false,
+			"manifest_id": str(validation.get("manifest_id", "")),
+			"errors": validation.get("errors", []),
+			"path": "",
+		}
+	var parser := JSON.new()
+	if parser.parse(json_text) != OK or not (parser.data is Dictionary):
+		return {"installed": false, "manifest_id": "", "errors": ["Manifest could not be normalized."], "path": ""}
+	var manifest := parser.data as Dictionary
+	var manifest_id := str(manifest.get("id", "")).strip_edges()
+	if not _is_safe_identifier(manifest_id):
+		return {"installed": false, "manifest_id": manifest_id, "errors": ["Manifest id is not safe for an install folder."], "path": ""}
+	var install_dir := _join_path(user_mod_root, manifest_id)
+	var install_path := _join_path(install_dir, DEFAULT_MANIFEST_FILE_NAME)
+	if FileAccess.file_exists(install_path) and not overwrite:
+		return {
+			"installed": false,
+			"manifest_id": manifest_id,
+			"errors": ["A manifest with this id already exists in user mods."],
+			"path": ProjectSettings.globalize_path(install_path),
+		}
+	_ensure_mod_root(install_dir)
+	var file := FileAccess.open(install_path, FileAccess.WRITE)
+	if file == null:
+		return {"installed": false, "manifest_id": manifest_id, "errors": ["The manifest could not be written to user mods."], "path": ""}
+	file.store_string(JSON.stringify(manifest, "\t"))
+	file.close()
+	creator_manifest_installed.emit(StringName(manifest_id), install_path)
+	reload_registry()
+	return {
+		"installed": true,
+		"manifest_id": manifest_id,
+		"errors": [],
+		"path": ProjectSettings.globalize_path(install_path),
+	}
+
+
 func export_creator_report(report_path: String = "user://mod_creator_report.json") -> String:
 	var clean_path := _normalize_path_text(report_path)
 	if clean_path.is_empty():
@@ -500,6 +544,7 @@ func export_creator_report(report_path: String = "user://mod_creator_report.json
 		"conflict_warnings": _conflict_warnings.duplicate(true),
 		"disabled_manifests": _disabled_manifests.duplicate(true),
 		"mod_option_values": _mod_option_values.duplicate(true),
+		"dependency_graph": get_manifest_dependency_graph(),
 		"compatibility_signature": get_compatibility_signature(),
 		"capabilities": get_modding_capabilities(),
 		"install_paths": get_mod_install_paths(),
@@ -632,6 +677,11 @@ func get_modding_capabilities() -> Dictionary:
 		"recursive_scan_depth": clampi(recursive_scan_depth, 1, MAX_SCAN_DEPTH_LIMIT),
 		"persistent_toggles": persist_mod_toggles,
 		"toggle_state_path": _display_path(mod_state_path),
+		"deterministic_load_order": true,
+		"dependency_version_bounds": true,
+		"manifest_conflicts": true,
+		"typed_creator_options": true,
+		"creator_sandbox_install": true,
 	}
 
 
@@ -705,6 +755,49 @@ func get_manifest(manifest_id: StringName) -> Dictionary:
 
 func get_manifest_load_order() -> Array[StringName]:
 	return _load_order.duplicate()
+
+
+func get_manifest_dependency_graph() -> Dictionary:
+	var nodes: Dictionary = {}
+	var edges: Array = []
+	var conflicts: Array = []
+	for manifest_id in _load_order:
+		var manifest_key := str(manifest_id)
+		var manifest: Dictionary = _manifests.get(manifest_key, {})
+		var load_after_value: Variant = manifest.get("load_after", [])
+		var load_before_value: Variant = manifest.get("load_before", [])
+		var load_after: Array = (load_after_value as Array).duplicate() if load_after_value is Array else []
+		var load_before: Array = (load_before_value as Array).duplicate() if load_before_value is Array else []
+		nodes[manifest_key] = {
+			"version": str(manifest.get("version", "1")),
+			"enabled": bool(manifest.get("enabled", true)),
+			"disabled_reason": str(manifest.get("disabled_reason", "")),
+			"load_after": load_after,
+			"load_before": load_before,
+		}
+		for dependency_value in manifest.get("dependencies", []):
+			if dependency_value is Dictionary:
+				var dependency := dependency_value as Dictionary
+				edges.append({
+					"from": manifest_key,
+					"to": str(dependency.get("id", "")),
+					"required": bool(dependency.get("required", true)),
+					"min_version": str(dependency.get("min_version", "")),
+					"max_version": str(dependency.get("max_version", "")),
+				})
+		for conflict_value in manifest.get("conflicts", []):
+			if conflict_value is Dictionary:
+				conflicts.append({
+					"from": manifest_key,
+					"to": str((conflict_value as Dictionary).get("id", "")),
+					"reason": str((conflict_value as Dictionary).get("reason", "declared incompatible")),
+				})
+	return {
+		"load_order": _load_order.duplicate(),
+		"nodes": nodes,
+		"dependency_edges": edges,
+		"conflict_edges": conflicts,
+	}
 
 
 func get_user_disabled_manifests() -> Array[StringName]:
@@ -785,7 +878,12 @@ func get_mod_option(manifest_id: StringName, option_id: StringName, fallback: Va
 	var option_key := str(option_id)
 	var values_value: Variant = _mod_option_values.get(manifest_key, {})
 	if values_value is Dictionary and (values_value as Dictionary).has(option_key):
-		return (values_value as Dictionary).get(option_key)
+		var persisted_value: Variant = (values_value as Dictionary).get(option_key)
+		var persisted_option := _find_manifest_option(manifest_id, option_id)
+		if not persisted_option.is_empty():
+			var normalized_persisted: Variant = _normalize_option_value(persisted_option, persisted_value)
+			if normalized_persisted != null:
+				return normalized_persisted
 	var manifest := get_manifest(manifest_id)
 	var options_value: Variant = manifest.get("options", [])
 	if options_value is Array:
@@ -802,7 +900,7 @@ func set_mod_option(manifest_id: StringName, option_id: StringName, value: Varia
 	if option.is_empty():
 		return false
 	var normalized: Variant = _normalize_option_value(option, value)
-	if normalized == null and str(option.get("type", "string")) != "string":
+	if normalized == null:
 		return false
 	var values_value: Variant = _mod_option_values.get(manifest_key, {})
 	var values: Dictionary = values_value.duplicate(true) if values_value is Dictionary else {}
@@ -1414,6 +1512,8 @@ func _validate_manifest(manifest: Dictionary, source_context: Dictionary = {}) -
 		errors.append("conflicts must be an array")
 	else:
 		_validate_conflicts(conflicts as Array, errors)
+	if dependencies is Array and conflicts is Array:
+		_validate_manifest_relationships(manifest_id, dependencies as Array, conflicts as Array, errors)
 	for ordering_field in ["load_after", "load_before"]:
 		var ordering_value: Variant = manifest.get(ordering_field, [])
 		if not (ordering_value is Array):
@@ -1447,8 +1547,11 @@ func _validate_dependencies(entries: Array, errors: Array[String]) -> void:
 	for index in range(entries.size()):
 		var entry: Variant = entries[index]
 		if entry is String:
-			if str(entry).strip_edges().is_empty():
+			var string_id := str(entry).strip_edges()
+			if string_id.is_empty():
 				errors.append("dependencies[%d] missing id" % index)
+			elif not _is_safe_identifier(string_id):
+				errors.append("dependencies[%d] contains unsafe characters" % index)
 			continue
 		if not (entry is Dictionary):
 			errors.append("dependencies[%d] must be a string or object" % index)
@@ -1462,6 +1565,10 @@ func _validate_dependencies(entries: Array, errors: Array[String]) -> void:
 		for version_field in ["min_version", "max_version"]:
 			if dependency.has(version_field) and str(dependency.get(version_field, "")).strip_edges().is_empty():
 				errors.append("dependencies[%d].%s must not be empty" % [index, version_field])
+		var min_version := str(dependency.get("min_version", "")).strip_edges()
+		var max_version := str(dependency.get("max_version", "")).strip_edges()
+		if not min_version.is_empty() and not max_version.is_empty() and _compare_versions(min_version, max_version) > 0:
+			errors.append("dependencies[%d] min_version must not exceed max_version" % index)
 
 
 func _validate_conflicts(entries: Array, errors: Array[String]) -> void:
@@ -1475,6 +1582,35 @@ func _validate_conflicts(entries: Array, errors: Array[String]) -> void:
 			continue
 		if conflict_id.is_empty() or not _is_safe_identifier(conflict_id):
 			errors.append("conflicts[%d] must contain a safe mod id" % index)
+
+
+func _validate_manifest_relationships(manifest_id: String, dependencies: Array, conflicts: Array, errors: Array[String]) -> void:
+	var dependency_ids := {}
+	for dependency_value in dependencies:
+		var dependency_id := str(dependency_value).strip_edges() if dependency_value is String else ""
+		if dependency_value is Dictionary:
+			dependency_id = str((dependency_value as Dictionary).get("id", "")).strip_edges()
+		if dependency_id.is_empty():
+			continue
+		if dependency_id == manifest_id:
+			errors.append("manifest cannot depend on itself")
+		if dependency_ids.has(dependency_id):
+			errors.append("dependency %s is duplicated" % dependency_id)
+		dependency_ids[dependency_id] = true
+	var conflict_ids := {}
+	for conflict_value in conflicts:
+		var conflict_id := str(conflict_value).strip_edges() if conflict_value is String else ""
+		if conflict_value is Dictionary:
+			conflict_id = str((conflict_value as Dictionary).get("id", "")).strip_edges()
+		if conflict_id.is_empty():
+			continue
+		if conflict_id == manifest_id:
+			errors.append("manifest cannot conflict with itself")
+		if conflict_ids.has(conflict_id):
+			errors.append("conflict %s is duplicated" % conflict_id)
+		if dependency_ids.has(conflict_id):
+			errors.append("%s cannot be both a dependency and a conflict" % conflict_id)
+		conflict_ids[conflict_id] = true
 
 
 func _validate_manifest_options(options: Array, errors: Array[String]) -> void:
@@ -1501,7 +1637,7 @@ func _validate_manifest_options(options: Array, errors: Array[String]) -> void:
 		if not option.has("default"):
 			errors.append("options[%d].default is required" % index)
 			continue
-		if _normalize_option_value(option, option.get("default")) == null and option_type != "string":
+		if _normalize_option_value(option, option.get("default")) == null:
 			errors.append("options[%d].default does not match its type or bounds" % index)
 		if option_type == "choice":
 			var choices_value: Variant = option.get("choices", [])
@@ -2149,6 +2285,10 @@ func _resolve_manifest_conflicts() -> void:
 				continue
 			var reason := str(conflict.get("reason", "declared incompatible"))
 			_add_conflict_warning(manifest_id, StringName(conflicting_key), reason)
+			if _disabled_manifests.has(manifest_key) or _disabled_manifests.has(conflicting_key):
+				continue
+			if _user_disabled_manifests.has(manifest_key) or _user_disabled_manifests.has(conflicting_key):
+				continue
 			var manifest_index := _load_order.find(manifest_id)
 			var conflicting_index := _load_order.find(StringName(conflicting_key))
 			var disabled_key := manifest_key if manifest_index >= conflicting_index else conflicting_key
@@ -2175,6 +2315,11 @@ func _resolve_dependency_warnings() -> void:
 				_add_dependency_warning(manifest_id, dependency_id, "dependency disabled by user")
 				if bool(dependency.get("required", true)):
 					_disabled_manifests[manifest_key] = "dependency %s disabled" % str(dependency_id)
+				continue
+			if _disabled_manifests.has(str(dependency_id)):
+				_add_dependency_warning(manifest_id, dependency_id, "dependency blocked by its own contract")
+				if bool(dependency.get("required", true)):
+					_disabled_manifests[manifest_key] = "dependency %s is blocked" % str(dependency_id)
 				continue
 			var loaded_version := str((_manifests[str(dependency_id)] as Dictionary).get("version", "0"))
 			var min_version := str(dependency.get("min_version", "")).strip_edges()
@@ -2249,6 +2394,8 @@ func _entries_for_manifest(manifest_id: StringName, buckets: Array) -> Array:
 
 func _add_dependency_warning(manifest_id: StringName, dependency_id: StringName, reason: String) -> void:
 	var key := "%s:%s:%s" % [str(manifest_id), str(dependency_id), reason]
+	if _dependency_warnings.has(key):
+		return
 	_dependency_warnings[key] = {
 		"manifest_id": manifest_id,
 		"dependency_id": dependency_id,

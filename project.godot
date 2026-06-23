@@ -17,7 +17,7 @@ ss2d/version="3.3.1"
 config/name="VECTOR ANOMALY"
 config/tags=PackedStringArray("v1.0.4.6")
 run/main_scene="uid://d4etsys8ab7th"
-config/features=PackedStringArray("4.6", "Forward Plus")
+config/features=PackedStringArray("4.7", "Forward Plus")
 boot_splash/bg_color=Color(0, 0, 0, 1)
 config/icon="res://icon.svg"
 
@@ -53,6 +53,7 @@ Player="The Player(s)"
 ParametricEnemies="Enemies that move with parametric and regular functions"
 Orbital_Juice_Manager=""
 obstacles="obstacles that exist in a given scene"
+gravity_heat_map_overlay="for the gravity contour map"
 
 [input]
 

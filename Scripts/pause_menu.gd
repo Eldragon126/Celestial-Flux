@@ -6,6 +6,11 @@ signal pause_state_changed(blocked: bool)
 const UI_PAUSE_OPEN_STREAM := preload("res://Assets/Sound Effects/sfx_ui_pause_open.mp3")
 const UI_PAUSE_CLOSE_STREAM := preload("res://Assets/Sound Effects/sfx_ui_pause_close.mp3")
 const UI_SETTINGS_CHANGED_STREAM := preload("res://Assets/Sound Effects/sfx_ui_settings_changed.mp3")
+const RUN_LOADING_SCENE_PATH := "res://Nodes/run_loading_screen.tscn"
+const MAIN_RUN_SCENE_PATH := "res://Nodes/the_abyss.tscn"
+const TUTORIAL_SCENE_PATH := "res://Nodes/playable_tutorial.tscn"
+const STEAM_DEMO_SCENE_PATH := "res://Nodes/demo_game.tscn"
+const CLIP_LAB_SCENE_PATH := "res://Nodes/clip_lab_scene.tscn"
 const SECTION_ACCENTS := {
 	"AccessibilityLabel": Color(0.45, 0.9, 1.0, 0.96),
 	"WeaponLabel": Color(0.88, 1.0, 0.46, 0.96),
@@ -25,7 +30,7 @@ const SECTION_ACCENTS := {
 @export var run_scene_path: String = "res://Nodes/the_abyss.tscn"
 
 @export_group("Tutorial")
-@export var disable_pause_in_tutorial: bool = true
+@export var disable_pause_in_tutorial: bool = false
 
 @export_group("Pulse")
 @export var enable_pulse: bool = true
@@ -34,6 +39,7 @@ const SECTION_ACCENTS := {
 
 @onready var music_player: AudioStreamPlayer = $PauseMusic
 @onready var menu_panel: PanelContainer = find_child("MenuPanel", true, false) as PanelContainer
+@onready var status_label: Label = find_child("StatusLabel", true, false) as Label
 @onready var resume_button: Button = find_child("ResumeButton", true, false) as Button
 @onready var restart_button: Button = find_child("RestartButton", true, false) as Button
 @onready var title_button: Button = find_child("TitleButton", true, false) as Button
@@ -44,6 +50,7 @@ const SECTION_ACCENTS := {
 @onready var color_mode_option: OptionButton = find_child("ColorModeOption", true, false) as OptionButton
 @onready var trackpad_camera_check: CheckBox = find_child("TrackpadCameraCheck", true, false) as CheckBox
 @onready var alternate_movement_check: CheckBox = find_child("AlternateMovementCheck", true, false) as CheckBox
+@onready var player_auto_orbit_check: CheckBox = find_child("PlayerAutoOrbitCheck", true, false) as CheckBox
 @onready var auto_orbiting_celestials_check: CheckBox = find_child("AutoOrbitingCelestialsCheck", true, false) as CheckBox
 @onready var seed_label: Label = find_child("SeedLabel", true, false) as Label
 @onready var copy_seed_button: Button = find_child("CopySeedButton", true, false) as Button
@@ -72,7 +79,9 @@ var _button_tweens: Dictionary = {}
 
 
 func _ready() -> void:
-	$MenuPanel/MenuRows/UIScaleRow/UIScaleSlider.grab_focus()
+	_ensure_pause_scroll_shell()
+	if ui_scale_slider != null:
+		ui_scale_slider.grab_focus()
 	add_to_group("PauseMenu")
 	visible = false
 	modulate.a = 0.0
@@ -90,6 +99,7 @@ func _ready() -> void:
 	_update_modding_menu()
 	_update_multiplayer_menu()
 	_update_weapon_menu()
+	_refresh_context_buttons()
 	call_deferred("_setup_button_tweens")
 
 
@@ -103,10 +113,11 @@ func _process(_delta: float) -> void:
 	if has_node("SineWaveBack") and $SineWaveBack.material is ShaderMaterial:
 		$SineWaveBack.material.set_shader_parameter("real_time", shader_time)
 
-	if active and enable_pulse:
+	if active and enable_pulse and not is_transitioning:
 		pulse_time += real_delta * pulse_speed
 		_set_menu_panel_scale(_menu_base_scale * (1.0 + sin(pulse_time) * pulse_strength))
 	if active:
+		_refresh_context_buttons()
 		_update_seed_label(real_delta)
 		_update_modding_feedback(real_delta)
 		_update_multiplayer_menu()
@@ -150,6 +161,7 @@ func _enter_pause() -> void:
 	_update_modding_menu()
 	_update_multiplayer_menu()
 	_update_weapon_menu()
+	_refresh_context_buttons()
 	_emit_pause_state()
 
 	pre_pause_time_scale = Engine.time_scale
@@ -157,6 +169,9 @@ func _enter_pause() -> void:
 		pre_pause_time_scale = 1.0
 
 	_kill_tweens()
+	if menu_panel != null:
+		menu_panel.modulate.a = 0.0
+		_set_menu_panel_scale(_menu_base_scale * 0.92)
 
 	transition_tween = create_tween()
 	transition_tween.set_ignore_time_scale(true)
@@ -166,6 +181,11 @@ func _enter_pause() -> void:
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	transition_tween.parallel().tween_property(Engine, "time_scale", 0.0, fade_in_duration)\
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if menu_panel != null:
+		transition_tween.parallel().tween_property(menu_panel, "modulate:a", 1.0, 0.24)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		transition_tween.parallel().tween_property(menu_panel, "scale", _menu_base_scale, 0.28)\
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 	transition_tween.finished.connect(_on_enter_tween_finished)
 
@@ -198,6 +218,9 @@ func _exit_pause() -> void:
 	transition_tween.parallel().tween_property(
 		Engine, "time_scale", pre_pause_time_scale, fade_out_duration
 	).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	if menu_panel != null:
+		transition_tween.parallel().tween_property(menu_panel, "scale", _menu_base_scale * 0.96, fade_out_duration)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 	transition_tween.finished.connect(_on_exit_tween_finished)
 
@@ -255,6 +278,44 @@ func _setup_ui_audio() -> void:
 	add_child(_ui_audio_player)
 
 
+func _ensure_pause_scroll_shell() -> void:
+	if menu_panel == null:
+		return
+	var rows := find_child("MenuRows", true, false) as VBoxContainer
+	if rows == null or rows.get_parent() is ScrollContainer:
+		return
+	var previous_parent := rows.get_parent()
+	if previous_parent == null:
+		return
+	var row_index := rows.get_index()
+	previous_parent.remove_child(rows)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "PauseScroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(0.0, 620.0)
+	previous_parent.add_child(scroll)
+	previous_parent.move_child(scroll, row_index)
+
+	var margin := MarginContainer.new()
+	margin.name = "PauseContentMargin"
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", 18)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_right", 18)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	scroll.add_child(margin)
+
+	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rows.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rows.add_theme_constant_override("separation", 10)
+	margin.add_child(rows)
+
+
 func _apply_section_accents() -> void:
 	for node_name in SECTION_ACCENTS.keys():
 		var label := find_child(String(node_name), true, false) as Label
@@ -280,10 +341,12 @@ func _apply_pause_readability_palette() -> void:
 		mat.set_shader_parameter("color_b", _readability_color(Color(0.18, 0.0, 0.36, 0.36)))
 		mat.set_shader_parameter("color_neon", _readability_color(Color(0.92, 0.86, 1.0, 0.9)))
 	if menu_panel != null:
+		menu_panel.custom_minimum_size = Vector2(760.0, 650.0)
 		menu_panel.add_theme_stylebox_override(
 			"panel",
-			_make_readability_style(Color(0.006, 0.012, 0.024, 0.94), accent, 2)
+			_make_readability_style(Color(0.006, 0.012, 0.024, 0.965), Color(accent.r, accent.g, accent.b, 0.72), 2)
 		)
+	_apply_label_readability_style(self)
 	var buttons: Array[Button] = []
 	_collect_buttons(self, buttons)
 	for button in buttons:
@@ -293,10 +356,26 @@ func _apply_pause_readability_palette() -> void:
 func _apply_button_readability_style(button: Button, accent: Color, hot: Color, quiet: Color) -> void:
 	if button == null:
 		return
-	button.add_theme_stylebox_override("normal", _make_readability_style(Color(0.012, 0.05, 0.075, 0.88), accent, 1))
-	button.add_theme_stylebox_override("hover", _make_readability_style(Color(0.016, 0.09, 0.13, 0.94), Color(accent.r, accent.g, accent.b, 0.74), 1))
-	button.add_theme_stylebox_override("pressed", _make_readability_style(Color(0.0, 0.14, 0.18, 1.0), hot, 1))
+	button.custom_minimum_size.y = maxf(button.custom_minimum_size.y, 38.0)
+	button.add_theme_color_override("font_color", Color(0.78, 0.98, 1.0, 0.96))
+	button.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0, 1.0))
+	button.add_theme_color_override("font_pressed_color", Color(0.02, 0.08, 0.09, 1.0))
+	button.add_theme_color_override("font_disabled_color", Color(0.52, 0.62, 0.68, 0.72))
+	button.add_theme_stylebox_override("normal", _make_readability_style(Color(0.012, 0.05, 0.075, 0.9), Color(accent.r, accent.g, accent.b, 0.5), 1))
+	button.add_theme_stylebox_override("hover", _make_readability_style(Color(0.016, 0.1, 0.14, 0.96), Color(accent.r, accent.g, accent.b, 0.84), 1))
+	button.add_theme_stylebox_override("pressed", _make_readability_style(Color(0.62, 1.0, 0.92, 0.95), hot, 1))
 	button.add_theme_stylebox_override("disabled", _make_readability_style(Color(0.022, 0.026, 0.038, 0.72), quiet, 1))
+
+
+func _apply_label_readability_style(root: Node) -> void:
+	for child in root.get_children():
+		if child is Label:
+			var label := child as Label
+			label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.9))
+			label.add_theme_constant_override("shadow_offset_x", 1)
+			label.add_theme_constant_override("shadow_offset_y", 2)
+			label.add_theme_constant_override("shadow_outline_size", 3)
+		_apply_label_readability_style(child)
 
 
 func _make_readability_style(bg: Color, border: Color, width: int) -> StyleBoxFlat:
@@ -304,11 +383,14 @@ func _make_readability_style(bg: Color, border: Color, width: int) -> StyleBoxFl
 	style.bg_color = bg
 	style.border_color = border
 	style.set_border_width_all(width)
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 14.0
-	style.content_margin_right = 14.0
-	style.content_margin_top = 8.0
-	style.content_margin_bottom = 8.0
+	style.set_corner_radius_all(10)
+	style.border_blend = true
+	style.shadow_color = Color(border.r, border.g, border.b, 0.18)
+	style.shadow_size = 16
+	style.content_margin_left = 16.0
+	style.content_margin_right = 16.0
+	style.content_margin_top = 9.0
+	style.content_margin_bottom = 9.0
 	return style
 
 
@@ -319,14 +401,22 @@ func _readability_color(color: Color) -> Color:
 
 
 func _pause_disabled_for_current_scene() -> bool:
-	if not disable_pause_in_tutorial or get_tree() == null:
+	if get_tree() == null:
 		return false
 	var scene := get_tree().current_scene
 	if scene != null:
+		if scene.is_in_group("pause_disabled"):
+			return true
+		if not disable_pause_in_tutorial:
+			return false
 		var scene_name := String(scene.name).to_lower()
 		var scene_path := String(scene.scene_file_path).to_lower()
 		if scene.is_in_group("tutorial") or scene_name.contains("tutorial") or scene_path.ends_with("playable_tutorial.tscn"):
 			return true
+	if get_tree().get_first_node_in_group("pause_disabled") != null:
+		return true
+	if not disable_pause_in_tutorial:
+		return false
 	var tutorial_node := get_tree().get_first_node_in_group("tutorial")
 	return tutorial_node != null
 
@@ -473,6 +563,11 @@ func _setup_accessibility_controls() -> void:
 		if not alternate_movement_check.toggled.is_connected(_on_alternate_movement_toggled):
 			alternate_movement_check.toggled.connect(_on_alternate_movement_toggled)
 
+	if player_auto_orbit_check != null:
+		player_auto_orbit_check.button_pressed = bool(Settings.player_auto_orbit_enabled)
+		if not player_auto_orbit_check.toggled.is_connected(_on_player_auto_orbit_toggled):
+			player_auto_orbit_check.toggled.connect(_on_player_auto_orbit_toggled)
+
 	if auto_orbiting_celestials_check != null:
 		auto_orbiting_celestials_check.button_pressed = bool(Settings.auto_orbiting_celestials_enabled)
 		if not auto_orbiting_celestials_check.toggled.is_connected(_on_auto_orbiting_celestials_toggled):
@@ -489,6 +584,8 @@ func _ensure_optional_input_rows() -> void:
 		trackpad_camera_check = _make_pause_checkbox_row(rows, "TRACKPAD DIRECT CAMERA", "TrackpadCameraCheck")
 	if alternate_movement_check == null:
 		alternate_movement_check = _make_pause_checkbox_row(rows, "ALT MOVEMENT: BACK / A-D AIM NUDGE", "AlternateMovementCheck")
+	if player_auto_orbit_check == null:
+		player_auto_orbit_check = _make_pause_checkbox_row(rows, "PLAYER AUTO-ORBIT ASSIST", "PlayerAutoOrbitCheck")
 	if auto_orbiting_celestials_check == null:
 		auto_orbiting_celestials_check = _make_pause_checkbox_row(rows, "ORBITING CELESTIAL EVENTS", "AutoOrbitingCelestialsCheck")
 
@@ -520,6 +617,8 @@ func _on_resume_pressed() -> void:
 
 
 func _on_restart_pressed() -> void:
+	var profile := _current_scene_profile()
+	var next_scene := _retry_scene_path_for_profile(profile)
 	if NetworkSession != null and NetworkSession.is_network_active():
 		if not multiplayer.is_server():
 			return
@@ -527,20 +626,143 @@ func _on_restart_pressed() -> void:
 		NetworkSession.restart_hosted_run()
 		return
 	_force_unpause()
-	RunProgress.begin_new_run(false)
-	if run_scene_path == "res://Nodes/the_abyss.tscn":
-		get_tree().change_scene_to_file("res://Nodes/run_loading_screen.tscn")
+	_begin_context_run(profile)
+	if next_scene == MAIN_RUN_SCENE_PATH:
+		get_tree().change_scene_to_file(RUN_LOADING_SCENE_PATH)
 	else:
-		get_tree().change_scene_to_file(run_scene_path)
+		get_tree().change_scene_to_file(next_scene)
 
 
 func _on_title_pressed() -> void:
+	var next_scene := _title_scene_path_for_profile(_current_scene_profile())
 	_force_unpause()
 	if NetworkSession != null and NetworkSession.is_network_active():
 		NetworkSession.leave_session()
 	if RunProgress != null:
 		RunProgress.clear_anchor()
-	get_tree().change_scene_to_file(title_scene_path)
+	get_tree().change_scene_to_file(next_scene)
+
+
+func _begin_context_run(profile: String) -> void:
+	if RunProgress == null:
+		return
+	RunProgress.begin_new_run(false)
+	match profile:
+		"steam_demo":
+			RunProgress.arena_flags["run_profile"] = "steam_demo"
+			RunProgress.arena_flags["retry_scene_path"] = STEAM_DEMO_SCENE_PATH
+			RunProgress.arena_flags["title_scene_path"] = title_scene_path
+		"tutorial":
+			RunProgress.arena_flags["run_profile"] = "tutorial"
+			RunProgress.arena_flags["retry_scene_path"] = TUTORIAL_SCENE_PATH
+			RunProgress.arena_flags["title_scene_path"] = title_scene_path
+		"clip_lab":
+			RunProgress.arena_flags["run_profile"] = "clip_lab"
+			RunProgress.arena_flags["retry_scene_path"] = CLIP_LAB_SCENE_PATH
+			RunProgress.arena_flags["title_scene_path"] = title_scene_path
+		_:
+			RunProgress.arena_flags["retry_scene_path"] = run_scene_path
+			RunProgress.arena_flags["title_scene_path"] = title_scene_path
+
+
+func _current_scene_profile() -> String:
+	if get_tree() == null:
+		return "run"
+	if RunProgress != null:
+		var profile := String(RunProgress.arena_flags.get("run_profile", "")).strip_edges().to_lower()
+		if profile == "steam_demo" or profile == "tutorial" or profile == "clip_lab":
+			return profile
+	var scene := get_tree().current_scene
+	if scene != null:
+		var scene_name := String(scene.name).to_lower()
+		var scene_path := String(scene.scene_file_path).to_lower()
+		if scene.is_in_group("steam_demo_scene") or scene_path.ends_with("demo_game.tscn") or scene_name.contains("demo"):
+			return "steam_demo"
+		if scene.is_in_group("clip_lab_scene") or scene_path.ends_with("clip_lab_scene.tscn") or scene_name.contains("clip"):
+			return "clip_lab"
+		if scene.is_in_group("tutorial") or scene_path.ends_with("playable_tutorial.tscn") or scene_name.contains("tutorial"):
+			return "tutorial"
+	if get_tree().get_first_node_in_group("steam_demo_scene") != null:
+		return "steam_demo"
+	if get_tree().get_first_node_in_group("clip_lab_scene") != null:
+		return "clip_lab"
+	if get_tree().get_first_node_in_group("tutorial") != null:
+		return "tutorial"
+	return "run"
+
+
+func _retry_scene_path_for_profile(profile: String) -> String:
+	if RunProgress != null:
+		var flagged := String(RunProgress.arena_flags.get("retry_scene_path", "")).strip_edges()
+		if not flagged.is_empty():
+			return flagged
+	match profile:
+		"steam_demo":
+			return STEAM_DEMO_SCENE_PATH
+		"tutorial":
+			return TUTORIAL_SCENE_PATH
+		"clip_lab":
+			return CLIP_LAB_SCENE_PATH
+		_:
+			return run_scene_path if not run_scene_path.strip_edges().is_empty() else MAIN_RUN_SCENE_PATH
+
+
+func _title_scene_path_for_profile(_profile: String) -> String:
+	if RunProgress != null:
+		var flagged := String(RunProgress.arena_flags.get("title_scene_path", "")).strip_edges()
+		if not flagged.is_empty():
+			return flagged
+	return title_scene_path
+
+
+func _restart_label_for_profile(profile: String) -> String:
+	match profile:
+		"steam_demo":
+			return "RETRY STEAM DEMO"
+		"tutorial":
+			return "RESTART TUTORIAL"
+		"clip_lab":
+			return "RESET CLIP LAB"
+		_:
+			return "RESTART RUN"
+
+
+func _title_label_for_profile(profile: String) -> String:
+	match profile:
+		"steam_demo":
+			return "EXIT DEMO TO TITLE"
+		"tutorial":
+			return "EXIT TUTORIAL"
+		"clip_lab":
+			return "EXIT CLIP LAB"
+		_:
+			return "ABORT & QUIT TO TITLE"
+
+
+func _status_for_profile(profile: String, network_active: bool) -> String:
+	if network_active:
+		return "SIMULATION PAUSED | NETWORK SESSION HELD"
+	match profile:
+		"steam_demo":
+			return "STEAM DEMO PAUSED | DEMO LOOP HELD"
+		"tutorial":
+			return "TUTORIAL PAUSED | CALIBRATION HELD"
+		"clip_lab":
+			return "CLIP LAB PAUSED | CAPTURE STATE HELD"
+		_:
+			return "SIMULATION PAUSED | LOCAL PHYSICS FROZEN"
+
+
+func _refresh_context_buttons() -> void:
+	var network_status := _get_network_status()
+	var network_active := bool(network_status.get("active", false))
+	var profile := _current_scene_profile()
+	if restart_button != null:
+		restart_button.text = _restart_label_for_profile(profile)
+	if title_button != null:
+		title_button.text = _title_label_for_profile(profile)
+	if status_label != null:
+		status_label.text = _status_for_profile(profile, network_active)
 
 
 func _on_copy_seed_pressed() -> void:
@@ -764,11 +986,14 @@ func _update_multiplayer_menu() -> void:
 
 
 func _configure_network_pause_buttons(network_active: bool, host_controls: bool) -> void:
+	var profile := _current_scene_profile()
 	if restart_button != null:
 		restart_button.disabled = network_active and not host_controls
-		restart_button.text = "HOST RESTART ONLY" if network_active and not host_controls else "RESTART RUN"
+		restart_button.text = "HOST RESTART ONLY" if network_active and not host_controls else _restart_label_for_profile(profile)
 	if title_button != null:
-		title_button.text = "LEAVE SESSION" if network_active else "ABORT & QUIT TO TITLE"
+		title_button.text = "LEAVE SESSION" if network_active else _title_label_for_profile(profile)
+	if status_label != null:
+		status_label.text = _status_for_profile(profile, network_active)
 
 
 func _update_weapon_menu() -> void:
@@ -887,6 +1112,11 @@ func _on_trackpad_camera_toggled(enabled: bool) -> void:
 
 func _on_alternate_movement_toggled(enabled: bool) -> void:
 	Settings.set_alternate_movement_enabled(enabled)
+	_play_settings_sound()
+
+
+func _on_player_auto_orbit_toggled(enabled: bool) -> void:
+	Settings.set_player_auto_orbit_enabled(enabled)
 	_play_settings_sound()
 
 

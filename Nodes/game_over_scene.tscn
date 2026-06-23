@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://Scripts/game_over_scene.gd" id="1_game_over"]
 [ext_resource type="Shader" path="res://Scripts/pause_menu.gdshader" id="2_shader"]
+[ext_resource type="PackedScene" path="res://Nodes/gravity_ghost_replay_panel.tscn" id="3_ghost"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_failure"]
 shader = ExtResource("2_shader")
@@ -77,9 +78,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -520.0
-offset_top = -300.0
+offset_top = -330.0
 offset_right = 520.0
-offset_bottom = 300.0
+offset_bottom = 330.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
@@ -102,6 +103,8 @@ text = "DEATH VECTOR: unresolved"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
+
+[node name="GravityGhostReplayPanel" parent="CenterPanel/Rows" instance=ExtResource("3_ghost")]
 
 [node name="Buttons" type="HBoxContainer" parent="CenterPanel/Rows"]
 layout_mode = 2

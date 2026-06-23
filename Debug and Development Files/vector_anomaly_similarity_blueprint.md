@@ -191,3 +191,20 @@ The current architecture preserves genre readability while scaling the unusual p
 - Barycentric Tether uses a familiar crowd-control shape while changing the substance: enemies are linked by an artificial center of mass and forced into binary orbital motion.
 - Frame-Dragging Anchor uses a familiar aura-field shape while changing the substance: hostile bodies and projectiles are rotationally dragged around the player instead of simply slowed or damaged.
 - Settings now persist across launches, so readability options behave like a finished game menu rather than temporary debug switches.
+
+## 2026-06-21 Gravity Ghost Failure Readability
+
+- Death now reconstructs the local player's final movement path instead of ending on text alone. The route is compressed into a readable cyan-to-orange vector map, while great slingshots, near misses, successful recoveries, and horizon escapes remain visible as mastery marks.
+- The replay preserves the familiar roguelike lesson loop: players can see the decision path that led to failure, immediately understand where momentum or danger changed, and retry without waiting through a mandatory cinematic.
+- The recorder stores a bounded presentation history only. It does not replay live enemies, damage, projectiles, or physics, keeping failure feedback deterministic and inexpensive.
+
+## 2026-06-21 HUD Stability Guardrail
+
+- Familiar health, gravity, field, trajectory, threat, and score information remains responsive under pressure, but scene discovery no longer rides the render loop. Registry-backed target sets and separate telemetry refresh budgets keep the interface stable without reducing the underlying physics density.
+- The gravity meter now uses the player's actual source cap, pull radius, and acceleration limits, so its warning language describes the motion model the player is truly experiencing.
+
+## 2026-06-23 Vector Diagnostic Glyph Guardrail
+
+- The HUD now pairs familiar arcade survival readouts with small code-native vector glyphs. Players still read hull, shield, energy, speed, gravity, time, chaos, weapon, and score text normally, but each row has a shape that responds to severity for faster peripheral recognition.
+- Glyphs must clarify, not decorate. Activity and alert channels should track live danger or readiness, respect colorblind readability settings, and avoid becoming another layer of screen noise.
+- Gravity Ghost failure feedback now includes a speed/pressure lane, component pressure bands, incident markers, and timeline markers, preserving the familiar "I see why I died" loop while making Vector Anomaly's unusual physics moments easier to review and share.

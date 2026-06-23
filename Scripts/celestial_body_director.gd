@@ -324,8 +324,8 @@ func _orbit_axis() -> Vector2:
 
 func _auto_orbiting_celestials_enabled() -> bool:
 	if NetworkSession != null and NetworkSession.has_method("is_network_active") and NetworkSession.is_network_active():
-		return RunProgress != null and bool(RunProgress.arena_flags.get("auto_orbiting_celestials", false))
-	return Settings != null and bool(Settings.auto_orbiting_celestials_enabled)
+		return RunProgress != null and bool(RunProgress.arena_flags.get("auto_orbiting_celestials", true))
+	return Settings == null or bool(Settings.auto_orbiting_celestials_enabled)
 
 
 func _dynamic_orbit_state(anchor_position: Vector2, fallback_angle: float) -> Dictionary:

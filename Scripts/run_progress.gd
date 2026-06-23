@@ -51,6 +51,7 @@ var persistent_collapse_scars: Array[Dictionary] = []
 var has_anchor: bool = false
 var run_finished: bool = false
 var last_death_message: String = ""
+var last_gravity_ghost_replay: Dictionary = {}
 
 var _rng := RandomNumberGenerator.new()
 
@@ -72,6 +73,7 @@ func begin_new_run(use_challenge: bool = false, seed_override: int = 0) -> void:
 	challenge_modifiers.clear()
 	powerup_stacks.clear()
 	last_death_message = ""
+	last_gravity_ghost_replay.clear()
 	phase = Phase.CHALLENGE if challenge_mode else Phase.PHYSICS_WAVES
 	phase_changed.emit(Phase.PHYSICS_WAVES, phase)
 	clear_anchor()
@@ -343,6 +345,14 @@ func _save_persistent_collapse() -> void:
 
 func set_last_death_message(message: String) -> void:
 	last_death_message = message
+
+
+func set_last_gravity_ghost_replay(snapshot: Dictionary) -> void:
+	last_gravity_ghost_replay = snapshot.duplicate(true)
+
+
+func get_last_gravity_ghost_replay() -> Dictionary:
+	return last_gravity_ghost_replay.duplicate(true)
 
 
 func get_run_seed_code() -> String:

@@ -78,14 +78,21 @@ void fragment() {
 }
 """
 
-@export var minimum_display_time: float = 0.45
+@export var minimum_display_time: float = 0.9
 @export var fail_return_delay: float = 1.4
+@export var displayed_progress_speed: float = 1.85
+@export var loaded_settle_time: float = 0.18
+@export var loaded_hold_progress: float = 0.985
 
 var _elapsed: float = 0.0
 var _failed_elapsed: float = 0.0
 var _load_requested: bool = false
 var _transitioning: bool = false
 var _progress: Array = []
+var _target_progress: float = 0.0
+var _displayed_progress: float = 0.0
+var _loaded_elapsed: float = 0.0
+var _completion_display_elapsed: float = 0.0
 var _status_label: Label = null
 var _percent_label: Label = null
 var _bar: ProgressBar = null
@@ -110,16 +117,35 @@ func _process(delta: float) -> void:
 
 	_progress.clear()
 	var status := ResourceLoader.load_threaded_get_status(RUN_SCENE_PATH, _progress)
-	var ratio := _load_progress_ratio(status)
-	_update_progress(ratio, status)
+	var raw_ratio := _load_progress_ratio(status)
+	_target_progress = _progress_target(raw_ratio, status)
+	_displayed_progress = _approach_displayed_progress(delta, _target_progress)
+
+	if status == ResourceLoader.THREAD_LOAD_LOADED:
+		_loaded_elapsed += delta
+		if _displayed_progress >= loaded_hold_progress:
+			_displayed_progress = 1.0
+			_completion_display_elapsed += delta
+		else:
+			_completion_display_elapsed = 0.0
+	else:
+		_loaded_elapsed = 0.0
+		_completion_display_elapsed = 0.0
+
+	_update_progress(_displayed_progress, status)
 	
 	if _shader_material != null:
 		_shader_material.set_shader_parameter("real_time", _elapsed)
-		var target_gravity = lerpf(0.0, 0.85, ratio)
+		var target_gravity = lerpf(0.0, 0.85, _displayed_progress)
 		_shader_material.set_shader_parameter("gravity_strength", target_gravity)
-	_update_orbit_glyphs(delta, ratio)
+	_update_orbit_glyphs(delta, _displayed_progress)
 
-	if status == ResourceLoader.THREAD_LOAD_LOADED and _elapsed >= minimum_display_time:
+	if (
+		status == ResourceLoader.THREAD_LOAD_LOADED
+		and _elapsed >= minimum_display_time
+		and _loaded_elapsed >= loaded_settle_time
+		and _completion_display_elapsed >= loaded_settle_time
+	):
 		_enter_run_scene()
 	elif status == ResourceLoader.THREAD_LOAD_FAILED or status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
 		_failed_elapsed += delta
@@ -154,15 +180,47 @@ func _load_progress_ratio(status: int) -> float:
 		return clampf(float(_progress[0]), 0.0, 1.0)
 	return 0.08
 
+
+func _progress_target(raw_ratio: float, status: int) -> float:
+	if status == ResourceLoader.THREAD_LOAD_LOADED:
+		return 1.0
+	if status == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+		return clampf(maxf(raw_ratio, 0.08), 0.08, 0.94)
+	if status == ResourceLoader.THREAD_LOAD_FAILED or status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+		return _displayed_progress
+	return clampf(maxf(raw_ratio, 0.04), 0.04, 0.72)
+
+
+func _approach_displayed_progress(delta: float, target: float) -> float:
+	var clamped_target := clampf(maxf(target, _displayed_progress), 0.0, 1.0)
+	var remaining := clamped_target - _displayed_progress
+	if remaining <= 0.0001:
+		return clamped_target
+	var adaptive_step := remaining * displayed_progress_speed * delta
+	var minimum_step := delta * 0.055
+	return move_toward(_displayed_progress, clamped_target, maxf(adaptive_step, minimum_step))
+
+
 func _update_progress(ratio: float, status: int) -> void:
+	var safe_ratio := clampf(ratio, 0.0, 1.0)
 	if _bar != null:
-		_bar.value = ratio * 100.0
+		_bar.value = safe_ratio * 100.0
 	if _percent_label != null:
-		_percent_label.text = "%d%%" % int(round(ratio * 100.0))
-	if _status_label != null and status == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
-		_status_label.text = "CALCULATING TRAJECTORY"
-	elif _status_label != null and status == ResourceLoader.THREAD_LOAD_LOADED:
+		_percent_label.text = "%d%%" % int(round(safe_ratio * 100.0))
+	if _status_label == null:
+		return
+	if status == ResourceLoader.THREAD_LOAD_FAILED or status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+		_status_label.text = "CRITICAL FAILURE - ORBIT DECAYED"
+	elif safe_ratio >= 0.985:
 		_status_label.text = "ANOMALY STABILIZED"
+	elif safe_ratio >= 0.76:
+		_status_label.text = "LOCKING GRAVITY SOURCES"
+	elif safe_ratio >= 0.48:
+		_status_label.text = "RESOLVING FIELD CACHE"
+	elif safe_ratio >= 0.22:
+		_status_label.text = "INDEXING VECTOR LAWS"
+	else:
+		_status_label.text = "CALCULATING TRAJECTORY"
 
 func _build_interface() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)

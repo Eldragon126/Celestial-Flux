@@ -1,6 +1,6 @@
 extends RigidBody2D
 
-const SELF_SCENE = preload("res://Nodes/seeker_fragment.tscn")
+const SELF_SCENE_PATH := "res://Nodes/seeker_fragment.tscn"
 
 @export var generation = 0
 @export var max_generation = 1
@@ -154,8 +154,12 @@ func _on_died() -> void:
 
 	var parent = get_parent()
 	if parent != null and generation < max_generation:
+		var fragment_scene := load(SELF_SCENE_PATH) as PackedScene
+		if fragment_scene == null:
+			queue_free()
+			return
 		for i in range(3):
-			var fragment = SELF_SCENE.instantiate()
+			var fragment = fragment_scene.instantiate()
 			fragment.generation = generation + 1
 			fragment.global_position = global_position + Vector2.RIGHT.rotated(TAU * float(i) / 3.0) * 26.0
 			fragment.linear_velocity = Vector2.RIGHT.rotated(TAU * float(i) / 3.0 + randf_range(-0.25, 0.25)) * launch_speed * 0.82

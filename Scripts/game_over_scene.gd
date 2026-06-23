@@ -84,6 +84,7 @@ func _build_score_summary() -> void:
 	_add_summary_row(summary, "SCORE", str(int(snapshot.get("score", 0))))
 	_add_summary_row(summary, "WAVE", str(int(snapshot.get("wave", RunProgress.wave_index if RunProgress != null else 0))))
 	_add_summary_row(summary, "MASTERED", _mastery_summary(snapshot))
+	_add_summary_row(summary, "BLACK BOX", _gravity_ghost_summary())
 	_add_summary_row(summary, "KILLS", str(int(snapshot.get("weapon_kills", 0))))
 	_add_summary_row(summary, "BEST CHAIN", "x%d" % int(snapshot.get("best_run_chain", 0)))
 	_add_summary_row(summary, "SEED", String(snapshot.get("seed_code", RunProgress.get_run_seed_code() if RunProgress != null else "unknown")))
@@ -122,6 +123,37 @@ func _mastery_summary(snapshot: Dictionary) -> String:
 	var skims := int(snapshot.get("surface_skims", 0))
 	var shears := int(snapshot.get("vector_shears", 0))
 	return "%d perfect / %d apex / %d skims / %d shears" % [perfect, apex, skims, shears]
+
+
+func _gravity_ghost_summary() -> String:
+	var snapshot := _gravity_ghost_snapshot()
+	if snapshot.is_empty():
+		return "signal lost"
+	var summary := String(snapshot.get("incident_summary", "")).strip_edges()
+	if not summary.is_empty():
+		return summary
+	var highlights_value: Variant = snapshot.get("highlights", [])
+	var highlight_count := 0
+	if highlights_value is Array:
+		highlight_count = (highlights_value as Array).size()
+	return "peak %d%% @ %.1fs / %d marks" % [
+		int(round(float(snapshot.get("peak_danger", 0.0)) * 100.0)),
+		float(snapshot.get("peak_danger_time", 0.0)),
+		highlight_count,
+	]
+
+
+func _gravity_ghost_snapshot() -> Dictionary:
+	if RunProgress == null:
+		return {}
+	if RunProgress.has_method("get_last_gravity_ghost_replay"):
+		var value: Variant = RunProgress.call("get_last_gravity_ghost_replay")
+		if value is Dictionary:
+			return value as Dictionary
+	var fallback_value: Variant = RunProgress.arena_flags.get("gravity_ghost_replay", {})
+	if fallback_value is Dictionary:
+		return fallback_value as Dictionary
+	return {}
 
 
 func _score_snapshot_from_progress() -> Dictionary:

@@ -40,11 +40,16 @@
 					<a class="button" href="examples/vector_anomaly_mod.json" download>Download starter</a>
 					<a class="button quiet" href="manifest.schema.json" download>Schema JSON</a>
 				</div>
+				<div class="lab-status-rail" aria-label="Creator Lab status">
+					<div><span>PACK GRAPH</span><strong>live</strong></div>
+					<div><span>VALIDATION</span><strong>schema 4</strong></div>
+					<div><span>CO-OP</span><strong>signature locked</strong></div>
+				</div>
 			</div>
 			<aside class="telemetry" aria-label="Mod system capabilities">
 				<p><span>CONTRACT</span><strong>SAFE DATA ONLY</strong></p>
 				<p><span>SURFACES</span><strong>54 CATALOGS</strong></p>
-				<p><span>HOOKS</span><strong>32 EVENTS</strong></p>
+				<p><span>HOOKS</span><strong>33 EVENTS</strong></p>
 				<p><span>OPTIONS</span><strong>LIVE + PERSISTED</strong></p>
 				<p><span>CO-OP</span><strong>SIGNATURE LOCKED</strong></p>
 				<div class="signal"><i></i> REGISTRY SIGNAL NOMINAL</div>
@@ -82,7 +87,7 @@
 					<fieldset>
 						<legend>Capability</legend>
 						<div class="field-pair"><label>Starter surface <select name="preset"><option value="weapon">Projectile weapon</option><option value="weave">Law weave</option><option value="challenge">Challenge card</option><option value="visual">Visual pack</option><option value="level">Level pack</option><option value="expansion">Expansion pack</option></select></label><label>Network category <select name="network"><option value="reliable_event">Reliable event</option><option value="deterministic_seed">Deterministic seed</option><option value="exported_state">Exported state</option><option value="local_visual">Local visual</option></select></label></div>
-						<label>Dependencies <input name="dependencies" placeholder="core_pack@1.2.0, optional_music?" autocomplete="off"><small>comma separated; @ sets minimum version, ? marks optional</small></label>
+						<label>Dependencies <input name="dependencies" placeholder="core_pack@1.2.0..2.0.0, optional_music?" autocomplete="off"><small>comma separated; @min..max sets bounds, ? marks optional</small></label>
 						<label>Conflicts <input name="conflicts" placeholder="legacy_physics_pack" autocomplete="off"></label>
 						<label class="check-row"><input type="checkbox" name="creator_options" checked><span>Include player-facing creator options</span></label>
 					</fieldset>
@@ -105,6 +110,11 @@
 						<pre tabindex="0"><code data-manifest-output></code></pre>
 					</div>
 				</div>
+			</div>
+			<div class="contract-map" aria-labelledby="contract-map-title">
+				<div><p class="eyebrow">PACK GRAPH</p><h3 id="contract-map-title">Dependency pressure, before install.</h3><p>The graph updates with the workbench. Required links, optional links, and declared conflicts stay visually distinct.</p></div>
+				<div class="graph-stage" data-contract-graph aria-live="polite"></div>
+				<div class="graph-legend"><span><i class="required"></i> required</span><span><i class="optional"></i> optional</span><span><i class="conflict"></i> conflict</span></div>
 			</div>
 		</section>
 

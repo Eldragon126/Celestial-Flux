@@ -84,6 +84,18 @@ The separate wiki site should stay factual and mechanics-first. It should cover:
 - accessibility and death readouts
 - production architecture boundaries
 
+## Creator Lab Scope
+
+The modding site should stay creator-first and match schema 4. It may claim:
+
+- 54 data-driven content catalogs and 33 safe runtime hooks
+- dependency minimum/maximum versions, deterministic load ordering, and explicit conflicts
+- typed persisted creator options that can gate hook conditions
+- gameplay option values participating in LAN compatibility signatures while local visuals remain exempt
+- browser-local draft persistence, JSON import/export, contract diagnostics, capability filtering, and release checks
+
+Do not describe catalog-only surfaces as live scene loaders. Distinguish current live consumers (projectile weapon profiles and bounded hook effects) from catalog and roadmap surfaces for future trusted directors.
+
 ## Production Architecture Claims
 
 Only claim systems that exist in the docs/code:
@@ -108,6 +120,8 @@ Use the game's actual visual identity:
 - cyan for gravity/readability
 - amber for warning/trajectory
 - red for critical/Rupture/boss pressure
+
+Current site polish includes orbit/anomaly halos, thin scan-line overlays, status rails, and card scan hovers across the main site, wiki, and Creator Lab. Keep those effects tied to readable systems language instead of generic neon decoration.
 
 Do not use generic space fantasy, muddy nebula fog, decorative bokeh, or abstract neon visuals that are disconnected from gameplay state.
 

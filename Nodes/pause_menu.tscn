@@ -6,10 +6,10 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_g8hx7"]
 shader = ExtResource("3_g8hx7")
-shader_parameter/lineas = 500000
-shader_parameter/velocidad = 1.2
-shader_parameter/ondulacion = 1.0
-shader_parameter/frecuencia = 4.0
+shader_parameter/lineas = 72
+shader_parameter/velocidad = 0.78
+shader_parameter/ondulacion = 0.22
+shader_parameter/frecuencia = 6.5
 shader_parameter/color_a = Color(0, 1, 1, 0.41568628)
 shader_parameter/color_b = Color(0, 0.12941177, 0.5176471, 0.35686275)
 shader_parameter/color_neon = Color(0, 0.85, 1, 1)
@@ -18,40 +18,40 @@ shader_parameter/gravity_center = Vector2(0.5, 0.5)
 shader_parameter/real_time = 0.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.018, 0.024, 0.042, 0.82)
+bg_color = Color(0.006, 0.012, 0.024, 0.94)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.2, 0.95, 1, 0.42)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+border_color = Color(0.2, 0.95, 1, 0.64)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
-bg_color = Color(0.02, 0.08, 0.12, 0.72)
+bg_color = Color(0.012, 0.05, 0.075, 0.9)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.42, 1, 0.94, 0.38)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
-bg_color = Color(0.04, 0.16, 0.22, 0.86)
+bg_color = Color(0.016, 0.1, 0.14, 0.96)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.62, 1, 0.96, 0.72)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [node name="PauseMenu" type="Control" unique_id=1603217995]
 process_mode = 3
@@ -88,10 +88,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -380.0
-offset_top = -420.0
-offset_right = 380.0
-offset_bottom = 420.0
+offset_left = -480.0
+offset_top = -430.0
+offset_right = 480.0
+offset_bottom = 430.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
@@ -169,10 +169,24 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "READABILITY HALOS"
 
-[node name="AutoOrbitingCelestialsCheck" type="CheckBox" parent="MenuPanel/MenuRows/FlashRow"]
+[node name="PlayerAutoOrbitCheck" type="CheckBox" parent="MenuPanel/MenuRows/FlashRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-text = "ORBIT EVENTS"
+text = "PLAYER AUTO-ORBIT"
+
+[node name="CelestialOrbitRow" type="HBoxContainer" parent="MenuPanel/MenuRows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CelestialOrbitLabel" type="Label" parent="MenuPanel/MenuRows/CelestialOrbitRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "ORBITING CELESTIAL EVENTS"
+
+[node name="AutoOrbitingCelestialsCheck" type="CheckBox" parent="MenuPanel/MenuRows/CelestialOrbitRow"]
+layout_mode = 2
+button_pressed = true
 
 [node name="ColorRow" type="HBoxContainer" parent="MenuPanel/MenuRows" unique_id=234854737]
 layout_mode = 2

@@ -30,7 +30,10 @@ html {
 
 body {
 	margin: 0;
-	background: var(--black);
+	background:
+		radial-gradient(circle at 80% 8%, rgba(100, 255, 232, 0.12), transparent 28rem),
+		radial-gradient(circle at 12% 38%, rgba(255, 200, 91, 0.08), transparent 26rem),
+		var(--black);
 	color: var(--ink);
 	font-family: var(--font-ui);
 	line-height: 1.55;
@@ -172,6 +175,23 @@ code {
 	pointer-events: none;
 }
 
+.wiki-hero::before {
+	content: "";
+	position: absolute;
+	z-index: 1;
+	right: -120px;
+	bottom: -220px;
+	width: min(60vw, 780px);
+	aspect-ratio: 1;
+	border-radius: 50%;
+	background:
+		repeating-radial-gradient(circle, rgba(100, 255, 232, 0.16) 0 1px, transparent 1px 38px),
+		conic-gradient(from 20deg, transparent, rgba(100, 255, 232, 0.2), transparent, rgba(255, 85, 64, 0.14), transparent);
+	opacity: 0.46;
+	animation: wiki-orbit 24s linear infinite;
+	pointer-events: none;
+}
+
 .hero-backdrop {
 	position: absolute;
 	inset: 0;
@@ -262,6 +282,46 @@ h3 {
 .search-shell input:focus {
 	outline: 2px solid var(--cyan);
 	outline-offset: 3px;
+}
+
+.wiki-signal-strip {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1px;
+	width: min(720px, 100%);
+	margin-top: 18px;
+	padding: 1px;
+	border: 1px solid rgba(100, 255, 232, 0.25);
+	background: rgba(100, 255, 232, 0.13);
+	box-shadow: 0 20px 68px rgba(0, 0, 0, 0.36);
+}
+
+.wiki-signal-strip div {
+	padding: 12px 14px;
+	background:
+		linear-gradient(135deg, rgba(100, 255, 232, 0.08), transparent 60%),
+		rgba(0, 0, 0, 0.78);
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+}
+
+.wiki-signal-strip span,
+.wiki-signal-strip strong {
+	display: block;
+}
+
+.wiki-signal-strip span {
+	color: var(--dim);
+	font-size: 0.6rem;
+	font-weight: 900;
+	letter-spacing: 0.14em;
+}
+
+.wiki-signal-strip strong {
+	margin-top: 4px;
+	color: var(--cyan);
+	font-size: 0.75rem;
+	letter-spacing: 0.06em;
 }
 
 .search-status {
@@ -383,12 +443,30 @@ h3 {
 .wiki-card {
 	position: relative;
 	transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+	overflow: hidden;
 }
 
 .wiki-card:hover {
 	transform: translateY(-2px);
 	border-color: var(--cyan-line);
 	background: rgba(100, 255, 232, 0.035);
+}
+
+.wiki-card::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background:
+		linear-gradient(90deg, transparent, rgba(100, 255, 232, 0.08), transparent),
+		linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+	background-size: 140% 100%, 100% 18px;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.wiki-card:hover::before {
+	opacity: 1;
+	animation: wiki-scan 1.4s steps(5) infinite;
 }
 
 .wiki-card::after {
@@ -611,6 +689,15 @@ button:focus-visible {
 	outline-offset: 3px;
 }
 
+@keyframes wiki-orbit {
+	to { transform: rotate(1turn); }
+}
+
+@keyframes wiki-scan {
+	0% { background-position: -30% 0, 0 0; }
+	100% { background-position: 130% 0, 0 18px; }
+}
+
 @media (max-width: 1100px) {
 	.wiki-layout {
 		grid-template-columns: 1fr;
@@ -652,7 +739,8 @@ button:focus-visible {
 	.wiki-grid.three,
 	.readout-table,
 	.timeline,
-	.boss-table {
+	.boss-table,
+	.wiki-signal-strip {
 		grid-template-columns: 1fr;
 	}
 }

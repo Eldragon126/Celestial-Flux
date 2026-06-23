@@ -862,7 +862,7 @@ func _mod_loaded(mod_id: String) -> bool:
 		return false
 	if _registry.has_method("get_manifest"):
 		var manifest_value: Variant = _registry.call("get_manifest", StringName(mod_id.strip_edges()))
-		return manifest_value is Dictionary and not (manifest_value as Dictionary).is_empty()
+		return manifest_value is Dictionary and not (manifest_value as Dictionary).is_empty() and bool((manifest_value as Dictionary).get("enabled", true))
 	return false
 
 

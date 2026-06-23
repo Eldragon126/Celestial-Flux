@@ -16,6 +16,10 @@ const TRACKED_GROUPS: Array[StringName] = [
 	&"law_gravity_debris",
 	&"gravity_leeches",
 	&"Player",
+	&"spacetime_tear",
+	&"arena_hazard",
+	&"arena_destabilization_hazard",
+	&"gravity_tide_pocket",
 ]
 
 @export var refresh_interval: float = 0.35

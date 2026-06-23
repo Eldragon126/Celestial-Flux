@@ -15,14 +15,6 @@ static func apply_local_time_scale(target: Node, multiplier: float, duration: fl
 	target.set_meta("local_time_scale", clamped_multiplier)
 	target.set_meta("local_time_scale_until", until)
 
-	var velocity: Variant = target.get("velocity")
-	if velocity is Vector2:
-		target.set("velocity", velocity * clampf(clamped_multiplier, 0.25, 1.18))
-
-	var linear_velocity: Variant = target.get("linear_velocity")
-	if linear_velocity is Vector2:
-		target.set("linear_velocity", linear_velocity * clampf(clamped_multiplier, 0.25, 1.18))
-
 	if target.has_method("on_local_slow_applied"):
 		target.call("on_local_slow_applied", clamped_multiplier, duration)
 
@@ -30,14 +22,36 @@ static func get_time_scale(target: Node) -> float:
 	if target == null or not is_instance_valid(target) or target.is_queued_for_deletion():
 		return 1.0
 
-	var now = Time.get_ticks_msec() / 1000.0
+	var now_msec := Time.get_ticks_msec()
+	var now := float(now_msec) / 1000.0
 	var until = float(target.get_meta("local_time_scale_until", 0.0))
+	var scale := 1.0
 	if now >= until:
 		if target.has_meta("local_time_scale"):
 			target.remove_meta("local_time_scale")
-		return 1.0
+		if target.has_meta("local_time_scale_until"):
+			target.remove_meta("local_time_scale_until")
+	else:
+		scale = clampf(float(target.get_meta("local_time_scale", 1.0)), 0.05, 1.65)
 
-	return clampf(float(target.get_meta("local_time_scale", 1.0)), 0.05, 1.65)
+	var field_until_msec := int(target.get_meta(&"time_dilation_field_until_msec", 0))
+	if now_msec >= field_until_msec:
+		if target.has_meta(&"time_dilation_field_scale"):
+			target.remove_meta(&"time_dilation_field_scale")
+		if target.has_meta(&"time_dilation_field_until_msec"):
+			target.remove_meta(&"time_dilation_field_until_msec")
+	else:
+		scale = minf(scale, clampf(float(target.get_meta(&"time_dilation_field_scale", 1.0)), 0.05, 1.0))
+
+	var player_field_until_msec := int(target.get_meta(&"player_time_field_until_msec", 0))
+	if now_msec >= player_field_until_msec:
+		if target.has_meta(&"player_time_field_scale"):
+			target.remove_meta(&"player_time_field_scale")
+		if target.has_meta(&"player_time_field_until_msec"):
+			target.remove_meta(&"player_time_field_until_msec")
+	else:
+		scale = minf(scale, clampf(float(target.get_meta(&"player_time_field_scale", 1.0)), 0.05, 1.0))
+	return scale
 
 static func add_velocity(target: Node, impulse: Vector2) -> void:
 	if target == null or not is_instance_valid(target) or target.is_queued_for_deletion():

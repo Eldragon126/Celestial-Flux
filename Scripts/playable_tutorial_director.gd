@@ -32,6 +32,7 @@ var _objectives: Array[String] = [
 
 
 func _ready() -> void:
+	add_to_group("tutorial")
 	_resolve_player()
 	if _player != null:
 		_start_position = _player.global_position
@@ -52,6 +53,8 @@ func _process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("Menu"):
+		if _pause_menu_available():
+			return
 		# FIX: Handle the input BEFORE changing the scene to ensure the viewport is still valid.
 		get_viewport().set_input_as_handled()
 		get_tree().change_scene_to_file(TITLE_SCENE)
@@ -177,6 +180,11 @@ func _set_label_text(title: String, detail: String) -> void:
 		_objective_label.text = title
 	if _detail_label != null:
 		_detail_label.text = detail
+
+
+func _pause_menu_available() -> bool:
+	var pause_menu := get_tree().get_first_node_in_group("PauseMenu")
+	return pause_menu != null and pause_menu.has_method("toggle_pause")
 
 
 func _on_player_shot(_projectile: Node, _direction: Vector2) -> void:

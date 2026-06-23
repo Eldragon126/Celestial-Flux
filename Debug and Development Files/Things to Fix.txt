@@ -639,7 +639,7 @@ Those are future constellations. Right now you need a rocket that survives launc
 
 [x] I'd like to make the auto-orbiting planets an optional, auto-off setting. I also want it to dynamically set the orbit distance based on where the player was and what his velocity was originally. Fixed: orbiting celestial events now have a persisted pause-menu toggle that defaults off; when enabled, their radius, entry angle, angular speed, and direction are captured from the player's position/velocity at spawn.
 
-[ ] I DID NOT MEAN CELESTIAL EVENTS, I meant the player auto-orbits planets, and I want that to be something you can toggle in settings or in the pause menu. Turn the celestial events that were auto orbiting auto on.
+[x] I DID NOT MEAN CELESTIAL EVENTS, I meant the player auto-orbits planets, and I want that to be something you can toggle in settings or in the pause menu. Turn the celestial events that were auto orbiting auto on. Fixed: player auto-orbit assistance is now a separate off-by-default pause setting that gates continuous tangent/proximity correction, while orbiting celestial events use a migrated on-by-default setting and remain host-synchronized in LAN runs.
 
 [x] The game randomly crashed on wave 4. This needs to be fixed. Fixed the wave-4 pressure overlap: early rosters no longer combine parametric/phase-slip families with authored gravity fields, unstable moons begin later, Pulsating Gravity Spawner begins at wave 6, and Gravity Wave Maker begins at wave 8.
 
@@ -649,8 +649,8 @@ Those are future constellations. Right now you need a rocket that survives launc
 
 [x] The game needs to be more sellable. Completed: strengthened the first-wave teaching ladder and accessibility legibility, connected the public site to the new Creator Lab, and added `SELLABILITY_EXECUTION_PLAN.md` with a three-second-to-demo conversion path, concrete capture needs, and measurable success tests.
 
-[ ] There needs to be more support for modding in the game. ModContentRegistry now validates manifest text/files and exports creator diagnostics; the Mods screen can export/copy a report containing failures, dependencies, capabilities, install paths, disabled state, and the multiplayer compatibility signature. Continue.
+[x] There needs to be more support for modding in the game. Completed: ModContentRegistry now resolves dependency graphs, version bounds, conflicts, deterministic order, creator options, diagnostics, and safe manifest installation; the Mods screen adds dependency diagnostics, option resets, and a Creator Sandbox that validates and installs new non-overwriting user manifests.
 
-[ ] Polish a entire website dedicated to helping players make mods. Fixed: added `website/modding/` as a responsive Creator Lab with quickstart, live manifest forge, starter download, JSON schema, hook grammar, searchable creator surfaces, shipping checklist, and links from the main site/wiki. Continue.
+[x] Polish a entire website dedicated to helping players make mods. Completed: the responsive Creator Lab now preserves imported contracts, authors min/max dependency bounds, catches invalid ranges, renders a live required/optional/conflict pack graph, persists drafts/release gates, and keeps catalog-versus-live-runtime claims explicit.
 
-[ ] 
+[x] The entire time dilation system needs to be polished. So far it kind of works, but it flashes on and off when I hold the time dilation key, and it doesn't seem to do anything unless I enable global time scale. Fixed: dilation now ramps immediately through a local simulation blend, applies compatible bounded enemy/boss/projectile field metadata without velocity compounding, keeps Engine.time_scale at 1 by default, reports its virtual scale to HUD/predictors, and fades the shader overlay smoothly without normal start/end glitches.
