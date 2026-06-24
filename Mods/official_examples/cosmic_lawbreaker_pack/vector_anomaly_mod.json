@@ -1,0 +1,119 @@
+{
+  "id": "cosmic_lawbreaker_pack",
+  "display_name": "Cosmic Lawbreaker Pack",
+  "author": "Vector Anomaly Team",
+  "version": "1.0.0",
+  "schema_version": 4,
+  "description": "Official example mod for arena laws: delayed gravity, orbit debt, mass betrayal, harmonic tax, and wrong-vector weather.",
+  "tags": ["official-example", "arena-laws", "physics", "for-modders"],
+  "dependencies": [],
+  "options": [
+    {
+      "id": "law_intensity",
+      "display_name": "Law Intensity",
+      "type": "float",
+      "default": 0.65,
+      "min": 0.25,
+      "max": 1.0,
+      "step": 0.05,
+      "network_category": "deterministic_seed",
+      "description": "Shared intensity scalar for trusted directors that consume these arena-law entries."
+    },
+    {
+      "id": "wrong_vector_weather",
+      "display_name": "Wrong Vector Weather",
+      "type": "bool",
+      "default": true,
+      "network_category": "deterministic_seed",
+      "description": "Allows periodic weather-front law events in directors that opt into this pack."
+    }
+  ],
+  "content": {
+    "rules": [
+      {
+        "id": "afterimage_gravity",
+        "display_name": "Afterimage Gravity",
+        "network_category": "deterministic_seed",
+        "tags": ["gravity-sampling", "delayed-force"],
+        "sample_delay_seconds": 0.38,
+        "telegraph": "Gravity pulls toward recent source positions.",
+        "description": "Shows how a trusted director can alter gravity sampling without replacing core physics."
+      },
+      {
+        "id": "orbit_debt",
+        "display_name": "Orbit Debt",
+        "network_category": "deterministic_seed",
+        "tags": ["slingshot", "delayed-pulse"],
+        "debt_delay_seconds": 1.4,
+        "max_stacks": 5,
+        "telegraph": "Strong slingshots store a delayed counter-force pulse.",
+        "description": "Demonstrates event listening and delayed arena effects."
+      },
+      {
+        "id": "mass_betrayal",
+        "display_name": "Mass Betrayal",
+        "network_category": "deterministic_seed",
+        "tags": ["enemy-force-scaling"],
+        "small_body_gravity_multiplier": 1.35,
+        "large_body_gravity_multiplier": 0.72,
+        "description": "Teaches per-body gravity scaling while keeping the same bounded source list."
+      },
+      {
+        "id": "harmonic_tax",
+        "display_name": "Harmonic Tax",
+        "network_category": "deterministic_seed",
+        "tags": ["risk-reward", "gravity-well"],
+        "meter_gain_near_wells": 0.18,
+        "reward_multiplier_cap": 1.45,
+        "description": "A risk/reward meter for staying close to gravity wells."
+      }
+    ],
+    "arena_events": [
+      {
+        "id": "wrong_vector_weather_front",
+        "display_name": "Wrong Vector Weather Front",
+        "network_category": "deterministic_seed",
+        "event_type": "gravity_weather_front",
+        "telegraph": "WRONG VECTOR FRONT",
+        "warning_seconds": 1.2,
+        "direction_rotation_degrees": 18.0,
+        "description": "A visible area-based law modifier for future trusted weather-front directors."
+      }
+    ],
+    "law_weaves": [
+      {
+        "id": "orbit_debt_apex_release",
+        "display_name": "Orbit Debt Apex Release",
+        "hooks": ["slingshot_apex"],
+        "network_category": "deterministic_seed",
+        "weight": 1.0,
+        "cooldown": 8.0,
+        "max_triggers": 4,
+        "conditions": [
+          {"type": "mod_option", "manifest_id": "cosmic_lawbreaker_pack", "option_id": "law_intensity", "operator": "greater_or_equal", "value": 0.5}
+        ],
+        "effects": [
+          {"action": "create_resonance_zone", "zone_type": "harmonic_orbit", "radius": 260.0, "intensity": 0.55, "duration": 2.0},
+          {"action": "emit_hud_badge", "content_id": "orbit_debt_badge"}
+        ],
+        "description": "Hookable example: an apex slingshot asks trusted directors for a readable delayed resonance payoff."
+      }
+    ],
+    "hud_badges": [
+      {
+        "id": "orbit_debt_badge",
+        "display_name": "Orbit Debt",
+        "network_category": "local_visual",
+        "text": "ORBIT DEBT"
+      }
+    ],
+    "creator_notes": [
+      {
+        "id": "lawbreaker_lessons",
+        "display_name": "What This Pack Teaches",
+        "network_category": "local_visual",
+        "note": "Copy this pack when you want to teach a new arena law. Keep dangerous forces telegraphed, bounded, and driven by deterministic_seed entries so multiplayer peers agree."
+      }
+    ]
+  }
+}

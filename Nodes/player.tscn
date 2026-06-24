@@ -172,12 +172,14 @@ bus = &"Player Sound Effects"
 [node name="OrbitalTrajectoryPredictor" type="Node2D" parent="." unique_id=1075155317]
 visible = false
 script = ExtResource("7_0bouj")
-branch_step_stride = 1
+show_prediction_line = false
+branch_step_stride = 0
 metadata/_custom_type_script = "uid://i6fhtodnnkja"
 
 [node name="GravityVisualizationComponent" type="Node2D" parent="." unique_id=2004999560]
 visible = false
 script = ExtResource("8_2hphp")
+enable_field_lines = false
 field_line_count = 10
 field_line_segments = 30
 field_line_color = Color(0.4509804, 1, 1, 1)
@@ -190,6 +192,7 @@ metadata/_custom_type_script = "uid://br88kgexjpay7"
 [node name="ProjectileAimPredictor" type="Node2D" parent="." unique_id=501727973]
 visible = false
 script = ExtResource("9_2hphp")
+ghost_amplitude = 20.0
 prediction_color = Color(0, 0.8509804, 1, 0.78)
 danger_color = Color(1, 0.35, 0.1, 0.92)
 ghost_color = Color(0, 0.6, 1, 0.21568628)

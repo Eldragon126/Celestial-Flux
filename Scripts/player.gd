@@ -1164,6 +1164,10 @@ func shoot():
 	if momentum_component != null and momentum_component.has_method("prepare_projectile"):
 		momentum_component.call("prepare_projectile", p, spawn_dir)
 
+	var campaign_damage_multiplier := float(get_meta(&"campaign_damage_multiplier", 1.0))
+	if campaign_damage_multiplier > 0.0 and not is_equal_approx(campaign_damage_multiplier, 1.0):
+		p.set_meta(&"campaign_damage_multiplier", campaign_damage_multiplier)
+
 	momentum_projectile_spawned.emit(p, spawn_dir)
 	get_tree().current_scene.call_deferred("add_child", p)
 

@@ -236,6 +236,8 @@ func _on_body_entered(body: Node) -> void:
 func _should_ignore_projectile_body(body: Node) -> bool:
 	if body == null or not is_instance_valid(body):
 		return true
+	if body.is_in_group("player_allies") or body.is_in_group("campaign_mother_planet"):
+		return true
 	if not body.is_in_group("Projectiles"):
 		return false
 	if body == self:
@@ -263,6 +265,8 @@ func _roll_damage() -> float:
 	var multiplier: float = 1.0
 	if has_meta(&"momentum_damage_multiplier"):
 		multiplier = get_meta(&"momentum_damage_multiplier")
+	if has_meta(&"campaign_damage_multiplier"):
+		multiplier *= maxf(float(get_meta(&"campaign_damage_multiplier")), 0.1)
 	
 	multiplier = clampf(multiplier, 1.0, momentum_damage_cap)
 	

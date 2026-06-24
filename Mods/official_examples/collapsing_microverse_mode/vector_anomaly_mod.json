@@ -1,0 +1,100 @@
+{
+  "id": "collapsing_microverse_mode",
+  "display_name": "Collapsing Microverse Mode",
+  "author": "Vector Anomaly Team",
+  "version": "1.0.0",
+  "schema_version": 4,
+  "description": "Official example mod for custom modes: a tiny dying solar system with orbiting bodies, shrinking space, and campaign-compatible scene flow.",
+  "tags": ["official-example", "gamemode", "campaign", "for-modders"],
+  "dependencies": [],
+  "options": [
+    {
+      "id": "collapse_speed",
+      "display_name": "Collapse Speed",
+      "type": "choice",
+      "default": "standard",
+      "choices": ["slow", "standard", "violent"],
+      "network_category": "deterministic_seed",
+      "description": "Suggested instability pacing for trusted mode directors."
+    }
+  ],
+  "content": {
+    "gamemodes": [
+      {
+        "id": "collapsing_microverse",
+        "display_name": "Collapsing Microverse",
+        "network_category": "deterministic_seed",
+        "scene": "res://Nodes/campaign_mode.tscn",
+        "tags": ["custom-mode", "microverse", "moving-gravity"],
+        "central_singularity": true,
+        "orbiting_body_count": 6,
+        "description": "Custom mode profile: fight inside a tiny dying solar system using campaign scene flow as a safe loader."
+      }
+    ],
+    "campaigns": [
+      {
+        "id": "microverse_last_minutes",
+        "display_name": "Microverse Last Minutes",
+        "network_category": "deterministic_seed",
+        "gamemode": "collapsing_microverse",
+        "recommended_waves": 10,
+        "instability_meter": "microverse_instability",
+        "description": "Campaign entry for a shrinking pocket galaxy with predictable orbiting hazards."
+      }
+    ],
+    "celestial_bodies": [
+      {
+        "id": "microverse_moonlet",
+        "display_name": "Microverse Moonlet",
+        "network_category": "deterministic_seed",
+        "body_type": "orbiting_moonlet",
+        "mass": 135,
+        "orbit_behavior": "deterministic_ring",
+        "description": "Example moving gravity body for a custom mode."
+      }
+    ],
+    "arena_events": [
+      {
+        "id": "microverse_collapse_pulse",
+        "display_name": "Microverse Collapse Pulse",
+        "network_category": "deterministic_seed",
+        "event_type": "collapse_pulse",
+        "warning_seconds": 1.6,
+        "telegraph": "MICROVERSE CONTRACTING",
+        "description": "A readable pulse that trusted directors can emit every few waves."
+      }
+    ],
+    "challenge_cards": [
+      {
+        "id": "pocket_galaxy_trial",
+        "display_name": "Pocket Galaxy Trial",
+        "hooks": ["run_start"],
+        "network_category": "deterministic_seed",
+        "max_triggers": 1,
+        "effects": [
+          {"action": "start_challenge_card", "challenge_id": "pocket_galaxy_trial", "display_name": "Pocket Galaxy Trial"},
+          {"action": "request_wave_table", "content_id": "microverse_wave_table"}
+        ],
+        "description": "Shows how a mode can ask trusted directors for a mode-specific wave table."
+      }
+    ],
+    "wave_tables": [
+      {
+        "id": "microverse_wave_table",
+        "display_name": "Microverse Wave Table",
+        "network_category": "deterministic_seed",
+        "arena_events": ["microverse_collapse_pulse"],
+        "celestial_bodies": ["microverse_moonlet"],
+        "description": "Mode-specific wave table for the collapsing microverse."
+      }
+    ],
+    "creator_notes": [
+      {
+        "id": "microverse_lessons",
+        "display_name": "What This Pack Teaches",
+        "network_category": "local_visual",
+        "note": "Custom modes should declare scene flow, mode rules, hazards, and wave tables separately. That lets multiplayer signatures catch mismatches before clients load a run."
+      }
+    ]
+  }
+}

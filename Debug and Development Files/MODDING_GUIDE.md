@@ -27,6 +27,11 @@ The reference pack lives at:
 
 - `res://Mods/example_vector_laws/vector_anomaly_mod.json`
 
+Bundled schema 4 concept packs now also include:
+
+- `res://Mods/space_oregon_trail/vector_anomaly_mod.json` for a convoy survival campaign, energy-supply economy, hostile planet stops, and the `space_dysentery` status effect.
+- `res://Mods/party_modes/vector_anomaly_mod.json` for editable party-mode catalog entries covering gravity soccer, emote rounds, hijack variants, and build-a-battle-ship upgrade slots.
+
 Asset paths inside manifests can use `res://`, `user://`, or manifest-relative paths such as `assets/sfx/mirror_hit.ogg`. Relative paths are resolved against the manifest folder at runtime, which keeps the same mod folder portable between Windows, macOS, Linux, and desktop portable builds.
 
 ## Safety Boundary

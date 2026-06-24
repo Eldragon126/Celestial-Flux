@@ -16,9 +16,29 @@ class_name GravityGhostReplayPanel
 @export var enemy_pressure_color: Color = Color(1.0, 0.28, 0.14, 0.7)
 @export var health_pressure_color: Color = Color(1.0, 0.18, 0.1, 0.74)
 @export var gravity_pressure_color: Color = Color(0.64, 0.44, 1.0, 0.74)
+@export var header_reserved_height: float = 46.0
+@export var pressure_lane_reserved_height: float = 52.0
+
+@export_group("Editable Labels")
+@export var replay_title_template: String = "FINAL FLIGHT REPLAY // %.1f SECONDS // %s // W%d"
+@export var unavailable_title_text: String = "FINAL FLIGHT REPLAY // SIGNAL LOST"
+@export var unavailable_status_text: String = "No stable black-box movement vector was recorded."
+@export var summary_template: String = "DIST %d // PEAK SPEED %d // PRIMARY %s"
+@export var start_marker_text: String = "START"
+@export var end_marker_text: String = "IMPACT"
+@export var playhead_marker_text: String = "SHIP"
+@export var show_route_markers: bool = true
+@export var summary_label_path: NodePath = ^"SummaryLabel"
+@export var start_marker_label_path: NodePath = ^"StartMarkerLabel"
+@export var end_marker_label_path: NodePath = ^"EndMarkerLabel"
+@export var playhead_marker_label_path: NodePath = ^"PlayheadMarkerLabel"
 
 @onready var title_label: Label = $TitleLabel
 @onready var status_label: Label = $StatusLabel
+@onready var summary_label: Label = get_node_or_null(summary_label_path) as Label
+@onready var start_marker_label: Label = get_node_or_null(start_marker_label_path) as Label
+@onready var end_marker_label: Label = get_node_or_null(end_marker_label_path) as Label
+@onready var playhead_marker_label: Label = get_node_or_null(playhead_marker_label_path) as Label
 
 var _positions := PackedVector2Array()
 var _times := PackedFloat32Array()
@@ -56,6 +76,7 @@ func _process(delta: float) -> void:
 	if _playhead > _duration + loop_delay:
 		_playhead = 0.0
 	_update_status()
+	_update_route_marker_labels()
 	queue_redraw()
 
 
@@ -116,21 +137,31 @@ func _load_snapshot() -> void:
 	if not _valid:
 		_show_unavailable()
 		return
-	title_label.text = "GRAVITY GHOST // FINAL %.1f SECONDS // %s // W%d" % [
+	title_label.text = replay_title_template % [
 		_duration,
 		_pressure_kind_label(_dominant_pressure),
 		int(snapshot.get("wave", 0)),
 	]
+	if summary_label != null:
+		summary_label.text = summary_template % [
+			int(round(_distance)),
+			int(round(_peak_speed)),
+			_pressure_kind_label(_dominant_pressure),
+		]
 	_rebuild_screen_points()
 	_update_status()
+	_update_route_marker_labels()
 
 
 func _show_unavailable() -> void:
 	_valid = false
 	if title_label != null:
-		title_label.text = "GRAVITY GHOST // SIGNAL LOST"
+		title_label.text = unavailable_title_text
 	if status_label != null:
-		status_label.text = "No stable movement vector survived this reconstruction."
+		status_label.text = unavailable_status_text
+	if summary_label != null:
+		summary_label.text = "BLACK BOX EMPTY"
+	_set_route_markers_visible(false)
 
 
 func _draw() -> void:
@@ -145,6 +176,7 @@ func _draw() -> void:
 
 	draw_polyline(_screen_points, future_color, 1.4, true)
 	var active_index := _active_point_index()
+	_draw_route_endpoints(active_index)
 	for index in range(1, active_index + 1):
 		var pressure := _danger[index] if index < _danger.size() else 0.0
 		var color := trail_color.lerp(danger_color, clampf(pressure, 0.0, 1.0) * 0.82)
@@ -157,8 +189,8 @@ func _draw() -> void:
 
 
 func _draw_grid() -> void:
-	var top := 30.0
-	var bottom := maxf(size.y - 36.0, top)
+	var top := maxf(header_reserved_height, 30.0)
+	var bottom := maxf(size.y - pressure_lane_reserved_height, top)
 	for column in range(1, 10):
 		var x := size.x * float(column) / 10.0
 		draw_line(Vector2(x, top), Vector2(x, bottom), grid_color, 1.0)
@@ -182,10 +214,13 @@ func _rebuild_screen_points() -> void:
 	var span := maximum - minimum
 	span.x = maxf(span.x, 120.0)
 	span.y = maxf(span.y, 120.0)
-	var usable := Vector2(maxf(size.x - path_padding.x * 2.0, 1.0), maxf(size.y - path_padding.y * 2.0 - 48.0, 1.0))
+	var usable := Vector2(
+		maxf(size.x - path_padding.x * 2.0, 1.0),
+		maxf(size.y - path_padding.y * 2.0 - header_reserved_height - pressure_lane_reserved_height, 1.0)
+	)
 	var scale_factor := minf(usable.x / span.x, usable.y / span.y)
 	var world_center := (minimum + maximum) * 0.5
-	var screen_center := Vector2(size.x * 0.5, 34.0 + usable.y * 0.5)
+	var screen_center := Vector2(size.x * 0.5, header_reserved_height + usable.y * 0.5)
 	for point in _positions:
 		_screen_points.append(screen_center + (point - world_center) * scale_factor)
 	for index in range(_highlights.size()):
@@ -243,7 +278,7 @@ func _draw_pressure_lane() -> void:
 		return
 	var left := 18.0
 	var right := maxf(size.x - 18.0, left + 1.0)
-	var base_y := maxf(size.y - 18.0, 42.0)
+	var base_y := _pressure_lane_y()
 	var lane_height := 16.0
 	draw_line(Vector2(left, base_y), Vector2(right, base_y), event_lane_color, 1.0, true)
 	var active_index := _active_point_index()
@@ -280,12 +315,25 @@ func _draw_pressure_component_track(values: PackedFloat32Array, color: Color, y:
 		last_point = point
 
 
+func _draw_route_endpoints(active_index: int) -> void:
+	if _screen_points.is_empty() or not show_route_markers:
+		return
+	var start := _screen_points[0]
+	var finish := _screen_points[_screen_points.size() - 1]
+	var start_color := Color(trail_color, 0.64)
+	var finish_color := danger_color if active_index >= _screen_points.size() - 2 else Color(danger_color, 0.42)
+	draw_circle(start, 6.5, Color(start_color, 0.16), true)
+	draw_circle(start, 6.5, start_color, false, 1.6, true)
+	draw_circle(finish, 8.0, Color(finish_color, 0.16), true)
+	draw_circle(finish, 8.0, finish_color, false, 1.8, true)
+
+
 func _draw_event_timeline(active_index: int) -> void:
 	if _highlights.is_empty():
 		return
 	var left := 18.0
 	var right := maxf(size.x - 18.0, left + 1.0)
-	var base_y := maxf(size.y - 18.0, 42.0)
+	var base_y := _pressure_lane_y()
 	for entry in _highlights:
 		var event_time := float(entry.get("time", 0.0))
 		var t := clampf(event_time / maxf(_duration, 0.01), 0.0, 1.0)
@@ -302,7 +350,7 @@ func _draw_incident_timeline(active_index: int) -> void:
 		return
 	var left := 18.0
 	var right := maxf(size.x - 18.0, left + 1.0)
-	var base_y := maxf(size.y - 18.0, 42.0) - 47.0
+	var base_y := _pressure_lane_y() - 47.0
 	for entry in _incidents:
 		var incident_time := float(entry.get("time", 0.0))
 		var t := clampf(incident_time / maxf(_duration, 0.01), 0.0, 1.0)
@@ -344,6 +392,11 @@ func _draw_incident_marker(position: Vector2, radius: float, color: Color, kind:
 			draw_colored_polygon(tri, Color(color, 0.78))
 		_:
 			draw_circle(position, radius, color, true)
+
+
+func _pressure_lane_y() -> float:
+	var reserved := maxf(pressure_lane_reserved_height - 18.0, 24.0)
+	return maxf(size.y - reserved, header_reserved_height + 30.0)
 
 
 func _draw_highlight_marker(position: Vector2, radius: float, color: Color, kind: StringName) -> void:
@@ -392,7 +445,7 @@ func _update_status() -> void:
 	var active_index := _active_point_index()
 	var current_speed := _speeds[active_index] if active_index >= 0 and active_index < _speeds.size() else 0.0
 	var current_pressure := _danger[active_index] if active_index >= 0 and active_index < _danger.size() else 0.0
-	status_label.text = "NOW %d // PRESS %d%% // PEAK %d%% @ %.1fs // %s" % [
+	status_label.text = "SPEED %d // PRESSURE %d%% // PEAK %d%% @ %.1fs // %s" % [
 		int(current_speed),
 		int(round(current_pressure * 100.0)),
 		int(round(_peak_danger * 100.0)),
@@ -400,6 +453,35 @@ func _update_status() -> void:
 		_pressure_kind_label(_dominant_pressure),
 	]
 	status_label.modulate = Color(0.72, 0.94, 1.0, 0.86)
+
+
+func _update_route_marker_labels() -> void:
+	if _screen_points.size() < 2 or not show_route_markers:
+		_set_route_markers_visible(false)
+		return
+	_set_route_markers_visible(true)
+	_place_marker_label(start_marker_label, _screen_points[0] + Vector2(-30.0, -22.0), start_marker_text, trail_color)
+	_place_marker_label(end_marker_label, _screen_points[_screen_points.size() - 1] + Vector2(10.0, -22.0), end_marker_text, danger_color)
+	var active_index := _active_point_index()
+	if active_index >= 0 and active_index < _screen_points.size():
+		_place_marker_label(playhead_marker_label, _screen_points[active_index] + Vector2(12.0, 10.0), playhead_marker_text, highlight_color)
+
+
+func _set_route_markers_visible(visible: bool) -> void:
+	for label in [start_marker_label, end_marker_label, playhead_marker_label]:
+		if label != null:
+			label.visible = visible
+
+
+func _place_marker_label(label: Label, local_position: Vector2, text_value: String, color: Color) -> void:
+	if label == null:
+		return
+	label.text = text_value
+	label.modulate = color
+	label.position = Vector2(
+		clampf(local_position.x, 4.0, maxf(size.x - label.size.x - 4.0, 4.0)),
+		clampf(local_position.y, header_reserved_height, maxf(size.y - pressure_lane_reserved_height - 16.0, header_reserved_height))
+	)
 
 
 func _active_incident_label() -> String:

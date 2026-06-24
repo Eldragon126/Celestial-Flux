@@ -7,6 +7,8 @@ const RUN_LOADING_SCENE := "res://Nodes/run_loading_screen.tscn"
 const STEAM_DEMO_SCENE := "res://Nodes/demo_game.tscn"
 const CLIP_LAB_SCENE := "res://Nodes/clip_lab_scene.tscn"
 const MOD_MANAGER_SCENE := "res://Nodes/mod_management_scene.tscn"
+const CAMPAIGN_MODE_SCENE := "res://Nodes/campaign_mode.tscn"
+const KING_OF_THE_HILL_SCENE := "res://Nodes/king_of_the_hill_mode.tscn"
 const SECRET_LAW_BOSS_SCENE := "res://Nodes/secret_law_boss.tscn"
 const GRAVITY_MAW_BOSS_SCENE := "res://Nodes/gravity_maw_boss.tscn"
 const CHAOS_WISP_SCENE := "res://Nodes/chaos_wisp.tscn"
@@ -59,6 +61,8 @@ var _mp_name_edit: LineEdit = null
 var _mp_address_edit: LineEdit = null
 var _mp_port_spin: SpinBox = null
 var _mp_host_button: Button = null
+var _mp_campaign_button: Button = null
+var _mp_koth_button: Button = null
 var _mp_join_button: Button = null
 var _mp_stop_button: Button = null
 var _mp_steam_button: Button = null
@@ -189,6 +193,38 @@ func _on_boss_rush_button_pressed() -> void:
 		NetworkSession.leave_session()
 	RunProgress.begin_boss_rush(_selected_start_seed())
 	_go_to_run_loading_screen()
+
+
+func _on_campaign_button_pressed() -> void:
+	if _try_start_network_scene(CAMPAIGN_MODE_SCENE, {
+		"campaign_mode": true,
+		"network_mode_id": "campaign",
+	}):
+		return
+	if NetworkSession != null:
+		NetworkSession.leave_session()
+	RunProgress.begin_new_run(false, _selected_start_seed())
+	RunProgress.arena_flags["retry_scene_path"] = CAMPAIGN_MODE_SCENE
+	RunProgress.arena_flags["title_scene_path"] = "res://Nodes/title_screen.tscn"
+	RunProgress.arena_flags["campaign_mode"] = true
+	get_tree().change_scene_to_file(CAMPAIGN_MODE_SCENE)
+
+
+func _on_king_hill_button_pressed() -> void:
+	if _try_start_network_scene(KING_OF_THE_HILL_SCENE, {
+		"campaign_mode": true,
+		"king_of_hill_mode": true,
+		"network_mode_id": "king_of_the_hill",
+	}):
+		return
+	if NetworkSession != null:
+		NetworkSession.leave_session()
+	RunProgress.begin_new_run(false, _selected_start_seed())
+	RunProgress.arena_flags["retry_scene_path"] = KING_OF_THE_HILL_SCENE
+	RunProgress.arena_flags["title_scene_path"] = "res://Nodes/title_screen.tscn"
+	RunProgress.arena_flags["campaign_mode"] = true
+	RunProgress.arena_flags["king_of_hill_mode"] = true
+	get_tree().change_scene_to_file(KING_OF_THE_HILL_SCENE)
 
 
 func _begin_new_run(use_challenge: bool = false) -> void:
@@ -400,6 +436,16 @@ func _ensure_multiplayer_panel() -> void:
 	action_row.add_child(_mp_host_button)
 	action_row.add_child(_mp_join_button)
 
+	var mode_row := HBoxContainer.new()
+	mode_row.name = "ModeRow"
+	mode_row.add_theme_constant_override("separation", 10)
+	rows.add_child(mode_row)
+
+	_mp_campaign_button = _make_action_button("HOST CAMPAIGN")
+	_mp_koth_button = _make_action_button("HOST KOTH")
+	mode_row.add_child(_mp_campaign_button)
+	mode_row.add_child(_mp_koth_button)
+
 	var secondary_row := HBoxContainer.new()
 	secondary_row.name = "SecondaryRow"
 	secondary_row.add_theme_constant_override("separation", 10)
@@ -414,6 +460,8 @@ func _ensure_multiplayer_panel() -> void:
 	rows.add_child(close_button)
 
 	_mp_host_button.pressed.connect(_on_multiplayer_host_pressed)
+	_mp_campaign_button.pressed.connect(_on_multiplayer_campaign_pressed)
+	_mp_koth_button.pressed.connect(_on_multiplayer_koth_pressed)
 	_mp_join_button.pressed.connect(_on_multiplayer_join_pressed)
 	_mp_stop_button.pressed.connect(_on_multiplayer_stop_pressed)
 	_mp_steam_button.pressed.connect(_on_multiplayer_steam_pressed)
@@ -461,6 +509,10 @@ func _update_multiplayer_ui() -> void:
 	var active := bool(status.get("active", false))
 	if _mp_host_button != null:
 		_mp_host_button.disabled = active
+	if _mp_campaign_button != null:
+		_mp_campaign_button.disabled = active
+	if _mp_koth_button != null:
+		_mp_koth_button.disabled = active
 	if _mp_join_button != null:
 		_mp_join_button.disabled = active
 	if _mp_stop_button != null:
@@ -488,6 +540,44 @@ func _on_multiplayer_host_pressed() -> void:
 	var port := int(_mp_port_spin.value) if _mp_port_spin != null else multiplayer_default_port
 	NetworkSession.host_and_play(player_name, port, multiplayer_max_peers, _selected_start_seed())
 	_update_multiplayer_ui()
+
+
+func _on_multiplayer_campaign_pressed() -> void:
+	_host_network_scene(CAMPAIGN_MODE_SCENE, {
+		"campaign_mode": true,
+		"network_mode_id": "campaign",
+	})
+
+
+func _on_multiplayer_koth_pressed() -> void:
+	_host_network_scene(KING_OF_THE_HILL_SCENE, {
+		"campaign_mode": true,
+		"king_of_hill_mode": true,
+		"network_mode_id": "king_of_the_hill",
+	})
+
+
+func _host_network_scene(scene_path: String, mode_flags: Dictionary) -> void:
+	if NetworkSession == null:
+		return
+	var player_name := _mp_name_edit.text if _mp_name_edit != null else "VECTOR"
+	var port := int(_mp_port_spin.value) if _mp_port_spin != null else multiplayer_default_port
+	if NetworkSession.has_method("host_scene_and_play"):
+		NetworkSession.call("host_scene_and_play", player_name, scene_path, port, multiplayer_max_peers, _selected_start_seed(), mode_flags)
+	_update_multiplayer_ui()
+
+
+func _try_start_network_scene(scene_path: String, mode_flags: Dictionary) -> bool:
+	if NetworkSession == null or not NetworkSession.has_method("is_network_active"):
+		return false
+	if not bool(NetworkSession.call("is_network_active")):
+		return false
+	if NetworkSession.has_method("is_lan_host") and bool(NetworkSession.call("is_lan_host")) and NetworkSession.has_method("start_hosted_scene_run"):
+		NetworkSession.call("start_hosted_scene_run", scene_path, _selected_start_seed(), mode_flags)
+		return true
+	if _mp_status_label != null:
+		_mp_status_label.text = "Only the LAN host can start Campaign or KOTH for the session."
+	return true
 
 
 func _on_multiplayer_join_pressed() -> void:

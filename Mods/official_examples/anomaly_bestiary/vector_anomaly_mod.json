@@ -1,0 +1,101 @@
+{
+  "id": "anomaly_bestiary",
+  "display_name": "Anomaly Bestiary",
+  "author": "Vector Anomaly Team",
+  "version": "1.0.0",
+  "schema_version": 4,
+  "description": "Official example mod for enemy cataloging: orbital enemies, delayed pursuit, source corruption, swarms, and pickup mimics.",
+  "tags": ["official-example", "enemies", "for-modders"],
+  "dependencies": [],
+  "options": [
+    {
+      "id": "bestiary_spawn_weight",
+      "display_name": "Bestiary Spawn Weight",
+      "type": "float",
+      "default": 0.45,
+      "min": 0.05,
+      "max": 1.0,
+      "step": 0.05,
+      "network_category": "deterministic_seed",
+      "description": "Suggested weight for directors that opt these enemies into wave tables."
+    }
+  ],
+  "content": {
+    "enemies": [
+      {
+        "id": "pendulum_wraith",
+        "display_name": "Pendulum Wraith",
+        "network_category": "deterministic_seed",
+        "tags": ["orbital-ai", "gravity-aware"],
+        "health": 70,
+        "swing_radius": 560,
+        "attack_alignment_window": 0.18,
+        "description": "Swings around gravity wells and attacks when its arc lines up with the player."
+      },
+      {
+        "id": "debt_collector",
+        "display_name": "Debt Collector",
+        "network_category": "deterministic_seed",
+        "tags": ["movement-history", "prediction"],
+        "health": 95,
+        "history_seconds": 4.0,
+        "description": "Studies repeated slingshot paths and moves to punish predictable routes."
+      },
+      {
+        "id": "orbit_barnacle",
+        "display_name": "Orbit Barnacle",
+        "network_category": "deterministic_seed",
+        "tags": ["gravity-source", "world-object"],
+        "health": 55,
+        "source_mass_multiplier": 1.18,
+        "description": "Attaches to a gravity source and rhythmically corrupts its pull until destroyed."
+      },
+      {
+        "id": "mirror_flea_swarm",
+        "display_name": "Mirror Flea Swarm",
+        "network_category": "deterministic_seed",
+        "tags": ["swarm", "delayed-input"],
+        "health": 16,
+        "dash_echo_delay": 0.42,
+        "description": "Small enemies that copy the player's dash direction after a readable delay."
+      },
+      {
+        "id": "false_relic_mimic",
+        "display_name": "False Relic Mimic",
+        "network_category": "deterministic_seed",
+        "tags": ["pickup-hybrid", "bait"],
+        "health": 80,
+        "wake_radius": 150,
+        "gravity_snap_force": 420,
+        "description": "Looks like a pickup until the player approaches, then unfolds with a gravity snap."
+      }
+    ],
+    "enemy_packs": [
+      {
+        "id": "official_bestiary_wave_pack",
+        "display_name": "Official Bestiary Wave Pack",
+        "network_category": "deterministic_seed",
+        "entries": ["pendulum_wraith", "debt_collector", "orbit_barnacle", "mirror_flea_swarm", "false_relic_mimic"],
+        "description": "Grouped enemy pack for trusted wave directors and modders studying spawn-table composition."
+      }
+    ],
+    "wave_tables": [
+      {
+        "id": "bestiary_training_table",
+        "display_name": "Bestiary Training Table",
+        "network_category": "deterministic_seed",
+        "minimum_wave": 5,
+        "enemy_packs": ["official_bestiary_wave_pack"],
+        "description": "Example wave-table entry that keeps modded enemies opt-in."
+      }
+    ],
+    "creator_notes": [
+      {
+        "id": "bestiary_lessons",
+        "display_name": "What This Pack Teaches",
+        "network_category": "local_visual",
+        "note": "Each enemy entry is metadata-only on purpose. Add scenes later through trusted loaders, keep exported tuning fields, and do not spawn enemies unless this manifest is enabled."
+      }
+    ]
+  }
+}

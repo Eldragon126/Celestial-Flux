@@ -22,7 +22,7 @@ The player is the remaining control vector: a small ship or probe capable of con
 - `Frame-Dragging Anchor`: a rotational distortion around the control vector that turns nearby motion into dragged spin.
 - `Temporal Scar`: a local time wound where enemies and projectiles lose time.
 - `Gravity Scar`: a memory left in the arena after extreme motion or collapse.
-- `Gravity Ghost`: the simulation's final bounded reconstruction of a failed control vector, with exceptional saves retained as stable mastery marks.
+- `Gravity Ghost`: the internal system name for the simulation's final bounded reconstruction of a failed control vector, with exceptional saves retained as stable mastery marks. Player-facing UI should call this `FINAL FLIGHT REPLAY` or `BLACK BOX` so the feature reads as a flight recorder instead of a literal ghost.
 - `Rupture`: the endgame state where the wave generator fails and laws recombine.
 - `Resonance Singularity`: the final music-synchronized failure point of the simulation.
 - `Production Simulation`: a headless validation reconstruction used to prove the arena remains bounded under stress without becoming player-facing fiction.
@@ -101,7 +101,7 @@ The text should make the player feel that the arena is understandable, even when
 ## Readability Commitments
 
 - Death is a diagnostic event, not a fake recovery window. The player may watch the collapse, but input and weapon fire stop immediately.
-- The Gravity Ghost is diagnostic telemetry, not resurrection or a literal time rewind. It should reveal the final route, speed/pressure transition, projectile/hostile/hull/gravity pressure, danger timing, and exceptional recoveries without replaying combat noise.
+- The Gravity Ghost / Final Flight Replay is diagnostic telemetry, not resurrection or a literal time rewind. It should reveal the final route, speed/pressure transition, projectile/hostile/hull/gravity pressure, danger timing, and exceptional recoveries without replaying combat noise.
 - Slingshot copy should reinforce tangent, speed, and distance. The fantasy is controlled momentum, not unexplained particle noise.
 - Resonance and scar language should stay action-first: pull, flow, push, slow, orbit. System names can exist in tooling, but player-facing prompts should describe behavior.
 - Gravity Wave Beam text should communicate field control: the beam bends hostile motion into a visible compression line before it kills.

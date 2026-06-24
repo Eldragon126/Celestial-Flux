@@ -1,0 +1,134 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://Scripts/campaign_mode_director.gd" id="1_campaign"]
+[ext_resource type="PackedScene" path="res://Nodes/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://Nodes/campaign_mother_planet.tscn" id="3_mother"]
+[ext_resource type="Script" path="res://Scripts/orbital_juice_manager.gd" id="4_juice"]
+
+[node name="CampaignMode" type="Node2D" groups=["campaign_mode"]]
+script = ExtResource("1_campaign")
+retry_scene_path = "res://Nodes/campaign_mode.tscn"
+campaign_name = "Mother Planet Campaign"
+
+[node name="MotherPlanet" parent="." instance=ExtResource("3_mother")]
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(0, 520)
+
+[node name="OrbitalJuiceManager" type="Node2D" parent="." groups=["Orbital_Juice_Manager"]]
+script = ExtResource("4_juice")
+attach_gameplay_teaching = false
+enable_wave_game = false
+enable_secret_bosses = false
+enable_run_variation = false
+enable_late_game_instability = false
+enable_spacetime_tear_spawns = false
+enable_dynamic_celestial_bodies = false
+enable_reality_collapse = false
+
+[node name="CampaignUI" type="CanvasLayer" parent="."]
+
+[node name="HUD" type="PanelContainer" parent="CampaignUI"]
+offset_left = 18.0
+offset_top = 18.0
+offset_right = 422.0
+offset_bottom = 174.0
+
+[node name="Rows" type="VBoxContainer" parent="CampaignUI/HUD"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="StatusLabel" type="Label" parent="CampaignUI/HUD/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "DEFEND THE MOTHER VECTOR"
+
+[node name="WaveLabel" type="Label" parent="CampaignUI/HUD/Rows"]
+layout_mode = 2
+text = "WAVE 0/12"
+
+[node name="CreditsLabel" type="Label" parent="CampaignUI/HUD/Rows"]
+layout_mode = 2
+text = "ENERGY CREDITS 0"
+
+[node name="MotherLabel" type="Label" parent="CampaignUI/HUD/Rows"]
+layout_mode = 2
+text = "MOTHER VECTOR 100%"
+
+[node name="EscortLabel" type="Label" parent="CampaignUI/HUD/Rows"]
+layout_mode = 2
+text = "ESCORTS 0/7"
+
+[node name="UpgradePanel" type="PanelContainer" parent="CampaignUI"]
+offset_left = 958.0
+offset_top = 18.0
+offset_right = 1276.0
+offset_bottom = 368.0
+
+[node name="Rows" type="VBoxContainer" parent="CampaignUI/UpgradePanel"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="TitleLabel" type="Label" parent="CampaignUI/UpgradePanel/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "BATTLESHIP BUILD"
+horizontal_alignment = 1
+
+[node name="BuyEscortButton" type="Button" parent="CampaignUI/UpgradePanel/Rows"]
+custom_minimum_size = Vector2(286, 40)
+layout_mode = 2
+text = "BUY ESCORT"
+
+[node name="UpgradeSpeedButton" type="Button" parent="CampaignUI/UpgradePanel/Rows"]
+custom_minimum_size = Vector2(286, 40)
+layout_mode = 2
+text = "UPGRADE SPEED"
+
+[node name="UpgradeDamageButton" type="Button" parent="CampaignUI/UpgradePanel/Rows"]
+custom_minimum_size = Vector2(286, 40)
+layout_mode = 2
+text = "UPGRADE DAMAGE"
+
+[node name="UpgradeArmorButton" type="Button" parent="CampaignUI/UpgradePanel/Rows"]
+custom_minimum_size = Vector2(286, 40)
+layout_mode = 2
+text = "UPGRADE ARMOR"
+
+[node name="UpgradeSlingshotButton" type="Button" parent="CampaignUI/UpgradePanel/Rows"]
+custom_minimum_size = Vector2(286, 40)
+layout_mode = 2
+text = "UPGRADE SLINGSHOT"
+
+[node name="HijackButton" type="Button" parent="CampaignUI/UpgradePanel/Rows"]
+custom_minimum_size = Vector2(286, 40)
+layout_mode = 2
+text = "HIJACK NEXT SHIP"
+
+[node name="AlienPanel" type="PanelContainer" parent="CampaignUI"]
+visible = false
+offset_left = 458.0
+offset_top = 26.0
+offset_right = 860.0
+offset_bottom = 170.0
+
+[node name="Rows" type="VBoxContainer" parent="CampaignUI/AlienPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AlienLabel" type="Label" parent="CampaignUI/AlienPanel/Rows"]
+custom_minimum_size = Vector2(374, 50)
+layout_mode = 2
+text = "ALIEN FREEHOLD"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="BarterButton" type="Button" parent="CampaignUI/AlienPanel/Rows"]
+custom_minimum_size = Vector2(374, 34)
+layout_mode = 2
+text = "BARTER"
+
+[node name="FightButton" type="Button" parent="CampaignUI/AlienPanel/Rows"]
+custom_minimum_size = Vector2(374, 34)
+layout_mode = 2
+text = "FIGHT"

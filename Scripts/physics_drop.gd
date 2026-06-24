@@ -199,8 +199,12 @@ func _apply_pickup(player_body: Node) -> void:
 func _add_player_fragments(player_body: Node, count: int) -> void:
 	var current := int(player_body.get_meta(&"vector_fragments", 0))
 	player_body.set_meta(&"vector_fragments", current + count)
+	var energy := player_body.get_node_or_null("EnergyComponent")
+	if energy != null and energy.has_method("add_currency"):
+		energy.call("add_currency", count)
 	if RunProgress != null:
 		RunProgress.arena_flags["vector_fragments"] = int(RunProgress.arena_flags.get("vector_fragments", 0)) + count
+		RunProgress.arena_flags["energy_currency_fragments"] = int(RunProgress.arena_flags.get("energy_currency_fragments", 0)) + count
 
 
 func _apply_momentum_orb(player_body: Node) -> void:

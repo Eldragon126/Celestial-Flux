@@ -1,0 +1,128 @@
+{
+  "id": "party_modes",
+  "display_name": "Party Modes",
+  "author": "Vector Anomaly Team",
+  "version": 1,
+  "schema_version": 4,
+  "description": "Declarative party-mode catalog entries for ship soccer, emote rounds, hijack variants, and build-a-battle-ship rules.",
+  "tags": ["party", "soccer", "emotes", "hijack", "ship-builder"],
+  "dependencies": [],
+  "content": {
+    "gamemodes": [
+      {
+        "id": "gravity_soccer",
+        "display_name": "Gravity Soccer",
+        "network_category": "deterministic_seed",
+        "tags": ["soccer", "ships", "party"],
+        "description": "A future party mode where ships push a physics ball through gravity wells, using arena contours as the field."
+      },
+      {
+        "id": "emote_scramble",
+        "display_name": "Emote Scramble",
+        "network_category": "deterministic_seed",
+        "tags": ["emotes", "random-mode", "party"],
+        "description": "A random-mode shell where short emote calls, challenge cards, and low-stakes physics events rotate between waves."
+      },
+      {
+        "id": "hijack_derby",
+        "display_name": "Hijack Derby",
+        "network_category": "deterministic_seed",
+        "scene": "res://Nodes/campaign_mode.tscn",
+        "tags": ["hijack", "campaign", "party"],
+        "description": "A campaign variant centered on disabling alien ships and converting them into escorts."
+      }
+    ],
+    "mechanics": [
+      {
+        "id": "ship_soccer_ball",
+        "display_name": "Ship Soccer Ball",
+        "network_category": "deterministic_seed",
+        "physics": {
+          "gravity_affected": true,
+          "boost_on_clean_slingshot": true,
+          "goal_impulse_window": 0.45
+        },
+        "description": "Cataloged physics-object rules for a future soccer ball that remains governed by the same gravity language as combat."
+      },
+      {
+        "id": "battle_ship_builder",
+        "display_name": "Battle Ship Builder",
+        "network_category": "deterministic_seed",
+        "currency": "energy_credits",
+        "slots": ["engine", "weapon", "armor", "slingshot_core", "escort_link"],
+        "description": "Build-a-battle-ship upgrade slots that map directly to the campaign upgrade panel and remain inspectable as data."
+      }
+    ],
+    "upgrades": [
+      {
+        "id": "builder_engine_slot",
+        "display_name": "Engine Slot",
+        "network_category": "deterministic_seed",
+        "stat": "speed",
+        "cost_currency": "energy_credits",
+        "description": "Speed upgrade slot for the battle-ship builder."
+      },
+      {
+        "id": "builder_weapon_slot",
+        "display_name": "Weapon Slot",
+        "network_category": "deterministic_seed",
+        "stat": "damage",
+        "cost_currency": "energy_credits",
+        "description": "Damage upgrade slot for the battle-ship builder."
+      },
+      {
+        "id": "builder_armor_slot",
+        "display_name": "Armor Slot",
+        "network_category": "deterministic_seed",
+        "stat": "armor",
+        "cost_currency": "energy_credits",
+        "description": "Armor upgrade slot for the battle-ship builder."
+      },
+      {
+        "id": "builder_slingshot_slot",
+        "display_name": "Slingshot Core",
+        "network_category": "deterministic_seed",
+        "stat": "slingshot",
+        "cost_currency": "energy_credits",
+        "description": "Slingshot upgrade slot for the battle-ship builder."
+      }
+    ],
+    "hud_badges": [
+      {
+        "id": "emote_nice_orbit",
+        "display_name": "Nice Orbit",
+        "network_category": "local_visual",
+        "text": "NICE ORBIT"
+      },
+      {
+        "id": "emote_clean_steal",
+        "display_name": "Clean Steal",
+        "network_category": "local_visual",
+        "text": "CLEAN STEAL"
+      },
+      {
+        "id": "emote_gravity_goal",
+        "display_name": "Gravity Goal",
+        "network_category": "local_visual",
+        "text": "GRAVITY GOAL"
+      }
+    ],
+    "challenge_cards": [
+      {
+        "id": "hijack_only_fleet",
+        "display_name": "Hijack-Only Fleet",
+        "network_category": "deterministic_seed",
+        "hooks": ["run_start"],
+        "max_triggers": 1,
+        "description": "A future party challenge where escorts must come from captured alien ships."
+      }
+    ],
+    "creator_notes": [
+      {
+        "id": "party_modes_design_notes",
+        "display_name": "Party Modes Design Notes",
+        "note": "The playable campaign already includes a hijack button and battle-ship upgrade panel. Soccer and emotes are declared here as editable mod-viewer data until a trusted party-mode director consumes them."
+      }
+    ]
+  }
+}

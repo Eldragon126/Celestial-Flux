@@ -236,7 +236,7 @@ func _on_body_entered(body: Node) -> void:
 	# =========================
 	# Normal Enemy Projectile
 	# =========================
-	if body.is_in_group("Player") and body.has_method("take_damage"):
+	if (body.is_in_group("Player") or body.is_in_group("player_allies")) and body.has_method("take_damage"):
 		body.take_damage(
 			randf_range(damage_min, damage_max)
 		)

@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/campaign_planet_turret.gd" id="1_turret"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_turret"]
+radius = 46.0
+
+[node name="CampaignPlanetTurret" type="StaticBody2D" groups=["campaign_planet_turret"]]
+script = ExtResource("1_turret")
+
+[node name="TurretRing" type="Line2D" parent="."]
+closed = true
+width = 2.4
+default_color = Color(1, 0.3, 0.14, 0.72)
+points = PackedVector2Array(42, 0, 41.36, 7.29, 39.47, 14.36, 36.37, 21, 32.17, 26.99, 26.99, 32.17, 21, 36.37, 14.36, 39.47, 7.29, 41.36, 0, 42, -7.29, 41.36, -14.36, 39.47, -21, 36.37, -26.99, 32.17, -32.17, 26.99, -36.37, 21, -39.47, 14.36, -41.36, 7.29, -42, 0, -41.36, -7.29, -39.47, -14.36, -36.37, -21, -32.17, -26.99, -26.99, -32.17, -21, -36.37, -14.36, -39.47, -7.29, -41.36, 0)
+
+[node name="TurretBarrel" type="Line2D" parent="."]
+width = 3.2
+default_color = Color(1, 0.3, 0.14, 0.72)
+points = PackedVector2Array(0, 0, 58, 0)
+
+[node name="TurretCollision" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_turret")

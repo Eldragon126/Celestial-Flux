@@ -45,6 +45,7 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 - CODEX Completion 2026-06-21: HUD gravity, field, planet-arrow, threat, and rare-event telemetry now use registry-backed reusable buffers and independent refresh budgets, keeping existing interface art responsive during high-chaos capture.
 - CODEX Completion 2026-06-23: HUD readouts now use code-native vector glyphs for hull, shield, energy, speed, gravity, field rules, time dilation, event horizons, chaos, slingshots, weapons, and run phase. The glyphs inherit readability palettes and respond to live severity instead of waiting on final bitmap art.
 - CODEX Completion 2026-06-23: Gravity Ghost now includes a speed/pressure lane, component pressure bands, incident markers, and event timeline markers, turning the game-over panel into a compact post-run vector black box without replaying live combat state.
+- CODEX Completion 2026-06-24: Gravity Ghost player-facing UI now says `FINAL FLIGHT REPLAY`, adds editable legend and route marker labels, and keeps start/impact/ship labels as scene children for visual tuning in the editor.
 - CODEX Completion 2026-06-23: Pause UI now has smoothed panel entry, a scroll-safe content shell, softer shader/grid settings, context-aware tutorial/demo/Clip Lab restart and exit labels, and loading-screen progress easing so cached run loads no longer snap straight through 50% and 100%.
 - CODEX Completion 2026-06-23: Pause UI now exposes controller deadzone/right-stick aim, keeps checkbox rows full-width, and avoids hover/press scale tweens on checkboxes so labels no longer overlap their boxes.
 - HUD icons for energy, shield, slingshot grade, local field rule, chaos tier, and run arc phase.
@@ -82,6 +83,7 @@ This is the current production checklist for art, VFX, UI, music, and sound. It 
 - Boss rule telegraphs and attack releases for each boss.
 - UI cues for pause open/close, settings changed, seed copied, mod rescan, game over, restart, and title return.
 - CODEX Progress 2026-06-06: Existing mechanic audio hooks cover most listed events; selected raw thrust and low-energy assets were renamed to `sfx_thrust_vector_surge.mp3` and `sfx_energy_exhausted_low.mp3` and connected to thrust, shield pressure, energy depletion, and weapon energy failure.
+- CODEX Note 2026-06-24: No asset or manifest entry named `moan` was found during this pass. The checklist item is left as a creative audio replacement/mix decision rather than deleting unrelated SFX in code.
 
 ## Marketing Capture Needs
 

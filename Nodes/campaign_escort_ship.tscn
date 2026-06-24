@@ -1,0 +1,21 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/campaign_escort_ship.gd" id="1_escort"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_escort"]
+radius = 20.0
+
+[node name="CampaignEscortShip" type="CharacterBody2D" groups=["campaign_escort", "player_allies"]]
+script = ExtResource("1_escort")
+
+[node name="CampaignEscortHull" type="Polygon2D" parent="."]
+color = Color(0.24, 0.92, 1, 0.95)
+polygon = PackedVector2Array(25, 0, -15, 14, -8, 0, -15, -14)
+
+[node name="EscortBeam" type="Line2D" parent="."]
+width = 2.0
+default_color = Color(0.36, 1, 0.86, 0)
+points = PackedVector2Array(0, 0, 1, 0)
+
+[node name="CampaignEscortCollision" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_escort")

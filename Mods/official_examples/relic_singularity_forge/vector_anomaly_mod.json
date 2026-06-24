@@ -1,0 +1,138 @@
+{
+  "id": "relic_singularity_forge",
+  "display_name": "Relic Singularity Forge",
+  "author": "Vector Anomaly Team",
+  "version": "1.0.0",
+  "schema_version": 4,
+  "description": "Official example mod for relics, upgrades, passive hooks, stack counters, and build synergies.",
+  "tags": ["official-example", "relics", "upgrades", "for-modders"],
+  "dependencies": [],
+  "options": [
+    {
+      "id": "forge_rarity_bias",
+      "display_name": "Forge Rarity Bias",
+      "type": "choice",
+      "default": "standard",
+      "choices": ["standard", "generous", "scarce"],
+      "network_category": "deterministic_seed",
+      "description": "Suggested rarity tuning for future relic offer directors."
+    }
+  ],
+  "content": {
+    "upgrades": [
+      {
+        "id": "orbit_receipt",
+        "display_name": "Orbit Receipt",
+        "network_category": "deterministic_seed",
+        "rarity": "rare",
+        "tags": ["slingshot", "stacks", "gravity-pulse"],
+        "description": "Perfect slingshots grant stacks; at five stacks the next shot requests a mini gravity pulse."
+      },
+      {
+        "id": "borrowed_momentum",
+        "display_name": "Borrowed Momentum",
+        "network_category": "deterministic_seed",
+        "rarity": "uncommon",
+        "tags": ["near-miss", "dash"],
+        "description": "Near misses store enemy velocity for the next dash."
+      },
+      {
+        "id": "dead_star_coupon",
+        "display_name": "Dead Star Coupon",
+        "network_category": "deterministic_seed",
+        "rarity": "rare",
+        "tags": ["shield-break", "singularity"],
+        "description": "Shield break requests a tiny temporary singularity at the break location."
+      },
+      {
+        "id": "cowards_crown",
+        "display_name": "Coward's Crown",
+        "network_category": "deterministic_seed",
+        "rarity": "uncommon",
+        "tags": ["damage-model", "gravity-assisted"],
+        "description": "Direct damage is reduced, but gravity-assisted damage is increased."
+      },
+      {
+        "id": "wrong_equation",
+        "display_name": "Wrong Equation",
+        "network_category": "deterministic_seed",
+        "rarity": "rare",
+        "tags": ["projectile", "gravity-source"],
+        "description": "Every few seconds the next projectile curves toward the strongest gravity source."
+      },
+      {
+        "id": "event_horizon_pocket",
+        "display_name": "Event Horizon Pocket",
+        "network_category": "deterministic_seed",
+        "rarity": "uncommon",
+        "tags": ["pickup-chain", "delayed-reward"],
+        "description": "Rapid pickup collection compresses rewards into a delayed burst."
+      },
+      {
+        "id": "apogee_needle",
+        "display_name": "Apogee Needle",
+        "network_category": "deterministic_seed",
+        "rarity": "rare",
+        "tags": ["slingshot-apogee", "piercing-shot"],
+        "description": "The high point of a strong slingshot arc charges a piercing shot."
+      },
+      {
+        "id": "kinetic_guilt",
+        "display_name": "Kinetic Guilt",
+        "network_category": "deterministic_seed",
+        "rarity": "rare",
+        "tags": ["damage-taken", "revenge", "perfect-slingshot"],
+        "description": "Taking damage stores guilt; the next perfect slingshot requests a revenge shockwave."
+      }
+    ],
+    "law_weaves": [
+      {
+        "id": "orbit_receipt_pulse",
+        "display_name": "Orbit Receipt Pulse",
+        "hooks": ["slingshot_perfect"],
+        "network_category": "deterministic_seed",
+        "weight": 0.75,
+        "cooldown": 6.0,
+        "max_triggers": 5,
+        "effects": [
+          {"action": "offer_upgrade", "content_id": "orbit_receipt"},
+          {"action": "tag_score_event", "tag": "relic_forge_slingshot"}
+        ],
+        "description": "Hookable relic example: the manifest offers a relic and tags score instead of running code."
+      },
+      {
+        "id": "kinetic_guilt_revenge",
+        "display_name": "Kinetic Guilt Revenge",
+        "hooks": ["slingshot_apex"],
+        "network_category": "deterministic_seed",
+        "weight": 0.5,
+        "cooldown": 10.0,
+        "max_triggers": 3,
+        "conditions": [
+          {"type": "player_health_below", "value": 0.65}
+        ],
+        "effects": [
+          {"action": "create_resonance_zone", "zone_type": "compression", "radius": 230.0, "intensity": 0.5, "duration": 1.5},
+          {"action": "emit_hud_badge", "content_id": "kinetic_guilt_badge"}
+        ],
+        "description": "A revenge-synergy hook with health gating and a bounded resonance request."
+      }
+    ],
+    "hud_badges": [
+      {
+        "id": "kinetic_guilt_badge",
+        "display_name": "Kinetic Guilt",
+        "network_category": "local_visual",
+        "text": "KINETIC GUILT"
+      }
+    ],
+    "creator_notes": [
+      {
+        "id": "forge_lessons",
+        "display_name": "What This Pack Teaches",
+        "network_category": "local_visual",
+        "note": "Relic-style mods should separate metadata from behavior. Use hooks and trusted directors for stack counters, projectile edits, and shield-break reactions."
+      }
+    ]
+  }
+}

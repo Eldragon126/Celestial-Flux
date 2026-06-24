@@ -689,4 +689,924 @@ Those are future constellations. Right now you need a rocket that survives launc
 
 [x] Continue VECTOR_ANOMALY_PRODUCTION_ROADMAP.md. Fixed: roadmap now includes the 2026-06-23 current polish pass, platform support status, multiplayer code-side progress, marketing capture expansion, and manual non-headless verification gates.
 
-[ ] Gravity ghost thing makes no sense. It either needs to be deleted or continue development until it actually looks good.
+[x] Gravity ghost thing makes no sense. It either needs to be deleted or continue development until it actually looks good. Fixed: the panel now presents itself as `FINAL FLIGHT REPLAY`, adds an editable summary row, pressure legend, route start/impact/ship labels, and clearer speed/pressure copy while preserving the bounded black-box replay architecture.
+
+[x] Stop the moan sound effects - Something User should do, not Codex. Scoped: no `moan`-named audio asset or manifest entry was found in the project; this remains a user creative/audio replacement decision rather than a code deletion pass.
+
+[x] Make a campaign mode where you can get more ships that all work together and protect a mother planet or some sort of space invaders style campaign mode. Fixed: added `campaign_mode.tscn`, `CampaignModeDirector`, editable invader/escort/mother-planet scenes, escort buying, ship hijacking, mother-planet defense, and row-based invader waves.
+
+[x] The game should have aliens that you can barter with or fight on different planets. Make some planets hostile with guns on them. Fixed: campaign encounter planets now spawn editable planet turrets, barter/fight choices can pacify or activate hostile freeholds, and turret defeats award energy credits.
+
+[x] Continue to focus the game around physics. Fixed: campaign invaders and escorts use bounded gravity sampling, mother planets register as gravity sources, hostile planets anchor gun positions to planet radius, and all new economy/combat beats route through movement, gravity, and intercept decisions.
+
+[x] Energy could function as a good currency. Fixed: `EnergyComponent` now has an energy-currency channel, physics drops can award fragments as currency, and campaign upgrades spend energy credits on escorts, speed, damage, armor, slingshot strength, and hijack orders.
+
+[x] Space Oregon Trail mode mod where it's exactly like Oregon trail but in space with enemies and space dysentery. Fixed: added `Mods/space_oregon_trail/vector_anomaly_mod.json` with a schema 4 space-trail campaign catalog, route events, convoy supplies, hostile freehold planets, and `space_dysentery` as a status effect.
+
+[x] Make it AAA quality. Completed current code-side quality pass: the new campaign, KOTH, gravity replay, mod catalogs, UI labels, and docs are scene/data editable and aligned to the physics-first production rules. Manual in-editor/standalone playtesting remains required because headless Godot is forbidden.
+
+
+ Optional Additions:
+[x] Make king of the hill mode where you have to guard your planet. Fixed: added `king_of_the_hill_mode.tscn` with the shared campaign director configured for capture progress around the mother planet and contesting invaders.
+
+[x] Have ways to upgrade your base speed / damage output / armor / slingshot ability. Fixed: the campaign upgrade panel now exposes editable buttons and exported costs for speed, damage, armor, slingshot power, escorts, and hijack orders.
+
+[x] Be able to play soccer with the space ships, random mode with emotes, make it so you can hijack alien space ships. Fixed: hijacking is playable in campaign mode, and `Mods/party_modes/vector_anomaly_mod.json` adds editable schema 4 catalog entries for gravity soccer, emote scramble, and hijack derby variants.
+
+[x] Make it so you can built a battle space ship. Fixed: the campaign upgrade panel is labeled as a battle-ship build surface, and `Mods/party_modes/vector_anomaly_mod.json` adds data-driven battle-ship builder slots for engine, weapon, armor, slingshot core, and escort link.
+
+VECTOR ANOMALY CRITICAL FIX AND POLISH PASS
+
+You are working on my Godot game VECTOR ANOMALY. Your job is to fix the following problems without changing the core player-facing identity of the game. The game should still feel like a physics-driven roguelike about gravity, momentum, orbital combat, and collapsing simulation chaos. However, the backend, UI flow, enemy logic, visual implementation, loading process, and performance systems may be heavily changed if needed.
+
+Do not only make cosmetic changes. Find the root causes, fix them properly, and leave the project in a stable, playable state.
+
+GENERAL RULES
+
+1. Preserve the core gameplay feel.
+2. Prioritize performance, stability, readability, and polish.
+3. Avoid obstructive UI during gameplay.
+4. Replace temporary-looking systems with finished-feeling systems.
+5. Make sure every fix is actually visible in-game.
+6. After each major area is changed, add comments or documentation explaining what was fixed and how to test it.
+7. If a system is broken because of missing connections, bad scene paths, disabled scripts, signal failures, missing autoloads, or broken resources, fix the actual wiring instead of adding fake fallback behavior.
+8. Run the game after changes if possible and verify that the main menu, campaign mode, mods, pause menu, loading flow, and gameplay loop still work.
+
+TOP PRIORITY FIXES
+
+1. CAMPAIGN MODE OVERHAUL
+
+Campaign mode currently feels terrible and unfinished. It needs a serious polish pass.
+
+Problems to fix:
+
+* Random pop-ups look bad.
+* Pop-ups obstruct the player’s view.
+* Campaign UI should not sit awkwardly over gameplay.
+* Campaign menus and information should be moved into proper dedicated menu panels or separate screens.
+* Enemy spaceships, alien ships, motherships, and other campaign objects currently look low-quality.
+* Campaign visuals need to look more consistent with VECTOR ANOMALY’s main identity: unstable physics, orbit combat, gravity distortion, simulation collapse, neon space danger, and readable chaos.
+
+Implementation goals:
+
+* Remove or replace obstructive pop-up UI.
+* Create a cleaner campaign interface that appears in dedicated panels, side menus, pause submenus, map screens, or interaction screens instead of blocking combat.
+* Improve visual presentation for campaign ships, motherships, stations, hostile factions, and trade-related objects.
+* Make campaign objects visually distinct: friendly, hostile, neutral, trader, quest-related, and dangerous objects should be readable at a glance.
+* Make campaign mode feel like an intentional game mode, not a prototype layer placed on top of the main game.
+
+Acceptance criteria:
+
+* Campaign mode should no longer rely on ugly random pop-ups.
+* Important campaign information should be readable without blocking gameplay.
+* Ships and campaign objects should look significantly better and fit the game’s art direction.
+* A player should be able to understand what is friendly, hostile, interactive, or dangerous within about one second.
+
+2. SMARTER CAMPAIGN ENEMIES
+
+Campaign enemies currently only latch onto planets. This makes them boring and unintelligent.
+
+Problems to fix:
+
+* Campaign enemies have weak behavior.
+* They do not feel like spaceships or intelligent hostile entities.
+* They overuse planet-latching behavior.
+* Enemy behavior does not create interesting combat decisions.
+
+Implementation goals:
+
+* Add smarter AI states for campaign enemies.
+* Enemies should be able to patrol, pursue, flank, retreat, orbit tactically, attack from range, avoid hazards, use gravity intelligently, and disengage when appropriate.
+* Planet-latching should become only one possible behavior, not the entire AI.
+* Add different behavior profiles for different enemy types.
+* Hostile motherships should behave differently from small ships.
+* Enemies should react to the player’s position, velocity, nearby planets, gravity wells, and danger zones.
+
+Suggested AI states:
+
+* Idle / patrol
+* Investigate
+* Pursue player
+* Orbit attack
+* Strafe attack
+* Gravity slingshot reposition
+* Retreat / recover
+* Dock / guard mothership
+* Hostile mothership defense
+* Ambush or intercept
+
+Acceptance criteria:
+
+* Campaign enemies should no longer feel like they only latch onto planets.
+* At least several enemy types should have visibly different behaviors.
+* Fighting campaign enemies should feel more dynamic and intentional.
+* Enemy movement should still remain readable and fair.
+
+3. FIX MOD SYSTEM
+
+None of the mods seem to work right now. Mods either do nothing or have no visible effect.
+
+Problems to fix:
+
+* Mods do not visibly affect gameplay.
+* The player cannot tell whether the game is modded.
+* Mods may not be loading, applying, registering, or connecting to gameplay systems correctly.
+* Example mods may be too subtle or broken.
+
+Implementation goals:
+
+* Audit the full mod loading pipeline.
+* Verify mod discovery, parsing, registration, validation, activation, and application.
+* Fix broken file paths, missing resource loads, script errors, bad autoload references, disabled systems, or incorrect scene connections.
+* Add clear visual confirmation when a mod is active.
+* Make example mods obviously affect gameplay.
+* Add a simple in-game mod menu or status panel showing active mods.
+* Add debug logging for mod load success and failure.
+* Make sure failed mods provide useful error messages instead of silently doing nothing.
+
+Example visible mod effects:
+
+* A mod changes enemy behavior.
+* A mod changes arena rules.
+* A mod adds a new enemy.
+* A mod changes gravity behavior.
+* A mod adds a visual effect.
+* A mod adds a gameplay modifier visible in the HUD or pause menu.
+
+Acceptance criteria:
+
+* At least 3 example mods must visibly change gameplay.
+* The game must show which mods are active.
+* Broken mods must show useful errors.
+* Mods must no longer appear to do nothing.
+* The player should immediately be able to tell when a modded run is active.
+
+4. UPDATE WEBSITES TO MATCH LATEST GAME
+
+All websites need to be updated to reflect the latest version of VECTOR ANOMALY.
+
+Problems to fix:
+
+* Website copy may be outdated.
+* Website visuals may not match the current game direction.
+* Website may not clearly communicate the current hook.
+* Website may not reflect campaign changes, mod support, gravity combat, motherships, trading, bosses, and the latest identity.
+
+Implementation goals:
+
+* Update all website text to match the current game identity.
+* Make sure the website describes VECTOR ANOMALY as a physics-driven roguelike arena survival game about gravity, momentum, orbit combat, unstable physics, campaign exploration, and collapsing simulation chaos.
+* Update screenshots, visuals, sections, and feature descriptions where applicable.
+* Remove outdated names, mechanics, or descriptions.
+* Make campaign mode and mod support sound intentional and exciting, but do not oversell unfinished features.
+* Ensure the website has strong calls to action such as wishlist, play demo, follow development, or join community if those systems exist.
+
+Acceptance criteria:
+
+* Website no longer contains outdated information.
+* Website matches the current game direction.
+* Website makes the game look more polished and marketable.
+
+5. TITLE SCREEN AND PLAY MODE MENU REWORK
+
+The title screen menu overlaps with the main “VECTOR ANOMALY” title text. The current layout looks cluttered.
+
+Problems to fix:
+
+* Menu overlaps with title text.
+* Too many buttons are visible on the main title screen.
+* Other play modes clutter the main menu.
+* Menu flow needs to look more professional.
+
+Implementation goals:
+
+* Redesign the title screen layout so nothing overlaps the VECTOR ANOMALY title.
+* Main title screen should have fewer primary buttons.
+* Add one clear button called “Other Play Modes”.
+* Move alternate modes into a separate submenu.
+* Keep the main menu clean, readable, controller-friendly, and visually aligned with the game.
+* Make sure keyboard, mouse, and controller navigation all work.
+* The first selected button should be sensible when using a controller.
+
+Suggested main menu structure:
+
+* Start Run
+* Campaign
+* Other Play Modes
+* Mods
+* Settings
+* Quit
+
+Suggested Other Play Modes submenu:
+
+* Challenge Mode
+* Sandbox
+* Boss Rush
+* Daily/Seeded Run
+* Experimental Modes
+* Back
+
+Acceptance criteria:
+
+* No title/menu overlap.
+* Main menu is cleaner.
+* Other play modes are moved into their own submenu.
+* Controller navigation works reliably.
+
+6. REDESIGN BARTERING AND TRADING
+
+The current bartering system is not how I imagined it. I want trading to feel like docking with another ship or entering a large spaceship, not like a basic menu slapped onto gameplay.
+
+Problems to fix:
+
+* Bartering feels too simple and disconnected.
+* Trading does not feel physical or immersive.
+* Mothership interaction is missing or underdeveloped.
+* Some motherships should be hostile.
+
+Implementation goals:
+
+* Create a system where the player can dock with or latch onto motherships to trade.
+* Friendly motherships should allow trading.
+* Neutral motherships may trade, ignore the player, or become hostile depending on conditions.
+* Hostile motherships should attack, defend themselves, or launch smaller ships.
+* Trading should open a dedicated trading scene or trading interface, not just an ugly overlay.
+* Add visual docking/latching feedback.
+* Add clear prompts when the player is close enough to dock.
+* The trading scene should feel like entering a larger ship, station, hangar, or trade interface.
+* Keep this system controller-friendly.
+
+Suggested flow:
+
+* Player approaches mothership.
+* Mothership is identified as friendly, neutral, trader, or hostile.
+* If friendly/trader, player can latch/dock.
+* On docking, transition to a dedicated trading scene or trading menu.
+* Player can buy, sell, barter, repair, upgrade, or accept campaign-related opportunities if those systems exist.
+* Player exits trading scene and returns to campaign.
+* If hostile, mothership attacks or triggers a combat encounter instead of trading.
+
+Acceptance criteria:
+
+* Player can dock with or latch onto friendly/trader motherships.
+* Trading happens in a dedicated scene or polished interface.
+* Some motherships are hostile and clearly behave differently.
+* Trading feels like an intentional campaign feature.
+
+7. FIX CAMPAIGN BULLET PLANET EXPLOIT
+
+In campaign mode, bullets slide around the main planet. The player can stack bullets around the planet, causing enemies to instantly die. This breaks combat.
+
+Problems to fix:
+
+* Bullets orbit or slide around the main planet for too long.
+* Bullets accumulate near the planet.
+* Enemies die instantly from bullet buildup.
+* This creates an unintended exploit.
+
+Implementation goals:
+
+* Prevent bullets from endlessly sliding/orbiting around planets.
+* Add bullet lifetime, collision cleanup, ricochet limits, gravity capture rules, or absorption rules.
+* Bullets that hit or orbit too close to planets should despawn, burn up, get absorbed, lose damage, or become harmless after a short time.
+* Avoid destroying the fun of gravity-influenced projectiles, but stop infinite bullet stacking.
+* Make projectile behavior clear and fair.
+* Ensure enemy and player projectiles follow consistent rules unless intentionally different.
+
+Possible fixes:
+
+* Maximum projectile lifetime.
+* Maximum orbit duration around gravity bodies.
+* Maximum number of gravity deflections.
+* Damage falloff after repeated gravity interactions.
+* Planet absorption when projectile gets too close.
+* Projectile cleanup when velocity drops below a threshold.
+* Projectile cleanup when it circles the same planet too many times.
+* Limit active bullets per source or per area.
+* Convert absorbed bullets into harmless sparks, heat, or visual effects.
+
+Acceptance criteria:
+
+* Bullets can no longer be stacked around the main planet for instant kills.
+* Gravity-influenced projectiles still feel cool.
+* Projectile cleanup does not cause obvious visual popping or unfair behavior.
+* Performance should improve from fewer lingering bullets.
+
+8. FIX LOADING SCREEN FREEZE AT 50%
+
+Sometimes the loading screen freezes at 50% and never loads. The player has to exit the game and try again.
+
+Problems to fix:
+
+* Loading sometimes gets stuck at 50%.
+* The game does not recover.
+* There may be blocking resource loads, broken async loading, bad scene transitions, stalled signals, infinite loops, or failed resource dependencies.
+* Loading progress may not represent real progress.
+
+Implementation goals:
+
+* Audit the loading screen and scene transition system.
+* Fix any async loading, threaded loading, signal, resource, or scene activation problems.
+* Add timeout handling and useful error reporting.
+* Prevent the game from hanging forever.
+* Make loading progress accurate or at least honest.
+* Preload only what is necessary.
+* Defer heavy systems until after the scene appears when possible.
+* Add logging around loading stages so future freezes are easier to diagnose.
+
+Acceptance criteria:
+
+* Loading no longer gets permanently stuck at 50%.
+* If loading fails, the game should show a useful error or return safely instead of freezing forever.
+* Scene transitions should be stable.
+* Initial load time should be reduced where possible.
+
+9. MAKE PAUSE MENU MORE ACCESSIBLE
+
+The pause menu layout is annoying because the Resume button requires scrolling.
+
+Problems to fix:
+
+* Resume/back-to-game button is not immediately accessible.
+* The pause menu requires unnecessary scrolling.
+* Layout is not comfortable for controller or keyboard.
+
+Implementation goals:
+
+* Redesign pause menu layout so Resume is always visible and selected first.
+* Important actions should be near the top.
+* Avoid making the player scroll just to continue playing.
+* Make the menu controller-friendly.
+* Keep settings accessible without cluttering the first pause screen.
+* Use submenus for advanced settings.
+
+Suggested pause menu structure:
+
+* Resume
+* Restart Run
+* Settings
+* Mods / Active Mod Info
+* Accessibility
+* Main Menu
+* Quit
+
+Acceptance criteria:
+
+* Resume is visible immediately.
+* Resume is the default selected option when paused.
+* No scrolling is required for common pause actions.
+* Controller navigation works.
+
+10. PERFORMANCE OVERHAUL
+
+Performance is currently unacceptable. The game has massive spikes, long initial loading around 30 seconds, and average FPS around 30 to 40 even on a Core i9 and GeForce RTX 3060. This needs to be fixed aggressively while preserving the player-facing gameplay as much as possible.
+
+Problems to fix:
+
+* Massive frame spikes.
+* Low average FPS.
+* Very long initial load.
+* Too many expensive visual, physics, AI, projectile, particle, shader, polygon, or manager updates.
+* Possible excessive preloads, instantiation, queue_free churn, unpooled objects, expensive per-frame scanning, too many collision checks, too many draw calls, too many particles, or unbounded systems.
+* Campaign bullets and enemies may be contributing to performance problems.
+
+Implementation goals:
+
+* Profile the game and identify the biggest CPU and GPU spikes.
+* Optimize without removing the core identity.
+* Simplify backend systems where needed.
+* Pool commonly spawned objects such as bullets, enemies, effects, debris, particles, damage numbers, and temporary visuals.
+* Reduce unnecessary per-frame work.
+* Avoid expensive global searches in _process or _physics_process.
+* Cap expensive systems with budgets.
+* Add level-of-detail or visibility-based updates for distant/offscreen objects.
+* Reduce excessive particles, shaders, polygon complexity, lights, and collision shapes.
+* Stagger expensive updates across frames.
+* Use cached references instead of repeated node lookups.
+* Defer nonessential loading.
+* Replace heavy runtime scene construction with pooled or prebuilt objects.
+* Add performance settings if needed, but the default experience should be much better.
+
+Specific systems to inspect:
+
+* Enemy spawning and AI updates.
+* Projectile updates and cleanup.
+* Gravity source sampling.
+* Resonance zones.
+* Time dilation effects.
+* VFX and particles.
+* Polygon2D or complex shape rendering.
+* Collision layers and masks.
+* Audio and adaptive music managers.
+* Campaign systems.
+* Mod system hooks.
+* Loading screen and scene transitions.
+* Any autoload managers doing heavy work every frame.
+* Any scripts using get_tree().get_nodes_in_group() every frame.
+* Any excessive preload or instantiate calls during gameplay.
+* Any excessive queue_free() and recreate loops.
+
+Performance acceptance criteria:
+
+* Game should run much closer to 60 FPS on a Core i9 and RTX 3060.
+* Massive spikes should be significantly reduced.
+* Initial load time should be much shorter than 30 seconds if possible.
+* Gameplay should feel smoother.
+* Visual simplification is allowed if the player-facing identity remains intact.
+* Add a basic in-game debug/performance overlay or logging mode if one does not already exist.
+
+11. MAKE MODDED RUNS VISIBLY DIFFERENT
+
+Even if mods are technically loading, they currently do nothing visibly. This needs a design and feedback pass.
+
+Problems to fix:
+
+* Player cannot tell a mod is active.
+* Modded gameplay looks identical to normal gameplay.
+* Mods lack feedback, UI labels, or obvious effects.
+
+Implementation goals:
+
+* Add a visible “Modded Run” indicator.
+* Add active mod list in pause menu or run start screen.
+* Make example mods dramatic enough to notice.
+* Add clear changes to enemies, gravity, visuals, upgrades, arena rules, or campaign behavior.
+* Add modded run metadata to screenshots/debug info if helpful.
+* Make sure mods are not silently ignored.
+
+Acceptance criteria:
+
+* Starting a modded run should clearly look or behave differently from a normal run.
+* Player can open a menu and see which mods are active.
+* Example mods must have obvious gameplay or visual impact.
+
+RECOMMENDED EXECUTION ORDER
+
+Work in this order:
+
+1. Fix loading freeze and scene transition stability.
+2. Fix title menu overlap and simplify play mode menu structure.
+3. Fix pause menu accessibility.
+4. Profile and optimize performance bottlenecks.
+5. Fix projectile planet-stacking exploit.
+6. Fix mod loading and visible mod effects.
+7. Improve campaign UI and remove obstructive pop-ups.
+8. Improve campaign enemy AI.
+9. Add mothership docking/trading scene and hostile mothership behavior.
+10. Update websites to match the latest game identity.
+
+DELIVERABLES
+
+When done, provide a clear summary of:
+
+1. What files were changed.
+2. What bugs were fixed.
+3. What systems were redesigned.
+4. What performance improvements were made.
+5. What mod system fixes were made.
+6. What campaign improvements were made.
+7. What still needs manual art/design polish, if anything.
+8. How I should test each major fix.
+
+12. ADD ENEMY DAMAGE IDENTIFIERS, HIT REACTIONS, AND MOMENTUM COMBAT JUICE
+
+The player currently cannot clearly tell what they are doing to enemies. Enemy damage, weapon impact, momentum hits, slingshot attacks, near-miss bonuses, shield breaks, and gravity-based combat need much stronger feedback.
+
+The goal is to make combat feel satisfying, readable, and responsive. When the player damages an enemy, the game should clearly communicate:
+
+* Damage was dealt.
+* How strong the hit was.
+* Whether the hit came from a weapon, momentum, gravity, collision, slingshot, overload, shield break, or special effect.
+* Whether the enemy was weak, resistant, armored, shielded, staggered, broken, or near death.
+* Whether the player performed something skillful.
+
+Do not add gambling systems, casino mechanics, lootbox behavior, or manipulative reward loops. Use arcade-style juice, readable combat feedback, satisfying enemy reactions, and stylish damage presentation only.
+
+PROBLEMS TO FIX
+
+* Enemies do not react enough when damaged.
+* Hits feel visually flat.
+* The player cannot easily tell if a weapon or momentum attack was effective.
+* Enemy health and damage state are not communicated clearly enough.
+* Momentum combat does not feel as powerful as it should.
+* Different damage types do not feel different.
+* Strong hits, weak hits, critical hits, shield hits, armor hits, and finishing blows need distinct feedback.
+* Combat needs more “I did that” satisfaction.
+
+IMPLEMENTATION GOALS
+
+Create an Enemy Damage Feedback System that can be reused by all enemy types.
+
+This system should include:
+
+1. Floating damage identifiers
+2. Enemy hit reactions
+3. Damage-type-specific visual effects
+4. Momentum combat reactions
+5. Shield, armor, and health state feedback
+6. Death and destruction feedback
+7. Accessibility options for reducing visual clutter
+8. Performance-safe pooling for all feedback objects
+
+DAMAGE IDENTIFIER SYSTEM
+
+Add floating damage numbers or compact damage markers when enemies take damage.
+
+Damage indicators should be readable, stylish, and not too cluttered.
+
+Suggested damage identifier types:
+
+* Normal damage: clean number pop
+* Weak damage: smaller number, muted animation
+* Strong damage: larger number, punchier animation
+* Critical hit: bigger impact marker and sharper animation
+* Momentum hit: special kinetic marker
+* Slingshot hit: arcing or comet-like number animation
+* Gravity crush: compression-style marker
+* Shield damage: shield-colored marker or “SHIELD”
+* Armor damage: “ARMOR” or reduced-damage marker
+* Shield break: clear “BREAK” marker
+* Stagger: “STAGGER”
+* Finisher: dramatic but brief burst
+* Immune or resisted: “RESIST” or small blocked indicator
+
+Damage numbers should not flood the screen. Add batching or merging if many hits happen quickly.
+
+Examples:
+
+* Multiple rapid small hits can combine into one number.
+* Repeated damage over time can show tick damage in a smaller style.
+* Huge hits should get special treatment.
+* Momentum hits should feel heavier than normal projectile hits.
+
+ENEMY HIT REACTIONS
+
+Enemies should visibly react to being hit.
+
+Add reactions such as:
+
+* Quick flash on hit
+* Directional squash/stretch or scale pulse
+* Small knockback impulse
+* Brief material/shader flash
+* Shield ripple
+* Armor spark
+* Crack or damage decal for heavy enemies
+* Stagger animation
+* Engine flicker when near death
+* Small debris burst on strong hits
+* Gravity distortion ripple for physics-based damage
+* Color/intensity shift as enemy health gets low
+
+Enemy reactions must not break gameplay readability. Keep reactions short and snappy.
+
+Different enemy classes should react differently:
+
+Small enemies:
+
+* Quick knockback
+* Sharp flash
+* Small burst on death
+
+Armored enemies:
+
+* Sparks
+* Heavy impact thud
+* Reduced knockback
+* Armor crack feedback
+
+Shielded enemies:
+
+* Shield ripple first
+* Shield flicker when low
+* Clear shield break effect
+
+Large enemies:
+
+* Localized hit flashes
+* Section-based damage effects if possible
+* Engine damage flicker
+* Heavy stagger only from major hits
+
+Bosses:
+
+* Smaller repeated hit feedback
+* Larger phase-change reactions
+* Distinct shield break, armor break, and stagger reactions
+* Avoid covering the screen with numbers
+
+MOMENTUM COMBAT FEEDBACK
+
+Momentum combat needs to feel special.
+
+When the player damages enemies through momentum, slingshot movement, collision, kinetic overload, gravity assist, or high-speed attack chains, use stronger feedback than normal weapon hits.
+
+Add special feedback for:
+
+* High-speed impact
+* Slingshot attack
+* Perfect slingshot hit
+* Apex slingshot hit
+* Gravity-assisted hit
+* Kinetic overload hit
+* Near-miss-boosted attack
+* Enemy knocked into gravity hazard
+* Enemy crushed by orbit path or planet interaction
+* Chain hit from momentum combat
+
+Suggested momentum feedback:
+
+* Impact shock ring
+* Directional streak
+* Enemy recoil along hit direction
+* Brief slow-motion pulse for major hits only
+* Screen shake with strict limits
+* Bass hit sound or impact tone
+* Damage number with velocity/momentum styling
+* “KINETIC,” “SLINGSHOT,” “APEX,” or “OVERLOAD” marker for special hits
+* Small combo text for chained momentum attacks
+
+Momentum reactions should be skill-readable. The player should instantly know, “That hit was stronger because I used movement well.”
+
+DAMAGE TYPES
+
+Make damage feedback respond to damage type.
+
+Suggested damage categories:
+
+* Projectile
+* Laser or beam
+* Explosion
+* Collision
+* Gravity
+* Momentum
+* Shield disruption
+* Time fracture
+* Singularity
+* Environmental hazard
+* Modded damage type
+
+Each damage type should be able to define:
+
+* Damage number style
+* Hit flash style
+* Impact particle
+* Sound cue
+* Knockback behavior
+* Status marker
+* Screen shake strength
+* Whether it can stagger
+* Whether it can break shields or armor
+
+Do not hardcode everything in one enemy script. Build a reusable system that enemies can call when receiving damage.
+
+RECOMMENDED STRUCTURE
+
+Create or update systems similar to:
+
+* EnemyDamageFeedback.gd
+* DamageIndicatorManager.gd
+* DamageNumberPool.gd
+* HitReactionComponent.gd
+* EnemyHealthVisualComponent.gd
+* DamageTypeData.gd or damage type resource files
+* MomentumHitFeedback.gd
+
+The exact file names can be adjusted to match the project structure, but the architecture should be modular.
+
+Expected flow:
+
+1. Enemy receives damage.
+2. Damage event is created with amount, type, source, direction, velocity, critical status, shield/armor result, and momentum info.
+3. Enemy health system applies damage.
+4. Enemy feedback system receives the final damage result.
+5. Feedback system triggers:
+
+   * Damage identifier
+   * Hit flash
+   * Knockback or stagger
+   * Particle effect
+   * Sound effect
+   * Shield/armor/health reaction
+   * Death reaction if enemy dies
+
+Damage events should include useful data:
+
+* damage_amount
+* damage_type
+* source_position
+* hit_position
+* hit_direction
+* source_velocity
+* target_velocity
+* was_critical
+* was_momentum_hit
+* was_slingshot_hit
+* was_apex_hit
+* was_shield_hit
+* was_shield_break
+* was_armor_hit
+* was_stagger
+* was_final_blow
+* combo_count
+* mod_source if damage came from a mod
+
+HEALTH STATE FEEDBACK
+
+Enemies should show their condition without requiring the player to stare at health bars.
+
+Add readable health state feedback:
+
+* 75% health: normal
+* 50% health: visible damage, flicker, cracks, smoke, unstable glow, or behavior shift
+* 25% health: stronger damage visuals, engine sputter, exposed core, panic movement, shield failing, or unstable physics effect
+* Near death: clear danger/dying state without becoming visually messy
+
+For small enemies, keep this simple.
+For large enemies, make damage states more noticeable.
+For bosses and motherships, use phase-specific visual changes.
+
+WEAPON REACTION DIFFERENCES
+
+Different weapons should feel different on enemies.
+
+Examples:
+
+Projectile weapons:
+
+* Small impact flash
+* Tiny sparks or debris
+* Normal damage numbers
+
+Heavy shots:
+
+* Strong recoil
+* Bigger number pop
+* Chunkier impact effect
+
+Beam weapons:
+
+* Continuous damage ticks
+* Heat glow
+* Smaller repeated numbers or merged DPS indicator
+
+Explosions:
+
+* Radial flash
+* Multiple enemies react outward
+* Larger but brief damage identifiers
+
+Gravity weapons:
+
+* Compression ripple
+* Enemy distortion
+* Pull/stretch reaction
+
+Momentum weapons:
+
+* Knockback
+* Shock ring
+* Skill marker
+* Stronger hit pause only for major hits
+
+Time fracture:
+
+* Glitchy delayed damage marker
+* Brief afterimage or temporal crack
+
+ENEMY DEATH FEEDBACK
+
+Enemy deaths should communicate what killed them.
+
+Add different death reactions based on final damage type:
+
+* Projectile death: burst apart
+* Explosion death: radial debris
+* Gravity death: implosion
+* Momentum death: launched/shattered in hit direction
+* Singularity death: compressed into small collapse effect
+* Shield break death: shield pops, then hull explodes
+* Time fracture death: delayed glitch break
+* Boss/mothership death: larger staged destruction
+
+Death effects must be performance-safe and pooled where possible.
+
+COMBO AND SKILL FEEDBACK
+
+Add limited skill callouts for high-skill moments, especially momentum combat.
+
+Possible callouts:
+
+* SLINGSHOT HIT
+* PERFECT SLINGSHOT
+* APEX STRIKE
+* KINETIC OVERLOAD
+* GRAVITY CRUSH
+* ORBIT CHAIN
+* SHIELD BREAK
+* STAGGER
+* FINISHER
+
+These should appear briefly and stylishly, not constantly.
+
+Avoid overusing text. The best feedback should come from enemy motion, VFX, sound, and damage indicators.
+
+ACCESSIBILITY AND CLARITY OPTIONS
+
+Add options to reduce visual clutter.
+
+Suggested settings:
+
+* Damage numbers: Off / Minimal / Full
+* Hit flashes: Reduced / Normal
+* Screen shake: Off / Reduced / Normal
+* Skill callouts: Off / Important Only / Full
+* Combat particles: Low / Normal / High
+
+Default settings should feel juicy but readable.
+
+PERFORMANCE REQUIREMENTS
+
+This system must not make performance worse.
+
+Use object pooling for:
+
+* Damage numbers
+* Hit particles
+* Sparks
+* Shield ripples
+* Debris bursts
+* Skill callouts
+* Small death effects
+
+Avoid creating and freeing lots of temporary nodes during combat.
+
+Avoid expensive per-frame checks for damage feedback.
+
+Use short lifetimes and cleanup budgets.
+
+If many hits happen at once, merge or throttle feedback.
+
+MOD SUPPORT
+
+The mod system should be able to add or modify damage feedback.
+
+Mods should be able to:
+
+* Add a new damage type
+* Override damage number style
+* Add a custom hit effect
+* Add a custom enemy reaction
+* Add a custom death effect
+* Display modded damage markers
+
+A modded run should still show active mods clearly, and modded damage types should visibly affect combat.
+
+ACCEPTANCE CRITERIA
+
+This task is complete when:
+
+* Enemies visibly react when damaged.
+* Damage numbers or damage markers appear clearly.
+* Strong hits feel stronger than weak hits.
+* Momentum combat has unique feedback.
+* Slingshot hits, apex hits, gravity hits, shield breaks, and armor hits are visually distinct.
+* Enemy health state is easier to understand.
+* Different weapons feel different when they hit enemies.
+* Enemy deaths react based on final damage type.
+* Feedback does not block gameplay.
+* Feedback is not visually overwhelming.
+* There are accessibility settings for reducing combat juice.
+* Feedback objects are pooled and performance-safe.
+* The system works in normal runs, campaign mode, and modded runs.
+
+TESTING CHECKLIST
+
+Test the following:
+
+* Normal projectile hit on small enemy.
+* Heavy hit on small enemy.
+* Projectile hit on armored enemy.
+* Projectile hit on shielded enemy.
+* Shield break.
+* Armor damage.
+* Enemy stagger.
+* Momentum collision hit.
+* Slingshot hit.
+* Perfect slingshot hit.
+* Apex slingshot hit.
+* Gravity crush or gravity-assisted hit.
+* Time fracture or special damage hit if implemented.
+* Enemy killed by projectile.
+* Enemy killed by momentum.
+* Enemy killed by gravity.
+* Boss or mothership taking repeated damage.
+* Modded damage type.
+* Damage numbers off.
+* Damage numbers minimal.
+* Reduced screen shake.
+* Large enemy group receiving damage without major FPS spikes.
+
+FINAL GOAL
+
+Combat should feel much more responsive and satisfying. The player should immediately understand that their weapons, movement, momentum, gravity tricks, and skillful attacks are affecting enemies. Every hit should tell the player something useful.

@@ -249,6 +249,13 @@ SECTION 7.5: CURRENT POLISH PASS (2026-06-23)
 [x] Website/wiki pass: public pages now reference v1.0.4.7, NET7 LAN readiness, controller/deck support path, heat map, halo readability, and accurate platform status.
 Manual verification still required in a normal editor/standalone run because this assignment explicitly forbids opening headless Godot.
 ---
+SECTION 7.6: CAMPAIGN / MOD EXPANSION PASS (2026-06-24)
+[x] Gravity Ghost readability pass: the panel now reads as `FINAL FLIGHT REPLAY`, has editable scene labels for route markers and pressure legend, and keeps the black-box replay meaning clear.
+[x] Mother-planet campaign pass: title screen entries now launch campaign and KOTH scenes with invaders, escorts, hostile planet turrets, alien barter/fight choices, and a mother planet that all remain editable in the scene viewer.
+[x] Energy economy pass: physics drops can award energy currency, and campaign upgrades spend it on escorts, speed, damage, armor, slingshot power, and hijack orders.
+[x] Mod expansion pass: bundled schema 4 packs now define Space Oregon Trail survival systems plus party-mode catalogs for gravity soccer, emotes, hijack variants, and battle-ship building.
+Manual verification still required in a normal editor/standalone run because this assignment explicitly forbids opening headless Godot.
+---
 SECTION 8: PERFORMANCE TARGETS (UPDATED WITH PROFILER EVIDENCE)
 Frame Rate: 60 FPS min / 120 FPS preferred budget path (current spikes must be eliminated)
 CPU: Physics <4 ms, Gameplay logic <4 ms (via registry + pooling)

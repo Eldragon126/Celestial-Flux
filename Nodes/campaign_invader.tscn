@@ -1,0 +1,21 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/campaign_invader.gd" id="1_invader"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_invader"]
+radius = 24.0
+
+[node name="CampaignInvader" type="CharacterBody2D" groups=["campaign_invader", "enemies", "wave_enemy"]]
+script = ExtResource("1_invader")
+
+[node name="CampaignInvaderHull" type="Polygon2D" parent="."]
+color = Color(1, 0.34, 0.16, 0.92)
+polygon = PackedVector2Array(26, 0, -18, 17, -9, 0, -18, -17)
+
+[node name="CampaignInvaderVector" type="Line2D" parent="."]
+width = 1.5
+default_color = Color(1, 0.62, 0.28, 0.42)
+points = PackedVector2Array(0, 0, 120, 0)
+
+[node name="CampaignInvaderCollision" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_invader")

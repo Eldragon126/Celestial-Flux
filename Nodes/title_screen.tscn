@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://d4etsys8ab7th"]
 
 [ext_resource type="Script" uid="uid://dhdhg4km4qnd8" path="res://Scripts/title_screen.gd" id="1_kf5hn"]
-[ext_resource type="FontFile" uid="uid://o7ffc2o1u38m" path="res://Assets/Fonts/searider-falcon-font/SeariderFalconLaser-w1ze6.ttf" id="2_v554h"]
 [ext_resource type="AudioStream" uid="uid://cou7kmndp04qt" path="res://Assets/Songs/Orbital Drift.mp3" id="3_kf5hn"]
 [ext_resource type="FontFile" uid="uid://bni12e87in5aq" path="res://Assets/Fonts/edge-of-the-galaxy-font/EdgeOfTheGalaxyRegular-OVEa6.otf" id="3_kux1l"]
 [ext_resource type="FontFile" uid="uid://l80cn0kfl5wl" path="res://Assets/Fonts/sf-distant-galaxy-font/SfDistantGalaxyAlternate-OE4d.ttf" id="4_0v026"]
@@ -178,20 +177,11 @@ anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -210.0
-offset_top = -430.0
+offset_top = -579.0
 offset_right = 210.0
-offset_bottom = -118.0
+offset_bottom = -53.0
 grow_horizontal = 2
 grow_vertical = 0
-
-[node name="HintLabel" type="Label" parent="Menu" unique_id=1529357692]
-custom_minimum_size = Vector2(420, 0)
-layout_mode = 2
-theme_override_fonts/font = ExtResource("2_v554h")
-theme_override_font_sizes/font_size = 70
-text = "Start"
-horizontal_alignment = 1
-autowrap_mode = 3
 
 [node name="NewRunButton" type="Button" parent="Menu" unique_id=1527408186]
 layout_mode = 2
@@ -222,6 +212,18 @@ layout_mode = 2
 theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 50
 text = "Boss Rush"
+
+[node name="CampaignButton" type="Button" parent="Menu" unique_id=104879852]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
+theme_override_font_sizes/font_size = 50
+text = "Campaign"
+
+[node name="KingHillButton" type="Button" parent="Menu" unique_id=1392684924]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
+theme_override_font_sizes/font_size = 50
+text = "King Hill"
 
 [node name="VersionLabel" type="Label" parent="." unique_id=1069735682]
 layout_mode = 1
@@ -335,4 +337,6 @@ position = Vector2(4927, -3907)
 [connection signal="pressed" from="Menu/ContinueButton" to="." method="_on_continue_button_pressed"]
 [connection signal="pressed" from="Menu/ChallengeButton" to="." method="_on_challenge_button_pressed"]
 [connection signal="pressed" from="Menu/BossRushButton" to="." method="_on_boss_rush_button_pressed"]
+[connection signal="pressed" from="Menu/CampaignButton" to="." method="_on_campaign_button_pressed"]
+[connection signal="pressed" from="Menu/KingHillButton" to="." method="_on_king_hill_button_pressed"]
 [connection signal="pressed" from="SecretButton" to="." method="_on_secret_button_pressed"]

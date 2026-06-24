@@ -2,6 +2,14 @@ extends Control
 
 @export var title_scene_path: String = "res://Nodes/title_screen.tscn"
 
+const OFFICIAL_EXAMPLE_MOD_IDS: Array[StringName] = [
+	&"cosmic_lawbreaker_pack",
+	&"anomaly_bestiary",
+	&"collapsing_microverse_mode",
+	&"boss_heresy_kit",
+	&"relic_singularity_forge",
+]
+
 var _registry: Node = null
 var _summary_label: Label = null
 var _details_label: Label = null
@@ -40,7 +48,7 @@ func _build_ui() -> void:
 	margin.add_child(rows)
 
 	var title := Label.new()
-	title.text = "MOD MANAGER"
+	title.text = "ANOMALY WORKSHOP"
 	title.add_theme_font_size_override("font_size", 44)
 	title.modulate = Color(0.42, 1.0, 0.92, 1.0)
 	rows.add_child(title)
@@ -71,6 +79,10 @@ func _build_ui() -> void:
 	var report_button := _make_button("Export Creator Report")
 	report_button.pressed.connect(_export_creator_report)
 	button_row.add_child(report_button)
+
+	var reset_examples_button := _make_button("Disable Official Examples")
+	reset_examples_button.pressed.connect(_disable_official_examples)
+	button_row.add_child(reset_examples_button)
 
 	var back_button := _make_button("Title Screen")
 	back_button.pressed.connect(_on_back_pressed)
@@ -215,6 +227,14 @@ func _populate_detail_cards(summary: Dictionary) -> void:
 	_details_box.add_child(_make_detail_section("Compatibility", [
 		"Gameplay entries affect multiplayer signatures.",
 		"Palettes, shader packs, texture packs, music, SFX, notes, thumbnails, and HUD badges stay local-only.",
+	]))
+	_details_box.add_child(_make_detail_section("Official Example Mods", [
+		"Cosmic Lawbreaker Pack: arena laws and hookable physics rules.",
+		"Anomaly Bestiary: enemy packs and readable AI concepts.",
+		"Collapsing Microverse Mode: custom game-mode and campaign catalog entries.",
+		"Boss Heresy Kit: boss rules and mutation profiles.",
+		"Relic Singularity Forge: upgrades, relic-style hooks, and synergy metadata.",
+		"Use the toggles below to enable/disable each pack; Disable Official Examples resets all five at once.",
 	]))
 	var load_order: Array = summary.get("load_order", [])
 	var snapshot := _get_registry_snapshot()
@@ -405,6 +425,8 @@ func _make_manifest_toggle_section(load_order: Array, manifests: Dictionary) -> 
 		var display_name := str(manifest.get("display_name", manifest_key)).strip_edges()
 		if display_name.is_empty():
 			display_name = manifest_key
+		if _is_official_example_manifest(manifest_key):
+			display_name = "Official Example // %s" % display_name
 		var user_disabled := bool(manifest.get("user_disabled", false))
 		var active := bool(manifest.get("enabled", true))
 		var reason := str(manifest.get("disabled_reason", "")).strip_edges()
@@ -563,6 +585,22 @@ func _on_manifest_toggled(enabled_state: bool, manifest_id: String) -> void:
 	_registry.call("set_manifest_user_enabled", StringName(manifest_id), enabled_state)
 	var state_text := "Enabled" if enabled_state else "Disabled"
 	_render_registry("%s mod: %s" % [state_text, manifest_id])
+
+
+func _disable_official_examples() -> void:
+	if _registry == null or not _registry.has_method("set_manifest_user_enabled"):
+		_render_registry("Official example reset is unavailable for this registry.")
+		return
+	for manifest_id in OFFICIAL_EXAMPLE_MOD_IDS:
+		_registry.call("set_manifest_user_enabled", manifest_id, false)
+	_render_registry("Disabled all official example mods.")
+
+
+func _is_official_example_manifest(manifest_id: String) -> bool:
+	for official_id in OFFICIAL_EXAMPLE_MOD_IDS:
+		if String(official_id) == manifest_id:
+			return true
+	return false
 
 
 func _make_detail_section(title_text: String, body_lines: Array[String]) -> PanelContainer:

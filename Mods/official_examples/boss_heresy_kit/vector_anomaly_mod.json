@@ -1,0 +1,107 @@
+{
+  "id": "boss_heresy_kit",
+  "display_name": "Boss Heresy Kit",
+  "author": "Vector Anomaly Team",
+  "version": "1.0.0",
+  "schema_version": 4,
+  "description": "Official example mod for mutating existing bosses with data-driven boss rules.",
+  "tags": ["official-example", "bosses", "boss-rules", "for-modders"],
+  "dependencies": [],
+  "options": [
+    {
+      "id": "heresy_pressure",
+      "display_name": "Heresy Pressure",
+      "type": "float",
+      "default": 0.55,
+      "min": 0.2,
+      "max": 1.0,
+      "step": 0.05,
+      "network_category": "deterministic_seed",
+      "description": "Shared pressure scalar for boss mutation directors."
+    }
+  ],
+  "content": {
+    "boss_rules": [
+      {
+        "id": "gravity_warden_redshift_heresy",
+        "display_name": "Gravity Warden: Redshift Heresy",
+        "network_category": "deterministic_seed",
+        "boss_id": "gravity_warden",
+        "tags": ["speed-reactive", "telegraphed"],
+        "description": "Fast player movement stretches selected attacks, rewarding controlled orbiting instead of panic speed."
+      },
+      {
+        "id": "accretion_core_hunger_heresy",
+        "display_name": "Accretion Core: Hunger Heresy",
+        "network_category": "deterministic_seed",
+        "boss_id": "accretion_core",
+        "tags": ["debris-absorb", "arena-object"],
+        "description": "Debris absorption changes the next attack pattern."
+      },
+      {
+        "id": "magnetar_twins_desync_heresy",
+        "display_name": "Magnetar Twins: Desync Heresy",
+        "network_category": "deterministic_seed",
+        "boss_id": "magnetar_twins",
+        "tags": ["prediction", "multi-entity"],
+        "description": "One twin predicts future position while the other reacts to current position."
+      },
+      {
+        "id": "null_vector_seraph_broken_halo_heresy",
+        "display_name": "Null Vector Seraph: Broken Halo Heresy",
+        "network_category": "deterministic_seed",
+        "boss_id": "null_vector_seraph",
+        "tags": ["delayed-hazard", "safe-zone-inversion"],
+        "description": "Safe zones later invert into danger zones after a visible warning."
+      }
+    ],
+    "boss_packs": [
+      {
+        "id": "official_heresy_boss_pack",
+        "display_name": "Official Heresy Boss Pack",
+        "network_category": "deterministic_seed",
+        "boss_rules": [
+          "gravity_warden_redshift_heresy",
+          "accretion_core_hunger_heresy",
+          "magnetar_twins_desync_heresy",
+          "null_vector_seraph_broken_halo_heresy"
+        ],
+        "description": "Grouped boss mutation pack for optional boss-rule directors."
+      }
+    ],
+    "anomaly_recipes": [
+      {
+        "id": "heresy_rule_request",
+        "display_name": "Heresy Rule Request",
+        "hooks": ["boss_spawned"],
+        "network_category": "deterministic_seed",
+        "cooldown": 1.0,
+        "max_triggers": 4,
+        "conditions": [
+          {"type": "mod_option", "manifest_id": "boss_heresy_kit", "option_id": "heresy_pressure", "operator": "greater_or_equal", "value": 0.4}
+        ],
+        "effects": [
+          {"action": "request_boss_rule", "content_id": "official_heresy_boss_pack"},
+          {"action": "emit_hud_badge", "content_id": "heresy_badge"}
+        ],
+        "description": "Shows how boss mutations should be requested through trusted directors."
+      }
+    ],
+    "hud_badges": [
+      {
+        "id": "heresy_badge",
+        "display_name": "Boss Heresy",
+        "network_category": "local_visual",
+        "text": "HERESY"
+      }
+    ],
+    "creator_notes": [
+      {
+        "id": "heresy_lessons",
+        "display_name": "What This Pack Teaches",
+        "network_category": "local_visual",
+        "note": "Mutate bosses with narrow rule entries. Avoid duplicating entire boss scripts unless a trusted loader specifically needs a new scene."
+      }
+    ]
+  }
+}

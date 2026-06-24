@@ -22,6 +22,9 @@ const DEFAULT_MAX_PEERS := 4
 const NETWORK_PROTOCOL_VERSION := 7
 const RUN_SCENE_PATH := "res://Nodes/the_abyss.tscn"
 const RUN_LOADING_SCENE_PATH := "res://Nodes/run_loading_screen.tscn"
+const TITLE_SCENE_PATH := "res://Nodes/title_screen.tscn"
+const CAMPAIGN_SCENE_PATH := "res://Nodes/campaign_mode.tscn"
+const KING_OF_THE_HILL_SCENE_PATH := "res://Nodes/king_of_the_hill_mode.tscn"
 const PLAYER_SCENE := preload("res://Nodes/player.tscn")
 const PROJECTILE_FALLBACK_SCENE_PATH := "res://Nodes/projectile.tscn"
 const MOD_MANIFEST_FILE_NAME := "vector_anomaly_mod.json"
@@ -151,11 +154,29 @@ func host_and_play(player_name: String, port: int = DEFAULT_PORT, peer_limit: in
 	return OK
 
 
+func host_scene_and_play(player_name: String, scene_path: String, port: int = DEFAULT_PORT, peer_limit: int = DEFAULT_MAX_PEERS, seed_override: int = 0, mode_flags: Dictionary = {}) -> int:
+	var err := start_lan_host(player_name, port, peer_limit)
+	if err != OK:
+		return err
+	_begin_host_run(seed_override, scene_path, mode_flags)
+	return OK
+
+
+func start_hosted_scene_run(scene_path: String, seed_override: int = 0, mode_flags: Dictionary = {}) -> int:
+	if not is_network_active() or not multiplayer.is_server():
+		_fail_session("ONLY THE HOST CAN START A NETWORK SCENE")
+		return ERR_UNAUTHORIZED
+	_begin_host_run(seed_override, scene_path, mode_flags)
+	return OK
+
+
 func restart_hosted_run() -> int:
 	if not is_network_active() or not multiplayer.is_server():
 		_fail_session("ONLY THE HOST CAN RESTART NETWORK RUN")
 		return ERR_UNAUTHORIZED
-	_begin_host_run()
+	var scene_path := String(_run_config.get("scene_path", RUN_SCENE_PATH))
+	var mode_flags := _network_mode_flags_from_config(_run_config)
+	_begin_host_run(0, scene_path, mode_flags)
 	return OK
 
 
@@ -496,30 +517,39 @@ func _connect_multiplayer_signals() -> void:
 		multiplayer.server_disconnected.connect(_on_server_disconnected)
 
 
-func _begin_host_run(seed_override: int = 0) -> void:
+func _begin_host_run(seed_override: int = 0, scene_path: String = RUN_SCENE_PATH, mode_flags: Dictionary = {}) -> void:
 	if RunProgress == null:
 		_fail_session("RUN START FAILED: RunProgress missing")
 		return
-	RunProgress.begin_new_run(false, seed_override)
+	if scene_path.is_empty():
+		scene_path = RUN_SCENE_PATH
+	var challenge_mode := bool(mode_flags.get("challenge_mode", false))
+	RunProgress.begin_new_run(challenge_mode, seed_override)
 	var orbiting_celestials := Settings != null and bool(Settings.auto_orbiting_celestials_enabled)
 	RunProgress.arena_flags["auto_orbiting_celestials"] = orbiting_celestials
+	for key in mode_flags.keys():
+		RunProgress.arena_flags[String(key)] = mode_flags[key]
+	RunProgress.arena_flags["retry_scene_path"] = scene_path
+	RunProgress.arena_flags["title_scene_path"] = TITLE_SCENE_PATH
 	_run_config = {
-		"scene_path": RUN_SCENE_PATH,
+		"scene_path": scene_path,
 		"seed": int(RunProgress.run_seed),
-		"challenge_mode": false,
+		"challenge_mode": challenge_mode,
 		"boss_rush_mode": false,
 		"phase": int(RunProgress.phase),
 		"auto_orbiting_celestials": orbiting_celestials,
 		"network_protocol": NETWORK_PROTOCOL_VERSION,
 		"mod_signature": _local_mod_signature(),
 	}
+	for key in mode_flags.keys():
+		_run_config[String(key)] = mode_flags[key]
 	_run_in_progress = true
 	_last_wave_state.clear()
-	_status_label = "RUN HOSTING"
+	_status_label = _host_status_for_scene(scene_path)
 	_rpc_begin_network_run.rpc(_run_config)
 	network_run_started.emit(_run_config.duplicate(true))
 	_publish_status()
-	get_tree().change_scene_to_file(RUN_LOADING_SCENE_PATH)
+	_change_to_network_run_scene(scene_path)
 
 
 func _apply_run_config(config: Dictionary) -> void:
@@ -533,6 +563,11 @@ func _apply_run_config(config: Dictionary) -> void:
 	RunProgress.bosses_defeated = 0
 	RunProgress.run_finished = false
 	RunProgress.arena_flags["auto_orbiting_celestials"] = bool(config.get("auto_orbiting_celestials", true))
+	RunProgress.arena_flags["retry_scene_path"] = String(config.get("scene_path", RUN_SCENE_PATH))
+	RunProgress.arena_flags["title_scene_path"] = TITLE_SCENE_PATH
+	for key in ["campaign_mode", "king_of_hill_mode", "network_mode_id", "mod_gamemode_id", "mod_campaign_id"]:
+		if config.has(key):
+			RunProgress.arena_flags[key] = config[key]
 	RunProgress.clear_anchor()
 
 
@@ -781,6 +816,23 @@ func _connection_quality_label() -> String:
 	return "high-latency"
 
 
+func _host_status_for_scene(scene_path: String) -> String:
+	match scene_path:
+		CAMPAIGN_SCENE_PATH:
+			return "CAMPAIGN HOSTING"
+		KING_OF_THE_HILL_SCENE_PATH:
+			return "KOTH HOSTING"
+	return "RUN HOSTING"
+
+
+func _network_mode_flags_from_config(config: Dictionary) -> Dictionary:
+	var flags: Dictionary = {}
+	for key in ["challenge_mode", "campaign_mode", "king_of_hill_mode", "network_mode_id", "mod_gamemode_id", "mod_campaign_id"]:
+		if config.has(key):
+			flags[key] = config[key]
+	return flags
+
+
 func _publish_roster_to_clients() -> void:
 	if not multiplayer.is_server():
 		return
@@ -791,7 +843,15 @@ func _sync_players_to_current_scene() -> void:
 	var scene := get_tree().current_scene
 	if scene == null:
 		return
-	if scene.scene_file_path != RUN_SCENE_PATH and scene.name != "TheAbyss":
+	var configured_scene := String(_run_config.get("scene_path", RUN_SCENE_PATH))
+	var is_network_arena := (
+		scene.scene_file_path == RUN_SCENE_PATH
+		or scene.scene_file_path == configured_scene
+		or scene.name == "TheAbyss"
+		or scene.is_in_group("campaign_mode")
+		or scene.is_in_group("king_of_the_hill_mode")
+	)
+	if not is_network_arena:
 		return
 	configure_arena_players(scene)
 	refresh_runtime_multiplayer_bindings(scene)

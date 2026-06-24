@@ -1,0 +1,27 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/campaign_mother_planet.gd" id="1_mother"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_mother"]
+radius = 220.0
+
+[node name="MotherPlanet" type="StaticBody2D" groups=["campaign_mother_planet", "player_allies", "Objects_With_Gravity", "planets"]]
+script = ExtResource("1_mother")
+
+[node name="MotherPlanetHull" type="Polygon2D" parent="."]
+color = Color(0.12, 0.74, 0.9, 0.92)
+polygon = PackedVector2Array(0, -220, 84.2, -203.25, 155.56, -155.56, 203.25, -84.2, 220, 0, 203.25, 84.2, 155.56, 155.56, 84.2, 203.25, 0, 220, -84.2, 203.25, -155.56, 155.56, -203.25, 84.2, -220, 0, -203.25, -84.2, -155.56, -155.56, -84.2, -203.25)
+
+[node name="GravityShieldRing" type="Line2D" parent="."]
+closed = true
+width = 3.0
+default_color = Color(0.24, 0.94, 1, 0.18)
+points = PackedVector2Array(310, 0, 286.4, 118.64, 219.2, 219.2, 118.64, 286.4, 0, 310, -118.64, 286.4, -219.2, 219.2, -286.4, 118.64, -310, 0, -286.4, -118.64, -219.2, -219.2, -118.64, -286.4, 0, -310, 118.64, -286.4, 219.2, -219.2, 286.4, -118.64)
+
+[node name="HealthRing" type="Line2D" parent="."]
+width = 5.0
+default_color = Color(0.22, 1, 0.34, 0.88)
+points = PackedVector2Array(0, -328, 125.5, -303.03, 231.93, -231.93, 303.03, -125.5, 328, 0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_mother")

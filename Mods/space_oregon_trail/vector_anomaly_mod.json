@@ -1,0 +1,129 @@
+{
+  "id": "space_oregon_trail",
+  "display_name": "Space Oregon Trail",
+  "author": "Vector Anomaly Team",
+  "version": 1,
+  "schema_version": 4,
+  "description": "A declarative space-wagon campaign pack: protect a convoy, manage energy supplies, survive hostile planets, and try not to lose the crew to space dysentery.",
+  "tags": ["campaign", "survival", "physics", "convoy", "sample"],
+  "dependencies": [],
+  "options": [
+    {
+      "id": "daily_event_pressure",
+      "display_name": "Daily Event Pressure",
+      "type": "choice",
+      "default": "classic",
+      "choices": ["classic", "merciful", "punishing"],
+      "description": "Controls how often route events ask the player to trade safety for supplies."
+    },
+    {
+      "id": "space_dysentery_enabled",
+      "display_name": "Space Dysentery",
+      "type": "bool",
+      "default": true,
+      "description": "Keeps the signature status effect in the route event pool."
+    }
+  ],
+  "content": {
+    "gamemodes": [
+      {
+        "id": "space_oregon_trail_mode",
+        "display_name": "Space Oregon Trail",
+        "network_category": "deterministic_seed",
+        "scene": "res://Nodes/campaign_mode.tscn",
+        "tags": ["convoy", "mother-planet", "travel-days"],
+        "description": "Campaign-mode rules retuned into a physics convoy where the mother planet is the wagon and energy credits are food, fuel, medicine, and ammunition."
+      }
+    ],
+    "campaigns": [
+      {
+        "id": "route_to_new_cascadia",
+        "display_name": "Route To New Cascadia",
+        "network_category": "deterministic_seed",
+        "gamemode": "space_oregon_trail_mode",
+        "recommended_days": 42,
+        "supply_currency": "energy_credits",
+        "route_legs": ["launch_window", "asteroid_ford", "alien_freehold", "void_winter", "new_cascadia"],
+        "description": "A five-leg route that turns campaign waves into travel days, convoy repairs, barter stops, hostile planet guns, and gravity-heavy survival choices."
+      }
+    ],
+    "mission_packs": [
+      {
+        "id": "trail_route_events",
+        "display_name": "Trail Route Events",
+        "network_category": "deterministic_seed",
+        "missions": [
+          "hunt_for_ion_meat",
+          "ford_the_magnetar_stream",
+          "repair_the_mother_planet_axle",
+          "barter_for_antirad_medicine",
+          "outrun_the_solar_winter"
+        ],
+        "description": "Cataloged route events for a future day-by-day trail director. Each event should resolve through gravity, momentum, energy spending, or escort positioning."
+      }
+    ],
+    "status_effects": [
+      {
+        "id": "space_dysentery",
+        "display_name": "Space Dysentery",
+        "network_category": "deterministic_seed",
+        "severity": "major",
+        "duration_days": 5,
+        "effects": {
+          "energy_credit_drain_per_day": 6,
+          "escort_reaction_penalty": 0.08,
+          "mother_planet_repair_penalty": 0.18
+        },
+        "description": "The classic trail disaster, rebuilt as a bounded convoy-management status effect instead of random instant failure."
+      },
+      {
+        "id": "void_fever",
+        "display_name": "Void Fever",
+        "network_category": "deterministic_seed",
+        "severity": "minor",
+        "duration_days": 3,
+        "effects": {
+          "barter_cost_multiplier": 1.12
+        },
+        "description": "A mild travel sickness that nudges the player toward risky physics objectives to recover supplies."
+      }
+    ],
+    "enemy_packs": [
+      {
+        "id": "trail_raider_pack",
+        "display_name": "Trail Raider Pack",
+        "network_category": "deterministic_seed",
+        "entries": ["campaign_invader", "phase_slip_swarm", "base_shooter_enemy"],
+        "tags": ["raiders", "convoy-pressure"],
+        "description": "Enemy pack for space-bandit ambushes that pressure escorts and the mother planet instead of only chasing the player."
+      }
+    ],
+    "planet_packs": [
+      {
+        "id": "hostile_freehold_planets",
+        "display_name": "Hostile Freehold Planets",
+        "network_category": "deterministic_seed",
+        "planets": ["barter_outpost", "railgun_moon", "quarantine_station"],
+        "turrets": ["campaign_planet_turret"],
+        "description": "A planet pack for barter-or-fight stops, including hostile gun platforms and non-hostile trading outposts."
+      }
+    ],
+    "challenge_cards": [
+      {
+        "id": "no_spare_thrusters",
+        "display_name": "No Spare Thrusters",
+        "network_category": "deterministic_seed",
+        "hooks": ["run_start"],
+        "max_triggers": 1,
+        "description": "Start the trail with fewer energy credits and stronger gravity rewards; a future director can convert this into a community challenge modifier."
+      }
+    ],
+    "creator_notes": [
+      {
+        "id": "space_oregon_trail_design_notes",
+        "display_name": "Space Oregon Trail Design Notes",
+        "note": "This pack is intentionally declarative. The existing campaign mode provides the playable bridge today; future trusted directors can consume the route-day, status, barter, and convoy fields without executing arbitrary scripts."
+      }
+    ]
+  }
+}

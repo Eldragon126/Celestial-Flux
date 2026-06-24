@@ -15,7 +15,7 @@ corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
 [node name="GravityGhostReplayPanel" type="Panel"]
-custom_minimum_size = Vector2(900, 164)
+custom_minimum_size = Vector2(900, 196)
 layout_mode = 2
 mouse_filter = 2
 clip_contents = true
@@ -30,7 +30,18 @@ offset_right = 500.0
 offset_bottom = 28.0
 theme_override_colors/font_color = Color(0.42, 0.95, 1, 0.94)
 theme_override_font_sizes/font_size = 14
-text = "GRAVITY GHOST // RECONSTRUCTING"
+text = "FINAL FLIGHT REPLAY // RECONSTRUCTING"
+
+[node name="SummaryLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 14.0
+offset_top = 26.0
+offset_right = 560.0
+offset_bottom = 43.0
+theme_override_colors/font_color = Color(0.72, 0.94, 1, 0.62)
+theme_override_font_sizes/font_size = 11
+text = "DIST 0 // PEAK SPEED 0 // PRIMARY PRESSURE"
+clip_text = true
 
 [node name="StatusLabel" type="Label" parent="."]
 layout_mode = 1
@@ -46,3 +57,72 @@ theme_override_colors/font_color = Color(0.72, 0.94, 1, 0.86)
 theme_override_font_sizes/font_size = 13
 text = "FINAL VECTOR BUFFER"
 horizontal_alignment = 2
+
+[node name="LegendRow" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = -23.0
+offset_right = -18.0
+offset_bottom = -6.0
+theme_override_constants/separation = 12
+
+[node name="RouteLabel" type="Label" parent="LegendRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.96, 1, 0.72)
+theme_override_font_sizes/font_size = 10
+text = "ROUTE"
+
+[node name="SpeedLabel" type="Label" parent="LegendRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.38, 1, 0.78, 0.72)
+theme_override_font_sizes/font_size = 10
+text = "SPEED"
+
+[node name="ProjectileLabel" type="Label" parent="LegendRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.52, 0.2, 0.72)
+theme_override_font_sizes/font_size = 10
+text = "PROJECTILES"
+
+[node name="HostileLabel" type="Label" parent="LegendRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.28, 0.14, 0.7)
+theme_override_font_sizes/font_size = 10
+text = "HOSTILES"
+
+[node name="HullLabel" type="Label" parent="LegendRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.18, 0.1, 0.72)
+theme_override_font_sizes/font_size = 10
+text = "HULL"
+
+[node name="GravityLabel" type="Label" parent="LegendRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.64, 0.44, 1, 0.74)
+theme_override_font_sizes/font_size = 10
+text = "GRAVITY"
+
+[node name="StartMarkerLabel" type="Label" parent="."]
+visible = false
+layout_mode = 0
+theme_override_colors/font_color = Color(0.2, 0.96, 1, 0.82)
+theme_override_font_sizes/font_size = 10
+text = "START"
+
+[node name="EndMarkerLabel" type="Label" parent="."]
+visible = false
+layout_mode = 0
+theme_override_colors/font_color = Color(1, 0.42, 0.12, 0.86)
+theme_override_font_sizes/font_size = 10
+text = "IMPACT"
+
+[node name="PlayheadMarkerLabel" type="Label" parent="."]
+visible = false
+layout_mode = 0
+theme_override_colors/font_color = Color(1, 0.84, 0.28, 0.86)
+theme_override_font_sizes/font_size = 10
+text = "SHIP"
