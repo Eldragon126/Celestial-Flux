@@ -20,13 +20,30 @@ const ENEMY_BULLET_SCENE := preload("res://Nodes/enemy_bullet.tscn")
 @export var friendly_color: Color = Color(0.32, 1.0, 0.72, 0.58)
 @export var damaged_color: Color = Color(1.0, 0.18, 0.08, 0.9)
 @export var barrel_flash_color: Color = Color(1.0, 0.58, 0.26, 0.78)
+@export_group("Visual Polish")
+@export var base_radius: float = 55.0
+@export var core_radius: float = 18.0
+@export var shield_radius: float = 62.0
+@export var charge_ring_radius: float = 31.0
+@export var muzzle_flash_length: float = 26.0
+@export_range(0.0, 1.0, 0.01) var shield_alpha: float = 0.16
+@export_range(0.0, 1.0, 0.01) var charge_alpha: float = 0.34
+@export var base_color: Color = Color(0.05, 0.11, 0.16, 0.82)
+@export var core_color: Color = Color(1.0, 0.72, 0.38, 0.88)
+@export var friendly_core_color: Color = Color(0.54, 1.0, 0.78, 0.82)
 
 var current_health: float = 120.0
 var faction_id: StringName = &"freehold"
 
 var _elapsed: float = 0.0
+var _flash_alpha: float = 0.0
+var _base: Polygon2D = null
+var _core: Polygon2D = null
 var _ring: Line2D = null
 var _barrel: Line2D = null
+var _shield_ring: Line2D = null
+var _charge_ring: Line2D = null
+var _muzzle_flash: Line2D = null
 var _collision: CollisionShape2D = null
 var _defeated: bool = false
 
@@ -46,8 +63,13 @@ func _ready() -> void:
 			RuntimeRegistry.register_node(self, &"enemies")
 			RuntimeRegistry.register_node(self, &"wave_enemy")
 	current_health = max_health
+	_base = get_node_or_null("TurretBase") as Polygon2D
+	_core = get_node_or_null("TurretCore") as Polygon2D
 	_ring = get_node_or_null("TurretRing") as Line2D
 	_barrel = get_node_or_null("TurretBarrel") as Line2D
+	_shield_ring = get_node_or_null("TurretShieldRing") as Line2D
+	_charge_ring = get_node_or_null("TurretChargeRing") as Line2D
+	_muzzle_flash = get_node_or_null("TurretMuzzleFlash") as Line2D
 	_collision = get_node_or_null("TurretCollision") as CollisionShape2D
 	_build_collision()
 	_build_visuals()
@@ -64,6 +86,7 @@ func _process(delta: float) -> void:
 	if _defeated:
 		return
 	_elapsed += delta * CombatStatus.get_time_scale(self)
+	_update_visuals(delta)
 	if not hostile:
 		return
 	var target := _select_target()
@@ -138,6 +161,7 @@ func _fire_at(target: Node2D) -> void:
 			target.call("take_damage", maxf(projectile_speed / 100.0, 1.0))
 		if _barrel != null:
 			_barrel.default_color = Color(barrel_flash_color.r, barrel_flash_color.g, barrel_flash_color.b, 0.48)
+		_flash_alpha = 0.48
 		return
 	var projectile := ENEMY_BULLET_SCENE.instantiate()
 	var projectile_2d := projectile as Node2D
@@ -149,12 +173,29 @@ func _fire_at(target: Node2D) -> void:
 		projectile.set("is_homing", projectile_homing)
 	if projectile.has_method("configure_launch"):
 		projectile.call("configure_launch", direction, projectile_speed, self)
-	get_tree().current_scene.call_deferred("add_child", projectile)
+	var tree := get_tree()
+	var projectile_parent := tree.current_scene if tree != null and tree.current_scene != null else get_parent()
+	if projectile_parent != null:
+		projectile_parent.call_deferred("add_child", projectile)
 	if _barrel != null:
 		_barrel.default_color = barrel_flash_color
+	_flash_alpha = barrel_flash_color.a
 
 
 func _build_visuals() -> void:
+	if _base == null:
+		_base = Polygon2D.new()
+		_base.name = "TurretBase"
+		add_child(_base)
+	_base.polygon = _circle_points(base_radius, 12)
+	_base.color = base_color
+	_base.z_index = -1
+	if _core == null:
+		_core = Polygon2D.new()
+		_core.name = "TurretCore"
+		add_child(_core)
+	_core.polygon = _circle_points(core_radius, 10)
+	_core.z_index = 3
 	if _ring == null:
 		_ring = Line2D.new()
 		_ring.name = "TurretRing"
@@ -163,12 +204,40 @@ func _build_visuals() -> void:
 		_ring.width = 2.4
 		add_child(_ring)
 	_ring.points = _circle_points(ring_radius, 36)
+	_ring.z_index = 4
 	if _barrel == null:
 		_barrel = Line2D.new()
 		_barrel.name = "TurretBarrel"
 		_barrel.width = 3.2
 		add_child(_barrel)
+	_barrel.antialiased = true
 	_barrel.points = PackedVector2Array([Vector2.ZERO, Vector2(barrel_length, 0.0)])
+	_barrel.z_index = 5
+	if _shield_ring == null:
+		_shield_ring = Line2D.new()
+		_shield_ring.name = "TurretShieldRing"
+		add_child(_shield_ring)
+	_shield_ring.closed = true
+	_shield_ring.antialiased = true
+	_shield_ring.width = 1.2
+	_shield_ring.points = _circle_points(shield_radius, 44)
+	_shield_ring.z_index = 1
+	if _charge_ring == null:
+		_charge_ring = Line2D.new()
+		_charge_ring.name = "TurretChargeRing"
+		add_child(_charge_ring)
+	_charge_ring.closed = false
+	_charge_ring.antialiased = true
+	_charge_ring.width = 2.0
+	_charge_ring.z_index = 6
+	if _muzzle_flash == null:
+		_muzzle_flash = Line2D.new()
+		_muzzle_flash.name = "TurretMuzzleFlash"
+		add_child(_muzzle_flash)
+	_muzzle_flash.antialiased = true
+	_muzzle_flash.width = 4.6
+	_muzzle_flash.z_index = 7
+	_muzzle_flash.points = PackedVector2Array([Vector2(barrel_length * 0.72, 0.0), Vector2(barrel_length + muzzle_flash_length, 0.0)])
 
 
 func _build_collision() -> void:
@@ -185,15 +254,71 @@ func _build_collision() -> void:
 func _update_visual_state() -> void:
 	var health_ratio := clampf(current_health / maxf(max_health, 1.0), 0.0, 1.0)
 	var color := hostile_color if hostile else friendly_color
+	var core_tint := core_color if hostile else friendly_core_color
+	if _base != null:
+		_base.color = _safe_color(base_color.lerp(damaged_color, (1.0 - health_ratio) * 0.35))
+	if _core != null:
+		_core.color = _safe_color(core_tint.lerp(damaged_color, (1.0 - health_ratio) * 0.45))
 	if _ring != null:
-		_ring.default_color = color.lerp(damaged_color, 1.0 - health_ratio)
+		_ring.default_color = _safe_color(color.lerp(damaged_color, 1.0 - health_ratio))
 	if _barrel != null:
-		_barrel.default_color = Color(color.r, color.g, color.b, 0.72)
+		_barrel.default_color = _safe_color(Color(color.r, color.g, color.b, 0.72))
+	if _shield_ring != null:
+		_shield_ring.default_color = _safe_color(Color(color.r, color.g, color.b, _safe_alpha(shield_alpha * (0.5 + health_ratio * 0.5), 0.22)))
+	if _charge_ring != null:
+		_charge_ring.default_color = _safe_color(Color(color.r, color.g, color.b, _safe_alpha(charge_alpha, 0.4)))
+
+
+func _update_visuals(delta: float) -> void:
+	var color := hostile_color if hostile else friendly_color
+	var charge_ratio := clampf(_elapsed / maxf(fire_interval, 0.05), 0.0, 1.0)
+	_flash_alpha = maxf(_flash_alpha - delta * 4.6, 0.0)
+	if _ring != null:
+		_ring.rotation += delta * (0.34 if hostile else -0.18)
+	if _shield_ring != null:
+		_shield_ring.rotation -= delta * (0.42 if hostile else 0.22)
+		_shield_ring.width = 1.0 + charge_ratio * 1.1
+	if _barrel != null:
+		var base_barrel := Color(color.r, color.g, color.b, 0.72)
+		_barrel.default_color = _safe_color(base_barrel.lerp(barrel_flash_color, clampf(_flash_alpha, 0.0, 1.0)))
+	if _charge_ring != null:
+		_charge_ring.points = _arc_points(charge_ring_radius + charge_ratio * 7.0, -PI * 0.5, -PI * 0.5 + TAU * maxf(charge_ratio, 0.02), 36)
+		_charge_ring.default_color = _safe_color(Color(color.r, color.g, color.b, _safe_alpha(charge_alpha * (0.28 + charge_ratio * 0.72), 0.4)))
+	if _core != null:
+		var pulse := 0.9 + charge_ratio * 0.22 + sin(Time.get_ticks_msec() * 0.008) * 0.04
+		_core.scale = Vector2.ONE * pulse
+	if _muzzle_flash != null:
+		_muzzle_flash.default_color = _safe_color(Color(barrel_flash_color.r, barrel_flash_color.g, barrel_flash_color.b, _safe_alpha(_flash_alpha, 0.72)))
+		_muzzle_flash.visible = _flash_alpha > 0.02
+
+
+func _safe_alpha(alpha: float, cap: float) -> float:
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		return Settings.world_visual_alpha(alpha, cap)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return minf(Settings.flash_alpha(alpha), cap)
+	return minf(alpha, cap)
+
+
+func _safe_color(color: Color) -> Color:
+	if Settings != null and Settings.has_method("apply_readability_color"):
+		return Settings.apply_readability_color(color)
+	return color
 
 
 func _circle_points(radius: float, count: int) -> PackedVector2Array:
 	var points := PackedVector2Array()
 	for index in range(maxi(count, 8)):
 		var angle := TAU * float(index) / float(maxi(count, 8))
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points
+
+
+func _arc_points(radius: float, start_angle: float, end_angle: float, count: int) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var safe_count := maxi(count, 2)
+	for index in range(safe_count):
+		var t := float(index) / float(maxi(safe_count - 1, 1))
+		var angle := lerpf(start_angle, end_angle, t)
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
 	return points

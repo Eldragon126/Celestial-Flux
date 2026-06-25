@@ -18,6 +18,15 @@ extends RigidBody2D
 @export var minimum_homing_scale: float = 0.08
 @export var homing_speed_floor_ratio: float = 0.45
 
+@export_group("Projectile Cleanup")
+@export var max_lifetime: float = 4.8
+@export var min_speed_cleanup: float = 34.0
+@export var min_speed_cleanup_delay: float = 0.9
+@export var low_speed_cleanup_window: float = 0.48
+@export var planet_absorb_padding: float = 18.0
+@export var planet_orbit_cleanup_margin: float = 78.0
+@export var planet_orbit_cleanup_time: float = 0.56
+
 @export_group("Projectile Readability")
 # Forced alpha to 1.0 and boosted the visual brightness slightly.
 @export var enemy_projectile_color: Color = Color(1.0, 0.1, 0.75, 1.0)
@@ -35,6 +44,10 @@ var _source_id := -1
 var _spawn_safe_until := 0.0
 var _ownership_visual_state: StringName = &""
 var _consumed_by_black_hole: bool = false
+var _age: float = 0.0
+var _low_speed_elapsed: float = 0.0
+var _near_planet_elapsed: float = 0.0
+var _last_near_planet_id: int = -1
 
 
 func _ready() -> void:
@@ -105,6 +118,9 @@ func _auto_launch() -> void:
 
 func _physics_process(delta: float) -> void:
 	if _consumed_by_black_hole or bool(get_meta(&"black_hole_consumed", false)):
+		return
+	_age += delta
+	if _update_projectile_cleanup(delta):
 		return
 	_update_ownership_accent()
 	var time_scale := CombatStatus.get_time_scale(self)
@@ -220,9 +236,9 @@ func _on_body_entered(body: Node) -> void:
 			return
 
 		if body.has_method("take_damage"):
-			body.take_damage(
-				randf_range(damage_min, damage_max) * 1.65
-			)
+			var converted_damage := randf_range(damage_min, damage_max) * 1.65
+			_stamp_damage_feedback_context(body, converted_damage, &"converted_projectile")
+			body.take_damage(converted_damage)
 			queue_free()
 
 		elif (
@@ -237,9 +253,10 @@ func _on_body_entered(body: Node) -> void:
 	# Normal Enemy Projectile
 	# =========================
 	if (body.is_in_group("Player") or body.is_in_group("player_allies")) and body.has_method("take_damage"):
-		body.take_damage(
-			randf_range(damage_min, damage_max)
-		)
+		var damage := randf_range(damage_min, damage_max)
+		_stamp_damage_feedback_context(body, damage, &"enemy_projectile")
+		body.take_damage(damage)
+		_emit_direct_damage_feedback_if_needed(body, damage)
 		queue_free()
 
 	elif (
@@ -401,3 +418,82 @@ func _safe_projectile_color(color: Color) -> Color:
 	# causing the projectiles to become transparent/dark. We now return the raw 
 	# color exactly as it is set in the Inspector.
 	return color
+
+
+func _update_projectile_cleanup(delta: float) -> bool:
+	if max_lifetime > 0.0 and _age >= max_lifetime:
+		queue_free()
+		return true
+
+	var speed := linear_velocity.length()
+	if _age >= min_speed_cleanup_delay and min_speed_cleanup > 0.0 and speed <= min_speed_cleanup:
+		_low_speed_elapsed += delta
+		if _low_speed_elapsed >= low_speed_cleanup_window:
+			queue_free()
+			return true
+	else:
+		_low_speed_elapsed = 0.0
+
+	var nearest_orbit_id := -1
+	for planet in planets:
+		if planet == null or not is_instance_valid(planet) or planet.is_queued_for_deletion():
+			continue
+		var radius := _planet_absorb_radius(planet)
+		var distance := planet.global_position.distance_to(global_position)
+		if distance <= radius + planet_absorb_padding:
+			queue_free()
+			return true
+		if distance <= radius + planet_absorb_padding + planet_orbit_cleanup_margin:
+			nearest_orbit_id = planet.get_instance_id()
+			break
+
+	if nearest_orbit_id != -1:
+		if nearest_orbit_id == _last_near_planet_id:
+			_near_planet_elapsed += delta
+		else:
+			_last_near_planet_id = nearest_orbit_id
+			_near_planet_elapsed = 0.0
+		if _near_planet_elapsed >= planet_orbit_cleanup_time:
+			queue_free()
+			return true
+	else:
+		_last_near_planet_id = -1
+		_near_planet_elapsed = 0.0
+
+	return false
+
+
+func _planet_absorb_radius(planet: Node2D) -> float:
+	var radius := 0.0
+	for property_name in [&"radius", &"base_radius", &"body_radius"]:
+		var value: Variant = planet.get(String(property_name))
+		if value is float or value is int:
+			radius = maxf(radius, float(value))
+	var collision := planet.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision == null:
+		collision = planet.find_child("CollisionShape2D", true, false) as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		radius = maxf(radius, (collision.shape as CircleShape2D).radius)
+	return maxf(radius * maxf(absf(planet.scale.x), absf(planet.scale.y)), 20.0)
+
+
+func _stamp_damage_feedback_context(body: Node, damage: float, damage_type: StringName) -> void:
+	if body == null or not is_instance_valid(body):
+		return
+	var body_2d := body as Node2D
+	body.set_meta(&"last_damage_feedback_context", {
+		"damage_type": damage_type,
+		"amount": damage,
+		"source_position": global_position,
+		"source_velocity": linear_velocity,
+		"hit_position": body_2d.global_position if body_2d != null else global_position,
+		"hit_direction": linear_velocity.normalized() if linear_velocity.length_squared() > 0.001 else Vector2.RIGHT.rotated(global_rotation),
+	})
+
+
+func _emit_direct_damage_feedback_if_needed(body: Node, damage: float) -> void:
+	if body == null or body.get_node_or_null("HealthComponent") != null:
+		return
+	var manager := get_tree().get_first_node_in_group("damage_feedback_manager")
+	if manager != null and manager.has_method("show_damage"):
+		manager.call("show_damage", body, damage, body.get_meta(&"last_damage_feedback_context", {}))

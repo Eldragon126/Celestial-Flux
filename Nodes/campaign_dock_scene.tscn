@@ -1,0 +1,118 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/campaign_dock_scene.gd" id="1_campaign_dock"]
+
+[node name="CampaignDockScene" type="Control" groups=["campaign_dock_scene"]]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("1_campaign_dock")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.74)
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -380.0
+offset_top = -280.0
+offset_right = 380.0
+offset_bottom = 280.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Rows" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DockTitleLabel" type="Label" parent="Panel/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "MOTHERSHIP DOCK"
+horizontal_alignment = 1
+
+[node name="DockStatusLabel" type="Label" parent="Panel/Rows"]
+custom_minimum_size = Vector2(690, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "SIMULATION HELD // ENERGY 0"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="StatusGrid" type="GridContainer" parent="Panel/Rows"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 6
+
+[node name="HomePlanetStatusLabel" type="Label" parent="Panel/Rows/StatusGrid"]
+custom_minimum_size = Vector2(330, 26)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "HOME PLANET 100%"
+horizontal_alignment = 1
+
+[node name="EscortStatusLabel" type="Label" parent="Panel/Rows/StatusGrid"]
+custom_minimum_size = Vector2(330, 26)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "ESCORTS 0/0 // DAMAGE x1.00"
+horizontal_alignment = 1
+
+[node name="TradeGrid" type="GridContainer" parent="Panel/Rows"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+
+[node name="BuyEscortButton" type="Button" parent="Panel/Rows/TradeGrid"]
+custom_minimum_size = Vector2(330, 48)
+layout_mode = 2
+text = "BUY ESCORT"
+
+[node name="UpgradeSpeedButton" type="Button" parent="Panel/Rows/TradeGrid"]
+custom_minimum_size = Vector2(330, 48)
+layout_mode = 2
+text = "UPGRADE SPEED"
+
+[node name="UpgradeDamageButton" type="Button" parent="Panel/Rows/TradeGrid"]
+custom_minimum_size = Vector2(330, 48)
+layout_mode = 2
+text = "UPGRADE DAMAGE"
+
+[node name="UpgradeArmorButton" type="Button" parent="Panel/Rows/TradeGrid"]
+custom_minimum_size = Vector2(330, 48)
+layout_mode = 2
+text = "REPAIR + ARMOR"
+
+[node name="UpgradeSlingshotButton" type="Button" parent="Panel/Rows/TradeGrid"]
+custom_minimum_size = Vector2(330, 48)
+layout_mode = 2
+text = "UPGRADE SLINGSHOT"
+
+[node name="HijackButton" type="Button" parent="Panel/Rows/TradeGrid"]
+custom_minimum_size = Vector2(330, 48)
+layout_mode = 2
+text = "HIJACK BEACON"
+
+[node name="UndockButton" type="Button" parent="Panel/Rows"]
+custom_minimum_size = Vector2(690, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "UNDOCK"

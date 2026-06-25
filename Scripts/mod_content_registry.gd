@@ -353,6 +353,7 @@ const GRAVITY_SCAR_NAME_TO_ID := {
 @export var alternate_manifest_file_names: Array[String] = ["mod.json"]
 @export var executable_mod_root_names: Array[String] = ["mods", "Mods"]
 @export var additional_mod_roots: Array[String] = []
+@export var debug_logging: bool = true
 
 var _manifests: Dictionary = {}
 var _failed_manifests: Dictionary = {}
@@ -402,6 +403,16 @@ func reload_registry() -> void:
 	_apply_manifest_enabled_state()
 	_rebuild_hook_index()
 	var summary := get_registry_summary()
+	if debug_logging:
+		print(
+			"ModContentRegistry: manifests=%d content=%d hooks=%d failed=%d roots=%d" % [
+				int(summary.get("manifest_count", 0)),
+				int(summary.get("content_total", 0)),
+				int(summary.get("hook_entry_count", 0)),
+				int(summary.get("failed", 0)),
+				_scan_roots.size(),
+			]
+		)
 	registry_loaded.emit(summary)
 	registry_reloaded.emit(summary)
 	mod_catalog_changed.emit(get_registry_snapshot())
@@ -1486,6 +1497,8 @@ func _load_manifest_path(path: String, source_context: Dictionary = {}) -> void:
 
 	manifest_validated.emit(manifest_id, manifest_path)
 	manifest_loaded.emit(manifest_id, manifest_path)
+	if debug_logging:
+		print("ModContentRegistry: loaded %s from %s" % [str(manifest_id), manifest_path])
 
 
 func _validate_manifest(manifest: Dictionary, source_context: Dictionary = {}) -> Array[String]:
@@ -2616,3 +2629,5 @@ func _join_errors(errors: Array[String]) -> String:
 func _record_failed_manifest(path: String, reason: String) -> void:
 	_failed_manifests[path] = reason
 	manifest_failed.emit(path, reason)
+	if debug_logging:
+		push_warning("ModContentRegistry: failed %s -> %s" % [path, reason])

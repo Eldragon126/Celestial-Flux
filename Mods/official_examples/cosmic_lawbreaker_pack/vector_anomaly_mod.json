@@ -97,6 +97,19 @@
           {"action": "emit_hud_badge", "content_id": "orbit_debt_badge"}
         ],
         "description": "Hookable example: an apex slingshot asks trusted directors for a readable delayed resonance payoff."
+      },
+      {
+        "id": "lawbreaker_run_wake",
+        "display_name": "Lawbreaker Run Wake",
+        "hooks": ["run_start"],
+        "network_category": "deterministic_seed",
+        "weight": 1.0,
+        "max_triggers": 1,
+        "effects": [
+          {"action": "emit_hud_badge", "content_id": "orbit_debt_badge"},
+          {"action": "create_gravity_scar", "scar_type": "curvature", "radius": 220.0, "intensity": 0.32, "duration": 9.0}
+        ],
+        "description": "Immediate visible proof that the Lawbreaker pack is active: a safe curvature scar and HUD badge at run start."
       }
     ],
     "hud_badges": [

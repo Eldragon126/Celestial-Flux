@@ -28,6 +28,7 @@ var _powerup_inventory: Node
 var _momentum_component: Node
 var _weapon_system: Node
 var _score_tracker: Node
+var _mod_registry: Node
 var _hud_root: Control
 var _speed_label: Label
 var _speed_bar: ProgressBar
@@ -69,6 +70,7 @@ var _score_label: Label
 var _score_detail_label: Label
 var _anomaly_label: Label
 var _challenge_label: Label
+var _modded_label: Label
 var _powerup_notice_label: Label
 var _critical_vignette: ColorRect
 var _vignette_material: ShaderMaterial
@@ -419,8 +421,8 @@ func _build_score_panel() -> void:
 	_score_panel.offset_left = -382.0
 	_score_panel.offset_right = -18.0
 	_score_panel.offset_top = 20.0
-	_score_panel.offset_bottom = 146.0
-	_score_panel.custom_minimum_size = Vector2(364.0, 126.0)
+	_score_panel.offset_bottom = 174.0
+	_score_panel.custom_minimum_size = Vector2(364.0, 154.0)
 	_score_panel.add_theme_stylebox_override(
 		"panel",
 		_make_hud_panel_style(Color(0.012, 0.014, 0.024, 0.84), Color(1.0, 0.76, 0.28, 0.62))
@@ -460,6 +462,13 @@ func _build_score_panel() -> void:
 	_challenge_label.clip_text = true
 	_style_hud_label(_challenge_label, 10)
 	rows.add_child(_challenge_label)
+
+	_modded_label = Label.new()
+	_modded_label.text = "VANILLA RUN"
+	_modded_label.clip_text = true
+	_style_hud_label(_modded_label, 10)
+	_modded_label.modulate = _readability_color(Color(0.72, 1.0, 0.84, 0.92))
+	rows.add_child(_modded_label)
 
 func _make_hud_panel_style(bg: Color, border: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -822,6 +831,19 @@ func _resolve_rule_systems() -> void:
 	if _arena_destabilization_manager == null or not is_instance_valid(_arena_destabilization_manager):
 		_arena_destabilization_manager = root.find_child("ArenaDestabilizationManager", true, false)
 
+	if _mod_registry == null or not is_instance_valid(_mod_registry):
+		_mod_registry = get_tree().get_first_node_in_group("mod_content_registry")
+		if _mod_registry == null:
+			_mod_registry = root.find_child("ModContentRegistry", true, false)
+		if _mod_registry != null:
+			var catalog_callable := Callable(self, "_on_mod_catalog_changed")
+			if _mod_registry.has_signal("mod_catalog_changed") and not _mod_registry.is_connected("mod_catalog_changed", catalog_callable):
+				_mod_registry.connect("mod_catalog_changed", catalog_callable)
+			var reload_callable := Callable(self, "_on_mod_registry_reloaded")
+			if _mod_registry.has_signal("registry_reloaded") and not _mod_registry.is_connected("registry_reloaded", reload_callable):
+				_mod_registry.connect("registry_reloaded", reload_callable)
+			_update_modded_label()
+
 	if _score_tracker == null or not is_instance_valid(_score_tracker):
 		_score_tracker = get_tree().get_first_node_in_group("run_score_tracker")
 		if _score_tracker == null:
@@ -1149,6 +1171,7 @@ func _update_score_panel(delta: float) -> void:
 		_score_panel.modulate = Color(1.0, 1.0, 1.0, 0.9 + glow * 0.1)
 	if _phase_glyph != null:
 		_set_glyph_alert(_phase_glyph, phase_ratio, glow * 0.35, Color(1.0, 0.78, 0.3, 1.0).lerp(Color(0.82, 0.38, 1.0, 1.0), phase_ratio))
+	_update_modded_label()
 
 func _on_score_changed(score: int, snapshot: Dictionary) -> void:
 	_apply_score_snapshot(score, snapshot)
@@ -1158,6 +1181,46 @@ func _on_challenge_code_changed(code: String) -> void:
 	_challenge_code = code if not code.is_empty() else "--"
 	if _challenge_label != null:
 		_challenge_label.text = "CODE %s" % _challenge_code
+
+
+func _on_mod_catalog_changed(_snapshot: Dictionary) -> void:
+	_update_modded_label()
+
+
+func _on_mod_registry_reloaded(_summary: Dictionary) -> void:
+	_update_modded_label()
+
+
+func _update_modded_label() -> void:
+	if _modded_label == null:
+		return
+	if _mod_registry == null or not is_instance_valid(_mod_registry):
+		_mod_registry = get_tree().get_first_node_in_group("mod_content_registry")
+	if _mod_registry == null or not is_instance_valid(_mod_registry) or not _mod_registry.has_method("get_registry_summary"):
+		_modded_label.text = "MOD REGISTRY OFFLINE"
+		_modded_label.modulate = _readability_color(Color(0.58, 0.68, 0.72, 0.72))
+		return
+	var summary_value: Variant = _mod_registry.call("get_registry_summary")
+	var summary: Dictionary = summary_value if summary_value is Dictionary else {}
+	var active_mods := _active_mod_count(summary)
+	var hooks := int(summary.get("hook_entry_count", summary.get("hook_count", 0)))
+	var content := int(summary.get("content_total", 0))
+	if active_mods <= 0:
+		_modded_label.text = "VANILLA RUN"
+		_modded_label.modulate = _readability_color(Color(0.58, 0.82, 0.88, 0.82))
+		return
+	_modded_label.text = "MODDED RUN // %d PACKS // %d HOOKS // %d CONTENT" % [active_mods, hooks, content]
+	_modded_label.modulate = _readability_color(Color(0.42, 1.0, 0.74, 1.0))
+	if RunProgress != null:
+		RunProgress.arena_flags["modded_run"] = true
+		RunProgress.arena_flags["modded_run_pack_count"] = active_mods
+
+
+func _active_mod_count(summary: Dictionary) -> int:
+	var total := int(summary.get("manifest_count", 0))
+	var disabled := int(summary.get("disabled", 0))
+	return maxi(total - disabled, 0)
+
 
 func _on_physics_anomaly_achieved(type: String, kinetic_factor: float, score_value: int, snapshot: Dictionary) -> void:
 	var label := _readable_anomaly_name(type)
@@ -1778,7 +1841,7 @@ func _layout_hud(force: bool = false) -> void:
 
 	if _score_panel != null:
 		var score_width := clampf(viewport_size.x * (0.45 if compact_width else 0.28), 300.0, 364.0)
-		var score_height := 126.0
+		var score_height := 154.0
 		if compact_width:
 			_set_center_bottom_rect(_score_panel, minf(viewport_size.x - margin * 2.0, 364.0), 18.0, score_height)
 		else:

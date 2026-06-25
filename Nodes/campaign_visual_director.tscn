@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/campaign_visual_director.gd" id="1_campaign_visuals"]
+
+[node name="CampaignVisualDirector" type="Node2D"]
+z_index = -140
+script = ExtResource("1_campaign_visuals")

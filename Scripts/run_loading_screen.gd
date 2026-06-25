@@ -83,6 +83,12 @@ void fragment() {
 @export var displayed_progress_speed: float = 1.85
 @export var loaded_settle_time: float = 0.18
 @export var loaded_hold_progress: float = 0.985
+@export var loading_stall_timeout: float = 7.5
+@export var total_load_timeout: float = 24.0
+@export var retry_stalled_thread_request: bool = true
+@export var max_threaded_request_retries: int = 1
+@export var fallback_to_scene_change_on_stall: bool = true
+@export var verbose_loading_log: bool = true
 
 var _elapsed: float = 0.0
 var _failed_elapsed: float = 0.0
@@ -101,6 +107,10 @@ var _shader_material: ShaderMaterial = null
 var _rings_root: Node2D = null
 var _orbit_rings: Array[Line2D] = []
 var _vector_ticks: Array[Line2D] = []
+var _last_progress_ratio: float = 0.0
+var _last_progress_change_elapsed: float = 0.0
+var _load_retry_count: int = 0
+var _watchdog_message: String = ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -133,6 +143,9 @@ func _process(delta: float) -> void:
 		_completion_display_elapsed = 0.0
 
 	_update_progress(_displayed_progress, status)
+	_update_loading_watchdog(delta, raw_ratio, status)
+	if _transitioning:
+		return
 	
 	if _shader_material != null:
 		_shader_material.set_shader_parameter("real_time", _elapsed)
@@ -159,9 +172,16 @@ func _request_run_scene() -> void:
 	if _load_requested:
 		return
 	_load_requested = true
+	_last_progress_ratio = 0.0
+	_last_progress_change_elapsed = 0.0
+	_failed_elapsed = 0.0
+	_loaded_elapsed = 0.0
+	_completion_display_elapsed = 0.0
 	var status := ResourceLoader.load_threaded_get_status(RUN_SCENE_PATH)
 	if status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
-		ResourceLoader.load_threaded_request(RUN_SCENE_PATH)
+		var err := ResourceLoader.load_threaded_request(RUN_SCENE_PATH)
+		if err != OK and verbose_loading_log:
+			push_warning("Run loading request returned %s for %s" % [error_string(err), RUN_SCENE_PATH])
 
 func _enter_run_scene() -> void:
 	if _transitioning:
@@ -189,6 +209,63 @@ func _progress_target(raw_ratio: float, status: int) -> float:
 	if status == ResourceLoader.THREAD_LOAD_FAILED or status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
 		return _displayed_progress
 	return clampf(maxf(raw_ratio, 0.04), 0.04, 0.72)
+
+
+func _update_loading_watchdog(delta: float, raw_ratio: float, status: int) -> void:
+	if status == ResourceLoader.THREAD_LOAD_LOADED:
+		_last_progress_ratio = 1.0
+		_last_progress_change_elapsed = 0.0
+		return
+	if status == ResourceLoader.THREAD_LOAD_FAILED or status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+		return
+
+	if raw_ratio > _last_progress_ratio + 0.012:
+		_last_progress_ratio = raw_ratio
+		_last_progress_change_elapsed = 0.0
+	else:
+		_last_progress_change_elapsed += delta
+
+	if total_load_timeout > 0.0 and _elapsed >= total_load_timeout:
+		_recover_stalled_load("total timeout %.1fs" % total_load_timeout)
+		return
+	if loading_stall_timeout > 0.0 and _last_progress_change_elapsed >= loading_stall_timeout:
+		_recover_stalled_load("stalled at %d%%" % int(round(raw_ratio * 100.0)))
+
+
+func _recover_stalled_load(reason: String) -> void:
+	if _transitioning:
+		return
+	_watchdog_message = reason
+	if _status_label != null:
+		_status_label.text = "RECALIBRATING LOAD PATH"
+		_status_label.modulate = Color(1.0, 0.74, 0.32, 1.0)
+	if verbose_loading_log:
+		push_warning("Run loading watchdog recovered: %s" % reason)
+	if retry_stalled_thread_request and _load_retry_count < max_threaded_request_retries:
+		_load_retry_count += 1
+		_load_requested = false
+		_request_run_scene()
+		return
+	if fallback_to_scene_change_on_stall:
+		_transitioning = true
+		call_deferred("_fallback_change_scene_to_file")
+		return
+	_fail_loading_to_title("LOAD WATCHDOG RETURNED TO TITLE")
+
+
+func _fallback_change_scene_to_file() -> void:
+	get_tree().change_scene_to_file(RUN_SCENE_PATH)
+
+
+func _fail_loading_to_title(message: String) -> void:
+	if _transitioning:
+		return
+	_transitioning = true
+	if _status_label != null:
+		_status_label.text = message
+		_status_label.modulate = Color(1.0, 0.18, 0.08, 1.0)
+	await get_tree().create_timer(maxf(fail_return_delay, 0.1)).timeout
+	get_tree().change_scene_to_file(TITLE_SCENE_PATH)
 
 
 func _approach_displayed_progress(delta: float, target: float) -> float:

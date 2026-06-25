@@ -2921,6 +2921,41 @@ func _stamp_player_weapon_hit(target: Node, weapon_id: StringName, damage: float
 	target.set_meta(&"last_player_weapon_hit_time", _now_seconds())
 	target.set_meta(&"last_player_weapon_id", String(weapon_id))
 	target.set_meta(&"last_player_weapon_hit_damage", damage)
+	var target_2d := target as Node2D
+	var source_position := _player.global_position if _player != null and is_instance_valid(_player) else Vector2.ZERO
+	var source_velocity := Vector2.ZERO
+	var velocity_value: Variant = _player.get("velocity") if _player != null and is_instance_valid(_player) else null
+	if velocity_value is Vector2:
+		source_velocity = velocity_value
+	target.set_meta(&"last_damage_feedback_context", {
+		"damage_type": _damage_type_for_weapon(weapon_id),
+		"weapon_id": String(weapon_id),
+		"hit_position": target_2d.global_position if target_2d != null else source_position,
+		"source_position": source_position,
+		"source_velocity": source_velocity,
+		"hit_direction": _aim_direction(),
+		"was_momentum_hit": false,
+		"was_slingshot_hit": _player != null and bool(_player.get_meta(&"momentum_flow_active", false)),
+		"was_apex": _player != null and String(_player.get_meta(&"last_slingshot_grade", "")).to_lower() == "apex",
+		"mod_source": _mod_source_for_weapon(weapon_id),
+	})
+
+
+func _damage_type_for_weapon(id: StringName) -> StringName:
+	var text := String(id).to_lower()
+	if text.contains("gravity") or text.contains("singularity") or text.contains("resonance") or text.contains("scar"):
+		return &"gravity"
+	if text.contains("time") or text.contains("chronal") or text.contains("temporal"):
+		return &"temporal"
+	if text.contains("beam"):
+		return &"beam"
+	return &"projectile"
+
+
+func _mod_source_for_weapon(id: StringName) -> String:
+	var text := String(id)
+	var slash_index := text.find("/")
+	return text.substr(0, slash_index) if slash_index > 0 else ""
 
 
 func _collect_beam_hits(origin: Vector2, direction: Vector2, width: float) -> Array[Node]:

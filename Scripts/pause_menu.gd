@@ -37,6 +37,14 @@ const SECTION_ACCENTS := {
 @export var pulse_strength: float = 0.022
 @export var pulse_speed: float = 1.35
 
+@export_group("Pause Tabs")
+@export var pause_tab_button_height: float = 36.0
+@export var pause_tab_button_font_size: int = 14
+@export var pause_tab_panel_min_height: float = 360.0
+@export var pause_tab_settings_columns: int = 2
+@export var pause_tab_panel_bg_color: Color = Color(0.004, 0.01, 0.018, 0.54)
+@export var pause_tab_panel_border_color: Color = Color(0.0, 0.86, 1.0, 0.18)
+
 @onready var music_player: AudioStreamPlayer = $PauseMusic
 @onready var menu_panel: PanelContainer = find_child("MenuPanel", true, false) as PanelContainer
 @onready var status_label: Label = find_child("StatusLabel", true, false) as Label
@@ -65,6 +73,10 @@ const SECTION_ACCENTS := {
 @onready var weapon_previous_button: Button = find_child("WeaponPreviousButton", true, false) as Button
 @onready var weapon_next_button: Button = find_child("WeaponNextButton", true, false) as Button
 
+var damage_numbers_option: OptionButton = null
+var hit_flash_option: OptionButton = null
+var skill_callout_option: OptionButton = null
+var combat_particles_option: OptionButton = null
 var active := false
 var is_transitioning := false
 
@@ -79,13 +91,15 @@ var _menu_base_scale := Vector2.ONE
 var _ui_audio_player: AudioStreamPlayer = null
 var _next_settings_sound_time := 0.0
 var _button_tweens: Dictionary = {}
+var _pause_tab_pages: Dictionary = {}
+var _pause_tab_buttons: Dictionary = {}
+var _current_pause_tab: StringName = &"settings"
 
 
 func _ready() -> void:
-	_ensure_pause_scroll_shell()
+	_remove_pause_scroll_shell()
 	_normalize_pause_checkbox_layout()
-	if ui_scale_slider != null:
-		ui_scale_slider.grab_focus()
+	_prioritize_pause_actions()
 	add_to_group("PauseMenu")
 	visible = false
 	modulate.a = 0.0
@@ -97,6 +111,8 @@ func _ready() -> void:
 	_apply_pause_readability_palette()
 	_configure_weapon_status_label()
 	_ensure_optional_input_rows()
+	_ensure_combat_feedback_rows()
+	_ensure_pause_tab_shell()
 	_setup_accessibility_controls()
 	_apply_pause_readability_palette()
 	_apply_menu_scale()
@@ -104,6 +120,7 @@ func _ready() -> void:
 	_update_multiplayer_menu()
 	_update_weapon_menu()
 	_refresh_context_buttons()
+	call_deferred("_focus_resume_button")
 	call_deferred("_setup_button_tweens")
 
 
@@ -166,6 +183,7 @@ func _enter_pause() -> void:
 	_update_multiplayer_menu()
 	_update_weapon_menu()
 	_refresh_context_buttons()
+	call_deferred("_focus_resume_button")
 	_emit_pause_state()
 
 	pre_pause_time_scale = Engine.time_scale
@@ -282,42 +300,55 @@ func _setup_ui_audio() -> void:
 	add_child(_ui_audio_player)
 
 
-func _ensure_pause_scroll_shell() -> void:
+func _remove_pause_scroll_shell() -> void:
 	if menu_panel == null:
 		return
-	var rows := find_child("MenuRows", true, false) as VBoxContainer
-	if rows == null or rows.get_parent() is ScrollContainer:
+	var scroll := find_child("PauseScroll", true, false) as ScrollContainer
+	if scroll == null:
 		return
-	var previous_parent := rows.get_parent()
-	if previous_parent == null:
+	var margin := scroll.get_node_or_null("PauseContentMargin") as MarginContainer
+	var rows := scroll.find_child("MenuRows", true, false) as VBoxContainer
+	var previous_parent := scroll.get_parent()
+	if rows == null or previous_parent == null:
 		return
-	var row_index := rows.get_index()
-	previous_parent.remove_child(rows)
-
-	var scroll := ScrollContainer.new()
-	scroll.name = "PauseScroll"
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.custom_minimum_size = Vector2(0.0, 620.0)
-	previous_parent.add_child(scroll)
-	previous_parent.move_child(scroll, row_index)
-
-	var margin := MarginContainer.new()
-	margin.name = "PauseContentMargin"
-	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 18)
-	margin.add_theme_constant_override("margin_top", 16)
-	margin.add_theme_constant_override("margin_right", 18)
-	margin.add_theme_constant_override("margin_bottom", 16)
-	scroll.add_child(margin)
-
+	var row_index := scroll.get_index()
+	if margin != null and rows.get_parent() == margin:
+		margin.remove_child(rows)
+	else:
+		rows.get_parent().remove_child(rows)
+	previous_parent.remove_child(scroll)
+	scroll.queue_free()
+	previous_parent.add_child(rows)
+	previous_parent.move_child(rows, mini(row_index, previous_parent.get_child_count() - 1))
 	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rows.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rows.add_theme_constant_override("separation", 10)
-	margin.add_child(rows)
+	rows.add_theme_constant_override("separation", 8)
+
+
+func _prioritize_pause_actions() -> void:
+	var rows := find_child("MenuRows", true, false) as VBoxContainer
+	if rows == null:
+		return
+	var insert_index := 1
+	if status_label != null:
+		var status_row := status_label.get_parent() as Control
+		if status_row != null and status_row.get_parent() == rows:
+			insert_index = status_row.get_index() + 1
+	for button in [resume_button, restart_button, title_button]:
+		var control := button as Control
+		if control == null:
+			continue
+		var row := control.get_parent() as Control
+		if row == null or row.get_parent() != rows:
+			row = control
+		if row.get_parent() == rows:
+			rows.move_child(row, mini(insert_index, rows.get_child_count() - 1))
+			insert_index += 1
+
+
+func _focus_resume_button() -> void:
+	if resume_button != null and is_instance_valid(resume_button) and resume_button.visible and not resume_button.disabled:
+		resume_button.grab_focus()
 
 
 func _normalize_pause_checkbox_layout() -> void:
@@ -338,7 +369,7 @@ func _normalize_pause_checkbox_layout() -> void:
 			continue
 		_apply_checkbox_readability_style(check)
 		var parent := check.get_parent()
-		if parent is HBoxContainer and parent.name == "FlashRow":
+		if parent is HBoxContainer and String(parent.name) == "FlashRow":
 			_move_checkbox_to_solo_row(rows, check, parent as HBoxContainer)
 	var flash_row := rows.get_node_or_null("FlashRow") as HBoxContainer
 	if flash_row != null and flash_row.get_child_count() == 0:
@@ -657,6 +688,26 @@ func _setup_accessibility_controls() -> void:
 		if not auto_orbiting_celestials_check.toggled.is_connected(_on_auto_orbiting_celestials_toggled):
 			auto_orbiting_celestials_check.toggled.connect(_on_auto_orbiting_celestials_toggled)
 
+	if damage_numbers_option != null:
+		_select_option_by_id(damage_numbers_option, int(Settings.damage_numbers_mode))
+		if not damage_numbers_option.item_selected.is_connected(_on_damage_numbers_selected):
+			damage_numbers_option.item_selected.connect(_on_damage_numbers_selected)
+
+	if hit_flash_option != null:
+		_select_option_by_id(hit_flash_option, int(Settings.hit_flash_mode))
+		if not hit_flash_option.item_selected.is_connected(_on_hit_flash_selected):
+			hit_flash_option.item_selected.connect(_on_hit_flash_selected)
+
+	if skill_callout_option != null:
+		_select_option_by_id(skill_callout_option, int(Settings.skill_callout_mode))
+		if not skill_callout_option.item_selected.is_connected(_on_skill_callout_selected):
+			skill_callout_option.item_selected.connect(_on_skill_callout_selected)
+
+	if combat_particles_option != null:
+		_select_option_by_id(combat_particles_option, int(Settings.combat_particles_mode))
+		if not combat_particles_option.item_selected.is_connected(_on_combat_particles_selected):
+			combat_particles_option.item_selected.connect(_on_combat_particles_selected)
+
 
 func _ensure_optional_input_rows() -> void:
 	var rows := find_child("MenuRows", true, false) as VBoxContainer
@@ -681,6 +732,77 @@ func _ensure_optional_input_rows() -> void:
 	_move_control_row_before(rows, controller_right_stick_check, "SeedRow")
 	_move_control_row_before(rows, trackpad_camera_check, "SeedRow")
 	_move_control_row_before(rows, alternate_movement_check, "SeedRow")
+
+
+func _ensure_combat_feedback_rows() -> void:
+	var rows := find_child("MenuRows", true, false) as VBoxContainer
+	if rows == null:
+		return
+	var existing_label := rows.get_node_or_null("CombatFeedbackLabel") as Label
+	if existing_label == null:
+		var label := Label.new()
+		label.name = "CombatFeedbackLabel"
+		label.text = "COMBAT FEEDBACK"
+		label.add_theme_font_size_override("font_size", 16)
+		label.add_theme_color_override("font_color", Color(1.0, 0.78, 0.34, 0.96))
+		rows.add_child(label)
+		existing_label = label
+
+	if damage_numbers_option == null:
+		damage_numbers_option = _make_pause_option_row(rows, "DAMAGE NUMBERS", "DamageNumbersOption", ["OFF", "MINIMAL", "FULL"], [0, 1, 2])
+	if hit_flash_option == null:
+		hit_flash_option = _make_pause_option_row(rows, "HIT FLASHES", "HitFlashOption", ["REDUCED", "NORMAL"], [0, 1])
+	if skill_callout_option == null:
+		skill_callout_option = _make_pause_option_row(rows, "SKILL CALLOUTS", "SkillCalloutOption", ["OFF", "IMPORTANT", "FULL"], [0, 1, 2])
+	if combat_particles_option == null:
+		combat_particles_option = _make_pause_option_row(rows, "COMBAT PARTICLES", "CombatParticlesOption", ["LOW", "NORMAL", "HIGH"], [0, 1, 2])
+
+	_move_control_row_before(rows, damage_numbers_option, "SeedRow")
+	_move_control_row_before(rows, hit_flash_option, "SeedRow")
+	_move_control_row_before(rows, skill_callout_option, "SeedRow")
+	_move_control_row_before(rows, combat_particles_option, "SeedRow")
+	if existing_label.get_parent() == rows:
+		var first_row := damage_numbers_option.get_parent() as Control
+		if first_row != null and first_row.get_parent() == rows:
+			rows.move_child(existing_label, maxi(0, first_row.get_index()))
+
+
+func _make_pause_option_row(parent: VBoxContainer, label_text: String, option_name: String, labels: Array, ids: Array) -> OptionButton:
+	var row := HBoxContainer.new()
+	row.name = "%sRow" % option_name.trim_suffix("Option")
+	row.add_theme_constant_override("separation", 10)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(row)
+
+	var label := Label.new()
+	label.name = "%sLabel" % option_name.trim_suffix("Option")
+	label.text = label_text
+	label.clip_text = true
+	label.custom_minimum_size = Vector2(220.0, 34.0)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_font_size_override("font_size", 14)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.modulate = Color(0.76, 0.94, 0.95, 0.92)
+	row.add_child(label)
+
+	var option := OptionButton.new()
+	option.name = option_name
+	option.custom_minimum_size = Vector2(230.0, 34.0)
+	option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	option.add_theme_font_size_override("font_size", 14)
+	for index in range(labels.size()):
+		option.add_item(str(labels[index]), int(ids[index]))
+	row.add_child(option)
+	return option
+
+
+func _select_option_by_id(option: OptionButton, id: int) -> void:
+	if option == null:
+		return
+	for index in range(option.item_count):
+		if option.get_item_id(index) == id:
+			option.select(index)
+			return
 
 
 func _make_pause_checkbox_row(parent: VBoxContainer, label_text: String, checkbox_name: String) -> CheckBox:
@@ -750,6 +872,153 @@ func _move_control_row_before(rows: VBoxContainer, control: Control, anchor_name
 	if row.get_index() < anchor.get_index():
 		return
 	rows.move_child(row, anchor.get_index())
+
+
+func _ensure_pause_tab_shell() -> void:
+	var rows := find_child("MenuRows", true, false) as VBoxContainer
+	if rows == null:
+		return
+	if rows.get_node_or_null("PauseTabRow") != null:
+		_show_pause_tab(_current_pause_tab)
+		return
+	var seed_row := rows.get_node_or_null("SeedRow") as Control
+	if seed_row != null and title_button != null:
+		var action_row := title_button.get_parent() as Control
+		if action_row != null and action_row.get_parent() == rows:
+			rows.move_child(seed_row, mini(action_row.get_index() + 1, rows.get_child_count() - 1))
+
+	var tab_row := HBoxContainer.new()
+	tab_row.name = "PauseTabRow"
+	tab_row.add_theme_constant_override("separation", 8)
+	tab_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rows.add_child(tab_row)
+	var insert_index := 5
+	if seed_row != null and seed_row.get_parent() == rows:
+		insert_index = seed_row.get_index() + 1
+	rows.move_child(tab_row, mini(insert_index, rows.get_child_count() - 1))
+
+	var page_panel := PanelContainer.new()
+	page_panel.name = "PauseTabPanel"
+	page_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_panel.custom_minimum_size = Vector2(0.0, pause_tab_panel_min_height)
+	page_panel.add_theme_stylebox_override("panel", _make_readability_style(pause_tab_panel_bg_color, pause_tab_panel_border_color, 1))
+	rows.add_child(page_panel)
+	rows.move_child(page_panel, mini(tab_row.get_index() + 1, rows.get_child_count() - 1))
+
+	var pages_root := Control.new()
+	pages_root.name = "PauseTabPages"
+	pages_root.custom_minimum_size = Vector2(0.0, maxf(pause_tab_panel_min_height - 20.0, 240.0))
+	pages_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pages_root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page_panel.add_child(pages_root)
+
+	_create_pause_tab(tab_row, pages_root, &"settings", "SETTINGS", [
+		"AccessibilityLabel",
+		"UIScaleRow",
+		"ShakeRow",
+		"FlashRow",
+		"ReduceFlashCheckSoloRow",
+		"ReadabilityHalosCheckSoloRow",
+		"PlayerAutoOrbitCheckSoloRow",
+		"CelestialOrbitRow",
+		"AutoOrbitingCelestialsCheckSoloRow",
+		"ColorRow",
+		"ControllerDeadzoneRow",
+		"ControllerRightStickRow",
+		"TrackpadCameraRow",
+		"AlternateMovementRow",
+	])
+	_create_pause_tab(tab_row, pages_root, &"combat", "COMBAT", [
+		"CombatFeedbackLabel",
+		"DamageNumbersRow",
+		"HitFlashRow",
+		"SkillCalloutRow",
+		"CombatParticlesRow",
+	])
+	_create_pause_tab(tab_row, pages_root, &"weapons", "WEAPONS", [
+		"WeaponLabel",
+		"WeaponStatusLabel",
+		"WeaponButtonsRow",
+	])
+	_create_pause_tab(tab_row, pages_root, &"mods", "MODS", [
+		"ModdingLabel",
+		"ModSummaryLabel",
+		"ModEntriesLabel",
+		"ReloadModsButton",
+	])
+	_create_pause_tab(tab_row, pages_root, &"network", "NETWORK", [
+		"MultiplayerLabel",
+		"MultiplayerStatusLabel",
+	])
+	_show_pause_tab(_current_pause_tab)
+
+
+func _create_pause_tab(tab_row: HBoxContainer, pages_root: Control, tab_id: StringName, label: String, node_names: Array[String]) -> void:
+	var button := Button.new()
+	button.name = "%sTabButton" % String(tab_id).capitalize()
+	button.text = label
+	button.custom_minimum_size = Vector2(0.0, pause_tab_button_height)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.add_theme_font_size_override("font_size", pause_tab_button_font_size)
+	tab_row.add_child(button)
+	_pause_tab_buttons[tab_id] = button
+	var callable := Callable(self, "_show_pause_tab").bind(tab_id)
+	if not button.pressed.is_connected(callable):
+		button.pressed.connect(callable)
+
+	var page: Container
+	if tab_id == &"settings":
+		var grid := GridContainer.new()
+		grid.columns = maxi(pause_tab_settings_columns, 1)
+		grid.add_theme_constant_override("h_separation", 10)
+		grid.add_theme_constant_override("v_separation", 7)
+		page = grid
+	else:
+		var column := VBoxContainer.new()
+		column.add_theme_constant_override("separation", 8)
+		page = column
+	page.name = "%sPausePage" % String(tab_id).capitalize()
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pages_root.add_child(page)
+	_pause_tab_pages[tab_id] = page
+
+	for node_name in node_names:
+		_move_named_pause_row(node_name, page)
+
+
+func _move_named_pause_row(node_name: String, page: Container) -> void:
+	var node := find_child(node_name, true, false) as Control
+	if node == null:
+		return
+	var movable := node
+	var parent := node.get_parent()
+	if parent is HBoxContainer and String(parent.name).ends_with("Row"):
+		movable = parent as Control
+	if parent is VBoxContainer and String(parent.name) == "MenuRows":
+		movable = node
+	var old_parent := movable.get_parent()
+	if old_parent == null or old_parent == page:
+		return
+	old_parent.remove_child(movable)
+	movable.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.add_child(movable)
+
+
+func _show_pause_tab(tab_id: StringName) -> void:
+	_current_pause_tab = tab_id
+	for key in _pause_tab_pages.keys():
+		var page := _pause_tab_pages[key] as Control
+		if page != null:
+			page.visible = StringName(key) == tab_id
+	for key in _pause_tab_buttons.keys():
+		var button := _pause_tab_buttons[key] as Button
+		if button != null:
+			var active_tab := StringName(key) == tab_id
+			button.disabled = active_tab
+			button.modulate = Color(0.74, 1.0, 0.92, 1.0) if active_tab else Color(1.0, 1.0, 1.0, 0.86)
 
 
 func _update_controller_deadzone_value(value: float) -> void:
@@ -1259,6 +1528,34 @@ func _on_color_mode_selected(index: int) -> void:
 	Settings.set_colorblind_mode(color_mode_option.get_item_id(index))
 	_play_settings_sound()
 	_apply_pause_readability_palette()
+
+
+func _on_damage_numbers_selected(index: int) -> void:
+	if damage_numbers_option == null:
+		return
+	Settings.set_damage_numbers_mode(damage_numbers_option.get_item_id(index))
+	_play_settings_sound()
+
+
+func _on_hit_flash_selected(index: int) -> void:
+	if hit_flash_option == null:
+		return
+	Settings.set_hit_flash_mode(hit_flash_option.get_item_id(index))
+	_play_settings_sound()
+
+
+func _on_skill_callout_selected(index: int) -> void:
+	if skill_callout_option == null:
+		return
+	Settings.set_skill_callout_mode(skill_callout_option.get_item_id(index))
+	_play_settings_sound()
+
+
+func _on_combat_particles_selected(index: int) -> void:
+	if combat_particles_option == null:
+		return
+	Settings.set_combat_particles_mode(combat_particles_option.get_item_id(index))
+	_play_settings_sound()
 
 
 func _on_controller_deadzone_changed(value: float) -> void:

@@ -39,6 +39,13 @@ const SEEKER_FRAGMENT_SCENE := "res://Nodes/seeker_fragment.tscn"
 @export var multiplayer_default_port: int = 28942
 @export var multiplayer_max_peers: int = 4
 
+@export_group("Title Menu Readouts")
+@export var mod_status_font_size: int = 13
+@export var mod_status_min_width: float = 420.0
+@export var mod_status_min_height: float = 24.0
+@export var mod_status_text_color: Color = Color(0.64, 1.0, 0.88, 0.82)
+@export var mod_status_outline_color: Color = Color(0.0, 0.0, 0.0, 0.82)
+
 @onready var audio_player: AudioStreamPlayer = $AudioStreamPlayer
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 @onready var _starfield_backdrop: ColorRect = get_node_or_null("StarfieldBackdrop") as ColorRect
@@ -69,6 +76,15 @@ var _mp_steam_button: Button = null
 var _demo_button: Button = null
 var _clip_lab_button: Button = null
 var _mod_manager_button: Button = null
+var _mod_status_label: Label = null
+var _title_mod_registry: Node = null
+var _other_modes_button: Button = null
+var _settings_button: Button = null
+var _quit_button: Button = null
+var _other_modes_panel: PanelContainer = null
+var _title_settings_panel: PanelContainer = null
+var _title_damage_numbers_option: OptionButton = null
+var _title_hit_flash_option: OptionButton = null
 var _seed_row: HBoxContainer = null
 var _seed_edit: LineEdit = null
 var _seed_random_button: Button = null
@@ -97,13 +113,17 @@ func _ready() -> void:
 	_build_title_lattice()
 	_build_production_buttons()
 	_build_seed_ui()
+	_build_title_mod_status()
 	_build_multiplayer_ui()
+	_configure_title_menu_flow()
 	_normalize_title_menu_density()
 	_set_title_secret_roster_active(false)
+	call_deferred("_focus_primary_menu")
 	call_deferred("_prewarm_run_loading_screen")
 	call_deferred("_setup_menu_button_tweens")
 	_connect_network_session()
 	_update_multiplayer_ui()
+	call_deferred("_refresh_title_mod_status")
 
 
 func _physics_process(delta: float) -> void:
@@ -286,6 +306,337 @@ func _apply_title_brand() -> void:
 func _build_multiplayer_ui() -> void:
 	_ensure_multiplayer_button()
 	_ensure_multiplayer_panel()
+
+
+func _build_title_mod_status() -> void:
+	var menu := get_node_or_null("Menu") as VBoxContainer
+	if menu == null:
+		return
+	_mod_status_label = menu.get_node_or_null("ModStatusLabel") as Label
+	if _mod_status_label == null:
+		_mod_status_label = Label.new()
+		_mod_status_label.name = "ModStatusLabel"
+		_mod_status_label.text = "MODS SCANNING"
+		_mod_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_mod_status_label.clip_text = true
+		menu.add_child(_mod_status_label)
+	_mod_status_label.custom_minimum_size = Vector2(mod_status_min_width, mod_status_min_height)
+	_mod_status_label.add_theme_font_size_override("font_size", mod_status_font_size)
+	_mod_status_label.add_theme_color_override("font_color", mod_status_text_color)
+	_mod_status_label.add_theme_color_override("font_outline_color", mod_status_outline_color)
+	_mod_status_label.add_theme_constant_override("outline_size", 3)
+
+
+func _refresh_title_mod_status() -> void:
+	if _mod_status_label == null:
+		return
+	var registry := _title_mod_registry
+	if registry == null or not is_instance_valid(registry):
+		registry = _find_or_create_title_mod_registry()
+	_title_mod_registry = registry
+	if registry == null or not registry.has_method("get_registry_summary"):
+		_mod_status_label.text = "MODS OFFLINE"
+		return
+	var summary_value: Variant = registry.call("get_registry_summary")
+	var summary: Dictionary = summary_value if summary_value is Dictionary else {}
+	var manifest_count := int(summary.get("manifest_count", 0))
+	var content_total := int(summary.get("content_total", 0))
+	var disabled := int(summary.get("disabled", 0))
+	var warnings := int(summary.get("dependency_warnings", 0))
+	var failed := int(summary.get("failed", 0))
+	var active := maxi(manifest_count - disabled, 0)
+	_mod_status_label.text = "MODS %d/%d ON // CONTENT %d // WARN %d // FAIL %d" % [
+		active,
+		manifest_count,
+		content_total,
+		warnings,
+		failed,
+	]
+	if _mod_manager_button != null:
+		_mod_manager_button.text = "Mods (%d)" % active if manifest_count > 0 else "Mods"
+
+
+func _find_or_create_title_mod_registry() -> Node:
+	var registry := get_tree().get_first_node_in_group("mod_content_registry")
+	if registry == null:
+		registry = ModContentRegistry.new()
+		registry.name = "TitleModContentRegistry"
+		add_child(registry)
+	if registry.has_signal("registry_reloaded"):
+		var callable := Callable(self, "_on_title_mod_registry_reloaded")
+		if not registry.is_connected("registry_reloaded", callable):
+			registry.connect("registry_reloaded", callable)
+	if registry.has_method("reload_registry"):
+		registry.call_deferred("reload_registry")
+	return registry
+
+
+func _on_title_mod_registry_reloaded(_summary: Dictionary) -> void:
+	_refresh_title_mod_status()
+
+
+func _configure_title_menu_flow() -> void:
+	var menu := get_node_or_null("Menu") as VBoxContainer
+	if menu == null:
+		return
+	var new_run := menu.get_node_or_null("NewRunButton") as Button
+	if new_run != null:
+		new_run.text = "Start Run"
+	var continue_button := menu.get_node_or_null("ContinueButton") as Button
+	if continue_button != null:
+		continue_button.text = "Continue"
+	var campaign_button := menu.get_node_or_null("CampaignButton") as Button
+	if campaign_button != null:
+		campaign_button.text = "Campaign"
+
+	_other_modes_button = _ensure_menu_button("OtherPlayModesButton", "Other Play Modes", Callable(self, "_on_other_play_modes_pressed"))
+	_settings_button = _ensure_menu_button("SettingsButton", "Settings", Callable(self, "_on_title_settings_button_pressed"))
+	_quit_button = _ensure_menu_button("QuitButton", "Quit", Callable(self, "_on_quit_button_pressed"))
+	_hide_primary_alternate_buttons()
+	_build_other_modes_panel()
+	_build_title_settings_panel()
+	_order_primary_menu()
+
+
+func _hide_primary_alternate_buttons() -> void:
+	for node_name in ["TutorialButton", "ChallengeButton", "BossRushButton", "KingHillButton"]:
+		var button := get_node_or_null("Menu/%s" % node_name) as Button
+		if button != null:
+			button.visible = false
+			button.focus_mode = Control.FOCUS_NONE
+	for button in [_demo_button, _clip_lab_button]:
+		if button != null:
+			button.visible = false
+			button.focus_mode = Control.FOCUS_NONE
+
+
+func _order_primary_menu() -> void:
+	var menu := get_node_or_null("Menu") as VBoxContainer
+	if menu == null:
+		return
+	var order := [
+		"ContinueButton",
+		"NewRunButton",
+		"SeedStartRow",
+		"CampaignButton",
+		"MultiplayerButton",
+		"OtherPlayModesButton",
+		"ModManagerButton",
+		"ModStatusLabel",
+		"SettingsButton",
+		"QuitButton",
+	]
+	var index := 0
+	for node_name in order:
+		var child := menu.get_node_or_null(node_name) as Control
+		if child == null:
+			continue
+		menu.move_child(child, mini(index, menu.get_child_count() - 1))
+		index += 1
+
+
+func _build_other_modes_panel() -> void:
+	if _other_modes_panel != null:
+		return
+	_other_modes_panel = PanelContainer.new()
+	_other_modes_panel.name = "OtherPlayModesPanel"
+	_other_modes_panel.visible = false
+	_other_modes_panel.anchor_left = 1.0
+	_other_modes_panel.anchor_right = 1.0
+	_other_modes_panel.anchor_top = 0.5
+	_other_modes_panel.anchor_bottom = 0.5
+	_other_modes_panel.offset_left = -560.0
+	_other_modes_panel.offset_right = -44.0
+	_other_modes_panel.offset_top = -250.0
+	_other_modes_panel.offset_bottom = 250.0
+	_other_modes_panel.add_theme_stylebox_override(
+		"panel",
+		_make_panel_style(Color(0.01, 0.018, 0.035, 0.92), Color(0.0, 0.86, 1.0, 0.5))
+	)
+	add_child(_other_modes_panel)
+
+	var rows := VBoxContainer.new()
+	rows.name = "Rows"
+	rows.add_theme_constant_override("separation", 10)
+	_other_modes_panel.add_child(rows)
+
+	var title := _make_label("OTHER PLAY MODES", 24, Color(0.62, 1.0, 0.96, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	rows.add_child(title)
+	_add_panel_button(rows, "TutorialPanelButton", "Tutorial", Callable(self, "_on_tutorial_button_pressed"))
+	_add_panel_button(rows, "ChallengePanelButton", "Challenge Run", Callable(self, "_on_challenge_button_pressed"))
+	_add_panel_button(rows, "BossRushPanelButton", "Boss Rush", Callable(self, "_on_boss_rush_button_pressed"))
+	_add_panel_button(rows, "KingHillPanelButton", "King of the Hill", Callable(self, "_on_king_hill_button_pressed"))
+	_add_panel_button(rows, "SteamDemoPanelButton", "Steam Demo", Callable(self, "_on_steam_demo_button_pressed"))
+	_add_panel_button(rows, "ClipLabPanelButton", "Clip Lab", Callable(self, "_on_clip_lab_button_pressed"))
+	_add_panel_button(rows, "NetworkPanelButton", "Multiplayer", Callable(self, "_on_other_modes_multiplayer_pressed"))
+	_add_panel_button(rows, "BackPanelButton", "Back", Callable(self, "_on_other_modes_close_pressed"))
+
+
+func _build_title_settings_panel() -> void:
+	if _title_settings_panel != null:
+		return
+	_title_settings_panel = PanelContainer.new()
+	_title_settings_panel.name = "TitleSettingsPanel"
+	_title_settings_panel.visible = false
+	_title_settings_panel.anchor_left = 1.0
+	_title_settings_panel.anchor_right = 1.0
+	_title_settings_panel.anchor_top = 0.5
+	_title_settings_panel.anchor_bottom = 0.5
+	_title_settings_panel.offset_left = -560.0
+	_title_settings_panel.offset_right = -44.0
+	_title_settings_panel.offset_top = -222.0
+	_title_settings_panel.offset_bottom = 222.0
+	_title_settings_panel.add_theme_stylebox_override(
+		"panel",
+		_make_panel_style(Color(0.012, 0.02, 0.035, 0.94), Color(0.78, 1.0, 0.38, 0.62))
+	)
+	add_child(_title_settings_panel)
+
+	var rows := VBoxContainer.new()
+	rows.name = "Rows"
+	rows.add_theme_constant_override("separation", 12)
+	_title_settings_panel.add_child(rows)
+	rows.add_child(_make_label("SETTINGS", 24, Color(0.78, 1.0, 0.84, 1.0), HORIZONTAL_ALIGNMENT_CENTER))
+
+	var reduce_flash := CheckBox.new()
+	reduce_flash.name = "TitleReduceFlashCheck"
+	reduce_flash.text = "Reduced Flash"
+	reduce_flash.button_pressed = Settings != null and bool(Settings.reduce_flash)
+	reduce_flash.add_theme_font_size_override("font_size", 16)
+	rows.add_child(reduce_flash)
+	if not reduce_flash.toggled.is_connected(_on_title_reduce_flash_toggled):
+		reduce_flash.toggled.connect(_on_title_reduce_flash_toggled)
+
+	_title_damage_numbers_option = _make_title_option(["Full", "Minimal", "Off"], [2, 1, 0])
+	rows.add_child(_make_title_option_row("Damage Numbers", _title_damage_numbers_option))
+	if Settings != null:
+		_select_option_by_id(_title_damage_numbers_option, int(Settings.damage_numbers_mode))
+	if not _title_damage_numbers_option.item_selected.is_connected(_on_title_damage_numbers_selected):
+		_title_damage_numbers_option.item_selected.connect(_on_title_damage_numbers_selected)
+
+	_title_hit_flash_option = _make_title_option(["Normal", "Reduced"], [1, 0])
+	rows.add_child(_make_title_option_row("Hit Flashes", _title_hit_flash_option))
+	if Settings != null:
+		_select_option_by_id(_title_hit_flash_option, int(Settings.hit_flash_mode))
+	if not _title_hit_flash_option.item_selected.is_connected(_on_title_hit_flash_selected):
+		_title_hit_flash_option.item_selected.connect(_on_title_hit_flash_selected)
+
+	_add_panel_button(rows, "SettingsBackButton", "Back", Callable(self, "_on_title_settings_close_pressed"))
+
+
+func _add_panel_button(rows: VBoxContainer, node_name: String, text: String, callback: Callable) -> Button:
+	var button := rows.get_node_or_null(node_name) as Button
+	if button == null:
+		button = _make_action_button(text)
+		button.name = node_name
+		rows.add_child(button)
+	button.text = text
+	if not button.pressed.is_connected(callback):
+		button.pressed.connect(callback)
+	return button
+
+
+func _make_title_option(labels: Array, ids: Array) -> OptionButton:
+	var option := OptionButton.new()
+	option.custom_minimum_size = Vector2(240.0, 42.0)
+	option.add_theme_font_size_override("font_size", 16)
+	for index in range(labels.size()):
+		option.add_item(str(labels[index]), int(ids[index]))
+	return option
+
+
+func _make_title_option_row(label_text: String, option: OptionButton) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var label := _make_label(label_text.to_upper(), 14, Color(0.64, 0.9, 0.92, 0.92), HORIZONTAL_ALIGNMENT_LEFT)
+	label.custom_minimum_size = Vector2(190.0, 42.0)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(label)
+	option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(option)
+	return row
+
+
+func _select_option_by_id(option: OptionButton, id: int) -> void:
+	if option == null:
+		return
+	for index in range(option.item_count):
+		if option.get_item_id(index) == id:
+			option.select(index)
+			return
+
+
+func _on_other_play_modes_pressed() -> void:
+	if _other_modes_panel == null:
+		return
+	if _title_settings_panel != null:
+		_title_settings_panel.visible = false
+	_other_modes_panel.visible = not _other_modes_panel.visible
+	if _other_modes_panel.visible:
+		var first := _other_modes_panel.find_child("TutorialPanelButton", true, false) as Button
+		if first != null:
+			first.grab_focus()
+
+
+func _on_other_modes_close_pressed() -> void:
+	if _other_modes_panel != null:
+		_other_modes_panel.visible = false
+	if _other_modes_button != null:
+		_other_modes_button.grab_focus()
+
+
+func _on_other_modes_multiplayer_pressed() -> void:
+	if _other_modes_panel != null:
+		_other_modes_panel.visible = false
+	_on_multiplayer_button_pressed()
+
+
+func _on_title_settings_button_pressed() -> void:
+	if _title_settings_panel == null:
+		return
+	if _other_modes_panel != null:
+		_other_modes_panel.visible = false
+	_title_settings_panel.visible = not _title_settings_panel.visible
+	if _title_settings_panel.visible:
+		var first := _title_settings_panel.find_child("TitleReduceFlashCheck", true, false) as Control
+		if first != null:
+			first.grab_focus()
+
+
+func _on_title_settings_close_pressed() -> void:
+	if _title_settings_panel != null:
+		_title_settings_panel.visible = false
+	if _settings_button != null:
+		_settings_button.grab_focus()
+
+
+func _on_title_reduce_flash_toggled(enabled: bool) -> void:
+	if Settings != null:
+		Settings.set_reduce_flash(enabled)
+
+
+func _on_title_damage_numbers_selected(index: int) -> void:
+	if Settings != null and _title_damage_numbers_option != null:
+		Settings.set_damage_numbers_mode(_title_damage_numbers_option.get_item_id(index))
+
+
+func _on_title_hit_flash_selected(index: int) -> void:
+	if Settings != null and _title_hit_flash_option != null:
+		Settings.set_hit_flash_mode(_title_hit_flash_option.get_item_id(index))
+
+
+func _on_quit_button_pressed() -> void:
+	get_tree().quit()
+
+
+func _focus_primary_menu() -> void:
+	var continue_button := get_node_or_null("Menu/ContinueButton") as Button
+	if continue_button != null and continue_button.visible and not continue_button.disabled:
+		continue_button.grab_focus()
+		return
+	var new_run := get_node_or_null("Menu/NewRunButton") as Button
+	if new_run != null:
+		new_run.grab_focus()
 
 
 func _build_production_buttons() -> void:
@@ -733,15 +1084,30 @@ func _normalize_title_menu_density() -> void:
 	var menu := get_node_or_null("Menu") as VBoxContainer
 	if menu == null:
 		return
-	menu.add_theme_constant_override("separation", 2)
-	menu.offset_top = -520.0
-	menu.offset_bottom = -68.0
+	menu.add_theme_constant_override("separation", 6)
+	menu.offset_top = -392.0
+	menu.offset_bottom = -56.0
+	if _title_label != null:
+		_title_label.add_theme_font_size_override("font_size", 126)
 	for child in menu.get_children():
 		if child is Button:
-			(child as Button).add_theme_font_size_override("font_size", 34)
-			(child as Button).custom_minimum_size = Vector2(420.0, 40.0)
+			(child as Button).add_theme_font_size_override("font_size", 27)
+			(child as Button).custom_minimum_size = Vector2(420.0, 42.0)
 		elif child is Label:
-			(child as Label).add_theme_font_size_override("font_size", 54)
+			var label := child as Label
+			if label.name == "ModStatusLabel":
+				label.add_theme_font_size_override("font_size", mod_status_font_size)
+				label.custom_minimum_size = Vector2(mod_status_min_width, maxf(mod_status_min_height - 2.0, 20.0))
+			else:
+				label.add_theme_font_size_override("font_size", 42)
+	if _seed_row != null:
+		_seed_row.custom_minimum_size = Vector2(420.0, 36.0)
+		if _seed_edit != null:
+			_seed_edit.custom_minimum_size = Vector2(236.0, 36.0)
+			_seed_edit.add_theme_font_size_override("font_size", 14)
+		if _seed_random_button != null:
+			_seed_random_button.custom_minimum_size = Vector2(100.0, 36.0)
+			_seed_random_button.add_theme_font_size_override("font_size", 13)
 
 
 func _setup_menu_button_tweens() -> void:

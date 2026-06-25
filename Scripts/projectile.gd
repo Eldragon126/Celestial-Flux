@@ -19,6 +19,17 @@ signal projectile_hit(hit_data: Dictionary)
 @export var player_gravity_deadzone_radius: float = 520.0
 @export var debug_logging: bool = false
 
+@export_group("Projectile Cleanup")
+@export var max_lifetime: float = 3.8
+@export var min_speed_cleanup: float = 38.0
+@export var min_speed_cleanup_delay: float = 0.8
+@export var low_speed_cleanup_window: float = 0.36
+@export var planet_absorb_padding: float = 18.0
+@export var planet_orbit_cleanup_margin: float = 92.0
+@export var planet_orbit_cleanup_time: float = 0.46
+@export var max_gravity_deflections: int = 18
+@export_range(0.5, 1.0, 0.01) var deflection_damage_falloff: float = 0.92
+
 @export_group("Projectile Readability")
 @export var visual_scale: float = 1.34
 @export var vector_trail_alpha: float = 0.66
@@ -92,6 +103,12 @@ var _weapon_phase_offset: float = 0.0
 var _field_targets: Array[Node2D] = []
 var _destroying_projectile: bool = false
 var _wake_phase: float = 0.0
+var _age: float = 0.0
+var _low_speed_elapsed: float = 0.0
+var _near_planet_elapsed: float = 0.0
+var _last_near_planet_id: int = -1
+var _gravity_deflection_count: int = 0
+var _last_gravity_direction := Vector2.ZERO
 
 # ========================
 # == LIFECYCLE ==
@@ -121,6 +138,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if bool(get_meta(&"black_hole_consumed", false)) or _destroying_projectile:
 		return
+	_age += delta
 	var total_grav_accel = Vector2.ZERO
 	_update_visual_budget(delta)
 	_apply_relativistic_rail(delta)
@@ -129,6 +147,8 @@ func _physics_process(delta: float) -> void:
 	_update_vector_wake(delta)
 	_update_projectile_light()
 	if has_meta(&"orbital_satellite_owner"):
+		return
+	if _update_projectile_cleanup(delta):
 		return
 	
 	for i in range(planets.size() - 1, -1, -1):
@@ -158,6 +178,11 @@ func _physics_process(delta: float) -> void:
 			total_grav_accel = (total_grav_accel + contribution).limit_length(maxf(max_total_gravity_acceleration, 1.0))
 	
 	if total_grav_accel != Vector2.ZERO:
+		_track_gravity_deflection(total_grav_accel)
+		if max_gravity_deflections > 0 and _gravity_deflection_count > max_gravity_deflections:
+			set_meta(&"cleanup_reason", "gravity_deflection_limit")
+			_destroy_projectile()
+			return
 		if Engine.time_scale > 1.0 or Engine.time_scale < 0.97 and Engine.time_scale != 0.0:
 			var time_scale_compensation = 1.0 / (Engine.time_scale * Engine.time_scale)
 			apply_force(total_grav_accel * time_scale_compensation * 0.08)
@@ -432,6 +457,19 @@ func _stamp_player_weapon_hit(target: Node, damage: float) -> void:
 	target.set_meta(&"last_player_weapon_id", String(weapon_id))
 	target.set_meta(&"last_player_weapon_hit_damage", damage)
 	target.set_meta(&"last_player_weapon_hit_speed", linear_velocity.length())
+	var target_2d := target as Node2D
+	target.set_meta(&"last_damage_feedback_context", {
+		"damage_type": _damage_type_for_weapon(weapon_id),
+		"weapon_id": String(weapon_id),
+		"hit_position": target_2d.global_position if target_2d != null else global_position,
+		"source_position": global_position,
+		"source_velocity": linear_velocity,
+		"hit_direction": _current_direction(),
+		"was_slingshot_hit": bool(has_meta(&"momentum_damage_multiplier")),
+		"was_momentum_hit": false,
+		"was_apex": bool(get_meta(&"slingshot_apex_projectile", false)),
+		"mod_source": _mod_source_for_weapon(weapon_id),
+	})
 
 
 func _stamp_weapon_resonance(position: Vector2) -> void:
@@ -1022,6 +1060,9 @@ func _is_projectile_payload_property(property_name: String) -> bool:
 		"weapon_scar_radius",
 		"weapon_scar_intensity",
 		"weapon_scar_duration",
+		"max_lifetime",
+		"planet_absorb_padding",
+		"planet_orbit_cleanup_time",
 	].has(property_name)
 
 
@@ -1038,6 +1079,99 @@ func _is_hostile_target(target: Node) -> bool:
 		or target.is_in_group("wave_enemy")
 		or target.is_in_group("bosses")
 	)
+
+
+func _update_projectile_cleanup(delta: float) -> bool:
+	if max_lifetime > 0.0 and _age >= max_lifetime:
+		set_meta(&"cleanup_reason", "lifetime")
+		_destroy_projectile()
+		return true
+
+	var speed := linear_velocity.length()
+	if _age >= min_speed_cleanup_delay and min_speed_cleanup > 0.0 and speed <= min_speed_cleanup:
+		_low_speed_elapsed += delta
+		if _low_speed_elapsed >= low_speed_cleanup_window:
+			set_meta(&"cleanup_reason", "low_speed")
+			_destroy_projectile()
+			return true
+	else:
+		_low_speed_elapsed = 0.0
+
+	var nearest_orbit_id := -1
+	for planet in planets:
+		if planet == null or not is_instance_valid(planet) or planet.is_queued_for_deletion():
+			continue
+		if _should_ignore_gravity_source(planet):
+			continue
+		var radius := _planet_absorb_radius(planet)
+		var distance := planet.global_position.distance_to(global_position)
+		if distance <= radius + planet_absorb_padding:
+			set_meta(&"cleanup_reason", "planet_absorb")
+			_destroy_projectile()
+			return true
+		if distance <= radius + planet_absorb_padding + planet_orbit_cleanup_margin:
+			nearest_orbit_id = planet.get_instance_id()
+			break
+
+	if nearest_orbit_id != -1:
+		if nearest_orbit_id == _last_near_planet_id:
+			_near_planet_elapsed += delta
+		else:
+			_last_near_planet_id = nearest_orbit_id
+			_near_planet_elapsed = 0.0
+		if _near_planet_elapsed >= planet_orbit_cleanup_time:
+			set_meta(&"cleanup_reason", "planet_orbit_decay")
+			_destroy_projectile()
+			return true
+	else:
+		_last_near_planet_id = -1
+		_near_planet_elapsed = 0.0
+
+	return false
+
+
+func _planet_absorb_radius(planet: Node2D) -> float:
+	var radius := 0.0
+	for property_name in [&"radius", &"base_radius", &"body_radius"]:
+		var value: Variant = planet.get(String(property_name))
+		if value is float or value is int:
+			radius = maxf(radius, float(value))
+	var collision := planet.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision == null:
+		collision = planet.find_child("CollisionShape2D", true, false) as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		radius = maxf(radius, (collision.shape as CircleShape2D).radius)
+	var scale_value := maxf(absf(planet.scale.x), absf(planet.scale.y))
+	return maxf(radius * scale_value, 20.0)
+
+
+func _track_gravity_deflection(acceleration: Vector2) -> void:
+	if acceleration.length_squared() <= 0.001:
+		return
+	var direction := acceleration.normalized()
+	if _last_gravity_direction != Vector2.ZERO and direction.dot(_last_gravity_direction) < 0.64:
+		_gravity_deflection_count += 1
+		if deflection_damage_falloff < 0.999:
+			damage_min = maxf(damage_min * deflection_damage_falloff, 1.0)
+			damage_max = maxf(damage_max * deflection_damage_falloff, damage_min)
+	_last_gravity_direction = direction
+
+
+func _damage_type_for_weapon(id: StringName) -> StringName:
+	var text := String(id).to_lower()
+	if text.contains("gravity") or text.contains("singularity") or text.contains("resonance") or text.contains("scar"):
+		return &"gravity"
+	if text.contains("time") or text.contains("chronal") or text.contains("temporal"):
+		return &"temporal"
+	if text.contains("beam"):
+		return &"beam"
+	return &"projectile"
+
+
+func _mod_source_for_weapon(id: StringName) -> String:
+	var text := String(id)
+	var slash_index := text.find("/")
+	return text.substr(0, slash_index) if slash_index > 0 else ""
 
 # ========================
 # == UTILITY ==

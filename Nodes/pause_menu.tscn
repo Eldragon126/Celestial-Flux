@@ -112,6 +112,33 @@ theme_override_font_sizes/font_size = 14
 text = "SIMULATION PAUSED | LOCAL PHYSICS FROZEN"
 horizontal_alignment = 1
 
+[node name="ResumeButton" type="Button" parent="MenuPanel/MenuRows" unique_id=1448855320]
+custom_minimum_size = Vector2(440, 54)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+text = "RESUME VECTOR"
+
+[node name="RestartButton" type="Button" parent="MenuPanel/MenuRows" unique_id=1860152737]
+custom_minimum_size = Vector2(440, 54)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+text = "RESTART RUN"
+
+[node name="TitleButton" type="Button" parent="MenuPanel/MenuRows" unique_id=368285921]
+custom_minimum_size = Vector2(440, 54)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+text = "ABORT & QUIT TO TITLE"
+
 [node name="AccessibilityLabel" type="Label" parent="MenuPanel/MenuRows" unique_id=1278624543]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
@@ -347,30 +374,3 @@ theme_override_font_sizes/font_size = 13
 text = "SYNC FOUNDATION OFFLINE"
 horizontal_alignment = 1
 clip_text = true
-
-[node name="ResumeButton" type="Button" parent="MenuPanel/MenuRows" unique_id=1448855320]
-custom_minimum_size = Vector2(440, 54)
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-text = "RESUME VECTOR"
-
-[node name="RestartButton" type="Button" parent="MenuPanel/MenuRows" unique_id=1860152737]
-custom_minimum_size = Vector2(440, 54)
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-text = "RESTART RUN"
-
-[node name="TitleButton" type="Button" parent="MenuPanel/MenuRows" unique_id=368285921]
-custom_minimum_size = Vector2(440, 54)
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-text = "ABORT & QUIT TO TITLE"

@@ -10,12 +10,45 @@ script = ExtResource("1_invader")
 
 [node name="CampaignInvaderHull" type="Polygon2D" parent="."]
 color = Color(1, 0.34, 0.16, 0.92)
-polygon = PackedVector2Array(26, 0, -18, 17, -9, 0, -18, -17)
+polygon = PackedVector2Array(34, 0, 10, 14, -20, 18, -12, 5, -32, 0, -12, -5, -20, -18, 10, -14)
 
-[node name="CampaignInvaderVector" type="Line2D" parent="."]
-width = 1.5
+[node name="CampaignInvaderCore" type="Polygon2D" parent="."]
+color = Color(1, 0.88, 0.42, 0.95)
+polygon = PackedVector2Array(8, 0, -2, 7, -11, 0, -2, -7)
+
+[node name="CampaignInvaderWingLine" type="Line2D" parent="."]
+width = 2.0
 default_color = Color(1, 0.62, 0.28, 0.42)
-points = PackedVector2Array(0, 0, 120, 0)
+antialiased = true
+points = PackedVector2Array(-18, -20, 6, -12, 20, 0, 6, 12, -18, 20)
+
+[node name="CampaignInvaderThreatArc" type="Line2D" parent="."]
+width = 1.6
+default_color = Color(1, 0.62, 0.28, 0.38)
+antialiased = true
+points = PackedVector2Array(29.527, -11.878, 32.863, -8.448, 35.372, -4.362, 36, 0, 35.372, 4.362, 32.863, 8.448, 29.527, 11.878)
+
+[node name="CampaignInvaderStateRing" type="Line2D" parent="."]
+width = 1.2
+default_color = Color(1, 0.62, 0.28, 0.16)
+closed = true
+antialiased = true
+points = PackedVector2Array(34, 0, 24.042, 24.042, 0, 34, -24.042, 24.042, -34, 0, -24.042, -24.042, 0, -34, 24.042, -24.042)
+
+[node name="CampaignInvaderCaptureRing" type="Line2D" parent="."]
+visible = false
+z_index = 7
+width = 2.0
+default_color = Color(0.36, 1, 0.78, 0.42)
+closed = true
+antialiased = true
+points = PackedVector2Array(43.52, 0, 30.773, 30.773, 0, 43.52, -30.773, 30.773, -43.52, 0, -30.773, -30.773, 0, -43.52, 30.773, -30.773)
+
+[node name="CampaignInvaderEngineTrail" type="Line2D" parent="."]
+width = 3.0
+default_color = Color(0.36, 1, 0.88, 0.38)
+antialiased = true
+points = PackedVector2Array(-14, 0, -38, 0, -60, 0)
 
 [node name="CampaignInvaderCollision" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_invader")

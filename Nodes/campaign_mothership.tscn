@@ -1,0 +1,74 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://Scripts/campaign_mothership.gd" id="1_campaign_mothership"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hull"]
+radius = 76.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_docking"]
+radius = 260.0
+
+[node name="CampaignMothership" type="StaticBody2D" groups=["campaign_mothership"]]
+script = ExtResource("1_campaign_mothership")
+
+[node name="HullCollision" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_hull")
+
+[node name="DockingArea" type="Area2D" parent="."]
+
+[node name="DockingShape" type="CollisionShape2D" parent="DockingArea"]
+shape = SubResource("CircleShape2D_docking")
+
+[node name="MothershipHull" type="Polygon2D" parent="."]
+color = Color(1, 0.78, 0.32, 0.95)
+polygon = PackedVector2Array(86, 0, 28, 34, -72, 48, -92, 0, -72, -48, 28, -34)
+
+[node name="MothershipCore" type="Polygon2D" parent="."]
+color = Color(0.82, 1, 0.92, 0.94)
+polygon = PackedVector2Array(42, 0, 12, 16, -34, 18, -48, 0, -34, -18, 12, -16)
+
+[node name="MothershipSpine" type="Line2D" parent="."]
+width = 3.0
+default_color = Color(1, 0.78, 0.32, 0.58)
+antialiased = true
+points = PackedVector2Array(-74, -30, -18, -13, 64, 0, -18, 13, -74, 30)
+
+[node name="MothershipDockRing" type="Line2D" parent="."]
+width = 2.0
+default_color = Color(1, 0.78, 0.32, 0.42)
+closed = true
+antialiased = true
+points = PackedVector2Array(260, 0, 183.848, 183.848, 0, 260, -183.848, 183.848, -260, 0, -183.848, -183.848, 0, -260, 183.848, -183.848)
+
+[node name="FactionBeacon" type="Line2D" parent="."]
+width = 1.5
+default_color = Color(1, 0.78, 0.32, 0.24)
+closed = true
+antialiased = true
+points = PackedVector2Array(98, 0, 69.296, 69.296, 0, 98, -69.296, 69.296, -98, 0, -69.296, -69.296, 0, -98, 69.296, -69.296)
+
+[node name="SupportBeam" type="Line2D" parent="."]
+visible = false
+width = 3.5
+default_color = Color(0.44, 1, 0.84, 0.74)
+antialiased = true
+points = PackedVector2Array(0, 0, 0, 0)
+
+[node name="ManeuverVector" type="Line2D" parent="."]
+visible = false
+width = 2.0
+default_color = Color(0.48, 1, 0.86, 0.34)
+antialiased = true
+points = PackedVector2Array(0, 0, 220, 0)
+
+[node name="DockPrompt" type="Label" parent="."]
+visible = false
+offset_left = -150.0
+offset_top = -128.0
+offset_right = 150.0
+offset_bottom = -100.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.92)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 15
+text = "DOCK"
+horizontal_alignment = 1

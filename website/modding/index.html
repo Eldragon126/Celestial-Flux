@@ -43,7 +43,7 @@
 				<div class="lab-status-rail" aria-label="Creator Lab status">
 					<div><span>PACK GRAPH</span><strong>live</strong></div>
 					<div><span>VALIDATION</span><strong>schema 4</strong></div>
-					<div><span>CO-OP</span><strong>signature locked</strong></div>
+					<div><span>VISIBLE RUNS</span><strong>HUD flagged</strong></div>
 				</div>
 			</div>
 			<aside class="telemetry" aria-label="Mod system capabilities">
@@ -66,7 +66,7 @@
 				<li><b>01</b><div><h3>Create the pack</h3><p>Make a folder in <code>user://mods</code>, an export-adjacent <code>mods</code> folder, or <code>res://Mods</code>.</p></div></li>
 				<li><b>02</b><div><h3>Declare the contract</h3><p>Add <code>vector_anomaly_mod.json</code> with stable lowercase IDs and portable relative paths.</p></div></li>
 				<li><b>03</b><div><h3>Compose behavior</h3><p>Connect typed hooks, conditions, effects, and creator options. Set explicit multiplayer categories.</p></div></li>
-				<li><b>04</b><div><h3>Prove the package</h3><p>Rescan in Mods, resolve diagnostics, test reduced flash, and export the creator report.</p></div></li>
+				<li><b>04</b><div><h3>Prove the package</h3><p>Rescan in Mods, confirm the HUD says MODDED RUN, test reduced flash and damage feedback, then export the creator report.</p></div></li>
 			</ol>
 		</section>
 
@@ -125,6 +125,11 @@
 				<article><span>01 // HOOK</span><h3><code>slingshot_apex</code></h3><p>Subscribe to a stable game signal. Hooks replace polling and keep high-chaos runs bounded.</p></article>
 				<article><span>02 // CONDITION</span><h3><code>mod_option</code></h3><p>Gate by wave, velocity, build, gravity state, accessibility mode, or a persisted creator option.</p></article>
 				<article><span>03 // EFFECT</span><h3><code>create_resonance_zone</code></h3><p>Ask a trusted director for a capped effect. No scene-tree escape hatch and no default script execution.</p></article>
+			</div>
+			<div class="grammar">
+				<article><span>EXAMPLE // LAWBREAKER</span><h3>Run-start scar</h3><p>Official example packs now emit HUD badges and bounded field effects so creators can tell immediately when a pack changed the run.</p></article>
+				<article><span>EXAMPLE // MICROVERSE</span><h3>Challenge table</h3><p>Mode manifests can request wave tables and challenge cards while keeping scene flow behind trusted loaders.</p></article>
+				<article><span>EXAMPLE // FORGE</span><h3>Upgrade request</h3><p>Relic-style packs can offer upgrades and compression pulses without taking direct script control.</p></article>
 			</div>
 			<div class="architecture" aria-label="Mod runtime flow">
 				<div><small>DISCOVER</small><strong>Manifest folders</strong></div><i>→</i><div><small>VALIDATE</small><strong>Schema + paths</strong></div><i>→</i><div><small>ORDER</small><strong>Dependencies + conflicts</strong></div><i>→</i><div><small>INDEX</small><strong>Typed catalogs</strong></div><i>→</i><div><small>CONSUME</small><strong>Trusted directors</strong></div>

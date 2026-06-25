@@ -17,6 +17,14 @@ signal escort_hit_target(target: Node, damage: float)
 @export var collision_radius: float = 20.0
 @export var hull_color: Color = Color(0.24, 0.92, 1.0, 0.95)
 @export var attack_beam_color: Color = Color(0.42, 1.0, 0.86, 0.72)
+@export_group("Visual Polish")
+@export var shield_radius: float = 31.0
+@export var shield_alpha: float = 0.22
+@export var core_color: Color = Color(0.72, 1.0, 0.92, 0.96)
+@export var wing_color: Color = Color(0.22, 1.0, 0.82, 0.48)
+@export var engine_color: Color = Color(0.18, 0.9, 1.0, 0.72)
+@export var engine_trail_length: float = 54.0
+@export var beam_idle_alpha: float = 0.0
 
 var player: Node2D = null
 var mother_planet: Node2D = null
@@ -28,6 +36,10 @@ var _gravity_sources: Array[Node2D] = []
 var _fire_elapsed: float = 0.0
 var _beam: Line2D = null
 var _hull: Polygon2D = null
+var _core: Polygon2D = null
+var _shield_ring: Line2D = null
+var _wing_line: Line2D = null
+var _engine_trail: Line2D = null
 
 
 func configure(index: int, player_node: Node2D, mother_node: Node2D, hull_color: Color) -> void:
@@ -44,6 +56,10 @@ func _ready() -> void:
 	add_to_group("player_allies")
 	current_health = max_health
 	_hull = get_node_or_null("CampaignEscortHull") as Polygon2D
+	_core = get_node_or_null("CampaignEscortCore") as Polygon2D
+	_shield_ring = get_node_or_null("CampaignEscortShield") as Line2D
+	_wing_line = get_node_or_null("CampaignEscortWingLine") as Line2D
+	_engine_trail = get_node_or_null("CampaignEscortEngineTrail") as Line2D
 	_beam = get_node_or_null("EscortBeam") as Line2D
 	_build_collision()
 	_build_visuals()
@@ -73,7 +89,7 @@ func _physics_process(delta: float) -> void:
 	if velocity.length_squared() > 4.0:
 		rotation = lerp_angle(rotation, velocity.angle(), clampf(delta * 8.0, 0.0, 1.0))
 	move_and_slide()
-	_update_beam(delta)
+	_update_visuals(delta)
 
 
 func take_damage(amount: float) -> void:
@@ -165,20 +181,67 @@ func _build_visuals() -> void:
 	if _hull == null:
 		_hull = Polygon2D.new()
 		_hull.name = "CampaignEscortHull"
-		_hull.polygon = PackedVector2Array([
-			Vector2(25.0, 0.0),
-			Vector2(-15.0, 14.0),
-			Vector2(-8.0, 0.0),
-			Vector2(-15.0, -14.0),
-		])
 		add_child(_hull)
+	_hull.polygon = PackedVector2Array([
+		Vector2(30.0, 0.0),
+		Vector2(6.0, 13.0),
+		Vector2(-20.0, 17.0),
+		Vector2(-10.0, 0.0),
+		Vector2(-20.0, -17.0),
+		Vector2(6.0, -13.0),
+	])
 	_hull.color = hull_color
+	_hull.z_index = 3
+	if _core == null:
+		_core = Polygon2D.new()
+		_core.name = "CampaignEscortCore"
+		add_child(_core)
+	_core.polygon = PackedVector2Array([
+		Vector2(9.0, 0.0),
+		Vector2(-4.0, 7.0),
+		Vector2(-13.0, 0.0),
+		Vector2(-4.0, -7.0),
+	])
+	_core.color = core_color
+	_core.z_index = 5
+	if _shield_ring == null:
+		_shield_ring = Line2D.new()
+		_shield_ring.name = "CampaignEscortShield"
+		add_child(_shield_ring)
+	_shield_ring.closed = true
+	_shield_ring.antialiased = true
+	_shield_ring.width = 1.3
+	_shield_ring.points = _circle_points(shield_radius, 36)
+	_shield_ring.z_index = 1
+	if _wing_line == null:
+		_wing_line = Line2D.new()
+		_wing_line.name = "CampaignEscortWingLine"
+		add_child(_wing_line)
+	_wing_line.antialiased = true
+	_wing_line.width = 1.8
+	_wing_line.points = PackedVector2Array([
+		Vector2(-18.0, -18.0),
+		Vector2(4.0, -9.0),
+		Vector2(27.0, 0.0),
+		Vector2(4.0, 9.0),
+		Vector2(-18.0, 18.0),
+	])
+	_wing_line.z_index = 4
+	if _engine_trail == null:
+		_engine_trail = Line2D.new()
+		_engine_trail.name = "CampaignEscortEngineTrail"
+		add_child(_engine_trail)
+	_engine_trail.antialiased = true
+	_engine_trail.width = 2.2
+	_engine_trail.z_index = 0
 	if _beam == null:
 		_beam = Line2D.new()
 		_beam.name = "EscortBeam"
 		_beam.width = 2.0
 		add_child(_beam)
-	_beam.default_color = Color(attack_beam_color.r, attack_beam_color.g, attack_beam_color.b, 0.0)
+	_beam.antialiased = true
+	_beam.z_index = 6
+	_beam.default_color = Color(attack_beam_color.r, attack_beam_color.g, attack_beam_color.b, beam_idle_alpha)
 
 
 func _draw_beam(target_position: Vector2) -> void:
@@ -188,7 +251,43 @@ func _draw_beam(target_position: Vector2) -> void:
 	_beam.default_color = attack_beam_color
 
 
-func _update_beam(delta: float) -> void:
-	if _beam == null:
-		return
-	_beam.default_color.a = maxf(_beam.default_color.a - delta * 5.8, 0.0)
+func _update_visuals(delta: float) -> void:
+	if _beam != null:
+		_beam.default_color.a = maxf(_beam.default_color.a - delta * 5.8, beam_idle_alpha)
+	var health_ratio := clampf(current_health / maxf(max_health, 1.0), 0.0, 1.0)
+	var speed_ratio := clampf(velocity.length() / maxf(max_speed, 1.0), 0.0, 1.0)
+	if _shield_ring != null:
+		_shield_ring.rotation += delta * (0.7 + float(escort_index) * 0.08)
+		_shield_ring.default_color = Color(hull_color.r, hull_color.g, hull_color.b, _safe_alpha(shield_alpha * health_ratio, 0.28))
+		_shield_ring.width = 1.0 + (1.0 - health_ratio) * 1.8
+	if _wing_line != null:
+		_wing_line.default_color = Color(wing_color.r, wing_color.g, wing_color.b, wing_color.a * (0.7 + speed_ratio * 0.3))
+	if _core != null:
+		var pulse := 0.76 + sin(Time.get_ticks_msec() * 0.008 + float(escort_index)) * 0.16
+		_core.modulate.a = clampf(pulse, 0.48, 0.96)
+		_core.scale = Vector2.ONE * (0.9 + speed_ratio * 0.14)
+	if _engine_trail != null:
+		var trail := engine_trail_length * lerpf(0.28, 1.0, speed_ratio)
+		_engine_trail.points = PackedVector2Array([
+			Vector2(-14.0, 0.0),
+			Vector2(-22.0 - trail * 0.48, sin(Time.get_ticks_msec() * 0.012 + float(escort_index)) * 2.2),
+			Vector2(-22.0 - trail, sin(Time.get_ticks_msec() * 0.009 + float(escort_index)) * 4.0),
+		])
+		_engine_trail.default_color = Color(engine_color.r, engine_color.g, engine_color.b, 0.16 + speed_ratio * 0.44)
+		_engine_trail.width = lerpf(1.1, 3.4, speed_ratio)
+
+
+func _safe_alpha(alpha: float, cap: float) -> float:
+	if Settings != null and Settings.has_method("world_visual_alpha"):
+		return Settings.world_visual_alpha(alpha, cap)
+	if Settings != null and Settings.has_method("flash_alpha"):
+		return minf(Settings.flash_alpha(alpha), cap)
+	return minf(alpha, cap)
+
+
+func _circle_points(radius: float, count: int) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for index in range(maxi(count, 8)):
+		var angle := TAU * float(index) / float(maxi(count, 8))
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points

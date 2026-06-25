@@ -288,12 +288,15 @@ func activate_upgrade_pulse(powerup_id: StringName, position: Vector2, stacks: i
 
 
 func _resolve_systems() -> void:
-	var root := get_tree().current_scene
+	var tree := get_tree()
+	if tree == null:
+		return
+	var root := tree.current_scene
 	if root == null:
 		return
 
 	if _player == null or not is_instance_valid(_player):
-		_player = MultiplayerTargeting.local_player(get_tree()) as CharacterBody2D
+		_player = MultiplayerTargeting.local_player(tree) as CharacterBody2D
 		_connect_player_signals()
 
 	if _player != null and is_instance_valid(_player):
@@ -638,7 +641,11 @@ func _seed_debris_near(position: Vector2, stacks: int, source_label: StringName)
 		Color(0.28, 0.86, 1.0, 1.0)
 	)
 	debris.global_position = anchor.global_position + Vector2.RIGHT.rotated(angle) * orbit_radius
-	get_tree().current_scene.add_child(debris)
+	var tree := get_tree()
+	if tree == null or tree.current_scene == null:
+		debris.queue_free()
+		return
+	tree.current_scene.add_child(debris)
 	_debris_orbits[debris.get_instance_id()] = {
 		"debris": debris,
 		"anchor_id": anchor.get_instance_id(),
@@ -1054,14 +1061,17 @@ func _sync_memory_visual() -> void:
 
 
 func _spawn_transient_ring(center: Vector2, radius: float, color: Color, duration: float, width: float) -> void:
-	var root := get_tree().current_scene
+	var tree := get_tree()
+	if tree == null:
+		return
+	var root := tree.current_scene
 	if root == null:
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	if now - _last_transient_ring_time < transient_ring_min_interval:
 		return
-	var coordinator := JuiceCoordinator.find_coordinator(get_tree())
-	if coordinator != null and coordinator.get_chaos_intensity(get_tree()) >= transient_ring_chaos_skip_threshold:
+	var coordinator := JuiceCoordinator.find_coordinator(tree)
+	if coordinator != null and coordinator.get_chaos_intensity(tree) >= transient_ring_chaos_skip_threshold:
 		return
 	_last_transient_ring_time = now
 	var ring := _acquire_transient_ring(root)

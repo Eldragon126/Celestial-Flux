@@ -5,23 +5,160 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_mother"]
 radius = 220.0
 
-[node name="MotherPlanet" type="StaticBody2D" groups=["campaign_mother_planet", "player_allies", "Objects_With_Gravity", "planets"]]
+[node name="HomePlanet" type="StaticBody2D" groups=["campaign_mother_planet", "player_allies", "Objects_With_Gravity", "planets"]]
 script = ExtResource("1_mother")
 
-[node name="MotherPlanetHull" type="Polygon2D" parent="."]
+[node name="HomePlanetHull" type="Polygon2D" parent="."]
 color = Color(0.12, 0.74, 0.9, 0.92)
 polygon = PackedVector2Array(0, -220, 84.2, -203.25, 155.56, -155.56, 203.25, -84.2, 220, 0, 203.25, 84.2, 155.56, 155.56, 84.2, 203.25, 0, 220, -84.2, 203.25, -155.56, 155.56, -203.25, 84.2, -220, 0, -203.25, -84.2, -155.56, -155.56, -84.2, -203.25)
 
+[node name="HomePlanetCore" type="Polygon2D" parent="."]
+z_index = 3
+color = Color(0.72, 1, 0.9, 0.82)
+polygon = PackedVector2Array(78, 0, 55.15, 55.15, 0, 78, -55.15, 55.15, -78, 0, -55.15, -55.15, 0, -78, 55.15, -55.15)
+
 [node name="GravityShieldRing" type="Line2D" parent="."]
+z_index = 4
 closed = true
 width = 3.0
 default_color = Color(0.24, 0.94, 1, 0.18)
 points = PackedVector2Array(310, 0, 286.4, 118.64, 219.2, 219.2, 118.64, 286.4, 0, 310, -118.64, 286.4, -219.2, 219.2, -286.4, 118.64, -310, 0, -286.4, -118.64, -219.2, -219.2, -118.64, -286.4, 0, -310, 118.64, -286.4, 219.2, -219.2, 286.4, -118.64)
 
+[node name="DefensePulseRing" type="Line2D" parent="."]
+z_index = 2
+closed = true
+width = 1.5
+default_color = Color(0.24, 0.94, 1, 0.14)
+points = PackedVector2Array(346, 0, 319.66, 132.43, 244.66, 244.66, 132.43, 319.66, 0, 346, -132.43, 319.66, -244.66, 244.66, -319.66, 132.43, -346, 0, -319.66, -132.43, -244.66, -244.66, -132.43, -319.66, 0, -346, 132.43, -319.66, 244.66, -244.66, 319.66, -132.43)
+
+[node name="LatitudeRing0" type="Line2D" parent="."]
+z_index = 2
+position = Vector2(0, -136)
+closed = true
+width = 1.1
+default_color = Color(0.35, 0.98, 1, 0.24)
+points = PackedVector2Array(172, 0, 121.62, 21.9, 0, 31, -121.62, 21.9, -172, 0, -121.62, -21.9, 0, -31, 121.62, -21.9)
+
+[node name="LatitudeRing1" type="Line2D" parent="."]
+z_index = 2
+position = Vector2(0, -68)
+closed = true
+width = 1.1
+default_color = Color(0.35, 0.98, 1, 0.24)
+points = PackedVector2Array(209, 0, 147.78, 26.6, 0, 37.6, -147.78, 26.6, -209, 0, -147.78, -26.6, 0, -37.6, 147.78, -26.6)
+
+[node name="LatitudeRing2" type="Line2D" parent="."]
+z_index = 2
+closed = true
+width = 1.1
+default_color = Color(0.35, 0.98, 1, 0.24)
+points = PackedVector2Array(220, 0, 155.56, 28, 0, 39.6, -155.56, 28, -220, 0, -155.56, -28, 0, -39.6, 155.56, -28)
+
+[node name="LatitudeRing3" type="Line2D" parent="."]
+z_index = 2
+position = Vector2(0, 68)
+closed = true
+width = 1.1
+default_color = Color(0.35, 0.98, 1, 0.24)
+points = PackedVector2Array(209, 0, 147.78, 26.6, 0, 37.6, -147.78, 26.6, -209, 0, -147.78, -26.6, 0, -37.6, 147.78, -26.6)
+
+[node name="LatitudeRing4" type="Line2D" parent="."]
+z_index = 2
+position = Vector2(0, 136)
+closed = true
+width = 1.1
+default_color = Color(0.35, 0.98, 1, 0.24)
+points = PackedVector2Array(172, 0, 121.62, 21.9, 0, 31, -121.62, 21.9, -172, 0, -121.62, -21.9, 0, -31, 121.62, -21.9)
+
 [node name="HealthRing" type="Line2D" parent="."]
+z_index = 6
 width = 5.0
 default_color = Color(0.22, 1, 0.34, 0.88)
 points = PackedVector2Array(0, -328, 125.5, -303.03, 231.93, -231.93, 303.03, -125.5, 328, 0)
+
+[node name="DamageFracture0" type="Line2D" parent="."]
+z_index = 5
+visible = false
+width = 1.2
+default_color = Color(1, 0.24, 0.14, 0.18)
+points = PackedVector2Array(75, 0, 135, 20, 201, -18)
+
+[node name="DamageFracture1" type="Line2D" parent="."]
+z_index = 5
+visible = false
+width = 1.55
+default_color = Color(1, 0.24, 0.14, 0.18)
+points = PackedVector2Array(65, 38, 102, 88, 158, 132)
+
+[node name="DamageFracture2" type="Line2D" parent="."]
+z_index = 5
+visible = false
+width = 1.9
+default_color = Color(1, 0.24, 0.14, 0.18)
+points = PackedVector2Array(36, 65, 24, 144, 62, 198)
+
+[node name="DamageFracture3" type="Line2D" parent="."]
+z_index = 5
+visible = false
+width = 1.2
+default_color = Color(1, 0.24, 0.14, 0.18)
+points = PackedVector2Array(0, 75, -28, 134, -8, 206)
+
+[node name="DamageFracture4" type="Line2D" parent="."]
+z_index = 5
+visible = false
+width = 1.55
+default_color = Color(1, 0.24, 0.14, 0.18)
+points = PackedVector2Array(-38, 65, -92, 116, -144, 166)
+
+[node name="DamageFracture5" type="Line2D" parent="."]
+z_index = 5
+visible = false
+width = 1.9
+default_color = Color(1, 0.24, 0.14, 0.18)
+points = PackedVector2Array(-65, 38, -148, 54, -206, 18)
+
+[node name="DamageFracture6" type="Line2D" parent="."]
+z_index = 5
+visible = false
+width = 1.2
+default_color = Color(1, 0.24, 0.14, 0.18)
+points = PackedVector2Array(-75, 0, -136, -22, -201, 14)
+
+[node name="DamageFracture7" type="Line2D" parent="."]
+z_index = 5
+visible = false
+width = 1.55
+default_color = Color(1, 0.24, 0.14, 0.18)
+points = PackedVector2Array(-65, -38, -106, -88, -162, -130)
+
+[node name="DamageFracture8" type="Line2D" parent="."]
+z_index = 5
+visible = false
+width = 1.9
+default_color = Color(1, 0.24, 0.14, 0.18)
+points = PackedVector2Array(-36, -65, -18, -146, -56, -202)
+
+[node name="DamageFracture9" type="Line2D" parent="."]
+z_index = 5
+visible = false
+width = 1.2
+default_color = Color(1, 0.24, 0.14, 0.18)
+points = PackedVector2Array(0, -75, 24, -136, 4, -207)
+
+[node name="DamageFracture10" type="Line2D" parent="."]
+z_index = 5
+visible = false
+width = 1.55
+default_color = Color(1, 0.24, 0.14, 0.18)
+points = PackedVector2Array(38, -65, 94, -114, 144, -166)
+
+[node name="DamageFracture11" type="Line2D" parent="."]
+z_index = 5
+visible = false
+width = 1.9
+default_color = Color(1, 0.24, 0.14, 0.18)
+points = PackedVector2Array(65, -38, 146, -58, 206, -16)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_mother")

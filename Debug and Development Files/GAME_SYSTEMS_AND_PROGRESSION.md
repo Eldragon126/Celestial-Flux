@@ -270,11 +270,11 @@ Remaining modding work is activation breadth and authoring experience: runtime s
 
 ## Campaign And Energy Economy Modes
 
-`CampaignModeDirector` adds a scene-editable mother-planet campaign loop. Invader ships spawn in space-invader-style rows, sample gravity from the same bounded source architecture as the rest of the game, and choose between the player and the mother planet as pressure targets. Escort ships orbit the player/mother formation, attack nearby hostiles, and can be bought or hijacked into the fleet.
+`CampaignModeDirector` adds a scene-editable home-planet campaign loop. Invader ships spawn in space-invader-style rows, sample gravity from the same bounded source architecture as the rest of the game, and choose between the player and the home planet as pressure targets. Escort ships orbit the player/home-planet formation, attack nearby hostiles, and can be bought or hijacked into the fleet.
 
 Energy fragments now also feed `EnergyComponent.energy_currency`, and campaign runs mirror that value into `energy_credits`. The upgrade panel spends those credits on escort ships, speed, damage, armor, slingshot strength, and a hijack-next-ship order. Alien encounter planets use scene-authored turrets that can be bargained down or made hostile, keeping the new campaign layer tied to physics, gravity, and player-readable choices instead of flat menus.
 
-`Nodes/campaign_mode.tscn` and `Nodes/king_of_the_hill_mode.tscn` are playable entry points from the title screen. Both keep bosses/waves disabled in `OrbitalJuiceManager` so the campaign director owns pacing, while shared player, mother planet, escort, invader, and turret scenes remain editable in the Godot scene viewer.
+`Nodes/campaign_mode.tscn` and `Nodes/king_of_the_hill_mode.tscn` are playable entry points from the title screen. Both keep bosses/waves disabled in `OrbitalJuiceManager` so the campaign director owns pacing, while shared player, home planet, escort, invader, and turret scenes remain editable in the Godot scene viewer.
 
 Bundled mod catalogs now include `Mods/space_oregon_trail/vector_anomaly_mod.json` and `Mods/party_modes/vector_anomaly_mod.json`. These are declarative schema 4 packs for future route-day survival, space dysentery, gravity soccer, emote rounds, hijack variants, and battle-ship building without executing mod scripts.
 

@@ -116,6 +116,20 @@
           {"action": "emit_hud_badge", "content_id": "kinetic_guilt_badge"}
         ],
         "description": "A revenge-synergy hook with health gating and a bounded resonance request."
+      },
+      {
+        "id": "forge_run_seed",
+        "display_name": "Forge Run Seed",
+        "hooks": ["run_start"],
+        "network_category": "deterministic_seed",
+        "weight": 1.0,
+        "max_triggers": 1,
+        "effects": [
+          {"action": "emit_hud_badge", "content_id": "kinetic_guilt_badge"},
+          {"action": "offer_upgrade", "content_id": "orbit_receipt"},
+          {"action": "create_resonance_zone", "zone_type": "compression", "radius": 180.0, "intensity": 0.28, "duration": 1.8}
+        ],
+        "description": "Immediate visible proof that the Forge pack is active: badge, upgrade offer request, and a small compression pulse."
       }
     ],
     "hud_badges": [

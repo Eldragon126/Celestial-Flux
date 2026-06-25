@@ -443,6 +443,7 @@ func _on_impact(body: Node) -> void:
 		if body.is_in_group("bosses"):
 			damage *= boss_kinetic_damage_multiplier
 			_apply_boss_contact_rebound(body, speed)
+		_stamp_momentum_damage_context(body, damage, speed)
 		body.call("take_damage", damage)
 		_speed_cap_bonus = maxf(_speed_cap_bonus, impact_speed_cap_bonus)
 		_impact_cooldowns[id] = Time.get_ticks_msec() + (kinetic_impact_cooldown * 1000)
@@ -457,6 +458,30 @@ func _on_impact(body: Node) -> void:
 			_start_mastery_combo(&"impact", _node_position_or_player(body), mastery_combo_window * 0.66)
 		if shockwaves_enabled and speed >= shockwave_min_speed:
 			_create_kinetic_shockwave(body, speed)
+
+
+func _stamp_momentum_damage_context(body: Node, damage: float, speed: float) -> void:
+	if body == null or not is_instance_valid(body):
+		return
+	var body_2d := body as Node2D
+	var hit_position := body_2d.global_position if body_2d != null else _player.global_position
+	var direction := hit_position - _player.global_position
+	if direction.length_squared() <= 0.001:
+		direction = _player.velocity.normalized() if _player.velocity.length_squared() > 0.001 else Vector2.RIGHT
+	body.set_meta(&"last_damage_feedback_context", {
+		"damage_type": &"momentum",
+		"amount": damage,
+		"source_position": _player.global_position,
+		"source_velocity": _player.velocity,
+		"hit_position": hit_position,
+		"hit_direction": direction.normalized(),
+		"speed": speed,
+		"combo": _mastery_combo,
+		"was_momentum_hit": true,
+		"was_slingshot_hit": _mastery_timer > 0.0,
+		"was_apex": _current_mastery_tier() == &"god_vector",
+		"had_shockwave": shockwaves_enabled and speed >= shockwave_min_speed,
+	})
 
 
 func _connect_player_signals() -> void:

@@ -693,11 +693,11 @@ Those are future constellations. Right now you need a rocket that survives launc
 
 [x] Stop the moan sound effects - Something User should do, not Codex. Scoped: no `moan`-named audio asset or manifest entry was found in the project; this remains a user creative/audio replacement decision rather than a code deletion pass.
 
-[x] Make a campaign mode where you can get more ships that all work together and protect a mother planet or some sort of space invaders style campaign mode. Fixed: added `campaign_mode.tscn`, `CampaignModeDirector`, editable invader/escort/mother-planet scenes, escort buying, ship hijacking, mother-planet defense, and row-based invader waves.
+[x] Make a campaign mode where you can get more ships that all work together and protect a home planet or some sort of space invaders style campaign mode. Fixed: added `campaign_mode.tscn`, `CampaignModeDirector`, editable invader/escort/home-planet scenes, escort buying, ship hijacking, home-planet defense, and row-based invader waves.
 
 [x] The game should have aliens that you can barter with or fight on different planets. Make some planets hostile with guns on them. Fixed: campaign encounter planets now spawn editable planet turrets, barter/fight choices can pacify or activate hostile freeholds, and turret defeats award energy credits.
 
-[x] Continue to focus the game around physics. Fixed: campaign invaders and escorts use bounded gravity sampling, mother planets register as gravity sources, hostile planets anchor gun positions to planet radius, and all new economy/combat beats route through movement, gravity, and intercept decisions.
+[x] Continue to focus the game around physics. Fixed: campaign invaders and escorts use bounded gravity sampling, home planets register as gravity sources, hostile planets anchor gun positions to planet radius, and all new economy/combat beats route through movement, gravity, and intercept decisions.
 
 [x] Energy could function as a good currency. Fixed: `EnergyComponent` now has an energy-currency channel, physics drops can award fragments as currency, and campaign upgrades spend energy credits on escorts, speed, damage, armor, slingshot strength, and hijack orders.
 
@@ -707,7 +707,7 @@ Those are future constellations. Right now you need a rocket that survives launc
 
 
  Optional Additions:
-[x] Make king of the hill mode where you have to guard your planet. Fixed: added `king_of_the_hill_mode.tscn` with the shared campaign director configured for capture progress around the mother planet and contesting invaders.
+[x] Make king of the hill mode where you have to guard your planet. Fixed: added `king_of_the_hill_mode.tscn` with the shared campaign director configured for capture progress around the home planet and contesting invaders.
 
 [x] Have ways to upgrade your base speed / damage output / armor / slingshot ability. Fixed: the campaign upgrade panel now exposes editable buttons and exported costs for speed, damage, armor, slingshot power, escorts, and hijack orders.
 
@@ -1610,3 +1610,9 @@ Test the following:
 FINAL GOAL
 
 Combat should feel much more responsive and satisfying. The player should immediately understand that their weapons, movement, momentum, gravity tricks, and skillful attacks are affecting enemies. Every hit should tell the player something useful.
+
+[x] Error at (3, 12): Class "OrbitalTrajectoryPredictor" hides a global script class. in OrbitalTrajectoryPredictor. Fixed: `player.tscn` now references the external `res://Scripts/orbital_trajectory_predictor.gd` script directly, leaving the global class defined in one place.
+
+[x] ERROR: res://Nodes/player.tscn::GDScript_e3gfx:3 - Parse Error: "class_name" isn't allowed in built-in scripts. Fixed: removed the embedded built-in trajectory predictor script from the player scene, so the scene no longer tries to parse a `class_name` inside a sub-resource.
+
+[x] Verified by text scan: `GDScript_e3gfx` and duplicate `class_name OrbitalTrajectoryPredictor` references no longer exist in `Nodes/player.tscn`.

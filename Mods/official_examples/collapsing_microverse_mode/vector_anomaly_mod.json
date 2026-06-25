@@ -72,10 +72,19 @@
         "network_category": "deterministic_seed",
         "max_triggers": 1,
         "effects": [
+          {"action": "emit_hud_badge", "content_id": "microverse_badge"},
           {"action": "start_challenge_card", "challenge_id": "pocket_galaxy_trial", "display_name": "Pocket Galaxy Trial"},
           {"action": "request_wave_table", "content_id": "microverse_wave_table"}
         ],
         "description": "Shows how a mode can ask trusted directors for a mode-specific wave table."
+      }
+    ],
+    "hud_badges": [
+      {
+        "id": "microverse_badge",
+        "display_name": "Microverse",
+        "network_category": "local_visual",
+        "text": "MICROVERSE"
       }
     ],
     "wave_tables": [

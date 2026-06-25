@@ -522,6 +522,6 @@ This keeps high-chaos combat deterministic-feeling, readable, and bounded under 
 ## 2026-06-24 Campaign And Failure-Readability Update
 
 - Gravity Ghost player-facing text now presents the panel as `FINAL FLIGHT REPLAY`, adds an editable summary row, visible route start/impact/ship marker labels, and a legend for route, speed, projectile, hostile, hull, and gravity pressure. The underlying replay remains a bounded black-box reconstruction, not a world replay.
-- Campaign mode is now a scene-editable mother-planet defense loop. `CampaignModeDirector` owns waves, energy credits, upgrades, hijack orders, alien encounters, and KOTH capture, while invaders, escorts, hostile planet turrets, and the mother planet live in editable scenes with exported tuning.
+- Campaign mode is now a scene-editable home-planet defense loop. `CampaignModeDirector` owns waves, energy credits, upgrades, hijack orders, alien encounters, and KOTH capture, while invaders, escorts, hostile planet turrets, and the home planet live in editable scenes with exported tuning.
 - `EnergyComponent` now has a currency channel in addition to thrust energy. Physics drops can award currency, and campaign upgrades spend it on speed, damage, armor, slingshot power, escorts, and hijacking.
 - `Mods/space_oregon_trail` and `Mods/party_modes` add schema 4 catalogs for space-trail survival, space dysentery, hostile planet stops, gravity soccer, emotes, hijack variants, and battle-ship building without widening the script execution boundary.

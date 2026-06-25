@@ -1,16 +1,21 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://Scripts/campaign_mode_director.gd" id="1_campaign"]
 [ext_resource type="PackedScene" path="res://Nodes/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://Nodes/campaign_mother_planet.tscn" id="3_mother"]
 [ext_resource type="Script" path="res://Scripts/orbital_juice_manager.gd" id="4_juice"]
+[ext_resource type="PackedScene" path="res://Nodes/campaign_visual_director.tscn" id="5_visuals"]
+[ext_resource type="PackedScene" path="res://Nodes/campaign_dock_scene.tscn" id="6_dock_scene"]
 
 [node name="CampaignMode" type="Node2D" groups=["campaign_mode"]]
 script = ExtResource("1_campaign")
 retry_scene_path = "res://Nodes/campaign_mode.tscn"
-campaign_name = "Mother Planet Campaign"
+campaign_name = "Home Planet Campaign"
+dock_scene = ExtResource("6_dock_scene")
 
-[node name="MotherPlanet" parent="." instance=ExtResource("3_mother")]
+[node name="CampaignVisualDirector" parent="." instance=ExtResource("5_visuals")]
+
+[node name="HomePlanet" parent="." instance=ExtResource("3_mother")]
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector2(0, 520)
@@ -41,7 +46,7 @@ theme_override_constants/separation = 4
 [node name="StatusLabel" type="Label" parent="CampaignUI/HUD/Rows"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "DEFEND THE MOTHER VECTOR"
+text = "DEFEND THE HOME PLANET"
 
 [node name="WaveLabel" type="Label" parent="CampaignUI/HUD/Rows"]
 layout_mode = 2
@@ -51,9 +56,9 @@ text = "WAVE 0/12"
 layout_mode = 2
 text = "ENERGY CREDITS 0"
 
-[node name="MotherLabel" type="Label" parent="CampaignUI/HUD/Rows"]
+[node name="HomePlanetLabel" type="Label" parent="CampaignUI/HUD/Rows"]
 layout_mode = 2
-text = "MOTHER VECTOR 100%"
+text = "HOME PLANET 100%"
 
 [node name="EscortLabel" type="Label" parent="CampaignUI/HUD/Rows"]
 layout_mode = 2
@@ -132,3 +137,91 @@ text = "BARTER"
 custom_minimum_size = Vector2(374, 34)
 layout_mode = 2
 text = "FIGHT"
+
+[node name="TradePanel" type="PanelContainer" parent="CampaignUI"]
+visible = false
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -440.0
+offset_top = -230.0
+offset_right = -22.0
+offset_bottom = 230.0
+
+[node name="Rows" type="VBoxContainer" parent="CampaignUI/TradePanel"]
+layout_mode = 2
+theme_override_constants/separation = 9
+
+[node name="TradeTitleLabel" type="Label" parent="CampaignUI/TradePanel/Rows"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "MOTHERSHIP DOCK"
+horizontal_alignment = 1
+
+[node name="TradeStatusLabel" type="Label" parent="CampaignUI/TradePanel/Rows"]
+custom_minimum_size = Vector2(360, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Energy-credit market online."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="BuyEscortButton" type="Button" parent="CampaignUI/TradePanel/Rows"]
+custom_minimum_size = Vector2(360, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "BUY ESCORT"
+
+[node name="UpgradeSpeedButton" type="Button" parent="CampaignUI/TradePanel/Rows"]
+custom_minimum_size = Vector2(360, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "UPGRADE SPEED"
+
+[node name="UpgradeDamageButton" type="Button" parent="CampaignUI/TradePanel/Rows"]
+custom_minimum_size = Vector2(360, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "UPGRADE DAMAGE"
+
+[node name="UpgradeArmorButton" type="Button" parent="CampaignUI/TradePanel/Rows"]
+custom_minimum_size = Vector2(360, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "REPAIR + ARMOR"
+
+[node name="UpgradeSlingshotButton" type="Button" parent="CampaignUI/TradePanel/Rows"]
+custom_minimum_size = Vector2(360, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "UPGRADE SLINGSHOT"
+
+[node name="HijackButton" type="Button" parent="CampaignUI/TradePanel/Rows"]
+custom_minimum_size = Vector2(360, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "HIJACK BEACON"
+
+[node name="TradeExitButton" type="Button" parent="CampaignUI/TradePanel/Rows"]
+custom_minimum_size = Vector2(360, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "UNDOCK"
+
+[node name="DockPromptLabel" type="Label" parent="CampaignUI"]
+visible = false
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -80.0
+offset_right = 280.0
+offset_bottom = -38.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.92)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 18
+text = "DOCK NEARBY"
+horizontal_alignment = 1
+vertical_alignment = 1

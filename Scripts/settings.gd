@@ -22,6 +22,29 @@ enum ColorblindMode {
 	TRITANOPIA,
 }
 
+enum DamageNumbersMode {
+	OFF,
+	MINIMAL,
+	FULL,
+}
+
+enum HitFlashMode {
+	REDUCED,
+	NORMAL,
+}
+
+enum SkillCalloutMode {
+	OFF,
+	IMPORTANT,
+	FULL,
+}
+
+enum CombatParticlesMode {
+	LOW,
+	NORMAL,
+	HIGH,
+}
+
 var input_type: bool = false # Controller true; mouse aim if false.
 var controller_deadzone: float = 0.24
 var controller_detect_threshold: float = 0.42
@@ -38,6 +61,10 @@ var reverse_thrust_scale: float = 0.46
 var strafe_turn_assist: float = 0.22
 var player_auto_orbit_enabled: bool = false
 var auto_orbiting_celestials_enabled: bool = true
+var damage_numbers_mode: int = DamageNumbersMode.FULL
+var hit_flash_mode: int = HitFlashMode.NORMAL
+var skill_callout_mode: int = SkillCalloutMode.FULL
+var combat_particles_mode: int = CombatParticlesMode.NORMAL
 
 
 func _ready() -> void:
@@ -106,6 +133,30 @@ func set_colorblind_mode(value: int) -> void:
 	save_settings()
 
 
+func set_damage_numbers_mode(value: int) -> void:
+	damage_numbers_mode = clampi(value, DamageNumbersMode.OFF, DamageNumbersMode.FULL)
+	_emit_accessibility_changed()
+	save_settings()
+
+
+func set_hit_flash_mode(value: int) -> void:
+	hit_flash_mode = clampi(value, HitFlashMode.REDUCED, HitFlashMode.NORMAL)
+	_emit_accessibility_changed()
+	save_settings()
+
+
+func set_skill_callout_mode(value: int) -> void:
+	skill_callout_mode = clampi(value, SkillCalloutMode.OFF, SkillCalloutMode.FULL)
+	_emit_accessibility_changed()
+	save_settings()
+
+
+func set_combat_particles_mode(value: int) -> void:
+	combat_particles_mode = clampi(value, CombatParticlesMode.LOW, CombatParticlesMode.HIGH)
+	_emit_accessibility_changed()
+	save_settings()
+
+
 func set_trackpad_direct_camera(value: bool) -> void:
 	trackpad_direct_camera = value
 	_emit_accessibility_changed()
@@ -164,6 +215,26 @@ func load_settings() -> void:
 		ColorblindMode.OFF,
 		ColorblindMode.TRITANOPIA
 	)
+	damage_numbers_mode = clampi(
+		int(config.get_value(SECTION_ACCESSIBILITY, "damage_numbers_mode", damage_numbers_mode)),
+		DamageNumbersMode.OFF,
+		DamageNumbersMode.FULL
+	)
+	hit_flash_mode = clampi(
+		int(config.get_value(SECTION_ACCESSIBILITY, "hit_flash_mode", hit_flash_mode)),
+		HitFlashMode.REDUCED,
+		HitFlashMode.NORMAL
+	)
+	skill_callout_mode = clampi(
+		int(config.get_value(SECTION_ACCESSIBILITY, "skill_callout_mode", skill_callout_mode)),
+		SkillCalloutMode.OFF,
+		SkillCalloutMode.FULL
+	)
+	combat_particles_mode = clampi(
+		int(config.get_value(SECTION_ACCESSIBILITY, "combat_particles_mode", combat_particles_mode)),
+		CombatParticlesMode.LOW,
+		CombatParticlesMode.HIGH
+	)
 	controller_deadzone = clampf(float(config.get_value(SECTION_INPUT, "controller_deadzone", controller_deadzone)), 0.08, 0.55)
 	controller_right_stick_aim = bool(config.get_value(SECTION_INPUT, "controller_right_stick_aim", controller_right_stick_aim))
 	trackpad_direct_camera = bool(config.get_value(SECTION_INPUT, "trackpad_direct_camera", trackpad_direct_camera))
@@ -185,6 +256,10 @@ func save_settings() -> void:
 	config.set_value(SECTION_ACCESSIBILITY, "reduce_flash", reduce_flash)
 	config.set_value(SECTION_ACCESSIBILITY, "readability_halos_enabled", readability_halos_enabled)
 	config.set_value(SECTION_ACCESSIBILITY, "colorblind_mode", colorblind_mode)
+	config.set_value(SECTION_ACCESSIBILITY, "damage_numbers_mode", damage_numbers_mode)
+	config.set_value(SECTION_ACCESSIBILITY, "hit_flash_mode", hit_flash_mode)
+	config.set_value(SECTION_ACCESSIBILITY, "skill_callout_mode", skill_callout_mode)
+	config.set_value(SECTION_ACCESSIBILITY, "combat_particles_mode", combat_particles_mode)
 	config.set_value(SECTION_INPUT, "controller_deadzone", controller_deadzone)
 	config.set_value(SECTION_INPUT, "controller_right_stick_aim", controller_right_stick_aim)
 	config.set_value(SECTION_INPUT, "trackpad_direct_camera", trackpad_direct_camera)
@@ -269,6 +344,10 @@ func export_accessibility_settings() -> Dictionary:
 		"reduce_flash": reduce_flash,
 		"readability_halos_enabled": readability_halos_enabled,
 		"colorblind_mode": colorblind_mode,
+		"damage_numbers_mode": damage_numbers_mode,
+		"hit_flash_mode": hit_flash_mode,
+		"skill_callout_mode": skill_callout_mode,
+		"combat_particles_mode": combat_particles_mode,
 		"input_type": input_type,
 		"controller_deadzone": controller_deadzone,
 		"controller_right_stick_aim": controller_right_stick_aim,

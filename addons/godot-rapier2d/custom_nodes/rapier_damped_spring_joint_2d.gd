@@ -70,7 +70,21 @@ func _has_valid_joint_nodes() -> bool:
 	return get_node_or_null(node_a) != null and get_node_or_null(node_b) != null
 
 func _update_ik_options() -> void:
-	pass
+	if not is_inside_tree():
+		return
+	
+	var joint_rid := get_rid()
+	if not joint_rid.is_valid():
+		return
+	
+	RapierPhysicsServer2D.joint_set_ik_options(
+		joint_rid,
+		ik_damping,
+		ik_max_iterations,
+		_ik_constrained_axes,
+		0.001,
+		0.001,
+	)
 
 func _update_constrained_axes() -> void:
 	_ik_constrained_axes = 0
@@ -85,8 +99,17 @@ func _update_constrained_axes() -> void:
 		_update_ik_options()
 
 
-func set_joint_type(_type: int) -> void:
-	pass
+func set_joint_type(type: int) -> void:
+	RapierPhysicsServer2D.joint_set_extra_param(get_rid(), RapierPhysicsServer2D.JOINT_TYPE, type)
 
-func solve_ik(_target_transform: Transform2D) -> void:
-	pass
+func solve_ik(target_transform: Transform2D) -> void:
+	if not is_inside_tree():
+		return
+	
+	var joint_rid := get_rid()
+	if not joint_rid.is_valid():
+		return
+	if not _has_valid_joint_nodes():
+		return
+	
+	RapierPhysicsServer2D.joint_solve_inverse_kinematics(joint_rid, target_transform)

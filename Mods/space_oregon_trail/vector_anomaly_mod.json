@@ -31,8 +31,8 @@
         "display_name": "Space Oregon Trail",
         "network_category": "deterministic_seed",
         "scene": "res://Nodes/campaign_mode.tscn",
-        "tags": ["convoy", "mother-planet", "travel-days"],
-        "description": "Campaign-mode rules retuned into a physics convoy where the mother planet is the wagon and energy credits are food, fuel, medicine, and ammunition."
+        "tags": ["convoy", "home-planet", "travel-days"],
+        "description": "Campaign-mode rules retuned into a physics convoy where the home planet is the wagon and energy credits are food, fuel, medicine, and ammunition."
       }
     ],
     "campaigns": [
@@ -55,7 +55,7 @@
         "missions": [
           "hunt_for_ion_meat",
           "ford_the_magnetar_stream",
-          "repair_the_mother_planet_axle",
+          "repair_the_home_planet_axle",
           "barter_for_antirad_medicine",
           "outrun_the_solar_winter"
         ],
@@ -72,7 +72,7 @@
         "effects": {
           "energy_credit_drain_per_day": 6,
           "escort_reaction_penalty": 0.08,
-          "mother_planet_repair_penalty": 0.18
+          "home_planet_repair_penalty": 0.18
         },
         "description": "The classic trail disaster, rebuilt as a bounded convoy-management status effect instead of random instant failure."
       },
@@ -95,7 +95,7 @@
         "network_category": "deterministic_seed",
         "entries": ["campaign_invader", "phase_slip_swarm", "base_shooter_enemy"],
         "tags": ["raiders", "convoy-pressure"],
-        "description": "Enemy pack for space-bandit ambushes that pressure escorts and the mother planet instead of only chasing the player."
+        "description": "Enemy pack for space-bandit ambushes that pressure escorts and the home planet instead of only chasing the player."
       }
     ],
     "planet_packs": [

@@ -13,6 +13,7 @@ const PARTICLE_FOCUS_CULLER_SCENE = preload("res://Nodes/particle_focus_culler.t
 const THRUSTER_TRAILS_SCENE = preload("res://Nodes/player_thruster_trails.tscn")
 const ENGINE_HUM_SCENE = preload("res://Nodes/player_engine_hum.tscn")
 const CAMERA_SHAKE_SCENE = preload("res://Nodes/player_damage_camera_shake.tscn")
+const DAMAGE_INDICATOR_MANAGER_SCENE = preload("res://Nodes/damage_indicator_manager.tscn")
 const SPARK_WATCHER_SCENE = preload("res://Nodes/projectile_spark_watcher.tscn")
 const DEBUG_BALANCE_OVERLAY_SCENE = preload("res://Nodes/debug_balance_overlay.tscn")
 const GRAVITY_HEAT_MAP_OVERLAY_SCENE = preload("res://Nodes/gravity_heat_map_overlay.tscn")
@@ -80,6 +81,7 @@ const CENTRIFUGE_MARSHAL_SCENE = preload("res://Nodes/centrifuge_marshal_boss.ts
 @export var attach_enemy_readability = true
 @export var attach_performance_budget = true
 @export var attach_particle_focus_culler = true
+@export var attach_damage_indicators = true
 @export var attach_momentum_combat = true
 @export var attach_planet_atmospheres = true
 @export var attach_projectile_sparks = true
@@ -172,7 +174,11 @@ func _install_modular_additions() -> void:
 	var players := _get_player_nodes()
 	var player := _primary_player_from_list(players)
 
+	if enable_mod_content_registry:
+		_add_child_scene_once(level_root, MOD_CONTENT_REGISTRY_SCENE, "ModContentRegistry")
 	_add_child_scene_once(level_root, HUD_SCENE, "OrbitalHUD")
+	if attach_damage_indicators:
+		_add_child_scene_once(level_root, DAMAGE_INDICATOR_MANAGER_SCENE, "DamageIndicatorManager")
 	if enable_gravity_heat_map_overlay:
 		_add_child_scene_once(level_root, GRAVITY_HEAT_MAP_OVERLAY_SCENE, "GravityHeatMapOverlay")
 	if attach_gameplay_teaching:
@@ -181,8 +187,6 @@ func _install_modular_additions() -> void:
 		_add_child_scene_once(level_root, PERFORMANCE_BUDGET_SCENE, "PerformanceBudgetDirector")
 	if attach_particle_focus_culler:
 		_add_child_scene_once(level_root, PARTICLE_FOCUS_CULLER_SCENE, "ParticleFocusCuller")
-	if enable_mod_content_registry:
-		_add_child_scene_once(level_root, MOD_CONTENT_REGISTRY_SCENE, "ModContentRegistry")
 	if enable_mod_hook_director:
 		_add_child_scene_once(level_root, MOD_HOOK_DIRECTOR_SCENE, "ModHookDirector")
 	if enable_physics_drop_system:

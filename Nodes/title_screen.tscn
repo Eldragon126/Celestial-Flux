@@ -225,6 +225,42 @@ theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 50
 text = "King Hill"
 
+[node name="SteamDemoButton" type="Button" parent="Menu"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
+theme_override_font_sizes/font_size = 50
+text = "Steam Demo"
+
+[node name="ClipLabButton" type="Button" parent="Menu"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
+theme_override_font_sizes/font_size = 50
+text = "Clip Lab"
+
+[node name="ModManagerButton" type="Button" parent="Menu"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
+theme_override_font_sizes/font_size = 50
+text = "Mods"
+
+[node name="OtherPlayModesButton" type="Button" parent="Menu"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
+theme_override_font_sizes/font_size = 50
+text = "Other Play Modes"
+
+[node name="SettingsButton" type="Button" parent="Menu"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
+theme_override_font_sizes/font_size = 50
+text = "Settings"
+
+[node name="QuitButton" type="Button" parent="Menu"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
+theme_override_font_sizes/font_size = 50
+text = "Quit"
+
 [node name="VersionLabel" type="Label" parent="." unique_id=1069735682]
 layout_mode = 1
 anchors_preset = 3
