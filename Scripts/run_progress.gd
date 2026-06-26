@@ -18,8 +18,10 @@ signal run_completed
 
 const SAVE_PATH := "user://run_anchor.save"
 const PERSISTENT_COLLAPSE_PATH := "user://simulation_collapse.save"
+const OPTIONAL_CHALLENGE_PATH := "user://optional_challenge_progress.save"
 const SAVE_VERSION := 1
 const PERSISTENT_COLLAPSE_VERSION := 1
+const OPTIONAL_CHALLENGE_VERSION := 1
 const MAX_PERSISTENT_COLLAPSE_SCARS := 28
 
 const BOSS_MILESTONE_WAVES: Array[int] = [5, 10, 15, 20, 25, 30, 35, 40]
@@ -52,6 +54,7 @@ var has_anchor: bool = false
 var run_finished: bool = false
 var last_death_message: String = ""
 var last_gravity_ghost_replay: Dictionary = {}
+var optional_challenge_state: Dictionary = {}
 
 var _rng := RandomNumberGenerator.new()
 
@@ -59,6 +62,7 @@ var _rng := RandomNumberGenerator.new()
 func _ready() -> void:
 	has_anchor = FileAccess.file_exists(SAVE_PATH)
 	_load_persistent_collapse()
+	_load_optional_challenge_state()
 
 
 func begin_new_run(use_challenge: bool = false, seed_override: int = 0) -> void:
@@ -358,6 +362,192 @@ func get_last_gravity_ghost_replay() -> Dictionary:
 func get_run_seed_code() -> String:
 	var mode := "boss_rush" if boss_rush_mode else ("challenge" if challenge_mode else "standard")
 	return "%s:%d:%d" % [mode, run_seed, wave_index]
+
+
+func get_optional_challenge_summary() -> Dictionary:
+	_ensure_optional_challenge_defaults()
+	return optional_challenge_state.duplicate(true)
+
+
+func set_selected_optional_challenge(rift_id: StringName, blackbox_id: StringName = &"", contract_id: StringName = &"") -> void:
+	arena_flags["selected_optional_rift"] = String(rift_id)
+	arena_flags["selected_blackbox_challenge"] = String(blackbox_id)
+	arena_flags["selected_style_contract"] = String(contract_id)
+
+
+func record_anomaly_shard_collected(shard_id: StringName, data: Dictionary = {}) -> void:
+	_ensure_optional_challenge_defaults()
+	if String(shard_id).is_empty():
+		return
+	var shards: Dictionary = optional_challenge_state.get("collected_shards", {})
+	shards[String(shard_id)] = _simple_optional_record(data)
+	optional_challenge_state["collected_shards"] = shards
+	_save_optional_challenge_state()
+
+
+func is_anomaly_shard_collected(shard_id: StringName) -> bool:
+	_ensure_optional_challenge_defaults()
+	var shards: Dictionary = optional_challenge_state.get("collected_shards", {})
+	return shards.has(String(shard_id))
+
+
+func record_blackbox_tape_collected(tape_id: StringName, unlocks: Array = []) -> void:
+	_ensure_optional_challenge_defaults()
+	if String(tape_id).is_empty():
+		return
+	var tapes: Dictionary = optional_challenge_state.get("collected_blackbox_tapes", {})
+	tapes[String(tape_id)] = {
+		"collected": true,
+		"unlocks": _string_array(unlocks),
+		"timestamp_msec": Time.get_ticks_msec(),
+	}
+	optional_challenge_state["collected_blackbox_tapes"] = tapes
+	for unlock in unlocks:
+		unlock_blackbox_challenge(StringName(str(unlock)), false)
+	_save_optional_challenge_state()
+
+
+func is_blackbox_tape_collected(tape_id: StringName) -> bool:
+	_ensure_optional_challenge_defaults()
+	var tapes: Dictionary = optional_challenge_state.get("collected_blackbox_tapes", {})
+	return tapes.has(String(tape_id))
+
+
+func unlock_blackbox_challenge(challenge_id: StringName, save_now: bool = true) -> void:
+	_ensure_optional_challenge_defaults()
+	if String(challenge_id).is_empty():
+		return
+	var unlocked: Dictionary = optional_challenge_state.get("unlocked_blackbox", {})
+	unlocked[String(challenge_id)] = true
+	optional_challenge_state["unlocked_blackbox"] = unlocked
+	if save_now:
+		_save_optional_challenge_state()
+
+
+func is_blackbox_challenge_unlocked(challenge_id: StringName) -> bool:
+	_ensure_optional_challenge_defaults()
+	var unlocked: Dictionary = optional_challenge_state.get("unlocked_blackbox", {})
+	return bool(unlocked.get(String(challenge_id), false))
+
+
+func record_rift_cleared(rift_id: StringName, clear_time: float, perfect: bool = false, contract_id: StringName = &"") -> void:
+	_ensure_optional_challenge_defaults()
+	if String(rift_id).is_empty():
+		return
+	var rift_key := String(rift_id)
+	var cleared: Dictionary = optional_challenge_state.get("cleared_rifts", {})
+	cleared[rift_key] = true
+	optional_challenge_state["cleared_rifts"] = cleared
+
+	var best_times: Dictionary = optional_challenge_state.get("best_times", {})
+	var previous := float(best_times.get(rift_key, INF))
+	if clear_time > 0.0 and clear_time < previous:
+		best_times[rift_key] = clear_time
+	optional_challenge_state["best_times"] = best_times
+
+	if perfect:
+		var perfects: Dictionary = optional_challenge_state.get("perfect_clears", {})
+		perfects[rift_key] = true
+		optional_challenge_state["perfect_clears"] = perfects
+
+	if not String(contract_id).is_empty():
+		var contracts: Dictionary = optional_challenge_state.get("completed_contracts", {})
+		if not contracts.has(rift_key):
+			contracts[rift_key] = {}
+		var rift_contracts: Dictionary = contracts[rift_key]
+		rift_contracts[String(contract_id)] = true
+		contracts[rift_key] = rift_contracts
+		optional_challenge_state["completed_contracts"] = contracts
+	_save_optional_challenge_state()
+
+
+func is_rift_cleared(rift_id: StringName) -> bool:
+	_ensure_optional_challenge_defaults()
+	var cleared: Dictionary = optional_challenge_state.get("cleared_rifts", {})
+	return bool(cleared.get(String(rift_id), false))
+
+
+func _load_optional_challenge_state() -> void:
+	optional_challenge_state = _default_optional_challenge_state()
+	if not FileAccess.file_exists(OPTIONAL_CHALLENGE_PATH):
+		return
+	var file := FileAccess.open(OPTIONAL_CHALLENGE_PATH, FileAccess.READ)
+	if file == null:
+		return
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return
+	var data: Dictionary = parsed
+	if int(data.get("version", 0)) != OPTIONAL_CHALLENGE_VERSION:
+		return
+	for key in optional_challenge_state.keys():
+		if data.has(key):
+			optional_challenge_state[key] = data[key]
+
+
+func _save_optional_challenge_state() -> void:
+	_ensure_optional_challenge_defaults()
+	var data := optional_challenge_state.duplicate(true)
+	data["version"] = OPTIONAL_CHALLENGE_VERSION
+	var file := FileAccess.open(OPTIONAL_CHALLENGE_PATH, FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_string(JSON.stringify(data))
+	file.close()
+
+
+func _ensure_optional_challenge_defaults() -> void:
+	if optional_challenge_state.is_empty():
+		optional_challenge_state = _default_optional_challenge_state()
+	var defaults := _default_optional_challenge_state()
+	for key in defaults.keys():
+		if not optional_challenge_state.has(key):
+			optional_challenge_state[key] = defaults[key]
+
+
+func _default_optional_challenge_state() -> Dictionary:
+	return {
+		"version": OPTIONAL_CHALLENGE_VERSION,
+		"collected_shards": {},
+		"collected_blackbox_tapes": {},
+		"unlocked_blackbox": {},
+		"cleared_rifts": {},
+		"best_times": {},
+		"perfect_clears": {},
+		"completed_contracts": {},
+		"unlocked_rifts": {
+			"no_thrust_rift": true,
+			"one_dash_rift": true,
+			"inverted_orbit_rift": true,
+			"personal_gravity_flip_rift": true,
+			"time_scar_rift": true,
+		},
+	}
+
+
+func _simple_optional_record(data: Dictionary) -> Dictionary:
+	var record := {
+		"collected": true,
+		"timestamp_msec": Time.get_ticks_msec(),
+	}
+	for key in data.keys():
+		var value: Variant = data[key]
+		if value is Vector2:
+			var vec := value as Vector2
+			record[String(key)] = {"x": vec.x, "y": vec.y}
+		elif value is StringName:
+			record[String(key)] = String(value)
+		elif typeof(value) in [TYPE_BOOL, TYPE_INT, TYPE_FLOAT, TYPE_STRING]:
+			record[String(key)] = value
+	return record
+
+
+func _string_array(values: Array) -> Array[String]:
+	var result: Array[String] = []
+	for value in values:
+		result.append(str(value))
+	return result
 
 
 func seed_from_code(text: String) -> int:

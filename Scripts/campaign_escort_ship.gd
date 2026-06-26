@@ -4,6 +4,38 @@ class_name CampaignEscortShip
 signal escort_destroyed(escort: CampaignEscortShip)
 signal escort_hit_target(target: Node, damage: float)
 
+enum EscortType {
+	FIGHTER,
+	DEFENDER,
+	INTERCEPTOR,
+	REPAIR_DRONE,
+	GRAVITY_TUG,
+	SHIELD_DRONE,
+	BOMBER,
+}
+
+const FLEET_COMMAND_DEFEND := &"defend_planet"
+const FLEET_COMMAND_FOLLOW := &"follow_player"
+const FLEET_COMMAND_ATTACK := &"attack_priority"
+const FLEET_COMMAND_PROTECT := &"protect_trader"
+const FLEET_COMMAND_RECOVER := &"recover_salvage"
+const FLEET_COMMAND_HOLD := &"hold_formation"
+const FLEET_COMMAND_REPAIR := &"retreat_repair"
+
+@export_group("Campaign Role")
+@export_enum("Fighter", "Defender", "Interceptor", "Repair Drone", "Gravity Tug", "Shield Drone", "Bomber") var escort_type: int = EscortType.FIGHTER
+@export var fleet_command: StringName = FLEET_COMMAND_DEFEND
+@export var role_color_override_enabled: bool = true
+@export var defender_home_bias: float = 0.82
+@export var interceptor_attack_radius_bonus: float = 220.0
+@export var bomber_damage_multiplier: float = 1.85
+@export var bomber_fire_interval_multiplier: float = 1.42
+@export var repair_per_second: float = 12.0
+@export var shield_drone_repair_multiplier: float = 0.72
+@export var repair_radius: float = 420.0
+@export var gravity_tug_force: float = 460.0
+@export var recovery_scan_radius: float = 760.0
+
 @export var max_health: float = 130.0
 @export var follow_force: float = 1850.0
 @export var gravity_constant: float = 120.0
@@ -40,6 +72,7 @@ var _core: Polygon2D = null
 var _shield_ring: Line2D = null
 var _wing_line: Line2D = null
 var _engine_trail: Line2D = null
+var _command_target: Node2D = null
 
 
 func configure(index: int, player_node: Node2D, mother_node: Node2D, hull_color: Color) -> void:
@@ -49,6 +82,25 @@ func configure(index: int, player_node: Node2D, mother_node: Node2D, hull_color:
 	self.hull_color = hull_color
 	if _hull != null:
 		_hull.color = hull_color
+
+
+func configure_campaign_role(type_id: int, command: StringName = FLEET_COMMAND_DEFEND) -> void:
+	escort_type = clampi(type_id, EscortType.FIGHTER, EscortType.BOMBER)
+	set_fleet_command(command)
+	_apply_role_palette()
+
+
+func set_fleet_command(command: StringName) -> void:
+	fleet_command = _normalize_command(command)
+	set_meta(&"fleet_command", String(fleet_command))
+
+
+func repair(amount: float) -> float:
+	if amount <= 0.0 or current_health >= max_health:
+		return 0.0
+	var before := current_health
+	current_health = minf(current_health + amount, max_health)
+	return current_health - before
 
 
 func _ready() -> void:
@@ -63,6 +115,7 @@ func _ready() -> void:
 	_beam = get_node_or_null("EscortBeam") as Line2D
 	_build_collision()
 	_build_visuals()
+	_apply_role_palette()
 
 
 func _physics_process(delta: float) -> void:
@@ -75,11 +128,14 @@ func _physics_process(delta: float) -> void:
 
 	var target := _nearest_hostile()
 	var desired_position := _formation_position()
-	if target != null:
+	_perform_support_actions(delta)
+	if target != null and fleet_command != FLEET_COMMAND_REPAIR and fleet_command != FLEET_COMMAND_HOLD:
 		var target_offset := target.global_position - global_position
 		if target_offset.length() > attack_radius * 0.55:
 			desired_position = target.global_position - target_offset.normalized() * attack_radius * 0.42
 		_try_fire(target)
+		if escort_type == EscortType.GRAVITY_TUG:
+			_apply_gravity_tug(target, delta)
 
 	var to_desired := desired_position - global_position
 	var steering := to_desired.limit_length(1.0) * follow_force
@@ -102,19 +158,23 @@ func take_damage(amount: float) -> void:
 
 
 func _formation_position() -> Vector2:
-	var anchor := player if player != null and is_instance_valid(player) else mother_planet
+	var anchor := _command_anchor()
 	if anchor == null or not is_instance_valid(anchor):
 		return global_position
 	var angle := TAU * float(escort_index) / 6.0 + Time.get_ticks_msec() * 0.00028
 	var mother_bias := Vector2.ZERO
 	if mother_planet != null and is_instance_valid(mother_planet):
-		mother_bias = (mother_planet.global_position - anchor.global_position) * 0.18
-	return anchor.global_position + mother_bias + Vector2.RIGHT.rotated(angle) * formation_radius
+		var bias := defender_home_bias if escort_type == EscortType.DEFENDER or fleet_command == FLEET_COMMAND_DEFEND else 0.18
+		mother_bias = (mother_planet.global_position - anchor.global_position) * bias
+	if fleet_command == FLEET_COMMAND_HOLD:
+		mother_bias *= 0.5
+	return anchor.global_position + mother_bias + Vector2.RIGHT.rotated(angle) * _role_formation_radius()
 
 
 func _nearest_hostile() -> Node2D:
 	var best: Node2D = null
-	var best_distance := attack_radius * attack_radius
+	var radius := attack_radius + (interceptor_attack_radius_bonus if escort_type == EscortType.INTERCEPTOR or fleet_command == FLEET_COMMAND_ATTACK else 0.0)
+	var best_distance := radius * radius
 	for group_name in [&"campaign_invader", &"enemies", &"wave_enemy"]:
 		for value in get_tree().get_nodes_in_group(group_name):
 			var candidate := value as Node2D
@@ -130,14 +190,143 @@ func _nearest_hostile() -> Node2D:
 
 
 func _try_fire(target: Node2D) -> void:
-	if _fire_elapsed < attack_interval:
+	var interval := attack_interval * (bomber_fire_interval_multiplier if escort_type == EscortType.BOMBER else 1.0)
+	if _fire_elapsed < interval:
 		return
 	_fire_elapsed = 0.0
-	var damage := attack_damage * maxf(damage_multiplier, 0.1)
+	var damage := attack_damage * maxf(damage_multiplier, 0.1) * _role_damage_multiplier()
 	if target.has_method("take_damage"):
 		target.call("take_damage", damage)
 		escort_hit_target.emit(target, damage)
 	_draw_beam(target.global_position)
+
+
+func _perform_support_actions(delta: float) -> void:
+	if mother_planet == null or not is_instance_valid(mother_planet):
+		return
+	if escort_type != EscortType.REPAIR_DRONE and escort_type != EscortType.SHIELD_DRONE and fleet_command != FLEET_COMMAND_REPAIR:
+		return
+	if global_position.distance_to(mother_planet.global_position) > repair_radius:
+		return
+	if mother_planet.has_method("repair"):
+		var amount := repair_per_second * delta
+		if escort_type == EscortType.SHIELD_DRONE:
+			amount *= shield_drone_repair_multiplier
+		mother_planet.call("repair", amount)
+
+
+func _apply_gravity_tug(target: Node2D, delta: float) -> void:
+	if target == null or not is_instance_valid(target):
+		return
+	var velocity_value: Variant = target.get("velocity")
+	if not (velocity_value is Vector2):
+		return
+	var offset := global_position - target.global_position
+	if offset.length_squared() <= 0.001:
+		return
+	target.set("velocity", (velocity_value as Vector2) + offset.normalized() * gravity_tug_force * delta)
+
+
+func _command_anchor() -> Node2D:
+	match fleet_command:
+		FLEET_COMMAND_FOLLOW:
+			return player if player != null and is_instance_valid(player) else mother_planet
+		FLEET_COMMAND_ATTACK:
+			_command_target = _nearest_hostile()
+			return _command_target if _command_target != null else (player if player != null and is_instance_valid(player) else mother_planet)
+		FLEET_COMMAND_PROTECT:
+			var trader := _nearest_friendly_mothership()
+			return trader if trader != null else mother_planet
+		FLEET_COMMAND_RECOVER:
+			var salvage := _nearest_recovery_target()
+			return salvage if salvage != null else (player if player != null and is_instance_valid(player) else mother_planet)
+		FLEET_COMMAND_REPAIR:
+			return mother_planet
+		FLEET_COMMAND_HOLD:
+			return mother_planet if mother_planet != null and is_instance_valid(mother_planet) else player
+	if escort_type == EscortType.DEFENDER or escort_type == EscortType.REPAIR_DRONE or escort_type == EscortType.SHIELD_DRONE:
+		return mother_planet
+	return player if player != null and is_instance_valid(player) else mother_planet
+
+
+func _nearest_friendly_mothership() -> Node2D:
+	var best: Node2D = null
+	var best_distance := INF
+	for value in get_tree().get_nodes_in_group("campaign_mothership"):
+		var candidate := value as Node2D
+		if candidate == null or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
+			continue
+		if candidate.has_method("is_hostile") and bool(candidate.call("is_hostile")):
+			continue
+		var distance := global_position.distance_squared_to(candidate.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = candidate
+	return best
+
+
+func _nearest_recovery_target() -> Node2D:
+	var best: Node2D = null
+	var best_distance := recovery_scan_radius * recovery_scan_radius
+	for group_name in [&"anomaly_shard", &"blackbox_tape", &"campaign_salvage"]:
+		for value in get_tree().get_nodes_in_group(group_name):
+			var candidate := value as Node2D
+			if candidate == null or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
+				continue
+			var distance := global_position.distance_squared_to(candidate.global_position)
+			if distance < best_distance:
+				best_distance = distance
+				best = candidate
+	return best
+
+
+func _role_formation_radius() -> float:
+	match escort_type:
+		EscortType.DEFENDER, EscortType.REPAIR_DRONE, EscortType.SHIELD_DRONE:
+			return formation_radius * 0.82
+		EscortType.INTERCEPTOR:
+			return formation_radius * 1.18
+		EscortType.BOMBER:
+			return formation_radius * 1.05
+	return formation_radius
+
+
+func _role_damage_multiplier() -> float:
+	match escort_type:
+		EscortType.INTERCEPTOR:
+			return 1.16
+		EscortType.BOMBER:
+			return bomber_damage_multiplier
+		EscortType.REPAIR_DRONE, EscortType.SHIELD_DRONE:
+			return 0.62
+	return 1.0
+
+
+func _normalize_command(command: StringName) -> StringName:
+	match command:
+		FLEET_COMMAND_FOLLOW, FLEET_COMMAND_ATTACK, FLEET_COMMAND_PROTECT, FLEET_COMMAND_RECOVER, FLEET_COMMAND_HOLD, FLEET_COMMAND_REPAIR:
+			return command
+	return FLEET_COMMAND_DEFEND
+
+
+func _apply_role_palette() -> void:
+	if not role_color_override_enabled:
+		return
+	match escort_type:
+		EscortType.DEFENDER:
+			hull_color = Color(0.32, 0.78, 1.0, hull_color.a)
+		EscortType.INTERCEPTOR:
+			hull_color = Color(0.42, 1.0, 0.7, hull_color.a)
+		EscortType.REPAIR_DRONE:
+			hull_color = Color(0.58, 1.0, 0.88, hull_color.a)
+		EscortType.GRAVITY_TUG:
+			hull_color = Color(0.72, 0.66, 1.0, hull_color.a)
+		EscortType.SHIELD_DRONE:
+			hull_color = Color(0.38, 0.92, 1.0, hull_color.a)
+		EscortType.BOMBER:
+			hull_color = Color(1.0, 0.74, 0.34, hull_color.a)
+	if _hull != null:
+		_hull.color = hull_color
 
 
 func _gravity_acceleration() -> Vector2:

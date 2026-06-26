@@ -1,0 +1,48 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://Scripts/OptionalGameplay/optional_challenge_director.gd" id="1_director"]
+[ext_resource type="Script" path="res://Scripts/OptionalGameplay/anomaly_rift_portal.gd" id="2_portal"]
+[ext_resource type="Script" path="res://Scripts/OptionalGameplay/anomaly_shard.gd" id="3_shard"]
+[ext_resource type="Script" path="res://Scripts/OptionalGameplay/blackbox_tape.gd" id="4_tape"]
+[ext_resource type="Script" path="res://Scripts/OptionalGameplay/momentum_door.gd" id="5_door"]
+[ext_resource type="Script" path="res://Scripts/OptionalGameplay/vector_tunnel.gd" id="6_tunnel"]
+[ext_resource type="Script" path="res://Scripts/OptionalGameplay/secret_movement_tech_detector.gd" id="7_tech"]
+[ext_resource type="Script" path="res://Scripts/OptionalGameplay/anomaly_ghost_echo.gd" id="8_echo"]
+
+[node name="AnomalyRiftDemo" type="Node2D"]
+script = ExtResource("1_director")
+show_debug_notices = true
+
+[node name="NoThrustPortal" type="Area2D" parent="."]
+position = Vector2(-240, 0)
+script = ExtResource("2_portal")
+rift_id = &"no_thrust_rift"
+
+[node name="DemoShard" type="Area2D" parent="."]
+position = Vector2(180, -120)
+script = ExtResource("3_shard")
+shard_id = &"demo_anomaly_shard"
+rift_id = &"no_thrust_rift"
+
+[node name="DemoBlackboxTape" type="Area2D" parent="."]
+position = Vector2(380, 120)
+script = ExtResource("4_tape")
+tape_id = &"demo_blackbox_tape"
+unlocks_blackbox_challenges = Array[String](["time_scar_rift"])
+
+[node name="DemoMomentumDoor" type="Area2D" parent="."]
+position = Vector2(620, 0)
+script = ExtResource("5_door")
+required_speed = 850.0
+
+[node name="DemoVectorTunnel" type="Area2D" parent="."]
+position = Vector2(840, 0)
+script = ExtResource("6_tunnel")
+tunnel_force = 1200.0
+
+[node name="SecretMovementTechDetector" type="Node" parent="."]
+script = ExtResource("7_tech")
+
+[node name="AnomalyGhostEcho" type="Node2D" parent="."]
+script = ExtResource("8_echo")
+recording_enabled = false

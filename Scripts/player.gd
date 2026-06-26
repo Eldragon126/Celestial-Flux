@@ -9,6 +9,8 @@ signal death_lesson_generated(lesson: String)
 signal player_hit_invulnerability_started(duration: float)
 signal damage_ignored_during_invulnerability(amount: float)
 signal planet_super_boost_activated(source: Node, impulse: Vector2, energy_spent: float)
+signal dash_used(kind: StringName)
+signal thrust_used(delta: float, energy_cost: float)
 
 # ========================
 # == EXPORT VARIABLES ==
@@ -696,6 +698,9 @@ func apply_thrust(delta):
 	var reverse_pressed := Settings != null and bool(Settings.alternate_movement_enabled) and _alternate_reverse_pressed()
 	if not forward_pressed and not reverse_pressed:
 		return
+	if bool(get_meta(&"anomaly_no_thrust", false)):
+		set_meta(&"anomaly_no_thrust_violation_time", _now_seconds())
+		return
 
 	var dir = -transform.x.normalized()
 	var thrust_scale := 1.0
@@ -738,6 +743,7 @@ func apply_thrust(delta):
 			scale *= clampf(remaining / falloff_band, 0.0, 1.0)
 
 		velocity += force * scale * delta
+		thrust_used.emit(delta, energy_cost)
 
 
 func _alternate_reverse_pressed() -> bool:
@@ -956,6 +962,10 @@ func clamp_velocity():
 # ========================
 
 func boost(dir):
+	if bool(get_meta(&"anomaly_one_dash_only", false)) and bool(get_meta(&"anomaly_dash_used", false)):
+		return
+	set_meta(&"anomaly_dash_used", true)
+	dash_used.emit(&"dash")
 	velocity += dir * 2000.0
 
 	_dash_drag_suppressed = true
@@ -980,6 +990,8 @@ func boost(dir):
 
 func _try_planet_super_boost() -> bool:
 	if not _can_planet_super_boost():
+		return false
+	if bool(get_meta(&"anomaly_one_dash_only", false)) and bool(get_meta(&"anomaly_dash_used", false)):
 		return false
 
 	var source := closest_planet as Node2D
@@ -1008,6 +1020,8 @@ func _try_planet_super_boost() -> bool:
 	current_max_speed = maxf(current_max_speed, dash_speed_cap + super_boost_impulse * 0.35)
 	_planet_stuck_time = 0.0
 	_last_super_boost_time = _now_seconds()
+	set_meta(&"anomaly_dash_used", true)
+	dash_used.emit(&"planet_super_boost")
 	can_dash = false
 	_dash_drag_suppressed = true
 	_update_drag_state()

@@ -10,6 +10,32 @@ signal alien_encounter_started(faction_id: StringName, planet: Node)
 signal campaign_directive_changed(directive_id: StringName, label: String)
 signal campaign_reputation_changed(reputation: float)
 signal campaign_hijack_captured(invader: Node, escort: Node)
+signal campaign_state_changed(old_state: int, new_state: int)
+signal campaign_fleet_command_changed(command: StringName)
+signal campaign_debug_snapshot_changed(snapshot: Dictionary)
+
+enum CampaignState {
+	INIT,
+	PRE_WAVE,
+	WAVE_ACTIVE,
+	DIRECTIVE_ACTIVE,
+	DOCKING,
+	TRADE,
+	POST_WAVE,
+	CRISIS_CHOICE,
+	VICTORY,
+	DEFEAT,
+}
+
+enum FleetCommand {
+	DEFEND_PLANET,
+	FOLLOW_PLAYER,
+	ATTACK_PRIORITY,
+	PROTECT_TRADER,
+	RECOVER_SALVAGE,
+	HOLD_FORMATION,
+	RETREAT_REPAIR,
+}
 
 const GAME_OVER_SCENE := "res://Nodes/game_over_scene.tscn"
 const TITLE_SCENE := "res://Nodes/title_screen.tscn"
@@ -24,6 +50,22 @@ const INVADER_PROFILE_SKIRMISHER := 1
 const INVADER_PROFILE_INTERCEPTOR := 2
 const INVADER_PROFILE_BOMBER := 3
 const INVADER_PROFILE_GUARD := 4
+const INVADER_ROLE_PLANET_BREACHER := 0
+const INVADER_ROLE_INTERCEPTOR := 1
+const INVADER_ROLE_SIEGE_BOMBER := 2
+const INVADER_ROLE_HIJACKER := 3
+const INVADER_ROLE_CARRIER_DRONE := 4
+const INVADER_ROLE_SALVAGE_THIEF := 5
+const INVADER_ROLE_SHIELD_BREAKER := 6
+const INVADER_ROLE_FLEET_HUNTER := 7
+const INVADER_ROLE_GRAVITY_DIVER := 8
+const FLEET_COMMAND_DEFEND := &"defend_planet"
+const FLEET_COMMAND_FOLLOW := &"follow_player"
+const FLEET_COMMAND_ATTACK := &"attack_priority"
+const FLEET_COMMAND_PROTECT := &"protect_trader"
+const FLEET_COMMAND_RECOVER := &"recover_salvage"
+const FLEET_COMMAND_HOLD := &"hold_formation"
+const FLEET_COMMAND_REPAIR := &"retreat_repair"
 
 @export_group("Scene References")
 @export var player_path: NodePath = ^"Player"
@@ -63,7 +105,7 @@ const INVADER_PROFILE_GUARD := 4
 @export var interwave_home_planet_repair_per_second: float = 14.0
 
 @export_group("Campaign Operations")
-@export var wave_directive_cycle: Array[String] = ["breach", "intercept", "salvage", "hijack", "escort", "freehold"]
+@export var wave_directive_cycle: Array[String] = ["breach", "intercept", "salvage", "hijack", "escort", "carrier_assault", "siege", "gravity_storm", "trade_window", "freehold"]
 @export var standard_directive_label: String = "STANDARD RAID"
 @export var breach_directive_label: String = "BREACH VECTOR"
 @export var intercept_directive_label: String = "INTERCEPT SWARM"
@@ -71,6 +113,10 @@ const INVADER_PROFILE_GUARD := 4
 @export var hijack_directive_label: String = "CAPTURE WINDOW"
 @export var escort_directive_label: String = "ESCORT RENDEZVOUS"
 @export var freehold_directive_label: String = "FREEHOLD PRESSURE"
+@export var carrier_assault_directive_label: String = "CARRIER ASSAULT"
+@export var siege_directive_label: String = "SIEGE BREAKER"
+@export var gravity_storm_directive_label: String = "GRAVITY STORM"
+@export var trade_window_directive_label: String = "TRADE WINDOW"
 @export var directive_count_bonus: int = 1
 @export var breach_wave_count_bonus: int = 3
 @export_range(0.0, 1.0, 0.01) var breach_target_home_planet_bias: float = 0.86
@@ -79,6 +125,40 @@ const INVADER_PROFILE_GUARD := 4
 @export var salvage_invader_health_multiplier: float = 0.86
 @export var escort_directive_free_escort: bool = true
 @export var freehold_directive_wake_fraction: float = 0.5
+@export var carrier_assault_mothership_count: int = 1
+@export var carrier_assault_drone_bonus: int = 2
+@export var carrier_assault_reward_multiplier: float = 1.22
+@export var siege_wave_count_bonus: int = 2
+@export var siege_breach_damage_multiplier: float = 1.48
+@export var gravity_storm_duration: float = 14.0
+@export var gravity_storm_impulse: float = 128.0
+@export var gravity_storm_invader_speed_multiplier: float = 1.08
+@export var trade_window_invader_count_reduction: int = 3
+@export var trade_window_spawn_trader_if_missing: bool = true
+
+@export_group("Fleet Commands")
+@export var default_fleet_command: StringName = FLEET_COMMAND_DEFEND
+@export var command_panel_visible: bool = true
+@export var command_panel_path: NodePath = ^"CampaignUI/CommandPanel"
+@export var command_button_min_width: float = 148.0
+@export var command_button_min_height: float = 34.0
+@export var fleet_defend_key: Key = KEY_1
+@export var fleet_follow_key: Key = KEY_2
+@export var fleet_attack_key: Key = KEY_3
+@export var fleet_recover_key: Key = KEY_4
+@export var fleet_repair_key: Key = KEY_5
+@export var fleet_protect_key: Key = KEY_6
+@export var command_panel_bg_color: Color = Color(0.008, 0.022, 0.036, 0.88)
+@export var command_panel_border_color: Color = Color(0.36, 1.0, 0.84, 0.4)
+
+@export_group("AAA Campaign Debug")
+@export var show_campaign_debug_overlay: bool = false
+@export var debug_overlay_path: NodePath = ^"CampaignUI/CampaignDebugOverlay"
+@export var debug_overlay_refresh_interval: float = 0.2
+@export var debug_overlay_position: Vector2 = Vector2(18.0, 420.0)
+@export var debug_overlay_size: Vector2 = Vector2(430.0, 210.0)
+@export var debug_overlay_bg_color: Color = Color(0.0, 0.0, 0.0, 0.58)
+@export var debug_overlay_text_color: Color = Color(0.56, 1.0, 0.9, 0.9)
 
 @export_group("King Of The Hill")
 @export var king_of_hill_mode: bool = false
@@ -215,6 +295,14 @@ var _active_directive_label: String = "STANDARD RAID"
 var _active_directive_summary: String = "Intercept invaders before they reach the home planet."
 var _directive_reward_multiplier: float = 1.0
 var _mother_defense_pulse_remaining: float = 0.0
+var _campaign_state: int = CampaignState.INIT
+var _fleet_command: StringName = FLEET_COMMAND_DEFEND
+var _last_directive: StringName = &""
+var _active_objective_text: String = ""
+var _spawn_budget: int = 0
+var _threat_budget: float = 0.0
+var _gravity_storm_remaining: float = 0.0
+var _command_key_down: Dictionary = {}
 
 var _status_label: Label = null
 var _wave_label: Label = null
@@ -224,10 +312,13 @@ var _escort_label: Label = null
 var _upgrade_panel: Control = null
 var _alien_panel: Control = null
 var _alien_label: Label = null
+var _command_panel: Control = null
 var _trade_panel: Control = null
 var _trade_title_label: Label = null
 var _trade_status_label: Label = null
 var _dock_prompt_label: Label = null
+var _debug_overlay_label: Label = null
+var _debug_elapsed: float = 999.0
 var _active_trade_mothership: Node = null
 var _dock_scene_instance: Control = null
 var _dock_pre_pause_tree_paused: bool = false
@@ -240,6 +331,8 @@ var _registry: Node = null
 
 func _ready() -> void:
 	add_to_group("campaign_mode_director")
+	_fleet_command = _normalize_fleet_command(default_fleet_command)
+	_set_campaign_state(CampaignState.INIT)
 	_seed_rng()
 	_resolve_nodes()
 	_polish_campaign_ui_runtime()
@@ -254,17 +347,21 @@ func _ready() -> void:
 	_spawn_initial_escorts()
 	_spawn_encounter_planets()
 	_spawn_motherships()
+	_apply_fleet_command_to_escorts()
 	_update_ui()
 	_begin_next_wave()
 
 
 func _process(delta: float) -> void:
 	if _campaign_finished:
+		_update_campaign_debug_overlay(delta)
 		return
+	_handle_fleet_command_input()
 	_cleanup_lists()
 	_refresh_player_reference()
 	_status_override_remaining = maxf(_status_override_remaining - delta, 0.0)
 	_mother_defense_pulse_remaining = maxf(_mother_defense_pulse_remaining - delta, 0.0)
+	_update_gravity_storm(delta)
 	_apply_interwave_repair(delta)
 	_update_hill_capture(delta)
 	_update_docking_prompt()
@@ -280,6 +377,7 @@ func _process(delta: float) -> void:
 		if _wave_rest_remaining <= 0.0:
 			_begin_next_wave()
 	_update_ui()
+	_update_campaign_debug_overlay(delta)
 
 
 func add_campaign_credits(amount: int, reason: StringName = &"campaign") -> void:
@@ -296,20 +394,30 @@ func add_campaign_credits(amount: int, reason: StringName = &"campaign") -> void
 
 func get_campaign_visual_snapshot() -> Dictionary:
 	return {
+		"state": _campaign_state,
+		"state_label": _campaign_state_label(),
 		"directive": String(_active_directive),
 		"directive_label": _active_directive_label,
+		"objective": _active_objective_text,
+		"fleet_command": String(_fleet_command),
+		"active_invaders": _active_invaders.size(),
+		"escorts": _escorts.size(),
+		"spawn_budget": _spawn_budget,
+		"threat_budget": _threat_budget,
 		"route_progress": campaign_route_progress,
 		"route_goal": route_progress_goal,
 		"pending_hijack": _pending_hijack,
 		"home_planet_pulse_cooldown": _mother_defense_pulse_remaining,
 		"freehold_reputation": freehold_reputation,
 		"mother_pulse_cooldown": _mother_defense_pulse_remaining,
+		"gravity_storm_remaining": _gravity_storm_remaining,
 	}
 
 
 func _begin_next_wave() -> void:
 	if _campaign_finished:
 		return
+	_set_campaign_state(CampaignState.PRE_WAVE)
 	wave_index += 1
 	_select_wave_directive()
 	if RunProgress != null:
@@ -320,14 +428,21 @@ func _begin_next_wave() -> void:
 	var count := _invader_count_for_directive()
 	if king_of_hill_mode:
 		count += 2 + int(_hill_capture / maxf(hill_capture_goal, 1.0) * 3.0)
+	_spawn_budget = count
+	_threat_budget = float(count) * (1.0 + float(wave_index) * 0.12) * _directive_reward_multiplier
+	_active_objective_text = _objective_text_for_directive()
+	if _active_directive == &"trade_window":
+		_ensure_trade_window_mothership()
 	for index in range(count):
 		_spawn_invader(index, count)
 	_apply_start_of_wave_directive()
 	if _status_label != null:
 		_status_label.text = _active_directive_label if not king_of_hill_mode else "HOLD THE GRAVITY WELL"
+	_set_campaign_state(CampaignState.DIRECTIVE_ACTIVE if _active_directive != &"standard" else CampaignState.WAVE_ACTIVE)
 	campaign_wave_started.emit(wave_index)
 	campaign_directive_changed.emit(_active_directive, _active_directive_label)
 	_broadcast_campaign_state_now()
+	_emit_campaign_debug_snapshot()
 
 
 func _spawn_invader(index: int, count: int) -> void:
@@ -382,6 +497,10 @@ func _select_wave_directive() -> void:
 		var raw := wave_directive_cycle[(wave_index - 1) % wave_directive_cycle.size()].strip_edges().to_lower()
 		if not raw.is_empty():
 			directive = StringName(raw)
+		if directive == _last_directive and wave_directive_cycle.size() > 1:
+			var next_raw := wave_directive_cycle[wave_index % wave_directive_cycle.size()].strip_edges().to_lower()
+			if not next_raw.is_empty():
+				directive = StringName(next_raw)
 	_active_directive = directive
 	_directive_reward_multiplier = 1.0
 	if not _pending_hijack:
@@ -409,21 +528,43 @@ func _select_wave_directive() -> void:
 		&"freehold":
 			_active_directive_label = freehold_directive_label
 			_active_directive_summary = "Planet guns and freehold reputation shape the next dock prices."
+		&"carrier_assault":
+			_active_directive_label = carrier_assault_directive_label
+			_active_directive_summary = "A hostile carrier anchors the wave. Crack it before its drones overrun the planet."
+			_directive_reward_multiplier = maxf(carrier_assault_reward_multiplier, 0.1)
+		&"siege":
+			_active_directive_label = siege_directive_label
+			_active_directive_summary = "Shield breakers target the home planet. Command defenders and interrupt breaches."
+		&"gravity_storm":
+			_active_directive_label = gravity_storm_directive_label
+			_active_directive_summary = "The field is shearing. Read vector drift and use it before raiders do."
+		&"trade_window":
+			_active_directive_label = trade_window_directive_label
+			_active_directive_summary = "A trader enters the route while raiders probe the perimeter. Dock or defend."
 		_:
 			_active_directive = &"standard"
 			_active_directive_label = standard_directive_label
 			_active_directive_summary = "Intercept invaders before they reach the home planet."
+	_last_directive = _active_directive
 	if RunProgress != null:
 		RunProgress.arena_flags["campaign_directive"] = String(_active_directive)
 		RunProgress.arena_flags["campaign_directive_label"] = _active_directive_label
 
 
 func _invader_count_for_directive() -> int:
-	var count := invader_base_count + max(0, wave_index - 1) * invader_count_per_wave + directive_count_bonus
+	var count: int = invader_base_count + maxi(0, wave_index - 1) * invader_count_per_wave + directive_count_bonus
 	if _active_directive == &"breach":
 		count += breach_wave_count_bonus
 	elif _active_directive == &"escort":
 		count += 1
+	elif _active_directive == &"carrier_assault":
+		count += carrier_assault_drone_bonus
+	elif _active_directive == &"siege":
+		count += siege_wave_count_bonus
+	elif _active_directive == &"gravity_storm":
+		count += 1
+	elif _active_directive == &"trade_window":
+		count -= trade_window_invader_count_reduction
 	return maxi(count, 0)
 
 
@@ -432,6 +573,14 @@ func _target_for_invader(index: int) -> Node2D:
 		return _mother_planet
 	if _active_directive == &"intercept" and _rng.randf() <= intercept_player_target_bias:
 		return _player
+	if _active_directive == &"siege":
+		return _mother_planet
+	if _active_directive == &"carrier_assault" and not _escorts.is_empty() and index % 2 == 0:
+		var carrier_target := _escorts[index % _escorts.size()] as Node2D
+		if carrier_target != null and is_instance_valid(carrier_target):
+			return carrier_target
+	if _active_directive == &"trade_window" and _active_trade_mothership != null and is_instance_valid(_active_trade_mothership) and index % 3 == 0:
+		return _active_trade_mothership as Node2D
 	if _active_directive == &"escort" and not _escorts.is_empty() and index % 3 == 0:
 		var escort := _escorts[index % _escorts.size()] as Node2D
 		if escort != null and is_instance_valid(escort):
@@ -455,9 +604,21 @@ func _configure_invader_profile(invader: Node, index: int) -> void:
 			profile = INVADER_PROFILE_GUARD if index % 4 == 0 else INVADER_PROFILE_INTERCEPTOR
 		&"freehold":
 			profile = INVADER_PROFILE_SKIRMISHER if index % 2 == 0 else INVADER_PROFILE_BOMBER
+		&"carrier_assault":
+			profile = INVADER_PROFILE_GUARD if index % 3 == 0 else INVADER_PROFILE_INTERCEPTOR
+		&"siege":
+			profile = INVADER_PROFILE_BOMBER
+		&"gravity_storm":
+			profile = INVADER_PROFILE_SKIRMISHER if index % 2 == 0 else INVADER_PROFILE_INTERCEPTOR
+		&"trade_window":
+			profile = INVADER_PROFILE_INTERCEPTOR if index % 3 == 0 else INVADER_PROFILE_RAIDER
 	var value: Variant = invader.get("behavior_profile")
 	if value is int:
 		invader.set("behavior_profile", profile)
+	if invader.has_method("apply_campaign_role"):
+		invader.call("apply_campaign_role", _invader_role_for_directive(index))
+	elif invader.get("campaign_role") != null:
+		invader.set("campaign_role", _invader_role_for_directive(index))
 
 
 func _apply_directive_invader_tuning(invader: Node, _index: int) -> void:
@@ -482,6 +643,20 @@ func _apply_directive_invader_tuning(invader: Node, _index: int) -> void:
 		&"freehold":
 			_multiply_numeric_field(invader, &"fire_interval", 0.92)
 			_multiply_numeric_field(invader, &"reward_credits", 1.18, true)
+		&"carrier_assault":
+			_multiply_numeric_field(invader, &"max_health", 1.16)
+			_multiply_numeric_field(invader, &"attack_range", 1.16)
+			_multiply_numeric_field(invader, &"reward_credits", carrier_assault_reward_multiplier, true)
+		&"siege":
+			_multiply_numeric_field(invader, &"breach_damage", siege_breach_damage_multiplier)
+			_multiply_numeric_field(invader, &"max_health", 1.08)
+			_multiply_numeric_field(invader, &"max_speed", 0.92)
+		&"gravity_storm":
+			_multiply_numeric_field(invader, &"max_speed", gravity_storm_invader_speed_multiplier)
+			_multiply_numeric_field(invader, &"slingshot_gravity_weight", 1.18)
+		&"trade_window":
+			_multiply_numeric_field(invader, &"max_health", 0.9)
+			_multiply_numeric_field(invader, &"reward_credits", 1.1, true)
 
 
 func _multiply_numeric_field(target: Node, field: StringName, multiplier: float, round_to_int: bool = false) -> void:
@@ -506,6 +681,13 @@ func _apply_start_of_wave_directive() -> void:
 		_set_campaign_status("ESCORT RENDEZVOUS: FORMATION EXPANDED")
 	if _active_directive == &"freehold":
 		_wake_freehold_turrets()
+	if _active_directive == &"carrier_assault":
+		_spawn_hostile_carriers()
+		_set_campaign_status("CARRIER ASSAULT: HOSTILE COMMAND SHIP ON FIELD")
+	if _active_directive == &"trade_window":
+		_ensure_trade_window_mothership()
+	if _active_directive == &"gravity_storm":
+		_gravity_storm_remaining = maxf(gravity_storm_duration, 0.0)
 
 
 func _arm_invader_for_hijack_if_needed(invader: Node) -> void:
@@ -538,6 +720,147 @@ func _wake_freehold_turrets() -> void:
 			turret.call("set_hostile", true)
 
 
+func _invader_role_for_directive(index: int) -> int:
+	match _active_directive:
+		&"breach":
+			return INVADER_ROLE_PLANET_BREACHER
+		&"intercept":
+			return INVADER_ROLE_INTERCEPTOR
+		&"salvage":
+			return INVADER_ROLE_SALVAGE_THIEF
+		&"hijack":
+			return INVADER_ROLE_HIJACKER
+		&"escort":
+			return INVADER_ROLE_FLEET_HUNTER if index % 3 == 0 else INVADER_ROLE_INTERCEPTOR
+		&"carrier_assault":
+			return INVADER_ROLE_CARRIER_DRONE
+		&"siege":
+			return INVADER_ROLE_SHIELD_BREAKER if index % 3 == 0 else INVADER_ROLE_SIEGE_BOMBER
+		&"gravity_storm":
+			return INVADER_ROLE_GRAVITY_DIVER
+		&"trade_window":
+			return INVADER_ROLE_SALVAGE_THIEF if index % 2 == 0 else INVADER_ROLE_INTERCEPTOR
+	return INVADER_ROLE_PLANET_BREACHER if index % 4 != 0 else INVADER_ROLE_INTERCEPTOR
+
+
+func _objective_text_for_directive() -> String:
+	match _active_directive:
+		&"breach":
+			return "Keep breach ships outside %s shield radius." % _home_planet_name()
+		&"intercept":
+			return "Pull interceptors through gravity wells and survive their first pass."
+		&"salvage":
+			return "Destroy marked salvage carriers before they scatter credits."
+		&"hijack":
+			return "Disable a marked invader and convert it into an escort."
+		&"escort":
+			return "Preserve the formation until rendezvous telemetry locks."
+		&"freehold":
+			return "Manage freehold reputation while planet guns wake."
+		&"carrier_assault":
+			return "Break the hostile carrier and clear its drone screen."
+		&"siege":
+			return "Stop shield breakers before the home planet takes breach damage."
+		&"gravity_storm":
+			return "Use vector drift without letting raiders slingshot past you."
+		&"trade_window":
+			return "Defend the trader long enough to dock or finish the wave."
+	return "Intercept invaders before they reach the home planet."
+
+
+func _spawn_hostile_carriers() -> void:
+	if mothership_scene == null:
+		return
+	var count := maxi(carrier_assault_mothership_count, 0)
+	for index in range(count):
+		var carrier := mothership_scene.instantiate()
+		if carrier == null:
+			continue
+		var carrier_2d := carrier as Node2D
+		if carrier_2d == null:
+			carrier.queue_free()
+			continue
+		var anchor := _mother_planet.global_position if _mother_planet != null else Vector2.ZERO
+		var angle := TAU * float(index) / maxf(float(count), 1.0) + _rng.randf_range(-0.24, 0.24) + float(wave_index) * 0.37
+		carrier_2d.global_position = anchor + Vector2.RIGHT.rotated(angle) * (wave_spawn_radius * 0.82 + mothership_spawn_radial_stagger * float(index))
+		if carrier.has_method("configure"):
+			carrier.call("configure", 100 + wave_index + index, MOTHERSHIP_FACTION_HOSTILE, _mother_planet, _rng.randi())
+		_multiply_numeric_field(carrier, &"max_health", 1.0 + float(wave_index) * 0.05)
+		_multiply_numeric_field(carrier, &"reward_credits", carrier_assault_reward_multiplier, true)
+		add_child(carrier)
+		_motherships.append(carrier)
+		_active_invaders.append(carrier)
+		_connect_signal(carrier, &"docking_requested", Callable(self, "_on_mothership_docking_requested"))
+		_connect_signal(carrier, &"hostile_alert", Callable(self, "_on_mothership_hostile_alert"))
+		_connect_signal(carrier, &"mothership_destroyed", Callable(self, "_on_mothership_destroyed"))
+
+
+func _ensure_trade_window_mothership() -> void:
+	var trader := _nearest_non_hostile_mothership()
+	if trader == null and trade_window_spawn_trader_if_missing and mothership_scene != null:
+		trader = _spawn_trade_window_trader()
+	_active_trade_mothership = trader
+	if trader != null:
+		_set_campaign_status("TRADE WINDOW: DOCK WITH THE CARRIER OR CLEAR THE RAID")
+
+
+func _nearest_non_hostile_mothership() -> Node:
+	var best: Node = null
+	var best_distance := INF
+	var anchor := _mother_planet.global_position if _mother_planet != null else Vector2.ZERO
+	for mothership in _motherships:
+		var ship_2d := mothership as Node2D
+		if ship_2d == null or not is_instance_valid(ship_2d) or ship_2d.is_queued_for_deletion():
+			continue
+		if mothership.has_method("is_hostile") and bool(mothership.call("is_hostile")):
+			continue
+		var distance := ship_2d.global_position.distance_squared_to(anchor)
+		if distance < best_distance:
+			best = mothership
+			best_distance = distance
+	return best
+
+
+func _spawn_trade_window_trader() -> Node:
+	var trader := mothership_scene.instantiate()
+	if trader == null:
+		return null
+	var trader_2d := trader as Node2D
+	if trader_2d == null:
+		trader.queue_free()
+		return null
+	var anchor := _mother_planet.global_position if _mother_planet != null else Vector2.ZERO
+	var angle := _rng.randf_range(0.0, TAU)
+	trader_2d.global_position = anchor + Vector2.RIGHT.rotated(angle) * clampf(mothership_spawn_min_radius, 1200.0, mothership_spawn_max_radius)
+	if trader.has_method("configure"):
+		trader.call("configure", 200 + wave_index, MOTHERSHIP_FACTION_TRADER, _mother_planet, _rng.randi())
+	add_child(trader)
+	_motherships.append(trader)
+	_connect_signal(trader, &"docking_requested", Callable(self, "_on_mothership_docking_requested"))
+	_connect_signal(trader, &"hostile_alert", Callable(self, "_on_mothership_hostile_alert"))
+	_connect_signal(trader, &"mothership_destroyed", Callable(self, "_on_mothership_destroyed"))
+	return trader
+
+
+func _update_gravity_storm(delta: float) -> void:
+	if _gravity_storm_remaining <= 0.0:
+		return
+	_gravity_storm_remaining = maxf(_gravity_storm_remaining - delta, 0.0)
+	var phase := Time.get_ticks_msec() * 0.001
+	var direction := Vector2(cos(phase * 1.7), sin(phase * 1.13)).normalized()
+	var impulse := direction * gravity_storm_impulse * delta
+	for invader in _active_invaders:
+		if invader == null or not is_instance_valid(invader):
+			continue
+		var velocity_value: Variant = invader.get("velocity")
+		if velocity_value is Vector2:
+			invader.set("velocity", (velocity_value as Vector2) + impulse)
+	if _player != null and is_instance_valid(_player):
+		var player_velocity: Variant = _player.get("velocity")
+		if player_velocity is Vector2:
+			_player.set("velocity", (player_velocity as Vector2) + impulse * 0.34)
+
+
 func _advance_campaign_route() -> void:
 	campaign_route_progress = minf(campaign_route_progress + route_progress_per_wave, maxf(route_progress_goal, campaign_route_progress + route_progress_per_wave))
 	if RunProgress != null:
@@ -546,6 +869,8 @@ func _advance_campaign_route() -> void:
 
 func _complete_wave() -> void:
 	_wave_running = false
+	_set_campaign_state(CampaignState.POST_WAVE)
+	_gravity_storm_remaining = 0.0
 	if _pending_hijack_from_directive:
 		_pending_hijack = false
 		_pending_hijack_from_directive = false
@@ -567,10 +892,12 @@ func _complete_wave() -> void:
 	if alien_encounter_interval > 0 and wave_index % alien_encounter_interval == 0:
 		_start_alien_encounter()
 	_wave_rest_remaining = rest_between_waves
+	_emit_campaign_debug_snapshot()
 
 
 func _finish_campaign() -> void:
 	_campaign_finished = true
+	_set_campaign_state(CampaignState.VICTORY)
 	if _status_label != null:
 		_status_label.text = "CAMPAIGN STABILIZED"
 	if RunProgress != null:
@@ -585,6 +912,7 @@ func _finish_campaign() -> void:
 
 func _end_campaign(reason: String) -> void:
 	_campaign_finished = true
+	_set_campaign_state(CampaignState.DEFEAT)
 	if RunProgress != null:
 		RunProgress.set_last_death_message(reason)
 		RunProgress.arena_flags["retry_scene_path"] = retry_scene_path
@@ -611,6 +939,10 @@ func _spawn_escort(index: int = -1, position: Vector2 = ESCORT_SPAWN_SENTINEL) -
 	var color := Color(0.2 + float(resolved_index % 3) * 0.08, 0.92, 1.0, 0.95)
 	if escort.has_method("configure"):
 		escort.call("configure", resolved_index, _player, _mother_planet, color)
+	if escort.has_method("configure_campaign_role"):
+		escort.call("configure_campaign_role", _escort_type_for_index(resolved_index), _fleet_command)
+	elif escort.get("fleet_command") != null:
+		escort.set("fleet_command", _fleet_command)
 	if escort.get("damage_multiplier") != null:
 		escort.set("damage_multiplier", damage_multiplier)
 	var anchor := _player.global_position if _player != null and is_instance_valid(_player) else _mother_planet.global_position if _mother_planet != null else Vector2.ZERO
@@ -700,6 +1032,7 @@ func _spawn_planet_turrets(planet: Node2D, planet_index: int) -> void:
 
 
 func _start_alien_encounter() -> void:
+	_set_campaign_state(CampaignState.CRISIS_CHOICE)
 	if _alien_panel != null:
 		_alien_panel.visible = true
 	if _alien_label != null:
@@ -720,6 +1053,7 @@ func _on_barter_button_pressed() -> void:
 	_set_campaign_status("FREEHOLD BARTER COMPLETE // REPUTATION %.0f" % freehold_reputation)
 	if _alien_panel != null:
 		_alien_panel.visible = false
+	_set_campaign_state(CampaignState.POST_WAVE)
 
 
 func _on_fight_button_pressed() -> void:
@@ -730,6 +1064,7 @@ func _on_fight_button_pressed() -> void:
 	_set_campaign_status("FREEHOLD HOSTILE // REPUTATION %.0f" % freehold_reputation)
 	if _alien_panel != null:
 		_alien_panel.visible = false
+	_set_campaign_state(CampaignState.POST_WAVE)
 
 
 func _on_mothership_docking_requested(mothership: Node) -> void:
@@ -751,6 +1086,7 @@ func _on_mothership_hostile_alert(mothership: Node, _target: Node2D) -> void:
 func _on_mothership_destroyed(mothership: Node, reward: int) -> void:
 	var was_hostile := mothership != null and mothership.has_method("is_hostile") and bool(mothership.call("is_hostile"))
 	_motherships.erase(mothership)
+	_active_invaders.erase(mothership)
 	add_campaign_credits(maxi(reward, 1), &"mothership_destroyed")
 	_adjust_freehold_reputation(hostile_mothership_reputation_gain if was_hostile else -neutral_mothership_loss, &"mothership_destroyed")
 	if _active_trade_mothership == mothership:
@@ -777,7 +1113,9 @@ func _open_dock_scene() -> void:
 	if dock_scene == null:
 		if _trade_panel != null:
 			_trade_panel.visible = true
+		_set_campaign_state(CampaignState.TRADE)
 		return
+	_set_campaign_state(CampaignState.DOCKING)
 	var dock := dock_scene.instantiate() as Control
 	if dock == null:
 		return
@@ -828,6 +1166,7 @@ func _close_dock_scene() -> void:
 		_trade_panel.visible = false
 	get_tree().paused = _dock_pre_pause_tree_paused
 	Engine.time_scale = maxf(_dock_pre_pause_time_scale, 0.05)
+	_set_campaign_state(CampaignState.DIRECTIVE_ACTIVE if _wave_running else CampaignState.POST_WAVE)
 
 
 func _update_upgrade_panel() -> void:
@@ -883,6 +1222,25 @@ func _update_trade_panel() -> void:
 		]
 
 
+func _update_command_panel() -> void:
+	if _command_panel == null:
+		return
+	_command_panel.visible = command_panel_visible
+	if not command_panel_visible:
+		return
+	for node in _command_panel.find_children("*", "Button", true, false):
+		var button := node as Button
+		if button == null:
+			continue
+		var command: StringName = button.get_meta(&"fleet_command", &"")
+		if String(command).is_empty():
+			continue
+		button.button_pressed = command == _fleet_command
+		button.text = _fleet_command_label(command)
+		button.custom_minimum_size = Vector2(command_button_min_width, command_button_min_height)
+		_style_campaign_button(button)
+
+
 func get_trade_snapshot(mothership: Node = null) -> Dictionary:
 	var active_ship := mothership if mothership != null else _active_trade_mothership
 	var dock_name := "MOTHERSHIP DOCK"
@@ -905,6 +1263,10 @@ func get_trade_snapshot(mothership: Node = null) -> Dictionary:
 		"dock_name": dock_name,
 		"faction": faction_id,
 		"credits": energy_credits,
+		"campaign_state": _campaign_state,
+		"campaign_state_label": _campaign_state_label(),
+		"fleet_command": String(_fleet_command),
+		"objective": _active_objective_text,
 		"wave": wave_index,
 		"final_wave": final_wave,
 		"escorts": _escorts.size(),
@@ -1053,6 +1415,34 @@ func _on_upgrade_slingshot_button_pressed() -> void:
 
 func _on_hijack_button_pressed() -> void:
 	trade_prepare_hijack()
+
+
+func _on_fleet_defend_pressed() -> void:
+	set_fleet_command(FLEET_COMMAND_DEFEND)
+
+
+func _on_fleet_follow_pressed() -> void:
+	set_fleet_command(FLEET_COMMAND_FOLLOW)
+
+
+func _on_fleet_attack_pressed() -> void:
+	set_fleet_command(FLEET_COMMAND_ATTACK)
+
+
+func _on_fleet_recover_pressed() -> void:
+	set_fleet_command(FLEET_COMMAND_RECOVER)
+
+
+func _on_fleet_repair_pressed() -> void:
+	set_fleet_command(FLEET_COMMAND_REPAIR)
+
+
+func _on_fleet_protect_pressed() -> void:
+	set_fleet_command(FLEET_COMMAND_PROTECT)
+
+
+func _on_fleet_hold_pressed() -> void:
+	set_fleet_command(FLEET_COMMAND_HOLD)
 
 
 func _on_invader_destroyed(invader: CampaignInvader, reward: int, position: Vector2) -> void:
@@ -1275,6 +1665,190 @@ func _mother_destroyed() -> bool:
 	return false
 
 
+func set_fleet_command(command: StringName) -> void:
+	var normalized := _normalize_fleet_command(command)
+	if normalized == _fleet_command:
+		return
+	_fleet_command = normalized
+	if RunProgress != null:
+		RunProgress.arena_flags["campaign_fleet_command"] = String(_fleet_command)
+	_apply_fleet_command_to_escorts()
+	campaign_fleet_command_changed.emit(_fleet_command)
+	_set_campaign_status("FLEET COMMAND: %s" % _fleet_command_label(_fleet_command))
+	_emit_campaign_debug_snapshot()
+
+
+func _normalize_fleet_command(command: StringName) -> StringName:
+	match command:
+		FLEET_COMMAND_FOLLOW, FLEET_COMMAND_ATTACK, FLEET_COMMAND_PROTECT, FLEET_COMMAND_RECOVER, FLEET_COMMAND_HOLD, FLEET_COMMAND_REPAIR:
+			return command
+	return FLEET_COMMAND_DEFEND
+
+
+func _fleet_command_label(command: StringName) -> String:
+	match command:
+		FLEET_COMMAND_FOLLOW:
+			return "FOLLOW"
+		FLEET_COMMAND_ATTACK:
+			return "ATTACK"
+		FLEET_COMMAND_PROTECT:
+			return "PROTECT"
+		FLEET_COMMAND_RECOVER:
+			return "RECOVER"
+		FLEET_COMMAND_HOLD:
+			return "HOLD"
+		FLEET_COMMAND_REPAIR:
+			return "REPAIR"
+	return "DEFEND"
+
+
+func _apply_fleet_command_to_escorts() -> void:
+	for escort in _escorts:
+		if escort == null or not is_instance_valid(escort):
+			continue
+		if escort.has_method("set_fleet_command"):
+			escort.call("set_fleet_command", _fleet_command)
+		elif escort.get("fleet_command") != null:
+			escort.set("fleet_command", _fleet_command)
+
+
+func _escort_type_for_index(index: int) -> int:
+	if index == 0:
+		return 1
+	if index == 1:
+		return 0
+	match index % 6:
+		0:
+			return 3
+		1:
+			return 2
+		2:
+			return 4
+		3:
+			return 5
+		4:
+			return 6
+	return 0
+
+
+func _handle_fleet_command_input() -> void:
+	if _key_just_pressed(fleet_defend_key):
+		set_fleet_command(FLEET_COMMAND_DEFEND)
+	if _key_just_pressed(fleet_follow_key):
+		set_fleet_command(FLEET_COMMAND_FOLLOW)
+	if _key_just_pressed(fleet_attack_key):
+		set_fleet_command(FLEET_COMMAND_ATTACK)
+	if _key_just_pressed(fleet_recover_key):
+		set_fleet_command(FLEET_COMMAND_RECOVER)
+	if _key_just_pressed(fleet_repair_key):
+		set_fleet_command(FLEET_COMMAND_REPAIR)
+	if _key_just_pressed(fleet_protect_key):
+		set_fleet_command(FLEET_COMMAND_PROTECT)
+	_update_command_key(fleet_defend_key)
+	_update_command_key(fleet_follow_key)
+	_update_command_key(fleet_attack_key)
+	_update_command_key(fleet_recover_key)
+	_update_command_key(fleet_repair_key)
+	_update_command_key(fleet_protect_key)
+
+
+func _key_just_pressed(key: Key) -> bool:
+	if key == KEY_NONE:
+		return false
+	var key_id := int(key)
+	return Input.is_key_pressed(key) and not bool(_command_key_down.get(key_id, false))
+
+
+func _update_command_key(key: Key) -> void:
+	if key == KEY_NONE:
+		return
+	_command_key_down[int(key)] = Input.is_key_pressed(key)
+
+
+func _set_campaign_state(new_state: int) -> void:
+	if _campaign_state == new_state:
+		return
+	var old_state := _campaign_state
+	_campaign_state = new_state
+	if RunProgress != null:
+		RunProgress.arena_flags["campaign_state"] = _campaign_state_label()
+	campaign_state_changed.emit(old_state, new_state)
+	_emit_campaign_debug_snapshot()
+
+
+func _campaign_state_label() -> String:
+	match _campaign_state:
+		CampaignState.INIT:
+			return "INIT"
+		CampaignState.PRE_WAVE:
+			return "PRE_WAVE"
+		CampaignState.WAVE_ACTIVE:
+			return "WAVE_ACTIVE"
+		CampaignState.DIRECTIVE_ACTIVE:
+			return "DIRECTIVE_ACTIVE"
+		CampaignState.DOCKING:
+			return "DOCKING"
+		CampaignState.TRADE:
+			return "TRADE"
+		CampaignState.POST_WAVE:
+			return "POST_WAVE"
+		CampaignState.CRISIS_CHOICE:
+			return "CRISIS_CHOICE"
+		CampaignState.VICTORY:
+			return "VICTORY"
+		CampaignState.DEFEAT:
+			return "DEFEAT"
+	return "UNKNOWN"
+
+
+func _update_campaign_debug_overlay(delta: float) -> void:
+	_ensure_campaign_debug_overlay()
+	if _debug_overlay_label == null:
+		return
+	_debug_overlay_label.visible = show_campaign_debug_overlay
+	if not show_campaign_debug_overlay:
+		return
+	_debug_elapsed += delta
+	if _debug_elapsed < maxf(debug_overlay_refresh_interval, 0.05):
+		return
+	_debug_elapsed = 0.0
+	var snapshot := _campaign_debug_snapshot()
+	_debug_overlay_label.text = "CAMPAIGN DEBUG\nSTATE %s // WAVE %d/%d\nDIRECTIVE %s\nOBJECTIVE %s\nFLEET %s // ESCORTS %d/%d\nINVADERS %d/%d // THREAT %.1f\nCREDITS %d // REP %.0f // ROUTE %.1f/%.1f\nSTORM %.1f // HIJACK %s" % [
+		str(snapshot.get("state_label", "")),
+		wave_index,
+		final_wave,
+		str(snapshot.get("directive_label", "")),
+		str(snapshot.get("objective", "")),
+		_fleet_command_label(_fleet_command),
+		_escorts.size(),
+		max_escorts,
+		_active_invaders.size(),
+		_spawn_budget,
+		_threat_budget,
+		energy_credits,
+		freehold_reputation,
+		campaign_route_progress,
+		route_progress_goal,
+		_gravity_storm_remaining,
+		"ON" if _pending_hijack else "OFF",
+	]
+	campaign_debug_snapshot_changed.emit(snapshot)
+
+
+func _campaign_debug_snapshot() -> Dictionary:
+	var snapshot := get_campaign_visual_snapshot()
+	snapshot["wave"] = wave_index
+	snapshot["final_wave"] = final_wave
+	snapshot["credits"] = energy_credits
+	snapshot["mother_health"] = float(_mother_planet.call("get_health_ratio")) if _mother_planet != null and _mother_planet.has_method("get_health_ratio") else 0.0
+	snapshot["mother_shield"] = float(_mother_planet.call("get_shield_ratio")) if _mother_planet != null and _mother_planet.has_method("get_shield_ratio") else 0.0
+	return snapshot
+
+
+func _emit_campaign_debug_snapshot() -> void:
+	campaign_debug_snapshot_changed.emit(_campaign_debug_snapshot())
+
+
 func _configure_run_progress() -> void:
 	if RunProgress == null:
 		return
@@ -1285,6 +1859,8 @@ func _configure_run_progress() -> void:
 	RunProgress.arena_flags["king_of_hill_mode"] = king_of_hill_mode
 	RunProgress.arena_flags["campaign_route_goal"] = route_progress_goal
 	RunProgress.arena_flags["campaign_freehold_reputation"] = freehold_reputation
+	RunProgress.arena_flags["campaign_state"] = _campaign_state_label()
+	RunProgress.arena_flags["campaign_fleet_command"] = String(_fleet_command)
 	if not String(mod_manifest_id).is_empty():
 		RunProgress.arena_flags["campaign_mod_manifest_id"] = String(mod_manifest_id)
 	if not String(mod_gamemode_id).is_empty():
@@ -1313,8 +1889,10 @@ func _resolve_nodes() -> void:
 	_upgrade_panel = get_node_or_null(upgrade_panel_path) as Control
 	_alien_panel = get_node_or_null(alien_panel_path) as Control
 	_alien_label = get_node_or_null(alien_label_path) as Label
+	_command_panel = get_node_or_null(command_panel_path) as Control
 	_trade_panel = get_node_or_null(trade_panel_path) as Control
 	_dock_prompt_label = get_node_or_null(dock_prompt_path) as Label
+	_debug_overlay_label = get_node_or_null(debug_overlay_path) as Label
 	if _alien_panel != null:
 		_alien_panel.visible = false
 	_energy_component = _player.get_node_or_null("EnergyComponent") if _player != null else null
@@ -1360,6 +1938,14 @@ func _polish_campaign_ui_runtime() -> void:
 		_style_campaign_panel(_alien_panel, alien_panel_bg_color, alien_panel_border_color, 2)
 		_style_campaign_label_tree(_alien_panel, campaign_warning_text_color)
 		_style_campaign_button_tree(_alien_panel)
+	_command_panel = get_node_or_null(command_panel_path) as Control
+	if _command_panel == null and command_panel_visible:
+		_command_panel = _build_command_panel(campaign_ui)
+	if _command_panel != null:
+		_command_panel.visible = command_panel_visible
+		_style_campaign_panel(_command_panel, command_panel_bg_color, command_panel_border_color, 2)
+		_style_campaign_label_tree(_command_panel, campaign_secondary_text_color)
+		_style_campaign_button_tree(_command_panel)
 	if _trade_panel == null:
 		_trade_panel = _build_trade_panel(campaign_ui)
 	else:
@@ -1388,6 +1974,7 @@ func _polish_campaign_ui_runtime() -> void:
 		campaign_ui.add_child(_dock_prompt_label)
 	_style_campaign_label(_dock_prompt_label, campaign_primary_text_color, 18, true)
 	_dock_prompt_label.visible = false
+	_ensure_campaign_debug_overlay(campaign_ui)
 
 
 func _build_trade_panel(parent: Node) -> Control:
@@ -1426,6 +2013,75 @@ func _build_trade_panel(parent: Node) -> Control:
 	rows.add_child(_make_campaign_button("HijackButton", "HIJACK BEACON"))
 	rows.add_child(_make_campaign_button("TradeExitButton", "UNDOCK"))
 	return panel
+
+
+func _build_command_panel(parent: Node) -> Control:
+	var panel := PanelContainer.new()
+	panel.name = "CommandPanel"
+	panel.anchor_left = 0.0
+	panel.anchor_right = 0.0
+	panel.anchor_top = 1.0
+	panel.anchor_bottom = 1.0
+	panel.offset_left = 18.0
+	panel.offset_right = 356.0
+	panel.offset_top = -204.0
+	panel.offset_bottom = -22.0
+	_style_campaign_panel(panel, command_panel_bg_color, command_panel_border_color, 2)
+	parent.add_child(panel)
+
+	var rows := VBoxContainer.new()
+	rows.name = "Rows"
+	rows.add_theme_constant_override("separation", 6)
+	panel.add_child(rows)
+
+	var title := _make_campaign_label("FLEET COMMAND", 15, campaign_primary_text_color, HORIZONTAL_ALIGNMENT_CENTER)
+	title.name = "CommandTitleLabel"
+	rows.add_child(title)
+
+	var grid := GridContainer.new()
+	grid.name = "CommandGrid"
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 6)
+	rows.add_child(grid)
+	grid.add_child(_make_command_button("FleetDefendButton", "DEFEND", FLEET_COMMAND_DEFEND))
+	grid.add_child(_make_command_button("FleetFollowButton", "FOLLOW", FLEET_COMMAND_FOLLOW))
+	grid.add_child(_make_command_button("FleetAttackButton", "ATTACK", FLEET_COMMAND_ATTACK))
+	grid.add_child(_make_command_button("FleetRecoverButton", "RECOVER", FLEET_COMMAND_RECOVER))
+	grid.add_child(_make_command_button("FleetRepairButton", "REPAIR", FLEET_COMMAND_REPAIR))
+	grid.add_child(_make_command_button("FleetProtectButton", "PROTECT", FLEET_COMMAND_PROTECT))
+	grid.add_child(_make_command_button("FleetHoldButton", "HOLD", FLEET_COMMAND_HOLD))
+	return panel
+
+
+func _make_command_button(node_name: String, text: String, command: StringName) -> Button:
+	var button := _make_campaign_button(node_name, text)
+	button.custom_minimum_size = Vector2(command_button_min_width, command_button_min_height)
+	button.toggle_mode = true
+	button.set_meta(&"fleet_command", command)
+	return button
+
+
+func _ensure_campaign_debug_overlay(parent: Node = null) -> void:
+	if _debug_overlay_label != null and is_instance_valid(_debug_overlay_label):
+		_debug_overlay_label.visible = show_campaign_debug_overlay
+		return
+	var root := parent
+	if root == null:
+		root = get_node_or_null("CampaignUI")
+	if root == null:
+		return
+	_debug_overlay_label = Label.new()
+	_debug_overlay_label.name = "CampaignDebugOverlay"
+	_debug_overlay_label.position = debug_overlay_position
+	_debug_overlay_label.size = debug_overlay_size
+	_debug_overlay_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_debug_overlay_label.add_theme_font_size_override("font_size", 12)
+	_debug_overlay_label.add_theme_color_override("font_color", debug_overlay_text_color)
+	_debug_overlay_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.86))
+	_debug_overlay_label.add_theme_constant_override("outline_size", 2)
+	_debug_overlay_label.visible = show_campaign_debug_overlay
+	root.add_child(_debug_overlay_label)
 
 
 func _make_campaign_label(text: String, size: int, color: Color, alignment: HorizontalAlignment) -> Label:
@@ -1524,6 +2180,13 @@ func _connect_ui_buttons() -> void:
 	_connect_button(^"CampaignUI/TradePanel/Rows/UpgradeSlingshotButton", Callable(self, "_on_upgrade_slingshot_button_pressed"))
 	_connect_button(^"CampaignUI/TradePanel/Rows/HijackButton", Callable(self, "_on_hijack_button_pressed"))
 	_connect_button(^"CampaignUI/TradePanel/Rows/TradeExitButton", Callable(self, "_on_trade_exit_button_pressed"))
+	_connect_button(^"CampaignUI/CommandPanel/Rows/CommandGrid/FleetDefendButton", Callable(self, "_on_fleet_defend_pressed"))
+	_connect_button(^"CampaignUI/CommandPanel/Rows/CommandGrid/FleetFollowButton", Callable(self, "_on_fleet_follow_pressed"))
+	_connect_button(^"CampaignUI/CommandPanel/Rows/CommandGrid/FleetAttackButton", Callable(self, "_on_fleet_attack_pressed"))
+	_connect_button(^"CampaignUI/CommandPanel/Rows/CommandGrid/FleetRecoverButton", Callable(self, "_on_fleet_recover_pressed"))
+	_connect_button(^"CampaignUI/CommandPanel/Rows/CommandGrid/FleetRepairButton", Callable(self, "_on_fleet_repair_pressed"))
+	_connect_button(^"CampaignUI/CommandPanel/Rows/CommandGrid/FleetProtectButton", Callable(self, "_on_fleet_protect_pressed"))
+	_connect_button(^"CampaignUI/CommandPanel/Rows/CommandGrid/FleetHoldButton", Callable(self, "_on_fleet_hold_pressed"))
 
 
 func _connect_button(path: NodePath, callback: Callable) -> void:
@@ -1554,9 +2217,10 @@ func _update_ui() -> void:
 		_mother_label.text = "%s %d%% // SHIELD %d%%%s" % [_home_planet_name(), int(round(ratio * 100.0)), int(round(shield_ratio * 100.0)), hill]
 	if _escort_label != null:
 		var hijack := " // HIJACK ARMED" if _pending_hijack else ""
-		_escort_label.text = "ESCORTS %d/%d // DMG x%.2f%s" % [_escorts.size(), max_escorts, damage_multiplier, hijack]
+		_escort_label.text = "ESCORTS %d/%d // %s // DMG x%.2f%s" % [_escorts.size(), max_escorts, _fleet_command_label(_fleet_command), damage_multiplier, hijack]
 	_update_upgrade_panel()
 	_update_trade_panel()
+	_update_command_panel()
 
 
 func _update_docking_prompt() -> void:
@@ -1634,7 +2298,14 @@ func _broadcast_campaign_state_now() -> void:
 		"mother_health": float(_mother_planet.call("get_health_ratio")) if _mother_planet != null and _mother_planet.has_method("get_health_ratio") else 0.0,
 		"mother_shield": float(_mother_planet.call("get_shield_ratio")) if _mother_planet != null and _mother_planet.has_method("get_shield_ratio") else 0.0,
 		"hill_capture": _hill_capture,
+		"campaign_state": _campaign_state,
+		"campaign_state_label": _campaign_state_label(),
 		"campaign_directive": String(_active_directive),
+		"campaign_objective": _active_objective_text,
+		"fleet_command": String(_fleet_command),
+		"spawn_budget": _spawn_budget,
+		"threat_budget": _threat_budget,
+		"gravity_storm_remaining": _gravity_storm_remaining,
 		"route_progress": campaign_route_progress,
 		"route_goal": route_progress_goal,
 		"freehold_reputation": freehold_reputation,

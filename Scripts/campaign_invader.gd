@@ -26,6 +26,18 @@ enum BehaviorProfile {
 	GUARD,
 }
 
+enum CampaignRole {
+	PLANET_BREACHER,
+	INTERCEPTOR,
+	SIEGE_BOMBER,
+	HIJACKER,
+	CARRIER_DRONE,
+	SALVAGE_THIEF,
+	SHIELD_BREAKER,
+	FLEET_HUNTER,
+	GRAVITY_DIVER,
+}
+
 @export var max_health: float = 44.0
 @export var thrust_power: float = 1550.0
 @export var max_speed: float = 430.0
@@ -52,6 +64,15 @@ enum BehaviorProfile {
 @export_group("AI")
 @export_enum("Raider", "Skirmisher", "Interceptor", "Bomber", "Guard") var behavior_profile: int = BehaviorProfile.RAIDER
 @export var auto_assign_profile_from_fleet: bool = true
+@export_group("Campaign Role")
+@export_enum("Planet Breacher", "Interceptor", "Siege Bomber", "Hijacker", "Carrier Drone", "Salvage Thief", "Shield Breaker", "Fleet Hunter", "Gravity Diver") var campaign_role: int = CampaignRole.PLANET_BREACHER
+@export var role_overrides_profile: bool = true
+@export var fleet_hunter_scan_radius: float = 1800.0
+@export var mothership_target_scan_radius: float = 2400.0
+@export var shield_breaker_damage_multiplier: float = 1.32
+@export var carrier_drone_guard_radius_multiplier: float = 1.28
+@export var gravity_diver_slingshot_multiplier: float = 1.25
+@export var salvage_thief_reward_multiplier: float = 1.35
 @export var ai_state_refresh_interval: float = 0.34
 @export var attack_range: float = 760.0
 @export var orbit_radius: float = 460.0
@@ -113,6 +134,25 @@ func configure(target_node: Node2D, row: int, column: int, seed_value: int) -> v
 	_profile_phase = float(abs(seed_value % 1000)) * 0.0061
 	if auto_assign_profile_from_fleet:
 		behavior_profile = [BehaviorProfile.RAIDER, BehaviorProfile.SKIRMISHER, BehaviorProfile.INTERCEPTOR, BehaviorProfile.BOMBER][abs(seed_value + column) % 4]
+
+
+func apply_campaign_role(role_id: int) -> void:
+	campaign_role = clampi(role_id, CampaignRole.PLANET_BREACHER, CampaignRole.GRAVITY_DIVER)
+	set_meta(&"campaign_role", campaign_role)
+	if role_overrides_profile:
+		match campaign_role:
+			CampaignRole.INTERCEPTOR, CampaignRole.FLEET_HUNTER:
+				behavior_profile = BehaviorProfile.INTERCEPTOR
+			CampaignRole.SIEGE_BOMBER, CampaignRole.SHIELD_BREAKER:
+				behavior_profile = BehaviorProfile.BOMBER
+			CampaignRole.CARRIER_DRONE:
+				behavior_profile = BehaviorProfile.GUARD
+			CampaignRole.GRAVITY_DIVER, CampaignRole.SALVAGE_THIEF:
+				behavior_profile = BehaviorProfile.SKIRMISHER
+			CampaignRole.HIJACKER:
+				behavior_profile = BehaviorProfile.SKIRMISHER
+	if campaign_role == CampaignRole.SALVAGE_THIEF:
+		reward_credits = maxi(int(round(float(reward_credits) * salvage_thief_reward_multiplier)), reward_credits)
 
 
 func _ready() -> void:
@@ -181,6 +221,12 @@ func _select_ai_state(to_target: Vector2) -> void:
 	var health_ratio := current_health / maxf(max_health, 1.0)
 	if health_ratio <= retreat_health_ratio and distance < retreat_distance:
 		_ai_state = AIState.RETREAT
+	elif campaign_role == CampaignRole.CARRIER_DRONE and distance <= guard_radius * carrier_drone_guard_radius_multiplier:
+		_ai_state = AIState.GUARD
+	elif campaign_role == CampaignRole.SIEGE_BOMBER and distance <= fire_range:
+		_ai_state = AIState.STRAFE_ATTACK
+	elif campaign_role == CampaignRole.GRAVITY_DIVER and _nearest_gravity_source() != null:
+		_ai_state = AIState.SLINGSHOT
 	elif behavior_profile == BehaviorProfile.GUARD and distance <= guard_radius:
 		_ai_state = AIState.GUARD
 	elif distance > attack_range * 1.55:
@@ -222,7 +268,8 @@ func _steering_for_state(to_target: Vector2, gravity: Vector2) -> Vector2:
 					var tangent := from_source.normalized().orthogonal()
 					if tangent.dot(desired) < 0.0:
 						tangent = -tangent
-					return tangent * thrust_power * slingshot_gravity_weight + desired * thrust_power * 0.34
+					var dive_multiplier := gravity_diver_slingshot_multiplier if campaign_role == CampaignRole.GRAVITY_DIVER else 1.0
+					return tangent * thrust_power * slingshot_gravity_weight * dive_multiplier + desired * thrust_power * 0.34
 			return desired * thrust_power + lateral
 		AIState.GUARD:
 			var anchor := _mother_planet_position()
@@ -387,19 +434,41 @@ func _try_breach_target(to_target: Vector2) -> void:
 	var damage_target := target
 	if damage_target == null or not is_instance_valid(damage_target):
 		return
+	var damage := breach_damage * _role_breach_multiplier()
 	if damage_target.has_method("take_damage"):
-		damage_target.call("take_damage", breach_damage)
+		damage_target.call("take_damage", damage)
 	else:
 		var health := damage_target.get_node_or_null("HealthComponent")
 		if health != null and health.has_method("take_damage"):
-			health.call("take_damage", breach_damage)
-	breached_target.emit(self, damage_target, breach_damage)
+			health.call("take_damage", damage)
+	breached_target.emit(self, damage_target, damage)
 	queue_free()
 
 
 func _resolve_target() -> Node2D:
 	var mother := get_tree().get_first_node_in_group("campaign_mother_planet") as Node2D
 	var player := MultiplayerTargeting.nearest_player(global_position, get_tree())
+	match campaign_role:
+		CampaignRole.PLANET_BREACHER, CampaignRole.SIEGE_BOMBER, CampaignRole.SHIELD_BREAKER:
+			if mother != null and is_instance_valid(mother):
+				return mother
+		CampaignRole.INTERCEPTOR, CampaignRole.GRAVITY_DIVER:
+			if player != null and is_instance_valid(player):
+				return player
+		CampaignRole.FLEET_HUNTER:
+			var escort := _nearest_campaign_target(&"campaign_escort", fleet_hunter_scan_radius)
+			if escort != null:
+				return escort
+		CampaignRole.CARRIER_DRONE:
+			var screen_target := _nearest_campaign_target(&"campaign_escort", fleet_hunter_scan_radius)
+			if screen_target != null:
+				return screen_target
+			if player != null and is_instance_valid(player):
+				return player
+		CampaignRole.SALVAGE_THIEF:
+			var trader := _nearest_campaign_target(&"campaign_mothership", mothership_target_scan_radius, false)
+			if trader != null:
+				return trader
 	if mother != null and is_instance_valid(mother):
 		if player == null or not is_instance_valid(player):
 			return mother
@@ -407,6 +476,35 @@ func _resolve_target() -> Node2D:
 		var player_weight := global_position.distance_squared_to(player.global_position) * 1.35
 		return player if player_weight < mother_weight else mother
 	return player
+
+
+func _nearest_campaign_target(group_name: StringName, radius: float, hostile_only: bool = false) -> Node2D:
+	var best: Node2D = null
+	var best_distance := radius * radius
+	for value in get_tree().get_nodes_in_group(group_name):
+		var candidate := value as Node2D
+		if candidate == null or candidate == self or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
+			continue
+		if hostile_only and not (candidate.has_method("is_hostile") and bool(candidate.call("is_hostile"))):
+			continue
+		if not hostile_only and candidate.has_method("is_hostile") and bool(candidate.call("is_hostile")):
+			continue
+		var distance := global_position.distance_squared_to(candidate.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = candidate
+	return best
+
+
+func _role_breach_multiplier() -> float:
+	match campaign_role:
+		CampaignRole.SHIELD_BREAKER:
+			return shield_breaker_damage_multiplier
+		CampaignRole.SIEGE_BOMBER:
+			return maxf(shield_breaker_damage_multiplier * 0.92, 1.0)
+		CampaignRole.INTERCEPTOR, CampaignRole.SALVAGE_THIEF:
+			return 0.82
+	return 1.0
 
 
 func _gravity_acceleration() -> Vector2:
@@ -578,6 +676,17 @@ func _update_visuals(_to_target: Vector2, delta: float) -> void:
 func _state_hull_color() -> Color:
 	if _hijack_disabled:
 		return Color(0.36, 1.0, 0.78, hull_color.a)
+	match campaign_role:
+		CampaignRole.SIEGE_BOMBER, CampaignRole.SHIELD_BREAKER:
+			return Color(1.0, 0.42, 0.14, hull_color.a)
+		CampaignRole.CARRIER_DRONE:
+			return Color(0.82, 0.34, 1.0, hull_color.a)
+		CampaignRole.SALVAGE_THIEF:
+			return Color(1.0, 0.78, 0.24, hull_color.a)
+		CampaignRole.FLEET_HUNTER:
+			return Color(1.0, 0.28, 0.42, hull_color.a)
+		CampaignRole.GRAVITY_DIVER:
+			return Color(0.52, 1.0, 0.72, hull_color.a)
 	match _ai_state:
 		AIState.RETREAT:
 			return Color(1.0, 0.24, 0.16, hull_color.a)
