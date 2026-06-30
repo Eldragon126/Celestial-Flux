@@ -73,6 +73,7 @@ var _shield_ring: Line2D = null
 var _wing_line: Line2D = null
 var _engine_trail: Line2D = null
 var _command_target: Node2D = null
+var _query_targets: Array[Node2D] = []
 
 
 func configure(index: int, player_node: Node2D, mother_node: Node2D, hull_color: Color) -> void:
@@ -106,6 +107,9 @@ func repair(amount: float) -> float:
 func _ready() -> void:
 	add_to_group("campaign_escort")
 	add_to_group("player_allies")
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"campaign_escort")
+		RuntimeRegistry.register_node(self, &"player_allies")
 	current_health = max_health
 	_hull = get_node_or_null("CampaignEscortHull") as Polygon2D
 	_core = get_node_or_null("CampaignEscortCore") as Polygon2D
@@ -116,6 +120,12 @@ func _ready() -> void:
 	_build_collision()
 	_build_visuals()
 	_apply_role_palette()
+
+
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"campaign_escort")
+		RuntimeRegistry.unregister_node(self, &"player_allies")
 
 
 func _physics_process(delta: float) -> void:
@@ -175,17 +185,26 @@ func _nearest_hostile() -> Node2D:
 	var best: Node2D = null
 	var radius := attack_radius + (interceptor_attack_radius_bonus if escort_type == EscortType.INTERCEPTOR or fleet_command == FLEET_COMMAND_ATTACK else 0.0)
 	var best_distance := radius * radius
-	for group_name in [&"campaign_invader", &"enemies", &"wave_enemy"]:
-		for value in get_tree().get_nodes_in_group(group_name):
-			var candidate := value as Node2D
-			if candidate == null or candidate == self or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
-				continue
-			if candidate.is_in_group("player_allies"):
-				continue
-			var distance := global_position.distance_squared_to(candidate.global_position)
-			if distance < best_distance:
-				best_distance = distance
-				best = candidate
+	_query_targets.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius([&"campaign_invader", &"enemies", &"wave_enemy"], global_position, radius, 36, false, _query_targets)
+	else:
+		for group_name in [&"campaign_invader", &"enemies", &"wave_enemy"]:
+			for value in get_tree().get_nodes_in_group(group_name):
+				var candidate := value as Node2D
+				if candidate == null or candidate == self or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
+					continue
+				if candidate.global_position.distance_squared_to(global_position) <= best_distance:
+					_query_targets.append(candidate)
+	for candidate in _query_targets:
+		if candidate == null or candidate == self or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
+			continue
+		if candidate.is_in_group("player_allies"):
+			continue
+		var distance := global_position.distance_squared_to(candidate.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = candidate
 	return best
 
 
@@ -252,7 +271,15 @@ func _command_anchor() -> Node2D:
 func _nearest_friendly_mothership() -> Node2D:
 	var best: Node2D = null
 	var best_distance := INF
-	for value in get_tree().get_nodes_in_group("campaign_mothership"):
+	_query_targets.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(&"campaign_mothership", _query_targets)
+	else:
+		for value in get_tree().get_nodes_in_group("campaign_mothership"):
+			var candidate := value as Node2D
+			if candidate != null:
+				_query_targets.append(candidate)
+	for value in _query_targets:
 		var candidate := value as Node2D
 		if candidate == null or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
 			continue
@@ -268,15 +295,22 @@ func _nearest_friendly_mothership() -> Node2D:
 func _nearest_recovery_target() -> Node2D:
 	var best: Node2D = null
 	var best_distance := recovery_scan_radius * recovery_scan_radius
-	for group_name in [&"anomaly_shard", &"blackbox_tape", &"campaign_salvage"]:
-		for value in get_tree().get_nodes_in_group(group_name):
-			var candidate := value as Node2D
-			if candidate == null or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
-				continue
-			var distance := global_position.distance_squared_to(candidate.global_position)
-			if distance < best_distance:
-				best_distance = distance
-				best = candidate
+	_query_targets.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius([&"anomaly_shard", &"blackbox_tape", &"campaign_salvage"], global_position, recovery_scan_radius, 16, true, _query_targets)
+	else:
+		for group_name in [&"anomaly_shard", &"blackbox_tape", &"campaign_salvage"]:
+			for value in get_tree().get_nodes_in_group(group_name):
+				var candidate := value as Node2D
+				if candidate != null:
+					_query_targets.append(candidate)
+	for candidate in _query_targets:
+		if candidate == null or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
+			continue
+		var distance := global_position.distance_squared_to(candidate.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = candidate
 	return best
 
 

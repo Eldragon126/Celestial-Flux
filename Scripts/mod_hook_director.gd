@@ -62,6 +62,7 @@ var _run_start_emitted: bool = false
 var _trigger_counts: Dictionary = {}
 var _cooldown_until: Dictionary = {}
 var _network_replay_guard: Dictionary = {}
+var _query_targets: Array[Node2D] = []
 
 
 func _ready() -> void:
@@ -128,7 +129,15 @@ func _connect_sources() -> void:
 
 
 func _connect_projectile_hit_sources() -> void:
-	for node in get_tree().get_nodes_in_group("player_projectiles"):
+	_query_targets.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(&"player_projectiles", _query_targets)
+	else:
+		for value in get_tree().get_nodes_in_group("player_projectiles"):
+			var candidate := value as Node2D
+			if candidate != null:
+				_query_targets.append(candidate)
+	for node in _query_targets:
 		_connect_once(node, &"projectile_hit", Callable(self, "_on_projectile_hit"))
 
 
@@ -764,8 +773,13 @@ func _current_chaos_tier() -> int:
 	var root := get_tree().current_scene
 	var destabilization := root.find_child("ArenaDestabilizationManager", true, false) if root != null else null
 	if destabilization != null:
-		var value: Variant = destabilization.get("chaos_tier")
-		if typeof(value) == TYPE_INT:
+		if destabilization.has_method("get_readable_chaos_state"):
+			var state_value: Variant = destabilization.call("get_readable_chaos_state")
+			if state_value is Dictionary:
+				return int((state_value as Dictionary).get("tier", 0))
+		var value: Variant = destabilization.get("_chaos_tier")
+		var value_type := typeof(value)
+		if value_type == TYPE_INT or value_type == TYPE_FLOAT:
 			return int(value)
 	return 0
 
@@ -812,7 +826,15 @@ func _typed_name_matches(data: Dictionary, condition: Dictionary, type_key: Stri
 
 
 func _boss_active() -> bool:
-	for node in get_tree().get_nodes_in_group("bosses"):
+	_query_targets.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(&"bosses", _query_targets, 1)
+	else:
+		for value in get_tree().get_nodes_in_group("bosses"):
+			var candidate := value as Node2D
+			if candidate != null:
+				_query_targets.append(candidate)
+	for node in _query_targets:
 		if node != null and is_instance_valid(node) and not (node as Node).is_queued_for_deletion():
 			return true
 	return false
@@ -929,8 +951,17 @@ func _player_near_group(group_name: StringName, radius: float) -> bool:
 	if _player == null or not is_instance_valid(_player):
 		return false
 	var radius_squared := maxf(radius, 1.0) * maxf(radius, 1.0)
-	for node in get_tree().get_nodes_in_group(String(group_name)):
-		var body := node as Node2D
+	_query_targets.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius([group_name], _player.global_position, maxf(radius, 1.0), 1, false, _query_targets)
+	else:
+		for node in get_tree().get_nodes_in_group(String(group_name)):
+			var body := node as Node2D
+			if body == null:
+				continue
+			if _player.global_position.distance_squared_to(body.global_position) <= radius_squared:
+				_query_targets.append(body)
+	for body in _query_targets:
 		if body == null or not is_instance_valid(body) or body.is_queued_for_deletion() or body == _player:
 			continue
 		if _player.global_position.distance_squared_to(body.global_position) <= radius_squared:
@@ -939,7 +970,15 @@ func _player_near_group(group_name: StringName, radius: float) -> bool:
 
 
 func _black_hole_active() -> bool:
-	for node in get_tree().get_nodes_in_group("Objects_With_Gravity"):
+	_query_targets.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(&"Objects_With_Gravity", _query_targets)
+	else:
+		for value in get_tree().get_nodes_in_group("Objects_With_Gravity"):
+			var candidate := value as Node2D
+			if candidate != null:
+				_query_targets.append(candidate)
+	for node in _query_targets:
 		if node == null or not is_instance_valid(node):
 			continue
 		var node_name := String((node as Node).name).to_lower()

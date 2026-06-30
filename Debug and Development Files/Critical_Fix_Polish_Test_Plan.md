@@ -45,12 +45,14 @@ Test:
 - `Scripts/damage_indicator_manager.gd` and `Nodes/damage_indicator_manager.tscn` add pooled floating identifiers, impact rings, hit flashes, batching, and reduced-clutter modes.
 - `Scripts/health_component.gd`, `Scripts/projectile.gd`, `Scripts/enemy_bullet.gd`, `Scripts/weapon_system.gd`, and `Scripts/momentum_combat_component.gd` stamp damage context so projectile, momentum, gravity, temporal, apex, slingshot, and final blows read differently.
 - `Scripts/settings.gd` persists the new combat feedback accessibility controls.
+- 2026-06-29 polish: damage feedback now exposes pool/frame/reaction/streak tuning in the inspector, clears consumed hit context after health application so stale weapon metadata cannot mislabel future hits, adds health-state transition callouts, directional impact streaks, bounded target flashes, and small optional recoil for major non-boss hits.
 
 Test:
 
 - Hit small enemies with normal shots and confirm readable numbers.
 - Land a high-speed momentum impact and confirm KINETIC/APEX-style feedback appears when appropriate.
 - Toggle Damage Numbers Off/Minimal/Full and Hit Flashes Reduced/Normal from title and pause.
+- Repeatedly hit a mixed enemy pack and confirm feedback drops gracefully at budget caps instead of spawning unbounded labels/rings.
 
 ## Mod Visibility
 

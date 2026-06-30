@@ -101,6 +101,25 @@ const PLAYER_COLORS: Array[Color] = [
 	Color(1.0, 0.76, 0.18, 1.0),
 ]
 
+@export_group("Network Performance")
+@export_range(0.1, 5.0, 0.05) var heartbeat_interval: float = 1.0
+
+@export_group("Steam Multiplayer")
+@export var steam_auto_initialize_singleton: bool = true
+@export var steam_pump_callbacks: bool = true
+@export_range(1, 16, 1) var steam_default_max_peers: int = DEFAULT_MAX_PEERS
+@export_enum("Private:0", "Friends Only:1", "Public:2", "Invisible:3") var steam_default_lobby_type: int = 2
+@export var steam_host_method_names: Array[String] = ["create_lobby", "create_host", "create_hosted_lobby", "host_lobby"]
+@export var steam_join_method_names: Array[String] = ["connect_lobby", "join_lobby", "create_client"]
+@export var steam_lobby_id_methods: Array[String] = ["get_lobby_id", "get_lobby", "get_current_lobby_id"]
+@export var steam_lobby_name: String = "VECTOR ANOMALY"
+@export var steam_lobby_protocol_key: String = "net_protocol"
+@export var steam_lobby_mod_key: String = "mod_signature"
+@export var steam_lobby_scene_key: String = "scene_path"
+@export var steam_lobby_name_key: String = "name"
+@export var steam_lobby_id_pending_text: String = "LOBBY PENDING"
+@export var steam_adapter_missing_message: String = "STEAM NEEDS GODOTSTEAM MULTIPLAYERPEER"
+
 var mode: SessionMode = SessionMode.OFFLINE
 var local_player_name: String = "VECTOR"
 var local_peer_id: int = 1
@@ -121,6 +140,9 @@ var _last_heartbeat_sent := 0.0
 var _heartbeat_nonce := 1
 var _peer_ping_ms: Dictionary = {}
 var _session_ready_ack: Dictionary = {}
+var _steam_lobby_id: int = 0
+var _steam_peer_object: Object = null
+var _player_scan_buffer: Array[Node2D] = []
 
 
 func _ready() -> void:
@@ -132,10 +154,12 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	if steam_pump_callbacks:
+		_pump_steam_callbacks()
 	if not is_network_active():
 		return
 	var now := Time.get_ticks_msec() / 1000.0
-	if now - _last_heartbeat_sent < 1.0:
+	if now - _last_heartbeat_sent < maxf(heartbeat_interval, 0.1):
 		return
 	_last_heartbeat_sent = now
 	_heartbeat_nonce += 1
@@ -248,6 +272,8 @@ func leave_session(publish: bool = true) -> void:
 	_player_nodes_by_peer.clear()
 	_peer_ping_ms.clear()
 	_session_ready_ack.clear()
+	_steam_lobby_id = 0
+	_steam_peer_object = null
 	_status_label = "OFFLINE"
 	_reset_roster()
 	if publish:
@@ -261,6 +287,14 @@ func is_network_active() -> bool:
 
 func is_lan_host() -> bool:
 	return mode == SessionMode.LAN_HOST and multiplayer.is_server()
+
+
+func is_steam_host() -> bool:
+	return mode == SessionMode.STEAM_HOST and multiplayer.is_server()
+
+
+func is_session_host() -> bool:
+	return is_network_active() and multiplayer.is_server()
 
 
 func is_local_peer(peer_id: int) -> bool:
@@ -287,6 +321,8 @@ func get_status_snapshot() -> Dictionary:
 		"readiness": get_multiplayer_readiness_snapshot(),
 		"steam_available": is_steam_multiplayer_available(),
 		"steam_message": get_steam_support_message(),
+		"steam_lobby_id": _steam_lobby_id,
+		"steam_lobby_text": _steam_lobby_text(),
 	}
 
 
@@ -299,6 +335,7 @@ func get_network_diagnostics() -> Dictionary:
 		"last_wave": int(_last_wave_state.get("wave", 0)),
 		"heartbeat_nonce": _heartbeat_nonce,
 		"protocol": NETWORK_PROTOCOL_VERSION,
+		"steam_lobby_id": _steam_lobby_id,
 	}
 
 
@@ -310,7 +347,7 @@ func get_multiplayer_readiness_snapshot() -> Dictionary:
 		"steam_transport_available": is_steam_multiplayer_available(),
 		"mod_signature": _local_mod_signature(),
 		"late_join_reconciliation": not _run_config.is_empty() and (_last_wave_state.has("wave") or not _run_in_progress),
-		"host_authoritative": not is_network_active() or multiplayer.is_server() or mode == SessionMode.LAN_CLIENT,
+		"host_authoritative": not is_network_active() or multiplayer.is_server() or mode == SessionMode.LAN_CLIENT or mode == SessionMode.STEAM_CLIENT,
 		"peer_count": _sorted_peer_records().size(),
 		"average_ping_ms": _average_peer_ping_ms(),
 		"quality": _connection_quality_label(),
@@ -334,18 +371,317 @@ func get_lan_address_hint() -> String:
 
 
 func is_steam_multiplayer_available() -> bool:
-	return ClassDB.class_exists("SteamMultiplayerPeer") or Engine.has_singleton("Steam")
+	return ClassDB.class_exists("SteamMultiplayerPeer")
 
 
 func get_steam_support_message() -> String:
-	if is_steam_multiplayer_available():
-		return "STEAM TRANSPORT DETECTED"
-	return "STEAM NEEDS GODOTSTEAM MULTIPLAYERPEER"
+	if not is_steam_multiplayer_available():
+		return steam_adapter_missing_message
+	if _steam_lobby_id > 0:
+		return "STEAM LOBBY %d" % _steam_lobby_id
+	if mode == SessionMode.STEAM_HOST:
+		return "STEAM HOST READY"
+	if mode == SessionMode.STEAM_CLIENT:
+		return "STEAM CLIENT READY"
+	return "STEAM TRANSPORT READY"
 
 
-func host_steam_lobby(_player_name: String) -> int:
-	_fail_session("STEAM HOSTING NEEDS GODOTSTEAM MULTIPLAYERPEER")
-	return ERR_UNAVAILABLE
+func host_steam_lobby(player_name: String, seed_override: int = 0) -> int:
+	return host_steam_scene_and_play(player_name, RUN_SCENE_PATH, seed_override, {})
+
+
+func host_steam_scene_and_play(player_name: String, scene_path: String, seed_override: int = 0, mode_flags: Dictionary = {}) -> int:
+	var err := start_steam_host(player_name, steam_default_max_peers)
+	if err != OK:
+		return err
+	_begin_host_run(seed_override, scene_path, mode_flags)
+	return OK
+
+
+func start_steam_host(player_name: String, peer_limit: int = DEFAULT_MAX_PEERS) -> int:
+	leave_session(false)
+	local_player_name = _normalize_player_name(player_name)
+	max_peer_count = clampi(peer_limit, 1, 16)
+	listen_port = 0
+	host_address = steam_lobby_id_pending_text
+
+	var runtime_error := _prepare_steam_runtime()
+	if not runtime_error.is_empty():
+		_fail_session("STEAM HOST FAILED: %s" % runtime_error)
+		return ERR_UNAVAILABLE
+
+	var peer_object := _instantiate_steam_peer()
+	if peer_object == null:
+		_fail_session("STEAM HOST FAILED: %s" % steam_adapter_missing_message)
+		return ERR_UNAVAILABLE
+
+	var err := _create_steam_host_peer(peer_object, max_peer_count)
+	if err != OK:
+		_fail_session("STEAM HOST FAILED: %s" % _steam_error_text(err))
+		return err
+
+	var steam_peer := peer_object as MultiplayerPeer
+	if steam_peer == null:
+		_fail_session("STEAM HOST FAILED: SteamMultiplayerPeer is not a MultiplayerPeer")
+		return ERR_UNAVAILABLE
+
+	_peer = steam_peer
+	_steam_peer_object = peer_object
+	multiplayer.multiplayer_peer = _peer
+	mode = SessionMode.STEAM_HOST
+	local_peer_id = _effective_local_peer_id()
+	_status_label = "STEAM HOST ONLINE"
+	_last_error = ""
+	_reset_roster()
+	_upsert_peer_record(local_peer_id, local_player_name)
+	_connect_steam_signals()
+	_refresh_steam_lobby_state()
+	_publish_roster()
+	_publish_status()
+	return OK
+
+
+func join_steam_lobby(lobby_id: int, player_name: String = "VECTOR") -> int:
+	leave_session(false)
+	local_player_name = _normalize_player_name(player_name)
+	_steam_lobby_id = lobby_id
+	host_address = str(lobby_id)
+	listen_port = 0
+
+	if lobby_id <= 0:
+		_fail_session("STEAM JOIN FAILED: no lobby id")
+		return ERR_INVALID_PARAMETER
+
+	var runtime_error := _prepare_steam_runtime()
+	if not runtime_error.is_empty():
+		_fail_session("STEAM JOIN FAILED: %s" % runtime_error)
+		return ERR_UNAVAILABLE
+
+	var peer_object := _instantiate_steam_peer()
+	if peer_object == null:
+		_fail_session("STEAM JOIN FAILED: %s" % steam_adapter_missing_message)
+		return ERR_UNAVAILABLE
+
+	var err := _connect_steam_lobby_peer(peer_object, lobby_id)
+	if err != OK:
+		_fail_session("STEAM JOIN FAILED: %s" % _steam_error_text(err))
+		return err
+
+	var steam_peer := peer_object as MultiplayerPeer
+	if steam_peer == null:
+		_fail_session("STEAM JOIN FAILED: SteamMultiplayerPeer is not a MultiplayerPeer")
+		return ERR_UNAVAILABLE
+
+	_peer = steam_peer
+	_steam_peer_object = peer_object
+	multiplayer.multiplayer_peer = _peer
+	mode = SessionMode.STEAM_CLIENT
+	local_peer_id = _effective_local_peer_id()
+	_status_label = "JOINING STEAM LOBBY"
+	_last_error = ""
+	_peer_records.clear()
+	_connect_steam_signals()
+	_refresh_steam_lobby_state()
+	_publish_status()
+	return OK
+
+
+func _prepare_steam_runtime() -> String:
+	if not ClassDB.class_exists("SteamMultiplayerPeer"):
+		return steam_adapter_missing_message
+	var steam := _steam_singleton()
+	if steam_auto_initialize_singleton and steam != null:
+		for method_name in ["steamInitEx", "steam_init_ex", "steamInit", "steam_init"]:
+			if steam.has_method(method_name) and _method_accepts_arg_count(steam, method_name, 0):
+				steam.callv(method_name, [])
+				break
+	return ""
+
+
+func _instantiate_steam_peer() -> Object:
+	if not ClassDB.class_exists("SteamMultiplayerPeer"):
+		return null
+	var peer_object: Object = ClassDB.instantiate("SteamMultiplayerPeer") as Object
+	return peer_object as Object
+
+
+func _create_steam_host_peer(peer_object: Object, peer_limit: int) -> int:
+	var argument_sets: Array = [
+		[steam_default_lobby_type, peer_limit],
+		[peer_limit],
+		[],
+	]
+	return _call_first_steam_peer_method(peer_object, steam_host_method_names, argument_sets)
+
+
+func _connect_steam_lobby_peer(peer_object: Object, lobby_id: int) -> int:
+	var argument_sets: Array = [
+		[lobby_id],
+		[str(lobby_id)],
+	]
+	return _call_first_steam_peer_method(peer_object, steam_join_method_names, argument_sets)
+
+
+func _call_first_steam_peer_method(peer_object: Object, method_names: Array[String], argument_sets: Array) -> int:
+	if peer_object == null:
+		return ERR_UNAVAILABLE
+	var saw_method := false
+	var last_error := ERR_UNAVAILABLE
+	for method_name in method_names:
+		if not peer_object.has_method(method_name):
+			continue
+		saw_method = true
+		for args_value in argument_sets:
+			var args: Array = args_value if args_value is Array else []
+			if not _method_accepts_arg_count(peer_object, method_name, args.size()):
+				continue
+			var result: Variant = peer_object.callv(method_name, args)
+			var err := _steam_call_result_to_error(result)
+			if err == OK:
+				return OK
+			last_error = err
+	return last_error if saw_method else ERR_UNAVAILABLE
+
+
+func _method_accepts_arg_count(target: Object, method_name: String, arg_count: int) -> bool:
+	if target == null:
+		return false
+	for method_info in target.get_method_list():
+		if not (method_info is Dictionary):
+			continue
+		var info: Dictionary = method_info
+		if String(info.get("name", "")) != method_name:
+			continue
+		var args_value: Variant = info.get("args", [])
+		var args_count := (args_value as Array).size() if args_value is Array else 0
+		var defaults_value: Variant = info.get("default_args", [])
+		var default_count := (defaults_value as Array).size() if defaults_value is Array else int(defaults_value)
+		var required_count := maxi(args_count - default_count, 0)
+		return arg_count >= required_count and arg_count <= args_count
+	return true
+
+
+func _steam_call_result_to_error(result: Variant) -> int:
+	if result == null:
+		return OK
+	if result is bool:
+		return OK if bool(result) else ERR_CANT_CONNECT
+	if result is int:
+		return int(result)
+	if result is Dictionary:
+		var dictionary := result as Dictionary
+		if dictionary.has("status") and int(dictionary.get("status", OK)) != OK:
+			return int(dictionary.get("status", OK))
+	return OK
+
+
+func _connect_steam_signals() -> void:
+	var lobby_created := Callable(self, "_on_steam_lobby_created")
+	var lobby_joined := Callable(self, "_on_steam_lobby_joined")
+	var steam := _steam_singleton()
+	if steam != null:
+		_connect_object_signal(steam, &"lobby_created", lobby_created)
+		_connect_object_signal(steam, &"lobby_joined", lobby_joined)
+	if _steam_peer_object != null:
+		_connect_object_signal(_steam_peer_object, &"lobby_created", lobby_created)
+		_connect_object_signal(_steam_peer_object, &"lobby_joined", lobby_joined)
+
+
+func _connect_object_signal(source: Object, signal_name: StringName, callable: Callable) -> void:
+	if source == null or not source.has_signal(signal_name):
+		return
+	if not source.is_connected(signal_name, callable):
+		source.connect(signal_name, callable)
+
+
+func _on_steam_lobby_created(_connect: int = 0, lobby_id: int = 0) -> void:
+	if lobby_id > 0:
+		_steam_lobby_id = lobby_id
+		host_address = str(lobby_id)
+		_publish_steam_lobby_metadata()
+	_publish_status()
+
+
+func _on_steam_lobby_joined(lobby_id: int = 0, _permissions: int = 0, _locked: bool = false, _response: int = 0) -> void:
+	if lobby_id > 0:
+		_steam_lobby_id = lobby_id
+		host_address = str(lobby_id)
+	_publish_status()
+
+
+func _refresh_steam_lobby_state() -> void:
+	if _steam_peer_object != null:
+		for method_name in steam_lobby_id_methods:
+			if not _steam_peer_object.has_method(method_name):
+				continue
+			if not _method_accepts_arg_count(_steam_peer_object, method_name, 0):
+				continue
+			var value: Variant = _steam_peer_object.callv(method_name, [])
+			var id := _int_from_variant(value, 0)
+			if id > 0:
+				_steam_lobby_id = id
+				host_address = str(id)
+				break
+	if mode == SessionMode.STEAM_HOST:
+		_publish_steam_lobby_metadata()
+
+
+func _publish_steam_lobby_metadata() -> void:
+	if _steam_lobby_id <= 0:
+		return
+	var steam := _steam_singleton()
+	if steam == null:
+		return
+	var metadata := {
+		steam_lobby_name_key: steam_lobby_name,
+		steam_lobby_protocol_key: str(NETWORK_PROTOCOL_VERSION),
+		steam_lobby_mod_key: _local_mod_signature(),
+		steam_lobby_scene_key: String(_run_config.get("scene_path", RUN_SCENE_PATH)),
+	}
+	for key in metadata.keys():
+		_set_steam_lobby_data(steam, String(key), String(metadata[key]))
+
+
+func _set_steam_lobby_data(steam: Object, key: String, value: String) -> void:
+	for method_name in ["setLobbyData", "set_lobby_data"]:
+		if steam.has_method(method_name) and _method_accepts_arg_count(steam, method_name, 3):
+			steam.callv(method_name, [_steam_lobby_id, key, value])
+			return
+		if steam.has_method(method_name) and _method_accepts_arg_count(steam, method_name, 2):
+			steam.callv(method_name, [key, value])
+			return
+
+
+func _pump_steam_callbacks() -> void:
+	var steam := _steam_singleton()
+	if steam == null:
+		return
+	for method_name in ["run_callbacks", "runCallbacks"]:
+		if steam.has_method(method_name) and _method_accepts_arg_count(steam, method_name, 0):
+			steam.callv(method_name, [])
+			return
+
+
+func _steam_singleton() -> Object:
+	if Engine.has_singleton("Steam"):
+		return Engine.get_singleton("Steam")
+	return null
+
+
+func _steam_lobby_text() -> String:
+	if _steam_lobby_id > 0:
+		return str(_steam_lobby_id)
+	if mode == SessionMode.STEAM_HOST or mode == SessionMode.STEAM_CLIENT:
+		return steam_lobby_id_pending_text
+	return ""
+
+
+func _steam_error_text(err: int) -> String:
+	if err == ERR_UNAVAILABLE:
+		return "SteamMultiplayerPeer host/join method unavailable"
+	if err == ERR_CANT_CONNECT:
+		return "Steam lobby connection rejected"
+	return error_string(err)
 
 
 func configure_arena_players(level_root: Node) -> void:
@@ -375,8 +711,8 @@ func configure_arena_players(level_root: Node) -> void:
 		if multiplayer.is_server():
 			_session_ready_ack[peer_id] = true
 
-	for node in level_root.get_tree().get_nodes_in_group("Player"):
-		var player_2d := node as Node2D
+	_fill_scene_players(level_root, _player_scan_buffer)
+	for player_2d in _player_scan_buffer:
 		if player_2d == null or used_ids.has(player_2d.get_instance_id()):
 			continue
 		var peer_value: Variant = player_2d.get("network_peer_id")
@@ -391,8 +727,8 @@ func configure_arena_players(level_root: Node) -> void:
 func refresh_runtime_multiplayer_bindings(level_root: Node) -> void:
 	if level_root == null:
 		return
-	for node in level_root.get_tree().get_nodes_in_group("Player"):
-		var player := node as Node
+	_fill_scene_players(level_root, _player_scan_buffer)
+	for player in _player_scan_buffer:
 		if player != null:
 			_connect_player_network_signals(player)
 	_configure_sync_foundation(level_root)
@@ -546,6 +882,8 @@ func _begin_host_run(seed_override: int = 0, scene_path: String = RUN_SCENE_PATH
 	_run_in_progress = true
 	_last_wave_state.clear()
 	_status_label = _host_status_for_scene(scene_path)
+	if mode == SessionMode.STEAM_HOST:
+		_refresh_steam_lobby_state()
 	_rpc_begin_network_run.rpc(_run_config)
 	network_run_started.emit(_run_config.duplicate(true))
 	_publish_status()
@@ -600,7 +938,7 @@ func _on_peer_disconnected(peer_id: int) -> void:
 
 func _on_connected_to_server() -> void:
 	local_peer_id = _effective_local_peer_id()
-	_status_label = "CONNECTED TO LAN HOST"
+	_status_label = "CONNECTED TO STEAM HOST" if mode == SessionMode.STEAM_CLIENT else "CONNECTED TO LAN HOST"
 	_upsert_peer_record(local_peer_id, local_player_name)
 	_rpc_register_player.rpc_id(1, _local_profile())
 	_publish_status()
@@ -924,6 +1262,8 @@ func _configure_player_node(player: Node2D, record: Dictionary, index: int) -> v
 	player.name = "PlayerPeer%d" % peer_id
 	if not player.is_in_group("Player"):
 		player.add_to_group("Player")
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(player, &"Player")
 	if not bool(player.get_meta(&"network_configured", false)):
 		player.global_position = _spawn_position_for_index(index)
 		player.set_meta(&"network_configured", true)
@@ -962,22 +1302,42 @@ func _first_scene_player(level_root: Node) -> Node2D:
 	var direct := level_root.get_node_or_null("Player") as Node2D
 	if direct != null:
 		return direct
-	for node in level_root.get_tree().get_nodes_in_group("Player"):
-		var player := node as Node2D
+	_fill_scene_players(level_root, _player_scan_buffer)
+	for player in _player_scan_buffer:
 		if player != null and player.get_parent() == level_root:
 			return player
 	return null
 
 
 func _find_player_by_peer(level_root: Node, peer_id: int) -> Node2D:
-	for node in level_root.get_tree().get_nodes_in_group("Player"):
-		var player := node as Node2D
+	_fill_scene_players(level_root, _player_scan_buffer)
+	for player in _player_scan_buffer:
 		if player == null:
 			continue
 		var value: Variant = player.get("network_peer_id")
 		if typeof(value) == TYPE_INT and int(value) == peer_id:
 			return player
 	return null
+
+
+func _fill_scene_players(level_root: Node, out_players: Array[Node2D]) -> void:
+	out_players.clear()
+	if level_root == null:
+		return
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(&"Player", out_players)
+	else:
+		for node in level_root.get_tree().get_nodes_in_group("Player"):
+			var player := node as Node2D
+			if player != null and is_instance_valid(player) and not player.is_queued_for_deletion():
+				out_players.append(player)
+	for index in range(out_players.size() - 1, -1, -1):
+		var player := out_players[index]
+		if player == null or not is_instance_valid(player) or player.is_queued_for_deletion():
+			out_players.remove_at(index)
+			continue
+		if player != level_root and not level_root.is_ancestor_of(player):
+			out_players.remove_at(index)
 
 
 func _remove_player_for_peer(peer_id: int) -> void:

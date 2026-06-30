@@ -1616,3 +1616,5 @@ Combat should feel much more responsive and satisfying. The player should immedi
 [x] ERROR: res://Nodes/player.tscn::GDScript_e3gfx:3 - Parse Error: "class_name" isn't allowed in built-in scripts. Fixed: removed the embedded built-in trajectory predictor script from the player scene, so the scene no longer tries to parse a `class_name` inside a sub-resource.
 
 [x] Verified by text scan: `GDScript_e3gfx` and duplicate `class_name OrbitalTrajectoryPredictor` references no longer exist in `Nodes/player.tscn`.
+
+[x] Enemy damage identifiers, hit reactions, and momentum combat juice completion pass. Fixed: `HealthComponent` now emits typed damage context with health-ratio/state transitions and clears consumed feedback metadata after each hit, preventing stale weapon tags from mislabeling later damage. `DamageIndicatorManager` now has inspector-editable pool budgets, frame budgets, impact rings, directional streaks, health-state markers, target flash caps, optional major-hit recoil, modded/shield/armor/beam colors, and graceful budget drop behavior so combat reads stronger without unbounded feedback spam.

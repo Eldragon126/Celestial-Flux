@@ -211,6 +211,8 @@ var _network_nameplate: Label = null
 # ========================
 
 func _ready():
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"Player")
 	_refresh_gravity_sources(true)
 	_bind_shield()
 	_ensure_powerup_inventory()
@@ -227,6 +229,12 @@ func _ready():
 	_ensure_network_nameplate()
 	_apply_network_locality()
 	_update_network_nameplate()
+
+
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"Player")
+
 
 func _connect_pause_menu_state() -> void:
 	var pause_menu := get_pause_menu()

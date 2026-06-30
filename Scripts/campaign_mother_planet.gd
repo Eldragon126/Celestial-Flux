@@ -74,12 +74,16 @@ func _ready() -> void:
 	if RuntimeRegistry != null:
 		RuntimeRegistry.register_node(self, &"Objects_With_Gravity")
 		RuntimeRegistry.register_node(self, &"planets")
+		RuntimeRegistry.register_node(self, &"player_allies")
+		RuntimeRegistry.register_node(self, &"campaign_mother_planet")
 
 
 func _exit_tree() -> void:
 	if RuntimeRegistry != null:
 		RuntimeRegistry.unregister_node(self, &"Objects_With_Gravity")
 		RuntimeRegistry.unregister_node(self, &"planets")
+		RuntimeRegistry.unregister_node(self, &"player_allies")
+		RuntimeRegistry.unregister_node(self, &"campaign_mother_planet")
 
 
 func _process(delta: float) -> void:

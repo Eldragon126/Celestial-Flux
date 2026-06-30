@@ -24,6 +24,8 @@ var _simulation_accumulator: float = 0.0
 
 
 func _ready() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"enemies")
 	# Randomize stats slightly
 	max_speed += randf_range(-100.0, 100.0)
 	direction_variance = Vector2(randf_range(-0.2, 0.2), randf_range(-0.2, 0.2))
@@ -33,6 +35,11 @@ func _ready() -> void:
 
 	Player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_refresh_planets()
+
+
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"enemies")
 
 
 func _process(delta: float) -> void:

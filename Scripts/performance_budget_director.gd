@@ -19,6 +19,7 @@ enum QualityTier { LOW, MEDIUM, HIGH }
 @export var multiplayer_low_fps_threshold: int = 58
 
 var _elapsed := 999.0
+var _group_buffer: Array[Node2D] = []
 
 
 func _ready() -> void:
@@ -181,7 +182,8 @@ func _apply_new_director_budget(scene: Node, low: bool, medium: bool) -> void:
 		_set_if_present(heat_map, "max_gravity_sources", 6 if low else (9 if medium else 12))
 		_set_if_present(heat_map, "max_contour_segments", 520 if low else (760 if medium else 980))
 		_set_if_present(heat_map, "max_gradient_vectors", 48 if low else (72 if medium else 95))
-	for hazard in get_tree().get_nodes_in_group("gravity_wave_maker"):
+	_fill_group(&"gravity_wave_maker", _group_buffer)
+	for hazard in _group_buffer:
 		var node := hazard as Node
 		if node == null or not is_instance_valid(node):
 			continue
@@ -190,7 +192,8 @@ func _apply_new_director_budget(scene: Node, low: bool, medium: bool) -> void:
 		_set_if_present(node, "max_physics_points_per_group", 5 if low else (7 if medium else 8))
 		_set_if_present(node, "physics_update_interval", 0.075 if low else (0.06 if medium else 0.05))
 		_set_if_present(node, "visual_update_interval", 0.065 if low else (0.05 if medium else 0.04))
-	for hazard in get_tree().get_nodes_in_group("pulsating_gravity_spawner"):
+	_fill_group(&"pulsating_gravity_spawner", _group_buffer)
+	for hazard in _group_buffer:
 		var node := hazard as Node
 		if node == null or not is_instance_valid(node):
 			continue
@@ -199,34 +202,36 @@ func _apply_new_director_budget(scene: Node, low: bool, medium: bool) -> void:
 
 
 func _apply_player_budget(low: bool) -> void:
-	var player := get_tree().get_first_node_in_group("Player")
-	if player == null:
-		return
-	_set_if_present(player, "max_gravity_sources", 3 if low else 4)
-	_set_if_present(player, "gravity_source_refresh_interval", 0.45 if low else 0.35)
+	_fill_group(&"Player", _group_buffer)
+	for player in _group_buffer:
+		if player == null or not is_instance_valid(player):
+			continue
+		_set_if_present(player, "max_gravity_sources", 3 if low else 4)
+		_set_if_present(player, "gravity_source_refresh_interval", 0.45 if low else 0.35)
 
 
 func _apply_prediction_budget(low: bool, medium: bool) -> void:
-	var player := get_tree().get_first_node_in_group("Player")
-	if player == null:
-		return
 	var effective_low := low or _is_network_active()
-	var aim := player.get_node_or_null("ProjectileAimPredictor")
-	if aim != null:
-		_set_if_present(aim, "prediction_steps", 58 if effective_low else (96 if medium else 110))
-		_set_if_present(aim, "substeps", 1 if effective_low else 2)
-		_set_if_present(aim, "ghost_count", 0)
-		_set_if_present(aim, "max_draw_segments", 42 if effective_low else (96 if medium else 110))
-		_set_if_present(aim, "prediction_recalculate_interval", 0.09 if effective_low else (0.06 if medium else 0.045))
-		_set_if_present(aim, "pressure_hide_threshold", 72 if effective_low else (104 if medium else 128))
-	var trajectory := player.get_node_or_null("OrbitalTrajectoryPredictor")
-	if trajectory != null:
-		_set_if_present(trajectory, "prediction_steps", 72 if effective_low else (92 if medium else 112))
-		_set_if_present(trajectory, "max_gravity_sources", 3 if effective_low else 4)
-		_set_if_present(trajectory, "max_branch_count", 1 if effective_low else (2 if medium else 3))
-		_set_if_present(trajectory, "max_draw_segments", 52 if effective_low else (68 if medium else 84))
-		_set_if_present(trajectory, "prediction_recalculate_interval", 0.1 if effective_low else (0.075 if medium else 0.06))
-		_set_if_present(trajectory, "pressure_hide_threshold", 84 if effective_low else (108 if medium else 128))
+	_fill_group(&"Player", _group_buffer)
+	for player in _group_buffer:
+		if player == null or not is_instance_valid(player):
+			continue
+		var aim := player.get_node_or_null("ProjectileAimPredictor")
+		if aim != null:
+			_set_if_present(aim, "prediction_steps", 58 if effective_low else (96 if medium else 110))
+			_set_if_present(aim, "substeps", 1 if effective_low else 2)
+			_set_if_present(aim, "ghost_count", 0)
+			_set_if_present(aim, "max_draw_segments", 42 if effective_low else (96 if medium else 110))
+			_set_if_present(aim, "prediction_recalculate_interval", 0.09 if effective_low else (0.06 if medium else 0.045))
+			_set_if_present(aim, "pressure_hide_threshold", 72 if effective_low else (104 if medium else 128))
+		var trajectory := player.get_node_or_null("OrbitalTrajectoryPredictor")
+		if trajectory != null:
+			_set_if_present(trajectory, "prediction_steps", 72 if effective_low else (92 if medium else 112))
+			_set_if_present(trajectory, "max_gravity_sources", 3 if effective_low else 4)
+			_set_if_present(trajectory, "max_branch_count", 1 if effective_low else (2 if medium else 3))
+			_set_if_present(trajectory, "max_draw_segments", 52 if effective_low else (68 if medium else 84))
+			_set_if_present(trajectory, "prediction_recalculate_interval", 0.1 if effective_low else (0.075 if medium else 0.06))
+			_set_if_present(trajectory, "pressure_hide_threshold", 84 if effective_low else (108 if medium else 128))
 
 
 func _apply_projectile_visual_budget(low: bool, medium: bool) -> void:
@@ -238,7 +243,8 @@ func _apply_projectile_visual_budget(low: bool, medium: bool) -> void:
 	var rail_cap := 10 if effective_low else (18 if medium else 26)
 	var soft_cap := 44 if effective_low else (58 if medium else 70)
 	var hard_cap := 82 if effective_low else (106 if medium else 128)
-	for projectile in get_tree().get_nodes_in_group("Projectiles"):
+	_fill_group(&"Projectiles", _group_buffer)
+	for projectile in _group_buffer:
 		var node := projectile as Node
 		if node == null or not is_instance_valid(node):
 			continue
@@ -277,6 +283,19 @@ func _group_count(group_name: StringName) -> int:
 	if RuntimeRegistry != null:
 		return RuntimeRegistry.get_count(group_name)
 	return get_tree().get_nodes_in_group(group_name).size()
+
+
+func _fill_group(group_name: StringName, out_nodes: Array[Node2D], limit: int = -1) -> void:
+	out_nodes.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(group_name, out_nodes, limit)
+		return
+	for value in get_tree().get_nodes_in_group(group_name):
+		if limit >= 0 and out_nodes.size() >= limit:
+			return
+		var node := value as Node2D
+		if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+			out_nodes.append(node)
 
 
 func _is_network_active() -> bool:

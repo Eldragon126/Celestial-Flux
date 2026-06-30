@@ -1,8 +1,8 @@
 3e2cc9f74922c2592e3236b3f5b5179c
-::res://::1782485366
+::res://::1782838044
 .agentrules.txt::TextFile::-1::1780678393::0::1::::<><><>0<>0<><>::
 default_bus_layout.tres::AudioBusLayout::6536144205823831777::1779223367::0::1::::<><><>0<>0<><>::
-export_presets.cfg::TextFile::-1::1782409803::0::1::::<><><>0<>0<><>::
+export_presets.cfg::TextFile::-1::1782750139::0::1::::<><><>0<>0<><>::
 HOW_TO_PLAY.md::TextFile::-1::1782250719::0::1::::<><><>0<>0<><>::
 icon.svg::CompressedTexture2D::1800171189912251906::1779223367::1779223367::1::::<><><>0<>0<>60cf4f21f9256d6dc7767d18abb03a86<>res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex::
 README.md::TextFile::-1::1782246627::0::1::::<><><>0<>0<><>::
@@ -10,8 +10,8 @@ test_motor_position.gd::GDScript::7501230798128003658::1779223367::0::1::::<>Nod
 test_motor_position.tscn::PackedScene::8574287700416929151::1779223367::0::1::::<><><>0<>0<><>::uid://de4wf7wb5aule::::res://test_motor_position.gd<>uid://ch4e8om5vmkgs::::res://test_motor_position_beam.gd<>uid://unwhnooi7g2c::::res://addons/godot-rapier2d/custom_nodes/rapier_rigid_body_2d.gd<>uid://bjckrk4dmnguh::::res://test_motor_position_spawner.gd<>uid://bv2bc4lt5v7hu::::res://addons/godot-rapier2d/custom_nodes/rapier_pin_joint_2d.gd
 test_motor_position_beam.gd::GDScript::5324332782146253942::1779223367::0::1::::<>StaticBody2D<><>0<>0<><>::
 test_motor_position_spawner.gd::GDScript::3022887130553250319::1779223367::0::1::::<>Node2D<><>0<>0<><>::
-::res://addons/::1782319144
-::res://addons/godot-rapier2d/::1782484617
+::res://addons/::1782694770
+::res://addons/godot-rapier2d/::1782836809
 circle_mesh.tres::ArrayMesh::7174673425048804142::1782319144::0::1::::<><><>0<>0<><>::
 faucet_2d.gd::GDScript::9216407355742322844::1782319144::0::1::::Faucet2D<>Fluid2D<><>0<>0<><>::
 fluid_2d_circle.gd::GDScript::7694350402687501325::1782319144::0::1::::<>Fluid2D<><>0<>1<><>::
@@ -21,11 +21,11 @@ fluid_2d_shader_renderer.gd::GDScript::1153928655632662277::1782319144::0::1::::
 godot-rapier2d.gdextension::GDExtension::6464857025447911873::1782319144::0::1::::<><><>0<>0<><>::
 logo_square_2d.png::CompressedTexture2D::9002049772566657075::1782319146::1782319144::1::::<><><>0<>0<>b503ebbccf6e6a46955b8200090051e5<>res://.godot/imported/logo_square_2d.png-ee7cb55fd9c4d1815ce7e83cd5401198.ctex::
 plugin.info.cfg::TextFile::-1::1782319144::0::1::::<><><>0<>0<><>::
-Radial2D.svg::CompressedTexture2D::5294797171325615259::1782319145::1782485368::1::::<><><>0<>0<>1bc62197614fc00072e42040575d98c4<>res://.godot/imported/Radial2D.svg-4380d9841bddc115105cff2016be7c6a.ctex::
+Radial2D.svg::CompressedTexture2D::5294797171325615259::1782319145::1782836809::1::::<><><>0<>0<>1bc62197614fc00072e42040575d98c4<>res://.godot/imported/Radial2D.svg-4380d9841bddc115105cff2016be7c6a.ctex::
 THIRDPARTY.txt::TextFile::-1::1782319145::0::1::::<><><>0<>0<><>::
 water_shader.gdshader::Shader::5244640210084459761::1782319144::0::1::::<><><>0<>0<><>::
 water_shader.tres::ShaderMaterial::6495341302912672044::1782319144::0::1::::<><><>0<>0<><>::res://addons/godot-rapier2d/water_shader.gdshader
-::res://addons/godot-rapier2d/bin/::1782485358
+::res://addons/godot-rapier2d/bin/::1782838036
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.arm64.framework/::1782319145
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.x86_64.framework/::1782319145
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.macos.framework/::1782319145
@@ -42,9 +42,28 @@ rapier_physical_bone_2d.gd::GDScript::6341721350451337327::1782319146::0::1::::R
 rapier_pin_joint_2d.gd::GDScript::3916190429106199850::1782319146::0::1::::RapierPinJoint2D<>PinJoint2D<><>0<>0<><>::
 rapier_rigid_body_2d.gd::GDScript::1431962763040487152::1782319146::0::1::::RapierRigidBody2D<>RigidBody2D<><>0<>0<><>::
 rapier_static_body_2d.gd::GDScript::3827589778013951087::1782319146::0::1::::RapierStaticBody2D<>StaticBody2D<><>0<>0<><>::
-::res://addons/godot-rapier2d/icons/::1782484617
-Fluid2D.svg::CompressedTexture2D::6302457331682152295::1782319146::1782485368::1::::<><><>0<>0<>231d9337dcdbf2f181060f8de7d5904c<>res://.godot/imported/Fluid2D.svg-af3237d9aa7357bf47435150f6228e4b.ctex::
+::res://addons/godot-rapier2d/icons/::1782836809
+Fluid2D.svg::CompressedTexture2D::6302457331682152295::1782319146::1782836809::1::::<><><>0<>0<>231d9337dcdbf2f181060f8de7d5904c<>res://.godot/imported/Fluid2D.svg-af3237d9aa7357bf47435150f6228e4b.ctex::
 StateManager2D.svg::CompressedTexture2D::1277279720193679363::1782319146::1782319146::1::::<><><>0<>0<>92267b7a9348dcef3639d0308e65795b<>res://.godot/imported/StateManager2D.svg-1a4e1b526e80995b692903b1eb5c9c70.ctex::
+::res://addons/godotsteam_server/::1782696570
+godotsteam_plugin.gd::GDScript::3760372618818852495::1782696452::0::1::::GodotSteamServerPlugin<>EditorPlugin<><>0<>1<><>::
+license.md::TextFile::-1::1782694770::0::1::::<><><>0<>0<><>::
+plugin.cfg::TextFile::-1::1782694770::0::1::::<><><>0<>0<><>::
+readme.md::TextFile::-1::1782694770::0::1::::<><><>0<>0<><>::
+::res://addons/godotsteam_server/androidarm64/::1782694771
+::res://addons/godotsteam_server/editor/::1782694770
+steamworks_panel.gd::GDScript::1854706253489638439::1782694770::0::1::::<>Control<><>0<>1<><>::
+steamworks_panel.tscn::PackedScene::6484703463217850114::1782694770::0::1::::<><><>0<>0<><>::uid://1oo0gvamoxgp::::res://addons/godotsteam_server/editor/steamworks_panel.gd<>uid://b4nvgu7h84u53::::res://addons/godotsteam_server/editor/updates/updates.gd
+::res://addons/godotsteam_server/editor/ui/::1782694799
+steam.svg::CompressedTexture2D::7679158975758942475::1782694770::1782694799::1::::<><><>0<>0<>4bfa7272205aa761ea530c1722d8b345<>res://.godot/imported/steam.svg-98f95fa60aa8c3b571a73739bbc0d2a6.ctex::
+::res://addons/godotsteam_server/editor/updates/::1782694770
+updates.gd::GDScript::4450020931874397632::1782696438::0::1::::<>MarginContainer<><>0<>1<><>::
+::res://addons/godotsteam_server/linux32/::1782694771
+::res://addons/godotsteam_server/linux64/::1782694771
+::res://addons/godotsteam_server/linuxarm64/::1782694771
+::res://addons/godotsteam_server/osx/::1782694771
+::res://addons/godotsteam_server/win32/::1782694771
+::res://addons/godotsteam_server/win64/::1782696517
 ::res://Assets/::1781228367
 ::res://Assets/Audio/::1781228367
 README.md::TextFile::-1::1781228367::0::1::::<><><>0<>0<><>::
@@ -345,7 +364,7 @@ mod_status_loaded.svg::CompressedTexture2D::6839653339055365539::1780617582::178
 ::res://Debug and Development Files/::1782484294
 ASSET_AND_AUDIO_PRODUCTION_LIST.md::TextFile::-1::1782311600::0::1::::<><><>0<>0<><>::
 BRAND_AND_MARKETING_PLAN.md::TextFile::-1::1780011005::0::1::::<><><>0<>0<><>::
-Critical_Fix_Polish_Test_Plan.md::TextFile::-1::1782429529::0::1::::<><><>0<>0<><>::
+Critical_Fix_Polish_Test_Plan.md::TextFile::-1::1782751048::0::1::::<><><>0<>0<><>::
 Enemy Drop System.md::TextFile::-1::1780616801::0::1::::<><><>0<>0<><>::
 GAME_SYSTEMS_AND_PROGRESSION.md::TextFile::-1::1782429735::0::1::::<><><>0<>0<><>::
 MARKETING_CAPTURE_MANIFEST.md::TextFile::-1::1782246443::0::1::::<><><>0<>0<><>::
@@ -360,7 +379,7 @@ PLATFORM_SUPPORT_MATRIX.md::TextFile::-1::1782246423::0::1::::<><><>0<>0<><>::
 SelfDirectedLearningProjectPlan.md::TextFile::-1::1780072262::0::1::::<><><>0<>0<><>::
 SELLABILITY_EXECUTION_PLAN.md::TextFile::-1::1781799439::0::1::::<><><>0<>0<><>::
 Separation_Blueprint.md::TextFile::-1::1782226460::0::1::::<><><>0<>0<><>::
-Things to Fix.txt::TextFile::-1::1782429748::0::1::::<><><>0<>0<><>::
+Things to Fix.txt::TextFile::-1::1782751056::0::1::::<><><>0<>0<><>::
 Turning a good game into a sellable Game.md::TextFile::-1::1780978945::0::1::::<><><>0<>0<><>::
 Vector Anomaly VVV task.txt::TextFile::-1::1781801830::0::1::::<><><>0<>0<><>::
 Vectorfall Future.txt::TextFile::-1::1781385339::0::1::::<><><>0<>0<><>::
@@ -417,7 +436,7 @@ vector_anomaly_mod.json::JSON::-1::1782333771::0::1::::<><><>0<>0<><>::
 vector_anomaly_mod.json::JSON::-1::1782311510::0::1::::<><><>0<>0<><>::
 ::res://Mods/space_oregon_trail/::1782311478
 vector_anomaly_mod.json::JSON::-1::1782429791::0::1::::<><><>0<>0<><>::
-::res://Nodes/::1782483075
+::res://Nodes/::1782794493
 accretion_core_boss.tscn::PackedScene::-1::1779472405::0::1::::<><><>0<>0<><>::res://Scripts/Bosses/accretion_core_boss.gd
 adaptive_music_state_director.tscn::PackedScene::7396446591978758113::1781542199::0::1::::<><><>0<>0<><>::uid://ndmkumwhqws4::::res://Scripts/adaptive_music_state_director.gd
 arena_destabilization_manager.tscn::PackedScene::445768193153712680::1779223366::0::1::::<><><>0<>0<><>::uid://bldsjmtcko3dx::::res://Scripts/arena_destabilization_manager.gd
@@ -430,7 +449,7 @@ boss_v_player.tscn::PackedScene::7945192654685178317::1779469119::0::1::::<><><>
 campaign_dock_scene.tscn::PackedScene::-1::1782429505::0::1::::<><><>0<>0<><>::res://Scripts/campaign_dock_scene.gd
 campaign_escort_ship.tscn::PackedScene::-1::1782336120::0::1::::<><><>0<>0<><>::res://Scripts/campaign_escort_ship.gd
 campaign_invader.tscn::PackedScene::-1::1782427146::0::1::::<><><>0<>0<><>::res://Scripts/campaign_invader.gd
-campaign_mode.tscn::PackedScene::-1::1782429490::0::1::::<><><>0<>0<><>::res://Scripts/campaign_mode_director.gd<>res://Nodes/player.tscn<>res://Nodes/campaign_mother_planet.tscn<>res://Scripts/orbital_juice_manager.gd<>res://Nodes/campaign_visual_director.tscn<>res://Nodes/campaign_dock_scene.tscn
+campaign_mode.tscn::PackedScene::-1::1782511122::0::1::::<><><>0<>0<><>::res://Scripts/campaign_mode_director.gd<>res://Nodes/player.tscn<>res://Nodes/campaign_mother_planet.tscn<>res://Scripts/orbital_juice_manager.gd<>res://Nodes/campaign_visual_director.tscn<>res://Nodes/campaign_dock_scene.tscn
 campaign_mothership.tscn::PackedScene::-1::1782427589::0::1::::<><><>0<>0<><>::res://Scripts/campaign_mothership.gd
 campaign_mother_planet.tscn::PackedScene::-1::1782429481::0::1::::<><><>0<>0<><>::res://Scripts/campaign_mother_planet.gd
 campaign_planet_turret.tscn::PackedScene::-1::1782336673::0::1::::<><><>0<>0<><>::res://Scripts/campaign_planet_turret.gd
@@ -464,7 +483,7 @@ gravity_component.tscn::PackedScene::8136832031136795303::1779223366::0::1::::<>
 gravity_ghost_recorder.tscn::PackedScene::-1::1782082558::0::1::::<><><>0<>0<><>::res://Scripts/gravity_ghost_recorder.gd
 gravity_ghost_replay_panel.tscn::PackedScene::-1::1782311421::0::1::::<><><>0<>0<><>::res://Scripts/gravity_ghost_replay_panel.gd
 gravity_harasser.tscn::PackedScene::7605054049366807308::1779473077::0::1::::<><><>0<>0<><>::uid://cjbxql4j0dcx8::::res://Scripts/gravity_harasser.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd
-gravity_heat_map_overlay.tscn::PackedScene::2853528069330445568::1782276127::0::1::::<><><>0<>0<><>::uid://iycq348knu7c::::res://Scripts/gravity_heat_map_overlay.gd
+gravity_heat_map_overlay.tscn::PackedScene::2853528069330445568::1782487702::0::1::::<><><>0<>0<><>::uid://iycq348knu7c::::res://Scripts/gravity_heat_map_overlay.gd
 gravity_leech.tscn::PackedScene::219067341761083957::1779473084::0::1::::<><><>0<>0<><>::uid://qtg8tt4a5xxq::::res://Scripts/gravity_leech.gd
 gravity_maw_boss.tscn::PackedScene::-1::1780009558::0::1::::<><><>0<>0<><>::
 gravity_resonance_manager.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/gravity_resonance_manager.gd
@@ -475,7 +494,7 @@ gravity_warden_boss.tscn::PackedScene::-1::1779467293::0::1::::<><><>0<>0<><>::r
 gravity_wave_maker.tscn::PackedScene::8242201092160642434::1780690049::0::1::::<><><>0<>0<><>::uid://b6rj4vv8bflbn::::res://Scripts/gravity_wave_maker.gd
 health_component.tscn::PackedScene::8480792746789018729::1779223366::0::1::::<><><>0<>0<><>::uid://cgo7omjjvv108::::res://Scripts/health_component.gd
 juice_coordinator.tscn::PackedScene::-1::1779466955::0::1::::<><><>0<>0<><>::res://Scripts/juice_coordinator.gd
-king_of_the_hill_mode.tscn::PackedScene::-1::1782429499::0::1::::<><><>0<>0<><>::res://Scripts/campaign_mode_director.gd<>res://Nodes/player.tscn<>res://Nodes/campaign_mother_planet.tscn<>res://Scripts/orbital_juice_manager.gd
+king_of_the_hill_mode.tscn::PackedScene::-1::1782511133::0::1::::<><><>0<>0<><>::res://Scripts/campaign_mode_director.gd<>res://Nodes/player.tscn<>res://Nodes/campaign_mother_planet.tscn<>res://Scripts/orbital_juice_manager.gd
 late_game_instability_director.tscn::PackedScene::-1::1779814689::0::1::::<><><>0<>0<><>::res://Scripts/late_game_instability_director.gd
 leech_parasite.tscn::PackedScene::6633186853221851768::1779473091::0::1::::<><><>0<>0<><>::uid://bk7r3yxfn4aep::::res://Scripts/leech_parasite.gd
 magnetar_twins_boss.tscn::PackedScene::7393704488895554455::1781200167::0::1::::<><><>0<>0<><>::uid://bsopohsotnepc::::res://Scripts/Bosses/magnetar_twins_boss.gd
@@ -515,7 +534,7 @@ player_thruster_trails.tscn::PackedScene::-1::1779467090::0::1::::<><><>0<>0<><>
 player_visual_state.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/player_visual_state.gd
 powerup_pickup.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/powerup_pickup.gd
 production_simulation_runner.tscn::PackedScene::-1::1781628136::0::1::::<><><>0<>0<><>::res://Scripts/production_simulation_runner.gd
-projectile.tscn::PackedScene::9164447918518034243::1782250402::0::1::::<><><>0<>0<><>::uid://besheop2vhiwn::::res://Scripts/projectile.gd
+projectile.tscn::PackedScene::9164447918518034243::1782794493::0::1::::<><><>0<>0<><>::uid://besheop2vhiwn::::res://Scripts/projectile.gd
 projectile_predictor.tscn::PackedScene::5668433178562313545::1779223366::0::1::::<><><>0<>0<><>::uid://8e10xg8c2op6::::res://Scripts/projectile_predictor.gd
 projectile_predictor_component.tscn::PackedScene::3873046584095999437::1780529045::0::1::::<><><>0<>0<><>::uid://3kk15v0og3sb::::res://Scripts/projectile_predictor_component.gd
 projectile_spark_watcher.tscn::PackedScene::8751667465192697733::1779223366::0::1::::<><><>0<>0<><>::uid://pjssw1cuycdd::::res://Scripts/projectile_spark_watcher.gd
@@ -545,7 +564,7 @@ splitting_asteroid_bot.tscn::PackedScene::-1::1779473104::0::1::::<><><>0<>0<><>
 stress_test_director.tscn::PackedScene::-1::1779383709::0::1::::<><><>0<>0<><>::res://Scripts/stress_test_director.gd
 the_abyss.tscn::PackedScene::2778582691990093799::1781559708::0::1::::<><><>0<>0<><>::uid://b21qhaniop41p::::res://Scripts/the_abyss.gd<>uid://bar4e30caja5p::::res://Nodes/player.tscn<>uid://nfcuwc1hcu21::::res://Nodes/black_hole.tscn<>uid://dk5kb2f3tf0y7::::res://Scripts/time_dilation_manager.gd<>uid://bik4q8pcaj1vy::::res://Scripts/orbital_juice_manager.gd
 time_dilation_manager.tscn::PackedScene::23118348817232646::1782276130::0::1::::<><><>0<>0<><>::uid://dk5kb2f3tf0y7::::res://Scripts/time_dilation_manager.gd
-title_screen.tscn::PackedScene::9204183084617661237::1782334849::0::1::::<><><>0<>0<><>::uid://dhdhg4km4qnd8::::res://Scripts/title_screen.gd<>uid://cou7kmndp04qt::::res://Assets/Songs/Orbital Drift.mp3<>uid://bni12e87in5aq::::res://Assets/Fonts/edge-of-the-galaxy-font/EdgeOfTheGalaxyRegular-OVEa6.otf<>uid://l80cn0kfl5wl::::res://Assets/Fonts/sf-distant-galaxy-font/SfDistantGalaxyAlternate-OE4d.ttf<>uid://cwu0khh13q40b::::res://Scripts/pause_menu.gdshader<>uid://cqdqshk4xbg5q::::res://Nodes/planet_1.tscn<>uid://dk5kb2f3tf0y7::::res://Scripts/time_dilation_manager.gd<>uid://daytuijrlty5v::::res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn<>uid://ch82c26sdlrmq::::res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn<>uid://bmw0r3gq3jjlo::::res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn<>res://Nodes/ParametricEquationEnemies/parametric_enemy_4.tscn<>uid://c10f52t6u7nk2::::res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn<>uid://b2v55yaahtgwt::::res://Nodes/base_enemy.tscn<>uid://c7b0subtq6kgr::::res://Nodes/base_shooter_enemy.tscn<>uid://deeaihs58vwn::::res://Nodes/gravity_leech.tscn<>uid://c1rfva2x24bjk::::res://Nodes/leech_parasite.tscn
+title_screen.tscn::PackedScene::9204183084617661237::1782668713::0::1::::<><><>0<>0<><>::uid://dhdhg4km4qnd8::::res://Scripts/title_screen.gd<>uid://cou7kmndp04qt::::res://Assets/Songs/Orbital Drift.mp3<>uid://bni12e87in5aq::::res://Assets/Fonts/edge-of-the-galaxy-font/EdgeOfTheGalaxyRegular-OVEa6.otf<>uid://l80cn0kfl5wl::::res://Assets/Fonts/sf-distant-galaxy-font/SfDistantGalaxyAlternate-OE4d.ttf<>uid://cwu0khh13q40b::::res://Scripts/pause_menu.gdshader<>uid://cqdqshk4xbg5q::::res://Nodes/planet_1.tscn<>uid://dk5kb2f3tf0y7::::res://Scripts/time_dilation_manager.gd<>uid://daytuijrlty5v::::res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn<>uid://ch82c26sdlrmq::::res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn<>uid://bmw0r3gq3jjlo::::res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn<>res://Nodes/ParametricEquationEnemies/parametric_enemy_4.tscn<>uid://c10f52t6u7nk2::::res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn<>uid://b2v55yaahtgwt::::res://Nodes/base_enemy.tscn<>uid://c7b0subtq6kgr::::res://Nodes/base_shooter_enemy.tscn<>uid://deeaihs58vwn::::res://Nodes/gravity_leech.tscn<>uid://c1rfva2x24bjk::::res://Nodes/leech_parasite.tscn
 unstable_moon.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/unstable_moon.gd
 vector_anomaly_director.tscn::PackedScene::-1::1780418480::0::1::::<><><>0<>0<><>::res://Scripts/vector_anomaly_director.gd
 vector_hud_glyph.tscn::PackedScene::-1::1782084912::0::1::::<><><>0<>0<><>::res://Scripts/vector_hud_glyph.gd
@@ -567,7 +586,7 @@ polymorph_boss.tscn::PackedScene::4922909907427867519::1779472477::0::1::::<><><
 SDL Log.txt::TextFile::-1::1779223366::0::1::::<><><>0<>0<><>::
 ::res://Nodes/resonance_zones/::1779467036
 resonance_zone_visual.tscn::PackedScene::-1::1780617222::0::1::::<><><>0<>0<><>::res://Scripts/resonance_zone_visual.gd
-::res://Scripts/::1782483075
+::res://Scripts/::1782794493
 _godot_check.gd::GDScript::7637899577734680835::1779223366::0::1::::<>SceneTree<><>0<>0<><>::
 _godot_check_all.gd::GDScript::8017831429787697617::1782484329::0::1::::<>SceneTree<><>0<>0<><>::
 adaptive_music_state_director.gd::GDScript::919395632423091337::1781540656::0::1::::AdaptiveMusicStateDirector<>Node<><>0<>0<><>::
@@ -575,19 +594,19 @@ arena_destabilization_manager.gd::GDScript::3165800734724879613::1780425724::0::
 arena_instability_director.gd::GDScript::4904845435097120948::1781539821::0::1::::ArenaInstabilityDirector<>Node2D<><>0<>0<><>::
 arena_rule_director.gd::GDScript::1690288175135562639::1779814914::0::1::::ArenaRuleDirector<>Node<><>0<>0<><>::
 Audio Effects List for Future.txt::TextFile::-1::1779488673::0::1::::<><><>0<>0<><>::
-base_enemy.gd::GDScript::1128416834903503302::1781802394::0::1::::<>CharacterBody2D<><>0<>0<><>::
+base_enemy.gd::GDScript::1128416834903503302::1782837629::0::1::::<>CharacterBody2D<><>0<>0<><>::
 base_enemy_gpu_particles.gd::GDScript::5250982269975428958::1779472692::0::1::::<>GPUParticles2D<><>0<>0<><>::
-base_shooter_enemy.gd::GDScript::1110940147808734008::1781540750::0::1::::<>CharacterBody2D<><>0<>0<><>::
+base_shooter_enemy.gd::GDScript::1110940147808734008::1782837637::0::1::::<>CharacterBody2D<><>0<>0<><>::
 black_hole.gd::GDScript::2027469082599599748::1782246003::0::1::::<>StaticBody2D<><>0<>0<><>::
 bullet_manager.gd::GDScript::3239790965678721620::1780418067::0::1::::<>Node<><>0<>0<><>::
 campaign_dock_scene.gd::GDScript::3543377465895391425::1782430065::0::1::::CampaignDockScene<>Control<><>0<>0<><>::
-campaign_escort_ship.gd::GDScript::7738853539105941591::1782484201::0::1::::CampaignEscortShip<>CharacterBody2D<><>0<>0<><>::
-campaign_invader.gd::GDScript::4082742024931967291::1782484799::0::1::::CampaignInvader<>CharacterBody2D<><>0<>0<><>::
-campaign_mode_director.gd::GDScript::1244731562232879509::1782485018::0::1::::CampaignModeDirector<>Node2D<><>0<>0<><>::
-campaign_mothership.gd::GDScript::2095219168366243213::1782427578::0::1::::CampaignMothership<>StaticBody2D<><>0<>0<><>::
-campaign_mother_planet.gd::GDScript::5921441236620255005::1782430071::0::1::::CampaignMotherPlanet<>StaticBody2D<><>0<>0<><>::
-campaign_planet_turret.gd::GDScript::1272182711574160871::1782336800::0::1::::CampaignPlanetTurret<>StaticBody2D<><>0<>0<><>::
-campaign_visual_director.gd::GDScript::7964413465266278892::1782427188::0::1::::CampaignVisualDirector<>Node2D<><>0<>0<><>::
+campaign_escort_ship.gd::GDScript::7738853539105941591::1782751612::0::1::::CampaignEscortShip<>CharacterBody2D<><>0<>0<><>::
+campaign_invader.gd::GDScript::4082742024931967291::1782751633::0::1::::CampaignInvader<>CharacterBody2D<><>0<>0<><>::
+campaign_mode_director.gd::GDScript::1244731562232879509::1782836764::0::1::::CampaignModeDirector<>Node2D<><>0<>0<><>::
+campaign_mothership.gd::GDScript::2095219168366243213::1782751662::0::1::::CampaignMothership<>StaticBody2D<><>0<>0<><>::
+campaign_mother_planet.gd::GDScript::5921441236620255005::1782751672::0::1::::CampaignMotherPlanet<>StaticBody2D<><>0<>0<><>::
+campaign_planet_turret.gd::GDScript::1272182711574160871::1782752107::0::1::::CampaignPlanetTurret<>StaticBody2D<><>0<>0<><>::
+campaign_visual_director.gd::GDScript::7964413465266278892::1782751966::0::1::::CampaignVisualDirector<>Node2D<><>0<>0<><>::
 causality_shrike.gd::GDScript::6184104650593550775::1781539979::0::1::::CausalityShrike<>CharacterBody2D<><>0<>0<><>::
 celestial_body_director.gd::GDScript::8522384569153545690::1782005142::0::1::::CelestialBodyDirector<>Node2D<><>0<>0<><>::
 chaos_wisp.gd::GDScript::6793672170144001610::1780676906::0::1::::<>CharacterBody2D<><>0<>0<><>::
@@ -596,7 +615,7 @@ collision_sparks.gd::GDScript::3666334132452178926::1779472177::0::1::::<>CPUPar
 combat_status.gd::GDScript::2323240057078602998::1782080941::0::1::::CombatStatus<>Object<><>0<>0<><>::
 coop_combo_director.gd::GDScript::2883468828909214421::1782246098::0::1::::CoopComboDirector<>Node<><>0<>0<><>::
 credits_sequence.gd::GDScript::5785892574684377828::1780426486::0::1::::<>Control<><>0<>0<><>::
-damage_indicator_manager.gd::GDScript::4857860656111620303::1782335574::0::1::::DamageIndicatorManager<>CanvasLayer<><>0<>0<><>::
+damage_indicator_manager.gd::GDScript::4857860656111620303::1782751034::0::1::::DamageIndicatorManager<>CanvasLayer<><>0<>0<><>::
 death_fairness_director.gd::GDScript::8156679336554011325::1781473591::0::1::::DeathFairnessDirector<>Node<><>0<>0<><>::
 debug_balance_overlay.gd::GDScript::7986086328498046171::1781283567::0::1::::<>CanvasLayer<><>0<>0<><>::
 demo_game_director.gd::GDScript::5635180711229298768::1781629323::0::1::::<>Node2D<><>0<>0<><>::
@@ -613,7 +632,7 @@ fair_pacing_director.gd::GDScript::1941778617603451455::1780805212::0::1::::Fair
 gameplay_teaching_director.gd::GDScript::5619137494565754143::1781198333::0::1::::GameplayTeachingDirector<>CanvasLayer<><>0<>0<><>::
 game_over_scene.gd::GDScript::2871895707575176246::1782226367::0::1::::<>Control<><>0<>0<><>::
 gravimetric_echo_drone.gd::GDScript::188558047575089692::1781539986::0::1::::GravimetricEchoDrone<>CharacterBody2D<><>0<>0<><>::
-gravity_component.gd::GDScript::2419814021874574943::1780438520::0::1::::GravityComponent<>Node<><>0<>0<><>::
+gravity_component.gd::GDScript::2419814021874574943::1782751120::0::1::::GravityComponent<>Node<><>0<>0<><>::
 gravity_component_test_runner.gd::GDScript::8765232107729011022::1779223366::0::1::::<>SceneTree<><>0<>0<><>::
 gravity_debris.gd::GDScript::3462119300209532465::1781197932::0::1::::GravityDebris<>Node2D<><>0<>0<><>::
 gravity_ghost_recorder.gd::GDScript::3108655882253300819::1782226342::0::1::::GravityGhostRecorder<>Node<><>0<>0<><>::
@@ -623,21 +642,21 @@ gravity_heat_map_overlay.gd::GDScript::611207338856104570::1782246405::0::1::::G
 gravity_leech.gd::GDScript::1162668937304884682::1781541016::0::1::::<>CharacterBody2D<><>0<>0<><>::
 gravity_maw_boss.gd::GDScript::3295833977332972474::1781494929::0::1::::GravityMawBoss<>PhaseBoss<><>0<>0<><>::
 gravity_resonance_manager.gd::GDScript::2482221750751723031::1781559739::0::1::::GravityResonanceManager<>Node<><>0<>0<><>::
-gravity_scar_manager.gd::GDScript::6815623346093802510::1781559739::0::1::::GravityScarManager<>Node2D<><>0<>0<><>::
+gravity_scar_manager.gd::GDScript::6815623346093802510::1782691983::0::1::::GravityScarManager<>Node2D<><>0<>0<><>::
 gravity_tide_pocket.gd::GDScript::2947306916609543236::1781560009::0::1::::GravityTidePocket<>Area2D<><>0<>0<><>::
 gravity_time_overlay.gdshader::Shader::4518662710290706445::1781307456::0::1::::<><><>0<>0<><>::
 gravity_undertaker.gd::GDScript::7179724941882040480::1781539994::0::1::::GravityUndertaker<>CharacterBody2D<><>0<>0<><>::
 gravity_visualization_component.gd::GDScript::3649777332500917176::1779223366::0::1::::GravityVisualizationComponent<>Node2D<><>0<>0<><>::
 gravity_warden_boss.gd::GDScript::1058240661974076909::1781197932::0::1::::<>CharacterBody2D<><>0<>0<><>::
 gravity_wave_maker.gd::GDScript::4597968636181421683::1781542200::0::1::::<>Node2D<><>0<>0<><>::
-health_component.gd::GDScript::5224844307275708339::1782332843::0::1::::HealthComponent<>Node<><>0<>0<><>::
+health_component.gd::GDScript::5224844307275708339::1782750789::0::1::::HealthComponent<>Node<><>0<>0<><>::
 juice_coordinator.gd::GDScript::3201364621626508339::1780438135::0::1::::JuiceCoordinator<>Node<><>0<>0<><>::
 late_game_instability_director.gd::GDScript::4136827732216984536::1779814763::0::1::::LateGameInstabilityDirector<>Node<><>0<>0<><>::
 leech_parasite.gd::GDScript::3155452695646299183::1780676828::0::1::::<>CharacterBody2D<><>0<>0<><>::
 mass_point.gd::GDScript::981364107225057576::1781540572::0::1::::<>Node2D<><>0<>0<><>::
 mechanic_audio_director.gd::GDScript::300487813218304018::1781628380::0::1::::MechanicAudioDirector<>Node<><>0<>0<><>::
 mod_content_registry.gd::GDScript::2047825693157031626::1782333640::0::1::::ModContentRegistry<>Node<><>0<>0<><>::
-mod_hook_director.gd::GDScript::4405151572972871605::1782004042::0::1::::ModHookDirector<>Node<><>0<>0<><>::
+mod_hook_director.gd::GDScript::4405151572972871605::1782752185::0::1::::ModHookDirector<>Node<><>0<>0<><>::
 mod_management_scene.gd::GDScript::2099951736318817879::1782312460::0::1::::<>Control<><>0<>0<><>::
 momentum_combat_component.gd::GDScript::5280434017342672024::1782332986::0::1::::MomentumCombatComponent<>Node2D<><>0<>0<><>::
 multiplayer_sync_foundation.gd::GDScript::4342128311935335283::1782246088::0::1::::MultiplayerSyncFoundation<>Node<><>0<>0<><>::
@@ -645,14 +664,14 @@ multiplayer_targeting.gd::GDScript::8052171010494576005::1780806601::0::1::::Mul
 music_finale_director.gd::GDScript::2424844132607505912::1781495045::0::1::::<>Node<><>0<>0<><>::
 music_resonance_boss.gd::GDScript::1567290042278042288::1781201437::0::1::::MusicResonanceBoss<>PhaseBoss<><>0<>0<><>::
 nebula_cloud.gd::GDScript::320727597032300482::1779223366::0::1::::<>Area2D<><>0<>0<><>::
-network_session.gd::GDScript::3419408066386416339::1782312295::0::1::::NetworkSessionManager<>Node<><>0<>0<><>::
+network_session.gd::GDScript::3419408066386416339::1782837882::0::1::::NetworkSessionManager<>Node<><>0<>0<><>::
 new_circle_shape_2d.tres::CircleShape2D::2769419705516880249::1779223366::0::1::::<><><>0<>0<><>::
 orbital_hud.gd::GDScript::6719581749989024932::1782334371::0::1::::<>CanvasLayer<><>0<>0<><>::
 orbital_juice_manager.gd::GDScript::2970366332364540050::1782334358::0::1::::<>Node2D<><>0<>0<><>::
 orbital_juice_test_runner.gd::GDScript::6297667161094760057::1779223366::0::1::::<>SceneTree<><>0<>0<><>::
 orbital_null_harvester.gd::GDScript::8762996394700567496::1780676923::0::1::::OrbitalNullHarvester<>CharacterBody2D<><>0<>0<><>::
 orbital_trajectory_predictor.gd::GDScript::625823564726394738::1782234823::0::1::::OrbitalTrajectoryPredictor<>Node2D<><>0<>0<><>::
-orbital_vfx_director.gd::GDScript::1722151527632984955::1781384399::0::1::::OrbitalVFXDirector<>Node2D<><>0<>0<><>::
+orbital_vfx_director.gd::GDScript::1722151527632984955::1782692019::0::1::::OrbitalVFXDirector<>Node2D<><>0<>0<><>::
 orbiter_drone.gd::GDScript::1529655747903013415::1780676835::0::1::::<>CharacterBody2D<><>0<>0<><>::
 orbit_thread.gd::GDScript::4011578288156361990::1781282272::0::1::::OrbitThread<>Node2D<><>0<>0<><>::
 orbit_thread_anchor.gd::GDScript::1835760214849195129::1781282272::0::1::::OrbitThreadAnchor<>CharacterBody2D<><>0<>0<><>::
@@ -660,9 +679,9 @@ orbit_weaver.gd::GDScript::7607463110087985321::1781282272::0::1::::OrbitWeaver<
 parametric_motion_component.gd::GDScript::8379096402876116259::1780418501::0::1::::ParametricMotionComponent<>Node2D<><>0<>0<><>::
 particle_focus_culler.gd::GDScript::5845911365967279023::1780616582::0::1::::ParticleFocusCuller<>Node<><>0<>0<><>::
 pause_menu.gd::GDScript::6366961530430168320::1782398724::0::1::::<>Control<><>0<>0<><>::
-pause_menu.gdshader::Shader::6359819644958804231::1782360346::0::1::::<><><>0<>0<><>::
+pause_menu.gdshader::Shader::6359819644958804231::1782794493::0::1::::<><><>0<>0<><>::
 pebble_of_reckoning.gd::GDScript::8855493015747433739::1781540201::0::1::::PebbleOfReckoning<>CharacterBody2D<><>0<>0<><>::
-performance_budget_director.gd::GDScript::8213096334148852219::1781541972::0::1::::PerformanceBudgetDirector<>Node<><>0<>0<><>::
+performance_budget_director.gd::GDScript::8213096334148852219::1782837663::0::1::::PerformanceBudgetDirector<>Node<><>0<>0<><>::
 periapsis_mantis.gd::GDScript::8767823081166773437::1781539734::0::1::::PeriapsisMantis<>CharacterBody2D<><>0<>0<><>::
 phase_boss.gd::GDScript::6184636123117585420::1781238831::0::1::::PhaseBoss<>CharacterBody2D<><>0<>0<><>::
 phase_slip_swarm.gd::GDScript::3527471486184736943::1781541037::0::1::::PhaseSlipSwarm<>CharacterBody2D<><>0<>0<><>::
@@ -670,12 +689,12 @@ physics_aware_enemy_director.gd::GDScript::4919423037199566154::1781283566::0::1
 physics_drop.gd::GDScript::6564770331211235020::1782310999::0::1::::PhysicsDrop<>Area2D<><>0<>0<><>::
 physics_drop_system.gd::GDScript::8423181302644099560::1781539751::0::1::::PhysicsDropSystem<>Node<><>0<>0<><>::
 planet_1.gd::GDScript::5041419185777251057::1781384437::0::1::::<>StaticBody2D<><>0<>0<><>::
-planet_1.gdshader::Shader::4381545973256523815::1782360346::0::1::::<><><>0<>0<><>::
+planet_1.gdshader::Shader::4381545973256523815::1782794493::0::1::::<><><>0<>0<><>::
 planet_atmosphere_dust.gd::GDScript::7609698741783299846::1779223366::0::1::::<>Node2D<><>0<>0<><>::
 playable_tutorial_director.gd::GDScript::5035035054781794395::1782233576::0::1::::PlayableTutorialDirector<>Node2D<><>0<>0<><>::
-player.gd::GDScript::5424910629918329491::1782483409::0::1::::<>CharacterBody2D<><>0<>0<><>::
-player.gdshader::Shader::6169009076136816292::1782360346::0::1::::<><><>0<>0<><>::
-playershield.gdshader::Shader::880010420938775349::1782360346::0::1::::<><><>0<>0<><>::
+player.gd::GDScript::5424910629918329491::1782837617::0::1::::<>CharacterBody2D<><>0<>0<><>::
+player.gdshader::Shader::6169009076136816292::1782794493::0::1::::<><><>0<>0<><>::
+playershield.gdshader::Shader::880010420938775349::1782794493::0::1::::<><><>0<>0<><>::
 player_damage_camera_shake.gd::GDScript::234362575886560579::1780523957::0::1::::<>Node<><>0<>0<><>::
 player_engine_hum.gd::GDScript::5069761183290189784::1779223366::0::1::::<>AudioStreamPlayer2D<><>0<>0<><>::
 player_hull.gdshader::Shader::1751693809725717146::1779467023::0::1::::<><><>0<>0<><>::
@@ -688,7 +707,7 @@ powerup_inventory.gd::GDScript::3890460173974284305::1781196415::0::1::::Powerup
 powerup_library.gd::GDScript::5597053758471478865::1780506799::0::1::::PowerupLibrary<>Object<><>0<>0<><>::
 powerup_pickup.gd::GDScript::4579941966172858626::1781197932::0::1::::PowerupPickup<>Area2D<><>0<>0<><>::
 production_simulation_runner.gd::GDScript::2925912824436529054::1781629329::0::1::::<>Node<><>0<>0<><>::
-projectile.gd::GDScript::2704767779697364289::1782332900::0::1::::<>RigidBody2D<><>0<>0<><>::
+projectile.gd::GDScript::2704767779697364289::1782691869::0::1::::<>RigidBody2D<><>0<>0<><>::
 projectile_collision_spark_listener.gd::GDScript::5639759509116826782::1780639069::0::1::::<>Node<><>0<>0<><>::
 projectile_predictor.gd::GDScript::2326113856539857645::1782317639::0::1::::ProjectileAimPredictor<>Node2D<><>0<>0<><>::
 projectile_predictor_component.gd::GDScript::1986586609270956613::1781283994::0::1::::ProjectileTrajectoryVisualizer<>Node2D<><>0<>0<><>::
@@ -715,22 +734,22 @@ shielder_support.gd::GDScript::3824832890250223367::1780079005::0::1::::<>Charac
 shield_breaker_unit.gd::GDScript::7462952044244857618::1780676872::0::1::::<>CharacterBody2D<><>0<>0<><>::
 skill_signature_director.gd::GDScript::2635357481461020670::1781540066::0::1::::SkillSignatureDirector<>Node2D<><>0<>0<><>::
 sniper_turret.gd::GDScript::8563286196848860194::1780676879::0::1::::<>StaticBody2D<><>0<>0<><>::
-spacetime_fabric.gdshader::Shader::7872623414899321536::1782360346::0::1::::<><><>0<>0<><>::
+spacetime_fabric.gdshader::Shader::7872623414899321536::1782794493::0::1::::<><><>0<>0<><>::
 spacetime_swim_director.gd::GDScript::2280776331422050987::1782010279::0::1::::SpacetimeSwimDirector<>Node2D<><>0<>0<><>::
 spacetime_tear_director.gd::GDScript::7720219517265331566::1781539831::0::1::::SpacetimeTearDirector<>Node2D<><>0<>0<><>::
 splitting_asteroid_bot.gd::GDScript::7146883491967441158::1780676902::0::1::::<>CharacterBody2D<><>0<>0<><>::
 stress_test_director.gd::GDScript::5471086307788581306::1781540071::0::1::::StressTestDirector<>Node2D<><>0<>0<><>::
 the_abyss.gd::GDScript::4336177276432400783::1781541740::0::1::::<>Node2D<><>0<>0<><>::
 time_dilation_manager.gd::GDScript::7923692202955274316::1782081035::0::1::::TimeDilationManager<>Node<><>0<>0<><>::
-title_screen.gd::GDScript::7657214362730325003::1782398742::0::1::::<>Control<><>0<>0<><>::
+title_screen.gd::GDScript::7657214362730325003::1782837757::0::1::::<>Control<><>0<>0<><>::
 unstable_moon.gd::GDScript::2075570130685602570::1779912650::0::1::::<>StaticBody2D<><>0<>0<><>::
 vector_anomaly_director.gd::GDScript::593592381794617284::1782335550::0::1::::VectorAnomalyDirector<>Node2D<><>0<>0<><>::
 vector_hud_glyph.gd::GDScript::2178668894943558860::1782234076::0::1::::VectorHudGlyph<>Control<><>0<>0<><>::
-vector_runtime_registry.gd::GDScript::746752899681950620::1782083396::0::1::::VectorRuntimeRegistry<>Node<><>0<>0<><>::
+vector_runtime_registry.gd::GDScript::746752899681950620::1782837608::0::1::::VectorRuntimeRegistry<>Node<><>0<>0<><>::
 vector_tax_collector.gd::GDScript::5167280648878826228::1781494965::0::1::::VectorTaxCollector<>CharacterBody2D<><>0<>0<><>::
 visual_escalation_director.gd::GDScript::7404743603896140314::1780526434::0::1::::VisualEscalationDirector<>Node<><>0<>0<><>::
-wave_director.gd::GDScript::7099340195090699140::1781799159::0::1::::<>Node2D<><>0<>0<><>::
-weapon_system.gd::GDScript::6364723658512625332::1782332970::0::1::::WeaponSystem<>Node2D<><>0<>0<><>::
+wave_director.gd::GDScript::7099340195090699140::1782836695::0::1::::<>Node2D<><>0<>0<><>::
+weapon_system.gd::GDScript::6364723658512625332::1782691898::0::1::::WeaponSystem<>Node2D<><>0<>0<><>::
 wormhole_pair.gd::GDScript::1177768064709425769::1780591863::0::1::::<>Node2D<><>0<>0<><>::
 ::res://Scripts/Bosses/::1781200167
 accretion_core_boss.gd::GDScript::3282685072245656280::1781199975::0::1::::<>PhaseBoss<><>0<>0<><>::
@@ -743,8 +762,8 @@ rift_weaver_boss.gd::GDScript::3731522661255253757::1781199532::0::1::::<>PhaseB
 anomaly_ghost_echo.gd::GDScript::2534171216494309938::1782484492::0::1::::AnomalyGhostEcho<>Node2D<><>0<>0<><>::
 anomaly_rift_config.gd::GDScript::2374810555864073805::1782483167::0::1::::AnomalyRiftConfig<>Resource<><>0<>0<><>::
 anomaly_rift_portal.gd::GDScript::4174576195621469808::1782483787::0::1::::AnomalyRiftPortal<>Area2D<><>0<>0<><>::
-anomaly_shard.gd::GDScript::431006919228379120::1782484267::0::1::::AnomalyShard<>Area2D<><>0<>0<><>::
-blackbox_tape.gd::GDScript::538939261236883061::1782484272::0::1::::BlackboxTape<>Area2D<><>0<>0<><>::
+anomaly_shard.gd::GDScript::431006919228379120::1782752091::0::1::::AnomalyShard<>Area2D<><>0<>0<><>::
+blackbox_tape.gd::GDScript::538939261236883061::1782752098::0::1::::BlackboxTape<>Area2D<><>0<>0<><>::
 momentum_door.gd::GDScript::2384072734218724072::1782483787::0::1::::MomentumDoor<>Area2D<><>0<>0<><>::
 optional_challenge_director.gd::GDScript::860650974851809449::1782485063::0::1::::OptionalChallengeDirector<>Node<><>0<>0<><>::
 personal_gravity_flip_component.gd::GDScript::1712753689927376033::1782484488::0::1::::PersonalGravityFlipComponent<>Node2D<><>0<>0<><>::

@@ -20,10 +20,17 @@ var _collected: bool = false
 
 func _ready() -> void:
 	add_to_group("anomaly_shard")
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"anomaly_shard")
 	_build_collision()
 	_build_visuals()
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
+
+
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"anomaly_shard")
 
 
 func _process(delta: float) -> void:

@@ -23,8 +23,16 @@ var _gravity_refresh_elapsed = 0.0
 var _simulation_accumulator: float = 0.0
 
 func _ready() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"enemies")
 	Player = MultiplayerTargeting.nearest_player(global_position, get_tree())
 	_refresh_planets()
+
+
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"enemies")
+
 
 func _process(delta: float) -> void:
 	delta *= CombatStatus.get_time_scale(self)

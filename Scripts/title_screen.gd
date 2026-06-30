@@ -38,6 +38,13 @@ const SEEKER_FRAGMENT_SCENE := "res://Nodes/seeker_fragment.tscn"
 @export_group("Multiplayer")
 @export var multiplayer_default_port: int = 28942
 @export var multiplayer_max_peers: int = 4
+@export var steam_lobby_id_placeholder: String = "HOST IP / STEAM LOBBY ID"
+@export var steam_host_join_button_text: String = "STEAM HOST/JOIN"
+@export var steam_campaign_button_text: String = "STEAM CAMPAIGN"
+@export var steam_koth_button_text: String = "STEAM KOTH"
+@export var steam_join_numeric_address: bool = true
+@export var steam_host_status_text: String = "Steam lobby hosting started."
+@export var steam_join_status_text: String = "Joining Steam lobby."
 
 @export_group("Title Menu Readouts")
 @export var mod_status_font_size: int = 13
@@ -73,6 +80,8 @@ var _mp_koth_button: Button = null
 var _mp_join_button: Button = null
 var _mp_stop_button: Button = null
 var _mp_steam_button: Button = null
+var _mp_steam_campaign_button: Button = null
+var _mp_steam_koth_button: Button = null
 var _demo_button: Button = null
 var _clip_lab_button: Button = null
 var _mod_manager_button: Button = null
@@ -96,6 +105,9 @@ var _scene_cache: Dictionary = {}
 
 
 func _ready() -> void:
+	print("This game was made with the Godot Engine.")
+	print("Much of the code of this game was edited by Codex, inspired by a real person.")
+	print("All of the soundtrack is original, however.")
 	$Menu/NewRunButton.grab_focus()
 	if not RunProgress:
 		push_error("RunProgress autoload not found!")
@@ -766,8 +778,8 @@ func _ensure_multiplayer_panel() -> void:
 	_mp_name_edit = _make_line_edit("VECTOR", "CALLSIGN")
 	rows.add_child(_make_field_row("CALLSIGN", _mp_name_edit))
 
-	_mp_address_edit = _make_line_edit("127.0.0.1", "HOST IP")
-	rows.add_child(_make_field_row("HOST IP", _mp_address_edit))
+	_mp_address_edit = _make_line_edit("127.0.0.1", steam_lobby_id_placeholder)
+	rows.add_child(_make_field_row("HOST / LOBBY", _mp_address_edit))
 
 	_mp_port_spin = SpinBox.new()
 	_mp_port_spin.min_value = 1.0
@@ -807,6 +819,16 @@ func _ensure_multiplayer_panel() -> void:
 	secondary_row.add_child(_mp_stop_button)
 	secondary_row.add_child(_mp_steam_button)
 
+	var steam_mode_row := HBoxContainer.new()
+	steam_mode_row.name = "SteamModeRow"
+	steam_mode_row.add_theme_constant_override("separation", 10)
+	rows.add_child(steam_mode_row)
+
+	_mp_steam_campaign_button = _make_action_button(steam_campaign_button_text)
+	_mp_steam_koth_button = _make_action_button(steam_koth_button_text)
+	steam_mode_row.add_child(_mp_steam_campaign_button)
+	steam_mode_row.add_child(_mp_steam_koth_button)
+
 	var close_button := _make_action_button("CLOSE")
 	rows.add_child(close_button)
 
@@ -816,6 +838,8 @@ func _ensure_multiplayer_panel() -> void:
 	_mp_join_button.pressed.connect(_on_multiplayer_join_pressed)
 	_mp_stop_button.pressed.connect(_on_multiplayer_stop_pressed)
 	_mp_steam_button.pressed.connect(_on_multiplayer_steam_pressed)
+	_mp_steam_campaign_button.pressed.connect(_on_multiplayer_steam_campaign_pressed)
+	_mp_steam_koth_button.pressed.connect(_on_multiplayer_steam_koth_pressed)
 	close_button.pressed.connect(_on_multiplayer_close_pressed)
 
 
@@ -869,7 +893,14 @@ func _update_multiplayer_ui() -> void:
 	if _mp_stop_button != null:
 		_mp_stop_button.disabled = not active
 	if _mp_steam_button != null:
-		_mp_steam_button.text = "STEAM READY" if bool(status.get("steam_available", false)) else "STEAM NEEDS PLUGIN"
+		_mp_steam_button.disabled = active
+		_mp_steam_button.text = steam_host_join_button_text if bool(status.get("steam_available", false)) else "STEAM NEEDS PLUGIN"
+	if _mp_steam_campaign_button != null:
+		_mp_steam_campaign_button.disabled = active or not bool(status.get("steam_available", false))
+		_mp_steam_campaign_button.text = steam_campaign_button_text
+	if _mp_steam_koth_button != null:
+		_mp_steam_koth_button.disabled = active or not bool(status.get("steam_available", false))
+		_mp_steam_koth_button.text = steam_koth_button_text
 
 
 func _on_multiplayer_button_pressed() -> void:
@@ -918,16 +949,34 @@ func _host_network_scene(scene_path: String, mode_flags: Dictionary) -> void:
 	_update_multiplayer_ui()
 
 
+func _host_steam_network_scene(scene_path: String, mode_flags: Dictionary) -> void:
+	if NetworkSession == null:
+		return
+	if not NetworkSession.has_method("is_steam_multiplayer_available") or not bool(NetworkSession.call("is_steam_multiplayer_available")):
+		if _mp_status_label != null:
+			_mp_status_label.text = NetworkSession.get_steam_support_message()
+		return
+	var player_name := _mp_name_edit.text if _mp_name_edit != null else "VECTOR"
+	if NetworkSession.has_method("host_steam_scene_and_play"):
+		NetworkSession.call("host_steam_scene_and_play", player_name, scene_path, _selected_start_seed(), mode_flags)
+	_update_multiplayer_ui()
+
+
 func _try_start_network_scene(scene_path: String, mode_flags: Dictionary) -> bool:
 	if NetworkSession == null or not NetworkSession.has_method("is_network_active"):
 		return false
 	if not bool(NetworkSession.call("is_network_active")):
 		return false
-	if NetworkSession.has_method("is_lan_host") and bool(NetworkSession.call("is_lan_host")) and NetworkSession.has_method("start_hosted_scene_run"):
+	var is_host := false
+	if NetworkSession.has_method("is_session_host"):
+		is_host = bool(NetworkSession.call("is_session_host"))
+	elif NetworkSession.has_method("is_lan_host"):
+		is_host = bool(NetworkSession.call("is_lan_host"))
+	if is_host and NetworkSession.has_method("start_hosted_scene_run"):
 		NetworkSession.call("start_hosted_scene_run", scene_path, _selected_start_seed(), mode_flags)
 		return true
 	if _mp_status_label != null:
-		_mp_status_label.text = "Only the LAN host can start Campaign or KOTH for the session."
+		_mp_status_label.text = "Only the session host can start Campaign or KOTH for the session."
 	return true
 
 
@@ -950,7 +999,35 @@ func _on_multiplayer_stop_pressed() -> void:
 func _on_multiplayer_steam_pressed() -> void:
 	if _mp_status_label == null or NetworkSession == null:
 		return
-	_mp_status_label.text = NetworkSession.get_steam_support_message()
+	if not NetworkSession.has_method("is_steam_multiplayer_available") or not bool(NetworkSession.call("is_steam_multiplayer_available")):
+		_mp_status_label.text = NetworkSession.get_steam_support_message()
+		return
+	var player_name := _mp_name_edit.text if _mp_name_edit != null else "VECTOR"
+	var address := _mp_address_edit.text.strip_edges() if _mp_address_edit != null else ""
+	if steam_join_numeric_address and address.is_valid_int() and int(address) > 0 and NetworkSession.has_method("join_steam_lobby"):
+		_mp_status_label.text = steam_join_status_text
+		NetworkSession.call("join_steam_lobby", int(address), player_name)
+	elif NetworkSession.has_method("host_steam_lobby"):
+		_mp_status_label.text = steam_host_status_text
+		NetworkSession.call("host_steam_lobby", player_name, _selected_start_seed())
+	else:
+		_mp_status_label.text = NetworkSession.get_steam_support_message()
+	_update_multiplayer_ui()
+
+
+func _on_multiplayer_steam_campaign_pressed() -> void:
+	_host_steam_network_scene(CAMPAIGN_MODE_SCENE, {
+		"campaign_mode": true,
+		"network_mode_id": "campaign",
+	})
+
+
+func _on_multiplayer_steam_koth_pressed() -> void:
+	_host_steam_network_scene(KING_OF_THE_HILL_SCENE, {
+		"campaign_mode": true,
+		"king_of_hill_mode": true,
+		"network_mode_id": "king_of_the_hill",
+	})
 
 
 func _on_multiplayer_close_pressed() -> void:

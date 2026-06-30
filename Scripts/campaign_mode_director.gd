@@ -239,6 +239,26 @@ const FLEET_COMMAND_REPAIR := &"retreat_repair"
 @export var trade_panel_path: NodePath = ^"CampaignUI/TradePanel"
 @export var dock_prompt_path: NodePath = ^"CampaignUI/DockPromptLabel"
 
+@export_group("Campaign UI Layout")
+@export var campaign_hud_anchor: Vector2 = Vector2(0.5, 0.0)
+@export var campaign_hud_offset: Vector2 = Vector2(-230.0, 18.0)
+@export var campaign_hud_size: Vector2 = Vector2(460.0, 142.0)
+@export var upgrade_panel_anchor: Vector2 = Vector2(1.0, 0.0)
+@export var upgrade_panel_offset: Vector2 = Vector2(-338.0, 190.0)
+@export var upgrade_panel_size: Vector2 = Vector2(318.0, 350.0)
+@export var command_panel_anchor: Vector2 = Vector2(0.5, 1.0)
+@export var command_panel_offset: Vector2 = Vector2(-330.0, -160.0)
+@export var command_panel_size: Vector2 = Vector2(660.0, 132.0)
+@export var command_panel_columns: int = 4
+@export var alien_panel_anchor: Vector2 = Vector2(0.5, 1.0)
+@export var alien_panel_offset: Vector2 = Vector2(-290.0, -376.0)
+@export var alien_panel_size: Vector2 = Vector2(580.0, 142.0)
+@export var dock_prompt_anchor: Vector2 = Vector2(0.5, 1.0)
+@export var dock_prompt_offset: Vector2 = Vector2(-320.0, -222.0)
+@export var dock_prompt_size: Vector2 = Vector2(640.0, 42.0)
+@export var hide_player_legacy_labels_in_campaign: bool = true
+@export var hidden_player_campaign_hud_paths: Array[NodePath] = [^"CanvasLayer/Health", ^"CanvasLayer/Drag", ^"CanvasLayer/Energy"]
+
 @export_group("Campaign Visual Polish")
 @export var hud_panel_bg_color: Color = Color(0.006, 0.018, 0.032, 0.9)
 @export var hud_panel_border_color: Color = Color(0.22, 0.94, 1.0, 0.46)
@@ -263,6 +283,8 @@ const FLEET_COMMAND_REPAIR := &"retreat_repair"
 @export var mod_gamemode_id: StringName = &""
 @export var mod_campaign_id: StringName = &""
 @export var network_wave_broadcast_interval: float = 0.35
+@export var network_client_wait_status: String = "WAITING FOR HOST CAMPAIGN LOCK"
+@export var network_host_only_status: String = "HOST CONTROLS CAMPAIGN VECTOR"
 
 var energy_credits: int = 0
 var wave_index: int = 0
@@ -326,6 +348,9 @@ var _dock_pre_pause_time_scale: float = 1.0
 var _energy_component: Node = null
 var _syncing_energy_currency: bool = false
 var _network_broadcast_elapsed: float = 0.0
+var _network_forced_campaign_start: bool = false
+var _network_snapshot_applying: bool = false
+var _last_network_campaign_state: Dictionary = {}
 var _registry: Node = null
 
 
@@ -334,10 +359,13 @@ func _ready() -> void:
 	_fleet_command = _normalize_fleet_command(default_fleet_command)
 	_set_campaign_state(CampaignState.INIT)
 	_seed_rng()
+	if NetworkSession != null:
+		NetworkSession.configure_arena_players(self)
 	_resolve_nodes()
 	_polish_campaign_ui_runtime()
 	_apply_mod_catalog_metadata()
 	_connect_ui_buttons()
+	_connect_network_session()
 	energy_credits = int(RunProgress.arena_flags.get("campaign_energy_credits", start_credits)) if RunProgress != null else start_credits
 	campaign_route_progress = float(RunProgress.arena_flags.get("campaign_route_progress", 0.0)) if RunProgress != null else 0.0
 	freehold_reputation = float(RunProgress.arena_flags.get("campaign_freehold_reputation", starting_freehold_reputation)) if RunProgress != null else starting_freehold_reputation
@@ -349,7 +377,10 @@ func _ready() -> void:
 	_spawn_motherships()
 	_apply_fleet_command_to_escorts()
 	_update_ui()
-	_begin_next_wave()
+	if _is_network_client():
+		_set_campaign_status(network_client_wait_status)
+	else:
+		_begin_next_wave()
 
 
 func _process(delta: float) -> void:
@@ -362,6 +393,11 @@ func _process(delta: float) -> void:
 	_status_override_remaining = maxf(_status_override_remaining - delta, 0.0)
 	_mother_defense_pulse_remaining = maxf(_mother_defense_pulse_remaining - delta, 0.0)
 	_update_gravity_storm(delta)
+	if _is_network_client():
+		_update_docking_prompt()
+		_update_ui()
+		_update_campaign_debug_overlay(delta)
+		return
 	_apply_interwave_repair(delta)
 	_update_hill_capture(delta)
 	_update_docking_prompt()
@@ -383,6 +419,8 @@ func _process(delta: float) -> void:
 func add_campaign_credits(amount: int, reason: StringName = &"campaign") -> void:
 	if amount == 0:
 		return
+	if _is_network_client() and not _network_snapshot_applying:
+		return
 	energy_credits = maxi(energy_credits + amount, 0)
 	if RunProgress != null:
 		RunProgress.arena_flags["campaign_energy_credits"] = energy_credits
@@ -390,6 +428,7 @@ func add_campaign_credits(amount: int, reason: StringName = &"campaign") -> void
 	_sync_energy_currency()
 	campaign_currency_changed.emit(energy_credits)
 	_update_ui()
+	_broadcast_campaign_state_now()
 
 
 func get_campaign_visual_snapshot() -> Dictionary:
@@ -417,6 +456,9 @@ func get_campaign_visual_snapshot() -> Dictionary:
 func _begin_next_wave() -> void:
 	if _campaign_finished:
 		return
+	if _is_network_client() and not _network_forced_campaign_start:
+		_set_campaign_status(network_client_wait_status)
+		return
 	_set_campaign_state(CampaignState.PRE_WAVE)
 	wave_index += 1
 	_select_wave_directive()
@@ -441,7 +483,7 @@ func _begin_next_wave() -> void:
 	_set_campaign_state(CampaignState.DIRECTIVE_ACTIVE if _active_directive != &"standard" else CampaignState.WAVE_ACTIVE)
 	campaign_wave_started.emit(wave_index)
 	campaign_directive_changed.emit(_active_directive, _active_directive_label)
-	_broadcast_campaign_state_now()
+	_broadcast_campaign_state_now(&"begin")
 	_emit_campaign_debug_snapshot()
 
 
@@ -867,7 +909,10 @@ func _advance_campaign_route() -> void:
 		RunProgress.arena_flags["campaign_route_progress"] = campaign_route_progress
 
 
-func _complete_wave() -> void:
+func _complete_wave(network_forced: bool = false) -> void:
+	if _is_network_client() and not network_forced:
+		_set_campaign_status(network_client_wait_status)
+		return
 	_wave_running = false
 	_set_campaign_state(CampaignState.POST_WAVE)
 	_gravity_storm_remaining = 0.0
@@ -879,7 +924,7 @@ func _complete_wave() -> void:
 	add_campaign_credits(reward, &"wave_clear")
 	_advance_campaign_route()
 	campaign_wave_cleared.emit(wave_index)
-	_broadcast_campaign_state_now()
+	_broadcast_campaign_state_now(&"cleared")
 	if wave_index >= final_wave and not king_of_hill_mode:
 		_finish_campaign()
 		return
@@ -907,10 +952,13 @@ func _finish_campaign() -> void:
 		RunProgress.arena_flags["campaign_freehold_reputation"] = freehold_reputation
 		RunProgress.run_finished = true
 	campaign_over.emit("campaign_completed")
-	_broadcast_campaign_state_now()
+	_broadcast_campaign_state_now(&"victory")
 
 
 func _end_campaign(reason: String) -> void:
+	if _is_network_client() and not _network_snapshot_applying:
+		_set_campaign_status("HOST CONFIRMING FAILURE VECTOR")
+		return
 	_campaign_finished = true
 	_set_campaign_state(CampaignState.DEFEAT)
 	if RunProgress != null:
@@ -918,6 +966,7 @@ func _end_campaign(reason: String) -> void:
 		RunProgress.arena_flags["retry_scene_path"] = retry_scene_path
 		RunProgress.arena_flags["title_scene_path"] = TITLE_SCENE
 	campaign_over.emit(reason)
+	_broadcast_campaign_state_now(&"defeat", reason)
 	get_tree().change_scene_to_file(GAME_OVER_SCENE)
 
 
@@ -1042,6 +1091,8 @@ func _start_alien_encounter() -> void:
 
 
 func _on_barter_button_pressed() -> void:
+	if _host_only_campaign_control():
+		return
 	if not _spend_credits(barter_cost, &"alien_barter"):
 		return
 	for turret in _alien_turrets:
@@ -1057,6 +1108,8 @@ func _on_barter_button_pressed() -> void:
 
 
 func _on_fight_button_pressed() -> void:
+	if _host_only_campaign_control():
+		return
 	for turret in _alien_turrets:
 		if turret != null and is_instance_valid(turret) and turret.has_method("set_hostile"):
 			turret.call("set_hostile", true)
@@ -1068,6 +1121,8 @@ func _on_fight_button_pressed() -> void:
 
 
 func _on_mothership_docking_requested(mothership: Node) -> void:
+	if _host_only_campaign_control():
+		return
 	if mothership == null or not is_instance_valid(mothership):
 		return
 	if mothership.has_method("is_hostile") and bool(mothership.call("is_hostile")):
@@ -1158,7 +1213,7 @@ func _prepare_dock_scene_layout(dock: Control) -> void:
 
 
 func _close_dock_scene() -> void:
-	if _dock_scene_instance != null and is_instance_valid(_dock_scene_instance):
+	if _dock_scene_instance != null and is_instance_valid(_dock_scene_instance) and not _dock_scene_instance.is_queued_for_deletion():
 		_dock_scene_instance.queue_free()
 	_dock_scene_instance = null
 	_active_trade_mothership = null
@@ -1176,16 +1231,19 @@ func _update_upgrade_panel() -> void:
 	_upgrade_panel.visible = visible
 	if not visible:
 		return
-	_configure_inline_upgrade_button(_upgrade_panel.find_child("BuyEscortButton", true, false) as Button, "BUY ESCORT", _trade_cost(escort_base_cost + _escorts.size() * escort_cost_step), _escorts.size() < max_escorts)
-	_configure_inline_upgrade_button(_upgrade_panel.find_child("UpgradeSpeedButton", true, false) as Button, "SPEED L%d" % (speed_upgrade_level + 1), _trade_cost(speed_upgrade_cost + speed_upgrade_level * 12), true)
-	_configure_inline_upgrade_button(_upgrade_panel.find_child("UpgradeDamageButton", true, false) as Button, "DAMAGE L%d" % (damage_upgrade_level + 1), _trade_cost(damage_upgrade_cost + damage_upgrade_level * 14), true)
-	_configure_inline_upgrade_button(_upgrade_panel.find_child("UpgradeArmorButton", true, false) as Button, "ARMOR L%d" % (armor_upgrade_level + 1), _trade_cost(armor_upgrade_cost + armor_upgrade_level * 16), true)
-	_configure_inline_upgrade_button(_upgrade_panel.find_child("UpgradeSlingshotButton", true, false) as Button, "SLINGSHOT L%d" % (slingshot_upgrade_level + 1), _trade_cost(slingshot_upgrade_cost + slingshot_upgrade_level * 16), true)
-	_configure_inline_upgrade_button(_upgrade_panel.find_child("HijackButton", true, false) as Button, "HIJACK BEACON", _trade_cost(_hijack_base_cost()), not _pending_hijack and _escorts.size() < max_escorts)
+	var host_controls := not _is_network_client()
+	_configure_inline_upgrade_button(_upgrade_panel.find_child("BuyEscortButton", true, false) as Button, "BUY ESCORT", _trade_cost(escort_base_cost + _escorts.size() * escort_cost_step), host_controls and _escorts.size() < max_escorts)
+	_configure_inline_upgrade_button(_upgrade_panel.find_child("UpgradeSpeedButton", true, false) as Button, "SPEED L%d" % (speed_upgrade_level + 1), _trade_cost(speed_upgrade_cost + speed_upgrade_level * 12), host_controls)
+	_configure_inline_upgrade_button(_upgrade_panel.find_child("UpgradeDamageButton", true, false) as Button, "DAMAGE L%d" % (damage_upgrade_level + 1), _trade_cost(damage_upgrade_cost + damage_upgrade_level * 14), host_controls)
+	_configure_inline_upgrade_button(_upgrade_panel.find_child("UpgradeArmorButton", true, false) as Button, "ARMOR L%d" % (armor_upgrade_level + 1), _trade_cost(armor_upgrade_cost + armor_upgrade_level * 16), host_controls)
+	_configure_inline_upgrade_button(_upgrade_panel.find_child("UpgradeSlingshotButton", true, false) as Button, "SLINGSHOT L%d" % (slingshot_upgrade_level + 1), _trade_cost(slingshot_upgrade_cost + slingshot_upgrade_level * 16), host_controls)
+	_configure_inline_upgrade_button(_upgrade_panel.find_child("HijackButton", true, false) as Button, "HIJACK BEACON", _trade_cost(_hijack_base_cost()), host_controls and not _pending_hijack and _escorts.size() < max_escorts)
 
 
 func _should_show_upgrade_panel() -> bool:
 	if _dock_scene_instance != null and is_instance_valid(_dock_scene_instance):
+		return false
+	if _trade_panel != null and _trade_panel.visible:
 		return false
 	if show_upgrade_panel_during_waves:
 		return true
@@ -1225,9 +1283,13 @@ func _update_trade_panel() -> void:
 func _update_command_panel() -> void:
 	if _command_panel == null:
 		return
+	_set_campaign_ui_rect(_command_panel, command_panel_anchor, command_panel_offset, command_panel_size)
 	_command_panel.visible = command_panel_visible
 	if not command_panel_visible:
 		return
+	var grid := _command_panel.find_child("CommandGrid", true, false) as GridContainer
+	if grid != null:
+		grid.columns = maxi(command_panel_columns, 1)
 	for node in _command_panel.find_children("*", "Button", true, false):
 		var button := node as Button
 		if button == null:
@@ -1237,6 +1299,7 @@ func _update_command_panel() -> void:
 			continue
 		button.button_pressed = command == _fleet_command
 		button.text = _fleet_command_label(command)
+		button.disabled = _is_network_client()
 		button.custom_minimum_size = Vector2(command_button_min_width, command_button_min_height)
 		_style_campaign_button(button)
 
@@ -1295,6 +1358,8 @@ func get_trade_snapshot(mothership: Node = null) -> Dictionary:
 
 
 func trade_buy_escort() -> bool:
+	if _host_only_campaign_control():
+		return false
 	var cost := _trade_cost(escort_base_cost + _escorts.size() * escort_cost_step)
 	if _escorts.size() >= max_escorts:
 		_set_campaign_status("ESCORT FORMATION FULL")
@@ -1303,10 +1368,13 @@ func trade_buy_escort() -> bool:
 		return false
 	_spawn_escort()
 	_set_campaign_status("ESCORT ADDED TO FORMATION")
+	_broadcast_campaign_state_now()
 	return true
 
 
 func trade_upgrade_speed() -> bool:
+	if _host_only_campaign_control():
+		return false
 	var cost := _trade_cost(speed_upgrade_cost + speed_upgrade_level * 12)
 	if not _spend_credits(cost, &"upgrade_speed"):
 		return false
@@ -1317,10 +1385,13 @@ func trade_upgrade_speed() -> bool:
 			if value is float or value is int:
 				_player.set(field, float(value) + speed_upgrade_amount)
 	_set_campaign_status("SPEED VECTOR UPGRADED")
+	_broadcast_campaign_state_now()
 	return true
 
 
 func trade_upgrade_damage() -> bool:
+	if _host_only_campaign_control():
+		return false
 	var cost := _trade_cost(damage_upgrade_cost + damage_upgrade_level * 14)
 	if not _spend_credits(cost, &"upgrade_damage"):
 		return false
@@ -1332,10 +1403,13 @@ func trade_upgrade_damage() -> bool:
 		if escort != null and is_instance_valid(escort) and escort.get("damage_multiplier") != null:
 			escort.set("damage_multiplier", damage_multiplier)
 	_set_campaign_status("DAMAGE VECTOR UPGRADED")
+	_broadcast_campaign_state_now()
 	return true
 
 
 func trade_upgrade_armor() -> bool:
+	if _host_only_campaign_control():
+		return false
 	var cost := _trade_cost(armor_upgrade_cost + armor_upgrade_level * 16)
 	if not _spend_credits(cost, &"upgrade_armor"):
 		return false
@@ -1350,10 +1424,13 @@ func trade_upgrade_armor() -> bool:
 			if health.has_method("heal"):
 				health.call("heal", 18.0)
 	_set_campaign_status("%s ARMOR REINFORCED" % _home_planet_name())
+	_broadcast_campaign_state_now()
 	return true
 
 
 func trade_upgrade_slingshot() -> bool:
+	if _host_only_campaign_control():
+		return false
 	var cost := _trade_cost(slingshot_upgrade_cost + slingshot_upgrade_level * 16)
 	if not _spend_credits(cost, &"upgrade_slingshot"):
 		return false
@@ -1369,10 +1446,13 @@ func trade_upgrade_slingshot() -> bool:
 			if value is float or value is int:
 				_player.set(field, float(value) + float(pair[1]))
 	_set_campaign_status("SLINGSHOT VECTOR UPGRADED")
+	_broadcast_campaign_state_now()
 	return true
 
 
 func trade_prepare_hijack() -> bool:
+	if _host_only_campaign_control():
+		return false
 	if _pending_hijack:
 		_set_campaign_status("HIJACK BEACON ALREADY ARMED")
 		return false
@@ -1386,6 +1466,7 @@ func trade_prepare_hijack() -> bool:
 	_pending_hijack_from_directive = false
 	_arm_hijack_targets()
 	_set_campaign_status("HIJACK READY: NEXT DISABLED SHIP JOINS FORMATION")
+	_broadcast_campaign_state_now()
 	return true
 
 
@@ -1445,11 +1526,9 @@ func _on_fleet_hold_pressed() -> void:
 	set_fleet_command(FLEET_COMMAND_HOLD)
 
 
-func _on_invader_destroyed(invader: CampaignInvader, reward: int, position: Vector2) -> void:
+func _on_invader_destroyed(invader: CampaignInvader, reward: int, _position: Vector2) -> void:
 	_active_invaders.erase(invader)
 	add_campaign_credits(maxi(reward, 1), &"invader_destroyed")
-	if _pending_hijack and _escorts.size() < max_escorts:
-		_capture_invader_as_escort(invader, position)
 
 
 func _on_invader_breached_target(invader: CampaignInvader, _target: Node, _damage: float) -> void:
@@ -1484,10 +1563,11 @@ func _capture_invader_as_escort(invader: Node, position: Vector2) -> void:
 	_clear_hijack_targets()
 	add_campaign_credits(maxi(hijack_capture_reward_bonus, 0), &"hijack_capture")
 	var escort := _spawn_escort(-1, position)
-	if invader != null and is_instance_valid(invader) and invader.has_method("complete_hijack_capture"):
-		invader.call("complete_hijack_capture")
-	elif invader != null and is_instance_valid(invader):
-		invader.queue_free()
+	if invader != null and is_instance_valid(invader) and not invader.is_queued_for_deletion():
+		if invader.has_method("complete_hijack_capture"):
+			invader.call("complete_hijack_capture")
+		else:
+			invader.call_deferred("queue_free")
 	if escort != null:
 		campaign_hijack_captured.emit(invader, escort)
 	_set_campaign_status("HIJACK COMPLETE: DISABLED SHIP JOINED FORMATION")
@@ -1562,6 +1642,8 @@ func _sync_energy_currency() -> void:
 func _on_energy_component_currency_changed(current_currency: int) -> void:
 	if _syncing_energy_currency:
 		return
+	if _is_network_client() and not _network_snapshot_applying:
+		return
 	energy_credits = maxi(current_currency, 0)
 	if RunProgress != null:
 		RunProgress.arena_flags["campaign_energy_credits"] = energy_credits
@@ -1633,6 +1715,7 @@ func _adjust_freehold_reputation(delta: float, reason: StringName) -> void:
 		RunProgress.arena_flags["campaign_freehold_reputation"] = freehold_reputation
 		RunProgress.arena_flags["campaign_reputation_reason"] = String(reason)
 	campaign_reputation_changed.emit(freehold_reputation)
+	_broadcast_campaign_state_now()
 
 
 func _configure_mother_planet() -> void:
@@ -1646,6 +1729,9 @@ func _configure_mother_planet() -> void:
 
 
 func _on_mother_planet_destroyed() -> void:
+	if _is_network_client() and not _network_snapshot_applying:
+		_set_campaign_status("HOST CONFIRMING FAILURE VECTOR")
+		return
 	_end_campaign("CAMPAIGN VECTOR: the home planet shield failed under invader pressure.")
 
 
@@ -1666,6 +1752,8 @@ func _mother_destroyed() -> bool:
 
 
 func set_fleet_command(command: StringName) -> void:
+	if _host_only_campaign_control():
+		return
 	var normalized := _normalize_fleet_command(command)
 	if normalized == _fleet_command:
 		return
@@ -1676,6 +1764,7 @@ func set_fleet_command(command: StringName) -> void:
 	campaign_fleet_command_changed.emit(_fleet_command)
 	_set_campaign_status("FLEET COMMAND: %s" % _fleet_command_label(_fleet_command))
 	_emit_campaign_debug_snapshot()
+	_broadcast_campaign_state_now()
 
 
 func _normalize_fleet_command(command: StringName) -> StringName:
@@ -1732,6 +1821,8 @@ func _escort_type_for_index(index: int) -> int:
 
 
 func _handle_fleet_command_input() -> void:
+	if _is_network_client():
+		return
 	if _key_just_pressed(fleet_defend_key):
 		set_fleet_command(FLEET_COMMAND_DEFEND)
 	if _key_just_pressed(fleet_follow_key):
@@ -1895,6 +1986,7 @@ func _resolve_nodes() -> void:
 	_debug_overlay_label = get_node_or_null(debug_overlay_path) as Label
 	if _alien_panel != null:
 		_alien_panel.visible = false
+	_hide_player_campaign_hud_labels()
 	_energy_component = _player.get_node_or_null("EnergyComponent") if _player != null else null
 	if _energy_component != null and _energy_component.has_signal(&"energy_currency_changed"):
 		var callable := Callable(self, "_on_energy_component_currency_changed")
@@ -1915,26 +2007,22 @@ func _polish_campaign_ui_runtime() -> void:
 		add_child(campaign_ui)
 	var hud_panel := campaign_ui.get_node_or_null("HUD") as Control
 	if hud_panel != null:
+		_set_campaign_ui_rect(hud_panel, campaign_hud_anchor, campaign_hud_offset, campaign_hud_size)
 		_style_campaign_panel(hud_panel, hud_panel_bg_color, hud_panel_border_color, 2)
 		_style_campaign_label_tree(hud_panel, campaign_secondary_text_color)
+		_configure_campaign_hud_labels(hud_panel)
 		if _status_label != null:
-			_style_campaign_label(_status_label, campaign_primary_text_color, 18, true)
+			_style_campaign_label(_status_label, campaign_primary_text_color, 16, true)
 	var upgrade_panel := campaign_ui.get_node_or_null("UpgradePanel") as Control
 	_upgrade_panel = upgrade_panel
 	if upgrade_panel != null:
+		_set_campaign_ui_rect(upgrade_panel, upgrade_panel_anchor, upgrade_panel_offset, upgrade_panel_size)
 		upgrade_panel.visible = false
 		_style_campaign_panel(upgrade_panel, upgrade_panel_bg_color, upgrade_panel_border_color, 2)
 		_style_campaign_label_tree(upgrade_panel, campaign_primary_text_color)
 		_style_campaign_button_tree(upgrade_panel)
 	if _alien_panel != null:
-		_alien_panel.anchor_left = 0.5
-		_alien_panel.anchor_right = 0.5
-		_alien_panel.anchor_top = 1.0
-		_alien_panel.anchor_bottom = 1.0
-		_alien_panel.offset_left = -290.0
-		_alien_panel.offset_right = 290.0
-		_alien_panel.offset_top = -184.0
-		_alien_panel.offset_bottom = -28.0
+		_set_campaign_ui_rect(_alien_panel, alien_panel_anchor, alien_panel_offset, alien_panel_size)
 		_style_campaign_panel(_alien_panel, alien_panel_bg_color, alien_panel_border_color, 2)
 		_style_campaign_label_tree(_alien_panel, campaign_warning_text_color)
 		_style_campaign_button_tree(_alien_panel)
@@ -1942,6 +2030,7 @@ func _polish_campaign_ui_runtime() -> void:
 	if _command_panel == null and command_panel_visible:
 		_command_panel = _build_command_panel(campaign_ui)
 	if _command_panel != null:
+		_set_campaign_ui_rect(_command_panel, command_panel_anchor, command_panel_offset, command_panel_size)
 		_command_panel.visible = command_panel_visible
 		_style_campaign_panel(_command_panel, command_panel_bg_color, command_panel_border_color, 2)
 		_style_campaign_label_tree(_command_panel, campaign_secondary_text_color)
@@ -1958,23 +2047,42 @@ func _polish_campaign_ui_runtime() -> void:
 	if _dock_prompt_label == null:
 		_dock_prompt_label = Label.new()
 		_dock_prompt_label.name = "DockPromptLabel"
-		_dock_prompt_label.anchor_left = 0.5
-		_dock_prompt_label.anchor_right = 0.5
-		_dock_prompt_label.anchor_top = 1.0
-		_dock_prompt_label.anchor_bottom = 1.0
-		_dock_prompt_label.offset_left = -280.0
-		_dock_prompt_label.offset_right = 280.0
-		_dock_prompt_label.offset_top = -80.0
-		_dock_prompt_label.offset_bottom = -38.0
 		_dock_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_dock_prompt_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_dock_prompt_label.add_theme_font_size_override("font_size", 18)
 		_dock_prompt_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.92))
 		_dock_prompt_label.add_theme_constant_override("outline_size", 5)
 		campaign_ui.add_child(_dock_prompt_label)
+	_set_campaign_ui_rect(_dock_prompt_label, dock_prompt_anchor, dock_prompt_offset, dock_prompt_size)
 	_style_campaign_label(_dock_prompt_label, campaign_primary_text_color, 18, true)
 	_dock_prompt_label.visible = false
 	_ensure_campaign_debug_overlay(campaign_ui)
+
+
+func _set_campaign_ui_rect(control: Control, anchor: Vector2, offset: Vector2, size: Vector2) -> void:
+	if control == null:
+		return
+	control.anchor_left = anchor.x
+	control.anchor_right = anchor.x
+	control.anchor_top = anchor.y
+	control.anchor_bottom = anchor.y
+	control.offset_left = offset.x
+	control.offset_top = offset.y
+	control.offset_right = offset.x + size.x
+	control.offset_bottom = offset.y + size.y
+	control.custom_minimum_size = size
+
+
+func _configure_campaign_hud_labels(root: Control) -> void:
+	if root == null:
+		return
+	for node in root.find_children("*", "Label", true, false):
+		var label := node as Label
+		if label == null:
+			continue
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.clip_text = true
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
 func _build_trade_panel(parent: Node) -> Control:
@@ -2018,14 +2126,7 @@ func _build_trade_panel(parent: Node) -> Control:
 func _build_command_panel(parent: Node) -> Control:
 	var panel := PanelContainer.new()
 	panel.name = "CommandPanel"
-	panel.anchor_left = 0.0
-	panel.anchor_right = 0.0
-	panel.anchor_top = 1.0
-	panel.anchor_bottom = 1.0
-	panel.offset_left = 18.0
-	panel.offset_right = 356.0
-	panel.offset_top = -204.0
-	panel.offset_bottom = -22.0
+	_set_campaign_ui_rect(panel, command_panel_anchor, command_panel_offset, command_panel_size)
 	_style_campaign_panel(panel, command_panel_bg_color, command_panel_border_color, 2)
 	parent.add_child(panel)
 
@@ -2040,7 +2141,7 @@ func _build_command_panel(parent: Node) -> Control:
 
 	var grid := GridContainer.new()
 	grid.name = "CommandGrid"
-	grid.columns = 2
+	grid.columns = maxi(command_panel_columns, 1)
 	grid.add_theme_constant_override("h_separation", 6)
 	grid.add_theme_constant_override("v_separation", 6)
 	rows.add_child(grid)
@@ -2162,6 +2263,16 @@ func _refresh_player_reference() -> void:
 	var local_player := MultiplayerTargeting.local_player(get_tree())
 	if local_player != null and is_instance_valid(local_player):
 		_player = local_player
+	_hide_player_campaign_hud_labels()
+
+
+func _hide_player_campaign_hud_labels() -> void:
+	if not hide_player_legacy_labels_in_campaign or _player == null or not is_instance_valid(_player):
+		return
+	for path in hidden_player_campaign_hud_paths:
+		var item := _player.get_node_or_null(path) as CanvasItem
+		if item != null:
+			item.visible = false
 
 
 func _connect_ui_buttons() -> void:
@@ -2226,6 +2337,7 @@ func _update_ui() -> void:
 func _update_docking_prompt() -> void:
 	if _dock_prompt_label == null or _player == null or not is_instance_valid(_player):
 		return
+	_set_campaign_ui_rect(_dock_prompt_label, dock_prompt_anchor, dock_prompt_offset, dock_prompt_size)
 	if _trade_panel != null and _trade_panel.visible:
 		_dock_prompt_label.visible = false
 		return
@@ -2273,7 +2385,7 @@ func _any_live_player_inside_hill() -> bool:
 
 
 func _broadcast_network_wave_state(delta: float) -> void:
-	if NetworkSession == null or not NetworkSession.has_method("is_network_active") or not bool(NetworkSession.call("is_network_active")):
+	if not _is_network_host():
 		return
 	_network_broadcast_elapsed += delta
 	if _network_broadcast_elapsed < maxf(network_wave_broadcast_interval, 0.1):
@@ -2282,25 +2394,40 @@ func _broadcast_network_wave_state(delta: float) -> void:
 	_broadcast_campaign_state_now()
 
 
-func _broadcast_campaign_state_now() -> void:
+func _broadcast_campaign_state_now(event: StringName = &"state", reason: String = "") -> void:
 	if NetworkSession == null or not NetworkSession.has_method("broadcast_wave_state"):
 		return
-	if NetworkSession.has_method("is_network_active") and not bool(NetworkSession.call("is_network_active")):
+	if not _is_network_host():
 		return
 	NetworkSession.call("broadcast_wave_state", {
+		"event": String(event),
 		"mode": "king_of_the_hill" if king_of_hill_mode else "campaign",
 		"wave": wave_index,
+		"final_wave": final_wave,
+		"wave_running": _wave_running,
+		"wave_rest_remaining": _wave_rest_remaining,
 		"active_invaders": _active_invaders.size(),
 		"escorts": _escorts.size(),
+		"max_escorts": max_escorts,
 		"energy_credits": energy_credits,
+		"damage_multiplier": damage_multiplier,
+		"speed_upgrade_level": speed_upgrade_level,
+		"damage_upgrade_level": damage_upgrade_level,
+		"armor_upgrade_level": armor_upgrade_level,
+		"slingshot_upgrade_level": slingshot_upgrade_level,
 		"home_planet_health": float(_mother_planet.call("get_health_ratio")) if _mother_planet != null and _mother_planet.has_method("get_health_ratio") else 0.0,
 		"home_planet_shield": float(_mother_planet.call("get_shield_ratio")) if _mother_planet != null and _mother_planet.has_method("get_shield_ratio") else 0.0,
 		"mother_health": float(_mother_planet.call("get_health_ratio")) if _mother_planet != null and _mother_planet.has_method("get_health_ratio") else 0.0,
 		"mother_shield": float(_mother_planet.call("get_shield_ratio")) if _mother_planet != null and _mother_planet.has_method("get_shield_ratio") else 0.0,
 		"hill_capture": _hill_capture,
+		"hill_capture_goal": hill_capture_goal,
+		"campaign_finished": _campaign_finished,
 		"campaign_state": _campaign_state,
 		"campaign_state_label": _campaign_state_label(),
+		"defeat_reason": reason,
 		"campaign_directive": String(_active_directive),
+		"campaign_directive_label": _active_directive_label,
+		"campaign_directive_summary": _active_directive_summary,
 		"campaign_objective": _active_objective_text,
 		"fleet_command": String(_fleet_command),
 		"spawn_budget": _spawn_budget,
@@ -2314,6 +2441,130 @@ func _broadcast_campaign_state_now() -> void:
 		"mod_gamemode_id": String(mod_gamemode_id),
 		"mod_campaign_id": String(mod_campaign_id),
 	})
+
+
+func _connect_network_session() -> void:
+	if NetworkSession == null or not NetworkSession.has_signal("network_wave_state_received"):
+		return
+	var callable := Callable(self, "_on_network_campaign_state_received")
+	if not NetworkSession.is_connected("network_wave_state_received", callable):
+		NetworkSession.connect("network_wave_state_received", callable)
+	if _is_network_client() and NetworkSession.has_method("get_last_wave_state"):
+		var state_value: Variant = NetworkSession.call("get_last_wave_state")
+		if state_value is Dictionary:
+			var state: Dictionary = state_value
+			if not state.is_empty():
+				call_deferred("_on_network_campaign_state_received", state)
+
+
+func _on_network_campaign_state_received(state: Dictionary) -> void:
+	if not _is_network_client():
+		return
+	var mode := String(state.get("mode", ""))
+	if mode != "campaign" and mode != "king_of_the_hill":
+		return
+	if (mode == "king_of_the_hill") != king_of_hill_mode:
+		return
+	_apply_network_campaign_state(state)
+
+
+func _apply_network_campaign_state(state: Dictionary) -> void:
+	_network_snapshot_applying = true
+	_last_network_campaign_state = state.duplicate(true)
+	var event := StringName(str(state.get("event", "state")))
+	var state_wave := maxi(int(state.get("wave", wave_index)), 0)
+	if event == &"begin":
+		if not _wave_running or wave_index != state_wave:
+			_clear_network_campaign_invaders()
+			wave_index = maxi(state_wave - 1, 0)
+			_network_forced_campaign_start = true
+			_begin_next_wave()
+			_network_forced_campaign_start = false
+	elif event == &"cleared":
+		_clear_network_campaign_invaders()
+		_wave_running = false
+		_set_campaign_state(CampaignState.POST_WAVE)
+	elif event == &"victory":
+		_campaign_finished = true
+		_wave_running = false
+		_set_campaign_state(CampaignState.VICTORY)
+		if RunProgress != null:
+			RunProgress.run_finished = true
+	elif event == &"defeat":
+		_campaign_finished = true
+		_wave_running = false
+		_set_campaign_state(CampaignState.DEFEAT)
+		if RunProgress != null:
+			RunProgress.set_last_death_message(String(state.get("defeat_reason", "CAMPAIGN VECTOR: host reported simulation collapse.")))
+			RunProgress.arena_flags["retry_scene_path"] = retry_scene_path
+			RunProgress.arena_flags["title_scene_path"] = TITLE_SCENE
+		call_deferred("_go_to_network_campaign_game_over")
+	_apply_network_campaign_fields(state)
+	_network_snapshot_applying = false
+
+
+func _apply_network_campaign_fields(state: Dictionary) -> void:
+	wave_index = maxi(int(state.get("wave", wave_index)), 0)
+	final_wave = maxi(int(state.get("final_wave", final_wave)), 1)
+	_wave_running = bool(state.get("wave_running", _wave_running))
+	_wave_rest_remaining = maxf(float(state.get("wave_rest_remaining", _wave_rest_remaining)), 0.0)
+	energy_credits = maxi(int(state.get("energy_credits", energy_credits)), 0)
+	damage_multiplier = maxf(float(state.get("damage_multiplier", damage_multiplier)), 0.0)
+	speed_upgrade_level = maxi(int(state.get("speed_upgrade_level", speed_upgrade_level)), 0)
+	damage_upgrade_level = maxi(int(state.get("damage_upgrade_level", damage_upgrade_level)), 0)
+	armor_upgrade_level = maxi(int(state.get("armor_upgrade_level", armor_upgrade_level)), 0)
+	slingshot_upgrade_level = maxi(int(state.get("slingshot_upgrade_level", slingshot_upgrade_level)), 0)
+	hill_capture_goal = maxf(float(state.get("hill_capture_goal", hill_capture_goal)), 1.0)
+	_hill_capture = clampf(float(state.get("hill_capture", _hill_capture)), 0.0, hill_capture_goal)
+	_campaign_finished = bool(state.get("campaign_finished", _campaign_finished))
+	_campaign_state = int(state.get("campaign_state", _campaign_state))
+	_active_directive = StringName(str(state.get("campaign_directive", String(_active_directive))))
+	_active_directive_label = String(state.get("campaign_directive_label", _active_directive_label))
+	_active_directive_summary = String(state.get("campaign_directive_summary", _active_directive_summary))
+	_active_objective_text = String(state.get("campaign_objective", _active_objective_text))
+	_fleet_command = _normalize_fleet_command(StringName(str(state.get("fleet_command", String(_fleet_command)))))
+	_spawn_budget = maxi(int(state.get("spawn_budget", _spawn_budget)), 0)
+	_threat_budget = maxf(float(state.get("threat_budget", _threat_budget)), 0.0)
+	_gravity_storm_remaining = maxf(float(state.get("gravity_storm_remaining", _gravity_storm_remaining)), 0.0)
+	campaign_route_progress = maxf(float(state.get("route_progress", campaign_route_progress)), 0.0)
+	route_progress_goal = maxf(float(state.get("route_goal", route_progress_goal)), 1.0)
+	freehold_reputation = clampf(float(state.get("freehold_reputation", freehold_reputation)), reputation_min, reputation_max)
+	_pending_hijack = bool(state.get("pending_hijack", _pending_hijack))
+	_sync_energy_currency()
+	_apply_fleet_command_to_escorts()
+	_update_ui()
+	_emit_campaign_debug_snapshot()
+
+
+func _clear_network_campaign_invaders() -> void:
+	for invader in _active_invaders.duplicate():
+		if invader != null and is_instance_valid(invader) and not invader.is_queued_for_deletion():
+			invader.queue_free()
+	_active_invaders.clear()
+
+
+func _go_to_network_campaign_game_over() -> void:
+	if get_tree().current_scene == self or is_inside_tree():
+		get_tree().change_scene_to_file(GAME_OVER_SCENE)
+
+
+func _is_network_active() -> bool:
+	return NetworkSession != null and NetworkSession.has_method("is_network_active") and bool(NetworkSession.call("is_network_active"))
+
+
+func _is_network_host() -> bool:
+	return _is_network_active() and multiplayer.is_server()
+
+
+func _is_network_client() -> bool:
+	return _is_network_active() and not multiplayer.is_server()
+
+
+func _host_only_campaign_control() -> bool:
+	if not _is_network_client():
+		return false
+	_set_campaign_status(network_host_only_status)
+	return true
 
 
 func _apply_mod_catalog_metadata() -> void:

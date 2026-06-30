@@ -15,6 +15,7 @@ class_name GravityComponent
 @export var refresh_sources_each_frame: bool = false
 @export var refresh_interval: float = 0.35
 @export var run_before_target: bool = true
+@export var warn_on_missing_target: bool = false
 
 var latest_acceleration: Vector2 = Vector2.ZERO
 var closest_source: Node2D = null
@@ -149,7 +150,7 @@ func set_gravity_sources(sources: Array[Node2D]) -> void:
 func _resolve_target() -> void:
 	_target = get_node_or_null(target_path) as CharacterBody2D
 
-	if _target == null and not _missing_target_warned:
+	if warn_on_missing_target and _target == null and not _missing_target_warned:
 		_missing_target_warned = true
 		push_warning("%s needs a CharacterBody2D at target_path." % name)
 

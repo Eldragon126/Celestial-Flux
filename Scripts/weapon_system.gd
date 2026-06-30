@@ -606,19 +606,22 @@ const EXTRA_WEAPON_DEFINITIONS := {
 		"spread_radians": 0.08,
 		"role": "paired velocity-shear cutters",
 		"color": Color(0.94, 1.0, 0.5, 1.0),
-		"trail_color": Color(0.48, 1.0, 0.62, 0.9),
-		"visual_scale": 0.86,
+		"trail_color": Color(0.48, 1.0, 0.62, 0.72),
+		"visual_scale": 0.72,
 		"payload": {
 			"weapon_axis_impulse": 220.0,
 			"weapon_tangent_impulse": 340.0,
 			"weapon_pierce_count": 1,
 			"weapon_resonance_zone_type": GravityResonanceManager.ZoneType.HARMONIC_ORBIT,
 			"weapon_resonance_radius": 150.0,
-			"weapon_resonance_intensity": 0.44,
+			"weapon_resonance_intensity": 0.34,
 			"weapon_scar_type": GravityScarManager.ScarType.VELOCITY_SHEAR,
-			"weapon_scar_radius": 175.0,
-			"weapon_scar_intensity": 0.48,
-			"weapon_scar_duration": 26.0,
+			"weapon_scar_radius": 145.0,
+			"weapon_scar_intensity": 0.3,
+			"weapon_scar_duration": 16.0,
+			"vector_trail_alpha": 0.44,
+			"projectile_light_energy_cap": 0.95,
+			"projectile_light_reduced_flash_energy_cap": 0.36,
 		},
 	},
 	&"chronal_needleloom": {
@@ -2106,6 +2109,7 @@ func _projectile_payload(weapon_id: StringName, shot_index: int, shot_count: int
 		"gravity_pull_radius": 2000.0,
 		"player_gravity_deadzone_radius": 520.0,
 		"windowkill_visual_scale": _projectile_visual_scale_for_weapon(weapon_id),
+		"visual_scale": _projectile_visual_scale_for_weapon(weapon_id),
 		"vector_core_color": _safe_projectile_core_color(color),
 		"vector_trail_fade_color": _projectile_trail_color_for_weapon(weapon_id),
 		"weapon_axis_impulse": 0.0,
@@ -2154,6 +2158,9 @@ func _projectile_payload(weapon_id: StringName, shot_index: int, shot_count: int
 			payload["weapon_resonance_zone_type"] = GravityResonanceManager.ZoneType.HARMONIC_ORBIT
 			payload["weapon_resonance_radius"] = 132.0
 			payload["weapon_resonance_intensity"] = 0.31
+			payload["vector_trail_alpha"] = 0.46
+			payload["projectile_light_energy_cap"] = 1.05
+			payload["projectile_light_reduced_flash_energy_cap"] = 0.42
 		&"vacuum_collapse_seed":
 			payload["vacuum_collapse_stacks"] = vacuum_seed_collapse_stacks
 			payload["weapon_resonance_zone_type"] = GravityResonanceManager.ZoneType.COMPRESSION
@@ -2332,8 +2339,12 @@ func _apply_signature_payload_modifiers(payload: Dictionary, weapon_id: StringNa
 			_tint_projectile_payload(payload, Color(0.1, 0.82, 1.0, 1.0), 0.16)
 		&"scar_carver":
 			payload["weapon_tangent_impulse"] = 300.0 * alternating_side
-			payload["weapon_scar_duration"] = 30.0 if shot_index == 0 else 18.0
-			payload["weapon_scar_intensity"] = 0.54 if shot_index == 0 else 0.38
+			payload["weapon_scar_radius"] = 145.0 if shot_index == 0 else 118.0
+			payload["weapon_scar_duration"] = 16.0 if shot_index == 0 else 10.0
+			payload["weapon_scar_intensity"] = 0.3 if shot_index == 0 else 0.2
+			payload["vector_trail_alpha"] = 0.44
+			payload["projectile_light_energy_cap"] = 0.95
+			payload["projectile_light_reduced_flash_energy_cap"] = 0.36
 		&"singularity_kite":
 			payload["weapon_curve_side"] = alternating_side
 			payload["weapon_curve_force"] = 760.0 + 80.0 * clampf(float(_projectile_pattern_index % 4) / 3.0, 0.0, 1.0)

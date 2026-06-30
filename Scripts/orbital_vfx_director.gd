@@ -4,6 +4,48 @@ class_name OrbitalVFXDirector
 ## Signal-driven spectacle layer. The child particle nodes are editable
 ## templates, so art tuning can happen in the inspector without touching code.
 
+const PLAYER_TRIGGERED_SCAR_SOURCES := {
+	&"mastered_vector": true,
+	&"slingshot_resonance": true,
+}
+const WEAPON_SCAR_SOURCE_NAMES := {
+	&"apex_vector_spear": true,
+	&"barycentric_splitter": true,
+	&"causal_anchor": true,
+	&"chronal_mirror_shot": true,
+	&"chronal_refraction_beam": true,
+	&"event_horizon_shard": true,
+	&"event_horizon_veil": true,
+	&"gravity_lance": true,
+	&"gravity_loom": true,
+	&"gravity_wave_beam": true,
+	&"graviton_bloom": true,
+	&"inertia_maul": true,
+	&"inversion_chime": true,
+	&"inversion_disc": true,
+	&"kinetic_ram": true,
+	&"mass_driver": true,
+	&"mass_siphon": true,
+	&"null_rebounder": true,
+	&"orbital_lasso": true,
+	&"phase_guillotine": true,
+	&"phase_suture": true,
+	&"polarity_javelin": true,
+	&"positron_beam": true,
+	&"resonance_anvil": true,
+	&"rift_anchor": true,
+	&"scar_carver": true,
+	&"shear_comet": true,
+	&"singularity_bell": true,
+	&"singularity_kite": true,
+	&"singularity_pin": true,
+	&"temporal_bloom": true,
+	&"temporal_splinter": true,
+	&"tidal_mortar": true,
+	&"vector_prism": true,
+	&"vacuum_collapse_seed": true,
+}
+
 @export_group("Signal Sources")
 @export var player_path: NodePath
 @export var time_dilation_manager_path: NodePath
@@ -15,6 +57,7 @@ class_name OrbitalVFXDirector
 @export var low_performance_mode: bool = false
 @export var max_active_bursts: int = 14
 @export var max_particles_per_burst: int = 48
+@export var min_burst_alpha: float = 0.18
 @export var max_burst_alpha: float = 0.34
 @export var chaos_clutter_threshold: float = 0.58
 @export var chaos_sample_interval: float = 0.2
@@ -31,6 +74,9 @@ class_name OrbitalVFXDirector
 @export var burst_ring_radius: float = 58.0
 @export var burst_ring_width: float = 2.6
 @export_range(0.0, 1.0, 0.01) var burst_ring_alpha_cap: float = 0.26
+@export_group("Scar Burst Readability")
+@export var suppress_player_scar_bursts: bool = true
+@export_range(0.0, 1.0, 0.01) var ambient_scar_burst_visual_scale: float = 0.78
 
 @export_group("Templates")
 @export var time_afterimage_template_path: NodePath = ^"Templates/TimeAfterimageBurst"
@@ -155,17 +201,28 @@ func _on_resonance_zone_pulsed(zone_data: Dictionary) -> void:
 
 
 func _on_gravity_scar_created(scar_data: Dictionary) -> void:
+	if _should_suppress_scar_burst(scar_data):
+		return
 	var position: Vector2 = scar_data.get("position", Vector2.ZERO)
-	var intensity := clampf(float(scar_data.get("intensity", 0.4)), 0.14, 0.92)
+	var intensity := clampf(float(scar_data.get("visual_intensity", scar_data.get("intensity", 0.4))) * ambient_scar_burst_visual_scale, 0.08, 0.74)
 	var color: Color = scar_data.get("color", Color(0.1, 0.82, 1.0, 1.0))
 	_spawn_burst(_resonance_template, position, intensity, color)
 
 
 func _on_gravity_scar_intensified(scar_data: Dictionary) -> void:
+	if _should_suppress_scar_burst(scar_data):
+		return
 	var position: Vector2 = scar_data.get("position", Vector2.ZERO)
-	var intensity := clampf(float(scar_data.get("intensity", 0.4)) * 0.74, 0.12, 0.72)
+	var intensity := clampf(float(scar_data.get("visual_intensity", scar_data.get("intensity", 0.4))) * 0.52, 0.08, 0.52)
 	var color: Color = scar_data.get("color", Color(0.1, 0.82, 1.0, 1.0))
 	_spawn_burst(_ambient_template, position, intensity, color)
+
+
+func _should_suppress_scar_burst(scar_data: Dictionary) -> bool:
+	if not suppress_player_scar_bursts:
+		return false
+	var source := StringName(scar_data.get("source", &"manual"))
+	return PLAYER_TRIGGERED_SCAR_SOURCES.has(source) or WEAPON_SCAR_SOURCE_NAMES.has(source)
 
 
 func _on_event_horizon_started(data: Dictionary) -> void:
@@ -343,7 +400,7 @@ func _active_burst_cap() -> int:
 
 
 func _burst_modulate(color: Color, intensity: float) -> Color:
-	var alpha: float = lerpf(0.28, max_burst_alpha, clampf(intensity, 0.0, 1.0))
+	var alpha: float = lerpf(min_burst_alpha, max_burst_alpha, clampf(intensity, 0.0, 1.0))
 	if Settings != null and Settings.has_method("flash_alpha"):
 		alpha = Settings.flash_alpha(alpha)
 	return Color(color.r, color.g, color.b, alpha)

@@ -962,7 +962,9 @@ func apply_weapon_payload(payload: Dictionary) -> void:
 	set_meta(&"weapon_payload", _weapon_payload.duplicate(true))
 	for key in payload.keys():
 		var property_name := String(key)
-		if _is_projectile_payload_property(property_name):
+		if property_name == "windowkill_visual_scale":
+			visual_scale = float(payload[key])
+		elif _is_projectile_payload_property(property_name):
 			set(property_name, payload[key])
 	_apply_payload_stack_meta(&"relativistic_rail_stacks")
 	_apply_payload_stack_meta(&"vacuum_collapse_stacks")
@@ -1035,8 +1037,13 @@ func _is_projectile_payload_property(property_name: String) -> bool:
 		"gravity_pull_radius",
 		"player_gravity_deadzone_radius",
 		"visual_scale",
+		"vector_trail_alpha",
 		"vector_core_color",
 		"vector_trail_fade_color",
+		"vector_core_alpha_cap",
+		"vector_wake_alpha_cap",
+		"projectile_light_energy_cap",
+		"projectile_light_reduced_flash_energy_cap",
 		"weapon_axis_impulse",
 		"weapon_temporal_slow_multiplier",
 		"weapon_temporal_slow_duration",

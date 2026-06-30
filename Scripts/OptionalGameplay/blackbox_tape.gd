@@ -18,9 +18,16 @@ var _ring: Line2D = null
 
 func _ready() -> void:
 	add_to_group("blackbox_tape")
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"blackbox_tape")
 	_build_collision()
 	_build_visuals()
 	body_entered.connect(_on_body_entered)
+
+
+func _exit_tree() -> void:
+	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"blackbox_tape")
 
 
 func collect(collector: Node = null) -> void:

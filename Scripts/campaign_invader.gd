@@ -92,6 +92,7 @@ enum CampaignRole {
 @export var fire_range: float = 820.0
 @export var lead_prediction: float = 0.34
 @export var fire_only_when_visible: bool = false
+@export var use_global_bullet_budget: bool = true
 @export_group("Campaign Capture")
 @export var hijack_disable_health_ratio: float = 0.24
 @export var hijack_disabled_duration: float = 4.8
@@ -116,6 +117,7 @@ var _engine_trail: Line2D = null
 var _gravity_sources: Array[Node2D] = []
 var _elapsed: float = 0.0
 var _destroyed: bool = false
+var _free_queued: bool = false
 var _hijack_capture_armed: bool = false
 var _hijack_disabled: bool = false
 var _hijack_disabled_remaining: float = 0.0
@@ -124,6 +126,7 @@ var _state_elapsed: float = 0.0
 var _state_refresh_elapsed: float = 999.0
 var _fire_elapsed: float = 0.0
 var _profile_phase: float = 0.0
+var _query_targets: Array[Node2D] = []
 
 
 func configure(target_node: Node2D, row: int, column: int, seed_value: int) -> void:
@@ -173,12 +176,14 @@ func _ready() -> void:
 	if RuntimeRegistry != null:
 		RuntimeRegistry.register_node(self, &"enemies")
 		RuntimeRegistry.register_node(self, &"wave_enemy")
+		RuntimeRegistry.register_node(self, &"campaign_invader")
 
 
 func _exit_tree() -> void:
 	if RuntimeRegistry != null:
 		RuntimeRegistry.unregister_node(self, &"enemies")
 		RuntimeRegistry.unregister_node(self, &"wave_enemy")
+		RuntimeRegistry.unregister_node(self, &"campaign_invader")
 
 
 func _physics_process(delta: float) -> void:
@@ -312,6 +317,8 @@ func _try_ranged_attack(to_target: Vector2) -> void:
 		return
 	if fire_only_when_visible and not _target_on_screen():
 		return
+	if use_global_bullet_budget and BulletManager != null and not BulletManager.can_spawn_bullet():
+		return
 	_fire_elapsed = 0.0
 	var target_position := target.global_position
 	var target_velocity := Vector2.ZERO
@@ -382,7 +389,7 @@ func take_damage(amount: float) -> void:
 	if current_health <= 0.0:
 		_destroyed = true
 		destroyed.emit(self, reward_credits, global_position)
-		queue_free()
+		_queue_free_once()
 
 
 func arm_hijack_capture(duration: float = -1.0, disable_ratio: float = -1.0) -> void:
@@ -408,7 +415,7 @@ func complete_hijack_capture() -> void:
 		return
 	_destroyed = true
 	set_meta(&"campaign_hijack_captured", true)
-	queue_free()
+	_queue_free_once()
 
 
 func _emit_damage_feedback(amount: float, previous_health: float) -> void:
@@ -441,8 +448,9 @@ func _try_breach_target(to_target: Vector2) -> void:
 		var health := damage_target.get_node_or_null("HealthComponent")
 		if health != null and health.has_method("take_damage"):
 			health.call("take_damage", damage)
+	_destroyed = true
 	breached_target.emit(self, damage_target, damage)
-	queue_free()
+	_queue_free_once()
 
 
 func _resolve_target() -> Node2D:
@@ -481,8 +489,15 @@ func _resolve_target() -> Node2D:
 func _nearest_campaign_target(group_name: StringName, radius: float, hostile_only: bool = false) -> Node2D:
 	var best: Node2D = null
 	var best_distance := radius * radius
-	for value in get_tree().get_nodes_in_group(group_name):
-		var candidate := value as Node2D
+	_query_targets.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius([group_name], global_position, radius, 24, true, _query_targets)
+	else:
+		for value in get_tree().get_nodes_in_group(group_name):
+			var candidate := value as Node2D
+			if candidate != null:
+				_query_targets.append(candidate)
+	for candidate in _query_targets:
 		if candidate == null or candidate == self or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
 			continue
 		if hostile_only and not (candidate.has_method("is_hostile") and bool(candidate.call("is_hostile"))):
@@ -796,3 +811,10 @@ func _safe_alpha(alpha: float, cap: float) -> float:
 	if Settings != null and Settings.has_method("flash_alpha"):
 		return minf(Settings.flash_alpha(alpha), cap)
 	return minf(alpha, cap)
+
+
+func _queue_free_once() -> void:
+	if _free_queued or is_queued_for_deletion():
+		return
+	_free_queued = true
+	call_deferred("queue_free")

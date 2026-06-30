@@ -45,6 +45,47 @@ const SCAR_COLORS := {
 }
 
 const ANY_SAMPLE_POSITION := Vector2(999999999.0, 999999999.0)
+const PLAYER_TRIGGERED_SCAR_SOURCES := {
+	&"mastered_vector": true,
+	&"slingshot_resonance": true,
+}
+const WEAPON_SCAR_SOURCE_NAMES := {
+	&"apex_vector_spear": true,
+	&"barycentric_splitter": true,
+	&"causal_anchor": true,
+	&"chronal_mirror_shot": true,
+	&"chronal_refraction_beam": true,
+	&"event_horizon_shard": true,
+	&"event_horizon_veil": true,
+	&"gravity_lance": true,
+	&"gravity_loom": true,
+	&"gravity_wave_beam": true,
+	&"graviton_bloom": true,
+	&"inertia_maul": true,
+	&"inversion_chime": true,
+	&"inversion_disc": true,
+	&"kinetic_ram": true,
+	&"mass_driver": true,
+	&"mass_siphon": true,
+	&"null_rebounder": true,
+	&"orbital_lasso": true,
+	&"phase_guillotine": true,
+	&"phase_suture": true,
+	&"polarity_javelin": true,
+	&"positron_beam": true,
+	&"resonance_anvil": true,
+	&"rift_anchor": true,
+	&"scar_carver": true,
+	&"shear_comet": true,
+	&"singularity_bell": true,
+	&"singularity_kite": true,
+	&"singularity_pin": true,
+	&"temporal_bloom": true,
+	&"temporal_splinter": true,
+	&"tidal_mortar": true,
+	&"vector_prism": true,
+	&"vacuum_collapse_seed": true,
+}
 
 @export var enabled: bool = true
 
@@ -90,6 +131,17 @@ const ANY_SAMPLE_POSITION := Vector2(999999999.0, 999999999.0)
 @export_range(0.0, 1.0, 0.01) var visual_fill_alpha_cap: float = 0.08
 @export_range(0.0, 1.0, 0.01) var visual_ring_alpha_cap: float = 0.42
 @export_range(0.0, 1.0, 0.01) var visual_seam_alpha_cap: float = 0.34
+@export_group("Player-Triggered Visual Dampening")
+@export_range(0.0, 1.0, 0.01) var weapon_scar_visual_scale: float = 0.62
+@export_range(0.0, 1.0, 0.01) var weapon_scar_visual_cap: float = 0.42
+@export_range(0.0, 1.0, 0.01) var player_scar_visual_scale: float = 0.56
+@export_range(0.0, 1.0, 0.01) var player_scar_visual_cap: float = 0.36
+@export_range(0.0, 1.0, 0.01) var scar_carver_visual_scale: float = 0.38
+@export_range(0.0, 1.0, 0.01) var scar_carver_visual_cap: float = 0.24
+@export_range(0.1, 1.0, 0.01) var weapon_scar_visual_radius_scale: float = 0.74
+@export_range(0.1, 1.0, 0.01) var scar_carver_visual_radius_scale: float = 0.62
+@export var hide_player_triggered_scar_labels: bool = true
+@export var disable_player_triggered_scar_particles: bool = true
 
 var _scars: Array[Dictionary] = []
 var _visuals: Dictionary = {}
@@ -273,6 +325,7 @@ func create_gravity_scar(
 		_remove_lowest_intensity_scar()
 
 	_scar_counter += 1
+	var base_intensity := clampf(intensity, 0.04, 1.0)
 	var scar := {
 		"id": _scar_counter,
 		"position": position,
@@ -283,8 +336,12 @@ func create_gravity_scar(
 		"rule_name": _scar_rule_name(clamped_type),
 		"color": _scar_color(clamped_type),
 		"axis": _axis_for_scar(position, _scar_counter),
-		"base_intensity": clampf(intensity, 0.04, 1.0),
-		"intensity": clampf(intensity, 0.04, 1.0),
+		"base_intensity": base_intensity,
+		"intensity": base_intensity,
+		"visual_intensity": _visual_intensity_for_source(source_label, base_intensity),
+		"visual_radius_scale": _visual_radius_scale_for_source(source_label),
+		"visual_label_enabled": _source_allows_visual_label(source_label),
+		"visual_particles_enabled": _source_allows_visual_particles(source_label),
 		"instability": clampf(intensity * _scar_instability_bias(clamped_type), 0.0, 1.0),
 		"duration": maxf(duration, 1.0),
 		"age": 0.0,
@@ -320,6 +377,10 @@ func _merge_nearby_scar(
 		scar["radius"] = maxf(float(scar.get("radius", radius)), radius)
 		scar["base_intensity"] = maxf(float(scar.get("base_intensity", intensity)), next_intensity)
 		scar["intensity"] = next_intensity
+		scar["visual_intensity"] = _visual_intensity_for_source(source_label, next_intensity)
+		scar["visual_radius_scale"] = _visual_radius_scale_for_source(source_label)
+		scar["visual_label_enabled"] = _source_allows_visual_label(source_label)
+		scar["visual_particles_enabled"] = _source_allows_visual_particles(source_label)
 		scar["duration"] = maxf(float(scar.get("duration", duration)), duration)
 		scar["age"] = minf(float(scar.get("age", 0.0)), float(scar.get("duration", duration)) * 0.42)
 		scar["source"] = source_label
@@ -350,6 +411,7 @@ func _update_scar_lifetimes(delta: float) -> void:
 
 		scar["age"] = age
 		scar["intensity"] = next_intensity
+		scar["visual_intensity"] = _visual_intensity_for_source(StringName(scar.get("source", &"manual")), next_intensity)
 		scar["decay"] = life_ratio
 		scar["decay_state"] = decay_state
 		scar["instability"] = clampf(next_intensity * _scar_instability_bias(int(scar.get("type", ScarType.CURVATURE))), 0.0, 1.0)
@@ -726,8 +788,8 @@ func _update_visual(scar: Dictionary, delta: float) -> void:
 
 	var position: Vector2 = scar.get("position", Vector2.ZERO)
 	var gameplay_radius: float = maxf(float(scar.get("radius", base_radius)), 1.0)
-	var visual_radius: float = _visual_radius(gameplay_radius)
-	var intensity := clampf(float(scar.get("intensity", 0.0)), 0.0, 1.0)
+	var visual_radius: float = maxf(_visual_radius(gameplay_radius) * float(scar.get("visual_radius_scale", 1.0)), 40.0)
+	var intensity := clampf(float(scar.get("visual_intensity", scar.get("intensity", 0.0))), 0.0, 1.0)
 	var scar_type := int(scar.get("type", ScarType.CURVATURE))
 	var color: Color = _scar_color(scar_type)
 	var alpha: float = lerpf(0.12, 0.62, intensity)
@@ -756,13 +818,13 @@ func _update_visual(scar: Dictionary, delta: float) -> void:
 		seam.width = lerpf(1.2, 3.8, intensity)
 		seam.default_color = Color(1.0, 1.0, 1.0, _visual_alpha(alpha * 0.58, visual_seam_alpha_cap))
 	if label != null:
-		label.visible = intensity >= label_min_intensity
+		label.visible = bool(scar.get("visual_label_enabled", true)) and intensity >= label_min_intensity
 		label.text = "%s  %s" % [String(scar.get("display_name", "Scar")).to_upper(), String(scar.get("rule_name", "BEND"))]
 		label.position = Vector2(-128.0, -visual_radius - 32.0)
 		label.size = Vector2(256.0, 26.0)
 		label.modulate = Color(color.r, color.g, color.b, _visual_alpha(lerpf(0.34, 0.92, intensity), 0.72))
 	if particles != null:
-		particles.emitting = visual_quality == VisualQuality.HIGH and intensity > 0.2
+		particles.emitting = bool(scar.get("visual_particles_enabled", true)) and visual_quality == VisualQuality.HIGH and intensity > 0.2
 		particles.amount = int(lerpf(3.0, float(max_particles_per_scar), intensity))
 		if material != null:
 			material.emission_sphere_radius = visual_radius * 0.64
@@ -1063,6 +1125,47 @@ func _scar_rule_name(scar_type: int) -> String:
 
 func _scar_color(scar_type: int) -> Color:
 	return SCAR_COLORS.get(scar_type, Color(0.1, 0.82, 1.0, 1.0))
+
+
+func _visual_intensity_for_source(source_label: StringName, gameplay_intensity: float) -> float:
+	var visual_intensity := clampf(gameplay_intensity, 0.04, 1.0)
+	if source_label == &"scar_carver":
+		return clampf(visual_intensity * scar_carver_visual_scale, 0.04, scar_carver_visual_cap)
+	if _is_weapon_scar_source(source_label):
+		return clampf(visual_intensity * weapon_scar_visual_scale, 0.04, weapon_scar_visual_cap)
+	if _is_player_triggered_scar_source(source_label):
+		return clampf(visual_intensity * player_scar_visual_scale, 0.04, player_scar_visual_cap)
+	return visual_intensity
+
+
+func _visual_radius_scale_for_source(source_label: StringName) -> float:
+	if source_label == &"scar_carver":
+		return scar_carver_visual_radius_scale
+	if _is_weapon_scar_source(source_label):
+		return weapon_scar_visual_radius_scale
+	if _is_player_triggered_scar_source(source_label):
+		return minf(weapon_scar_visual_radius_scale, 0.68)
+	return 1.0
+
+
+func _source_allows_visual_label(source_label: StringName) -> bool:
+	if not hide_player_triggered_scar_labels:
+		return true
+	return not (_is_weapon_scar_source(source_label) or _is_player_triggered_scar_source(source_label))
+
+
+func _source_allows_visual_particles(source_label: StringName) -> bool:
+	if not disable_player_triggered_scar_particles:
+		return true
+	return not (_is_weapon_scar_source(source_label) or _is_player_triggered_scar_source(source_label))
+
+
+func _is_player_triggered_scar_source(source_label: StringName) -> bool:
+	return PLAYER_TRIGGERED_SCAR_SOURCES.has(source_label)
+
+
+func _is_weapon_scar_source(source_label: StringName) -> bool:
+	return WEAPON_SCAR_SOURCE_NAMES.has(source_label)
 
 
 func _visual_radius(radius: float) -> float:

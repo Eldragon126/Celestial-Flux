@@ -10,6 +10,7 @@ const ENEMY_BULLET_SCENE := preload("res://Nodes/enemy_bullet.tscn")
 @export var fire_interval: float = 1.45
 @export var projectile_speed: float = 780.0
 @export var projectile_homing: bool = false
+@export var use_global_bullet_budget: bool = true
 @export var range: float = 1250.0
 @export var reward_credits: int = 28
 @export var target_mother_weight: float = 0.65
@@ -46,6 +47,8 @@ var _charge_ring: Line2D = null
 var _muzzle_flash: Line2D = null
 var _collision: CollisionShape2D = null
 var _defeated: bool = false
+var _candidate_targets: Array[Node2D] = []
+var _target_query_buffer: Array[Node2D] = []
 
 
 func configure(new_faction: StringName, starts_hostile: bool) -> void:
@@ -56,6 +59,8 @@ func configure(new_faction: StringName, starts_hostile: bool) -> void:
 
 func _ready() -> void:
 	add_to_group("campaign_planet_turret")
+	if RuntimeRegistry != null:
+		RuntimeRegistry.register_node(self, &"campaign_planet_turret")
 	if hostile:
 		add_to_group("enemies")
 		add_to_group("wave_enemy")
@@ -78,6 +83,7 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	if RuntimeRegistry != null:
+		RuntimeRegistry.unregister_node(self, &"campaign_planet_turret")
 		RuntimeRegistry.unregister_node(self, &"enemies")
 		RuntimeRegistry.unregister_node(self, &"wave_enemy")
 
@@ -130,19 +136,21 @@ func take_damage(amount: float) -> void:
 
 
 func _select_target() -> Node2D:
-	var candidates: Array[Node2D] = []
-	var mother := get_tree().get_first_node_in_group("campaign_mother_planet") as Node2D
+	_candidate_targets.clear()
 	for player in MultiplayerTargeting.live_players(get_tree()):
-		candidates.append(player)
+		_candidate_targets.append(player)
+	_fill_group_cached(&"campaign_mother_planet", _target_query_buffer, 1)
+	var mother: Node2D = _target_query_buffer[0] if not _target_query_buffer.is_empty() else null
 	if mother != null and is_instance_valid(mother):
-		candidates.append(mother)
-	for escort_value in get_tree().get_nodes_in_group("campaign_escort"):
-		var escort := escort_value as Node2D
-		if escort != null and is_instance_valid(escort):
-			candidates.append(escort)
+		_candidate_targets.append(mother)
+	_fill_group_cached(&"campaign_escort", _target_query_buffer)
+	for escort in _target_query_buffer:
+		_candidate_targets.append(escort)
 	var best: Node2D = null
 	var best_score := range * range
-	for candidate in candidates:
+	for candidate in _candidate_targets:
+		if candidate == null or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
+			continue
 		var distance := global_position.distance_squared_to(candidate.global_position)
 		if candidate.is_in_group("campaign_mother_planet"):
 			distance *= target_mother_weight
@@ -156,7 +164,7 @@ func _fire_at(target: Node2D) -> void:
 	if target == null or not is_instance_valid(target):
 		return
 	var direction := (target.global_position - global_position).normalized()
-	if not BulletManager.can_spawn_bullet():
+	if use_global_bullet_budget and BulletManager != null and not BulletManager.can_spawn_bullet():
 		if target.has_method("take_damage"):
 			target.call("take_damage", maxf(projectile_speed / 100.0, 1.0))
 		if _barrel != null:
@@ -180,6 +188,19 @@ func _fire_at(target: Node2D) -> void:
 	if _barrel != null:
 		_barrel.default_color = barrel_flash_color
 	_flash_alpha = barrel_flash_color.a
+
+
+func _fill_group_cached(group_name: StringName, out_nodes: Array[Node2D], limit: int = -1) -> void:
+	out_nodes.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(group_name, out_nodes, limit)
+		return
+	for value in get_tree().get_nodes_in_group(String(group_name)):
+		if limit >= 0 and out_nodes.size() >= limit:
+			return
+		var node := value as Node2D
+		if node != null and is_instance_valid(node) and not node.is_queued_for_deletion():
+			out_nodes.append(node)
 
 
 func _build_visuals() -> void:

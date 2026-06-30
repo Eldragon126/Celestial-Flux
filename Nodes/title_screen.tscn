@@ -225,37 +225,37 @@ theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 50
 text = "King Hill"
 
-[node name="SteamDemoButton" type="Button" parent="Menu"]
+[node name="SteamDemoButton" type="Button" parent="Menu" unique_id=1696540819]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 50
 text = "Steam Demo"
 
-[node name="ClipLabButton" type="Button" parent="Menu"]
+[node name="ClipLabButton" type="Button" parent="Menu" unique_id=1855167209]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 50
 text = "Clip Lab"
 
-[node name="ModManagerButton" type="Button" parent="Menu"]
+[node name="ModManagerButton" type="Button" parent="Menu" unique_id=690890521]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 50
 text = "Mods"
 
-[node name="OtherPlayModesButton" type="Button" parent="Menu"]
+[node name="OtherPlayModesButton" type="Button" parent="Menu" unique_id=1115870947]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 50
 text = "Other Play Modes"
 
-[node name="SettingsButton" type="Button" parent="Menu"]
+[node name="SettingsButton" type="Button" parent="Menu" unique_id=818057514]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 50
 text = "Settings"
 
-[node name="QuitButton" type="Button" parent="Menu"]
+[node name="QuitButton" type="Button" parent="Menu" unique_id=1688201297]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 50
@@ -297,13 +297,13 @@ metadata/_custom_type_script = "uid://dk5kb2f3tf0y7"
 position = Vector2(734, 2832)
 
 [node name="parametric_enemy_2" parent="." unique_id=1266540202 instance=ExtResource("11_tfcd2")]
-position = Vector2(4903, 498)
+position = Vector2(3476, 1759)
 
 [node name="parametric_enemy_3" parent="." unique_id=1584277574 instance=ExtResource("12_5e2l6")]
 position = Vector2(-105, -1276)
 
 [node name="ParametricFractureDuelist" parent="." unique_id=350809210 instance=ExtResource("13_wcqt8")]
-position = Vector2(-1381, -472)
+position = Vector2(-618, 1486)
 
 [node name="ParametricSwarmArchitect" parent="." unique_id=646356104 instance=ExtResource("14_8o224")]
 position = Vector2(-1110, 1599)
@@ -312,10 +312,10 @@ position = Vector2(-1110, 1599)
 position = Vector2(2255, 2823)
 
 [node name="BaseEnemy2" parent="." unique_id=1014824867 instance=ExtResource("15_tfcd2")]
-position = Vector2(2763, 4468)
+position = Vector2(1004, 1879)
 
 [node name="BaseEnemy3" parent="." unique_id=552978154 instance=ExtResource("15_tfcd2")]
-position = Vector2(-2036, 3612)
+position = Vector2(-1107, 3380)
 
 [node name="BaseEnemy4" parent="." unique_id=1905166568 instance=ExtResource("15_tfcd2")]
 position = Vector2(-3373, 1837)
@@ -324,46 +324,46 @@ position = Vector2(-3373, 1837)
 position = Vector2(5874, 2336)
 
 [node name="BaseShooterEnemy2" parent="." unique_id=1022380372 instance=ExtResource("16_8o224")]
-position = Vector2(5385, -837)
+position = Vector2(3958, 424)
 
 [node name="BaseShooterEnemy3" parent="." unique_id=420422397 instance=ExtResource("16_8o224")]
 position = Vector2(2011, -1431)
 
 [node name="BaseShooterEnemy4" parent="." unique_id=1493828148 instance=ExtResource("16_8o224")]
-position = Vector2(-1740, -2665)
+position = Vector2(-977, -707)
 
 [node name="BaseShooterEnemy5" parent="." unique_id=1053502847 instance=ExtResource("16_8o224")]
-position = Vector2(-3250, -1117)
+position = Vector2(-2487, 841)
 
 [node name="GravityLeech" parent="." unique_id=332173923 instance=ExtResource("17_tptlw")]
-position = Vector2(-2149, 3937)
+position = Vector2(-1220, 3705)
 
 [node name="GravityLeech2" parent="." unique_id=1242699506 instance=ExtResource("17_tptlw")]
-position = Vector2(-5451, -1322)
+position = Vector2(-1635, 636)
 
 [node name="GravityLeech3" parent="." unique_id=540077682 instance=ExtResource("17_tptlw")]
-position = Vector2(1280, -3574)
+position = Vector2(1380, -1417)
 
 [node name="GravityLeech4" parent="." unique_id=457077 instance=ExtResource("17_tptlw")]
-position = Vector2(6885, -2371)
+position = Vector2(5458, -1110)
 
 [node name="LeechParasite" parent="." unique_id=1188525514 instance=ExtResource("18_7ytcx")]
-position = Vector2(7141, 5076)
+position = Vector2(5382, 2487)
 
 [node name="LeechParasite2" parent="." unique_id=1948044811 instance=ExtResource("18_7ytcx")]
-position = Vector2(-2124, 6036)
+position = Vector2(-2954, 3215)
 
 [node name="LeechParasite3" parent="." unique_id=95814076 instance=ExtResource("18_7ytcx")]
-position = Vector2(-5349, 2120)
+position = Vector2(-2296, 2120)
 
 [node name="LeechParasite4" parent="." unique_id=1672248349 instance=ExtResource("18_7ytcx")]
-position = Vector2(-3877, -2896)
+position = Vector2(-3114, -938)
 
 [node name="LeechParasite5" parent="." unique_id=342462374 instance=ExtResource("18_7ytcx")]
-position = Vector2(-179, -4483)
+position = Vector2(-79, -2326)
 
 [node name="LeechParasite6" parent="." unique_id=600497446 instance=ExtResource("18_7ytcx")]
-position = Vector2(4927, -3907)
+position = Vector2(3600, -489)
 
 [node name="SecretCompleted" type="AudioStreamPlayer" parent="." unique_id=640156367]
 

@@ -31,6 +31,15 @@ class_name CampaignVisualDirector
 @export var hijack_directive_color: Color = Color(0.36, 1.0, 0.78, 1.0)
 @export var escort_directive_color: Color = Color(0.24, 0.92, 1.0, 1.0)
 @export var freehold_directive_color: Color = Color(1.0, 0.78, 0.32, 1.0)
+@export_group("Threat Reticles")
+@export var show_threat_reticles: bool = true
+@export var max_threat_reticle_count: int = 10
+@export var threat_reticle_segments: int = 24
+@export var threat_reticle_radius: float = 54.0
+@export var threat_reticle_width: float = 1.45
+@export var threat_reticle_rotation_speed: float = 1.35
+@export_range(0.0, 1.0, 0.01) var threat_reticle_alpha: float = 0.22
+@export var threat_reticle_color: Color = Color(1.0, 0.18, 0.08, 1.0)
 
 var _director: Node = null
 var _directive_id_cache: StringName = &"standard"
@@ -38,10 +47,12 @@ var _mother: Node2D = null
 var _motherships: Array[Node2D] = []
 var _escorts: Array[Node2D] = []
 var _invaders: Array[Node2D] = []
+var _query_targets: Array[Node2D] = []
 var _rings: Array[Line2D] = []
 var _radials: Array[Line2D] = []
 var _lanes: Array[Line2D] = []
 var _threat_lanes: Array[Line2D] = []
+var _threat_reticles: Array[Line2D] = []
 var _elapsed: float = 0.0
 var _refresh_elapsed: float = 999.0
 
@@ -66,6 +77,7 @@ func _process(delta: float) -> void:
 	_update_lattice()
 	_update_lanes()
 	_update_threat_lanes()
+	_update_threat_reticles()
 
 
 func _build_field_nodes() -> void:
@@ -85,6 +97,10 @@ func _build_field_nodes() -> void:
 		var threat_lane := _make_line("CampaignThreatLane%d" % index, false, 1.0)
 		_threat_lanes.append(threat_lane)
 		add_child(threat_lane)
+	for index in range(maxi(max_threat_reticle_count, 0)):
+		var reticle := _make_line("CampaignThreatReticle%d" % index, true, threat_reticle_width)
+		_threat_reticles.append(reticle)
+		add_child(reticle)
 
 
 func _make_line(node_name: String, closed: bool, width: float) -> Line2D:
@@ -104,26 +120,19 @@ func _refresh_targets() -> void:
 		return
 	_director = tree.get_first_node_in_group("campaign_mode_director")
 	_refresh_directive_snapshot()
-	_mother = tree.get_first_node_in_group("campaign_mother_planet") as Node2D
-	_motherships.clear()
-	for value in tree.get_nodes_in_group("campaign_mothership"):
-		var ship := value as Node2D
-		if ship != null and is_instance_valid(ship) and not ship.is_queued_for_deletion():
-			_motherships.append(ship)
-	_escorts.clear()
-	for value in tree.get_nodes_in_group("campaign_escort"):
-		var escort := value as Node2D
-		if escort != null and is_instance_valid(escort) and not escort.is_queued_for_deletion():
-			_escorts.append(escort)
-	_invaders.clear()
-	for value in tree.get_nodes_in_group("campaign_invader"):
-		var invader := value as Node2D
-		if invader != null and is_instance_valid(invader) and not invader.is_queued_for_deletion():
-			_invaders.append(invader)
+	_query_targets.clear()
+	_fill_group_cached(&"campaign_mother_planet", _query_targets, 1)
+	if not _query_targets.is_empty():
+		_mother = _query_targets[0]
+	else:
+		_mother = tree.get_first_node_in_group("campaign_mother_planet") as Node2D
+	_fill_group_cached(&"campaign_mothership", _motherships)
+	_fill_group_cached(&"campaign_escort", _escorts)
+	_fill_group_cached(&"campaign_invader", _invaders)
 
 
 func _update_visibility() -> void:
-	for line in _rings + _radials + _lanes + _threat_lanes:
+	for line in _rings + _radials + _lanes + _threat_lanes + _threat_reticles:
 		if line != null:
 			line.visible = false if not enabled else line.visible
 
@@ -203,6 +212,30 @@ func _update_threat_lanes() -> void:
 			_threat_lanes[index].visible = false
 
 
+func _update_threat_reticles() -> void:
+	if not show_invader_threat_lanes or not show_threat_reticles:
+		_hide_lines(_threat_reticles)
+		return
+	var reticle_index := 0
+	for invader in _invaders:
+		if reticle_index >= _threat_reticles.size():
+			break
+		if not _is_live_node(invader):
+			continue
+		var target := _invader_target(invader)
+		if not _is_live_node(target):
+			continue
+		var distance := invader.global_position.distance_to(target.global_position)
+		if distance > field_radius * 1.2:
+			continue
+		var pressure := clampf(1.0 - distance / maxf(field_radius * 1.2, 1.0), 0.12, 1.0)
+		_configure_threat_reticle(_threat_reticles[reticle_index], target.global_position, pressure, reticle_index)
+		reticle_index += 1
+	for index in range(reticle_index, _threat_reticles.size()):
+		if _threat_reticles[index] != null:
+			_threat_reticles[index].visible = false
+
+
 func _configure_lane(line: Line2D, start: Vector2, end: Vector2, color: Color, alpha: float, important: bool) -> void:
 	if line == null:
 		return
@@ -229,6 +262,22 @@ func _configure_threat_lane(line: Line2D, start: Vector2, end: Vector2) -> void:
 	var threat_color := invader_lane_color.lerp(_directive_color(), 0.28)
 	line.default_color = _safe_color(Color(threat_color.r, threat_color.g, threat_color.b, _safe_alpha(invader_lane_alpha + _directive_alpha_bonus(), 0.24)))
 	line.visible = distance <= field_radius * 1.15
+
+
+func _configure_threat_reticle(line: Line2D, position: Vector2, pressure: float, index: int) -> void:
+	if line == null:
+		return
+	var clamped_pressure := clampf(pressure, 0.0, 1.0)
+	var radius := threat_reticle_radius * lerpf(0.82, 1.36, clamped_pressure)
+	radius += sin(_elapsed * 3.1 + float(index) * 0.63) * threat_reticle_radius * 0.08
+	line.global_position = position
+	line.rotation = _elapsed * threat_reticle_rotation_speed * (-1.0 if index % 2 == 0 else 1.0)
+	line.points = _reticle_points(radius, threat_reticle_segments)
+	line.width = threat_reticle_width * lerpf(0.78, 1.32, clamped_pressure)
+	var directive_tint := threat_reticle_color.lerp(_directive_color(), 0.22)
+	var alpha := _safe_alpha(threat_reticle_alpha * lerpf(0.55, 1.0, clamped_pressure) + _directive_alpha_bonus() * 0.55, 0.34)
+	line.default_color = _safe_color(Color(directive_tint.r, directive_tint.g, directive_tint.b, alpha))
+	line.visible = true
 
 
 func _directive_color() -> Color:
@@ -284,8 +333,12 @@ func _mothership_lane_color(ship: Node2D) -> Color:
 
 
 func _invader_target(invader: Node2D) -> Node2D:
+	if not _is_live_node(invader):
+		return _mother if _is_live_node(_mother) else null
 	var target_value: Variant = invader.get("target")
-	var target := target_value as Node2D
+	var target: Node2D = null
+	if target_value is Object and is_instance_valid(target_value):
+		target = target_value as Node2D
 	if _is_live_node(target):
 		return target
 	return _mother if _is_live_node(_mother) else null
@@ -317,8 +370,28 @@ func _prune_node_array(nodes: Array[Node2D]) -> void:
 			nodes.remove_at(index)
 
 
-func _is_live_node(node: Node) -> bool:
-	return node != null and is_instance_valid(node) and not node.is_queued_for_deletion()
+func _fill_group_cached(group_name: StringName, out_nodes: Array[Node2D], limit: int = -1) -> void:
+	out_nodes.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(group_name, out_nodes, limit)
+		return
+	for value in get_tree().get_nodes_in_group(String(group_name)):
+		if limit >= 0 and out_nodes.size() >= limit:
+			return
+		var node := value as Node2D
+		if _is_live_node(node):
+			out_nodes.append(node)
+
+
+func _is_live_node(node) -> bool:
+	if node == null or not (node is Object):
+		return false
+	if not is_instance_valid(node):
+		return false
+	if not (node is Node):
+		return false
+	var live_node := node as Node
+	return not live_node.is_queued_for_deletion()
 
 
 func _safe_color(color: Color) -> Color:
@@ -349,4 +422,14 @@ func _circle_points(radius: float, count: int) -> PackedVector2Array:
 	for index in range(maxi(count, 8)):
 		var angle := TAU * float(index) / float(maxi(count, 8))
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points
+
+
+func _reticle_points(radius: float, count: int) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var segment_count := maxi(count, 12)
+	for index in range(segment_count):
+		var angle := TAU * float(index) / float(segment_count)
+		var notch := 0.78 if index % 6 == 0 else 1.0
+		points.append(Vector2(cos(angle), sin(angle)) * radius * notch)
 	return points

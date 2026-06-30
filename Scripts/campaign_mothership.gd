@@ -41,6 +41,7 @@ enum Faction {
 @export var hostile_fire_interval: float = 1.25
 @export var hostile_projectile_speed: float = 920.0
 @export var bullet_scene: PackedScene = ENEMY_BULLET_SCENE
+@export var use_global_bullet_budget: bool = true
 @export_group("Friendly Support")
 @export var support_enabled: bool = true
 @export var support_scan_interval: float = 0.28
@@ -121,6 +122,7 @@ var _collision: CollisionShape2D = null
 var _body_collision: CollisionShape2D = null
 var _prompt_label: Label = null
 var _destroyed: bool = false
+var _query_targets: Array[Node2D] = []
 
 
 func configure(index: int, faction_id: int, anchor: Node2D = null, seed_value: int = 0) -> void:
@@ -639,8 +641,15 @@ func _separation_velocity() -> Vector2:
 	if separation_radius <= 0.0 or separation_strength <= 0.0:
 		return Vector2.ZERO
 	var separation := Vector2.ZERO
-	for value in get_tree().get_nodes_in_group("campaign_mothership"):
-		var other := value as Node2D
+	_query_targets.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_group(&"campaign_mothership", _query_targets)
+	else:
+		for value in get_tree().get_nodes_in_group("campaign_mothership"):
+			var candidate := value as Node2D
+			if candidate != null:
+				_query_targets.append(candidate)
+	for other in _query_targets:
 		if other == null or other == self or not is_instance_valid(other) or other.is_queued_for_deletion():
 			continue
 		var offset := global_position - other.global_position
@@ -694,6 +703,8 @@ func _update_hostile_attack() -> void:
 		return
 	if _fire_elapsed < hostile_fire_interval:
 		return
+	if use_global_bullet_budget and BulletManager != null and not BulletManager.can_spawn_bullet():
+		return
 	_fire_elapsed = 0.0
 	hostile_alert.emit(self, _player)
 	var direction := to_player.normalized()
@@ -732,20 +743,27 @@ func _update_support_behavior(delta: float) -> void:
 func _nearest_support_target() -> Node2D:
 	var best: Node2D = null
 	var best_distance := support_attack_range * support_attack_range
-	for group_name in [&"campaign_invader", &"enemies", &"wave_enemy"]:
-		for value in get_tree().get_nodes_in_group(group_name):
-			var candidate := value as Node2D
-			if candidate == null or candidate == self or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
+	_query_targets.clear()
+	if RuntimeRegistry != null:
+		RuntimeRegistry.fill_targets_in_radius([&"campaign_invader", &"enemies", &"wave_enemy"], global_position, support_attack_range, 42, false, _query_targets)
+	else:
+		for group_name in [&"campaign_invader", &"enemies", &"wave_enemy"]:
+			for value in get_tree().get_nodes_in_group(group_name):
+				var candidate := value as Node2D
+				if candidate != null:
+					_query_targets.append(candidate)
+	for candidate in _query_targets:
+		if candidate == null or candidate == self or not is_instance_valid(candidate) or candidate.is_queued_for_deletion():
+			continue
+		if candidate.is_in_group("player_allies"):
+			continue
+		if candidate.is_in_group("campaign_mothership"):
+			if not (candidate.has_method("is_hostile") and bool(candidate.call("is_hostile"))):
 				continue
-			if candidate.is_in_group("player_allies"):
-				continue
-			if candidate.is_in_group("campaign_mothership"):
-				if not (candidate.has_method("is_hostile") and bool(candidate.call("is_hostile"))):
-					continue
-			var distance := global_position.distance_squared_to(candidate.global_position)
-			if distance < best_distance:
-				best_distance = distance
-				best = candidate
+		var distance := global_position.distance_squared_to(candidate.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = candidate
 	return best
 
 
@@ -810,6 +828,7 @@ func _destroy_mothership() -> void:
 func _register_runtime_groups() -> void:
 	if RuntimeRegistry == null:
 		return
+	RuntimeRegistry.register_node(self, &"campaign_mothership")
 	if faction == Faction.HOSTILE:
 		RuntimeRegistry.register_node(self, &"enemies")
 	else:
@@ -819,6 +838,7 @@ func _register_runtime_groups() -> void:
 func _unregister_runtime_groups() -> void:
 	if RuntimeRegistry == null:
 		return
+	RuntimeRegistry.unregister_node(self, &"campaign_mothership")
 	RuntimeRegistry.unregister_node(self, &"enemies")
 	RuntimeRegistry.unregister_node(self, &"player_allies")
 

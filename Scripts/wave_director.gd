@@ -496,7 +496,7 @@ func _clear_external_wave_enemies() -> void:
 	_external_enemy_ids.clear()
 
 func _start_director() -> void:
-	_player = get_tree().get_first_node_in_group("Player") as Node2D
+	_player = MultiplayerTargeting.local_player(get_tree())
 	if _player == null:
 		_banner_label.text = "NO PLAYER SIGNAL"
 		return
@@ -1297,7 +1297,7 @@ func _cap_demo_persistent_particles() -> void:
 		seen[id] = true
 		var cap := 40 if String(node.name).to_lower().contains("blackhole") or String(node.name).to_lower().contains("black_hole") else 8
 		_cap_particles_under(node, cap)
-	var player := get_tree().get_first_node_in_group("Player")
+	var player := MultiplayerTargeting.local_player(get_tree())
 	if player != null:
 		_cap_particles_under(player, 28)
 	var vfx := _find_scene_child("OrbitalVFXDirector")
@@ -1478,8 +1478,7 @@ func _spawn_center() -> Vector2:
 
 
 func _player_for_peer(peer_id: int) -> Node2D:
-	for node in get_tree().get_nodes_in_group("Player"):
-		var player_node := node as Node2D
+	for player_node in MultiplayerTargeting.live_players(get_tree()):
 		if player_node == null or not is_instance_valid(player_node):
 			continue
 		var peer_value: Variant = player_node.get("network_peer_id")
