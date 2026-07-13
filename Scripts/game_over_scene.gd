@@ -47,11 +47,40 @@ func _process(_delta: float) -> void:
 
 func _on_try_again_pressed() -> void:
 	var next_scene := _resolved_retry_scene_path
-	RunProgress.begin_new_run(false)
+	_restart_run_for_retry_scene(next_scene)
 	if next_scene == "res://Nodes/the_abyss.tscn":
 		get_tree().change_scene_to_file(run_loading_scene_path)
 	else:
 		get_tree().change_scene_to_file(next_scene)
+
+
+func _restart_run_for_retry_scene(next_scene: String) -> void:
+	if RunProgress == null:
+		return
+	var was_boss_rush := RunProgress.boss_rush_mode
+	var was_challenge := RunProgress.challenge_mode
+	var previous_profile := String(RunProgress.arena_flags.get("run_profile", "")).strip_edges().to_lower()
+	if was_boss_rush:
+		RunProgress.begin_boss_rush()
+	else:
+		RunProgress.begin_new_run(was_challenge)
+	RunProgress.arena_flags["retry_scene_path"] = next_scene
+	RunProgress.arena_flags["title_scene_path"] = _resolved_title_scene_path
+	if next_scene.ends_with("campaign_mode.tscn"):
+		RunProgress.arena_flags["campaign_mode"] = true
+		RunProgress.arena_flags["run_profile"] = "campaign"
+	elif next_scene.ends_with("king_of_the_hill_mode.tscn"):
+		RunProgress.arena_flags["campaign_mode"] = true
+		RunProgress.arena_flags["king_of_hill_mode"] = true
+		RunProgress.arena_flags["run_profile"] = "king_of_the_hill"
+	elif next_scene.ends_with("demo_game.tscn"):
+		RunProgress.arena_flags["run_profile"] = "steam_demo"
+	elif next_scene.ends_with("playable_tutorial.tscn"):
+		RunProgress.arena_flags["run_profile"] = "tutorial"
+	elif next_scene.ends_with("clip_lab_scene.tscn"):
+		RunProgress.arena_flags["run_profile"] = "clip_lab"
+	elif not previous_profile.is_empty() and previous_profile != "standard":
+		RunProgress.arena_flags["run_profile"] = previous_profile
 
 
 func _on_title_pressed() -> void:

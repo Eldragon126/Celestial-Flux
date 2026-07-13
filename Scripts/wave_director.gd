@@ -156,6 +156,12 @@ enum MusicMode { NONE, WAVE, BOSS, INTERMISSION }
 @export var spawn_position_attempts: int = 18
 @export var enable_permanent_wormhole_pair: bool = false
 
+@export_group("Wave Flow Safety")
+@export var stop_spawn_loop_when_wave_ends: bool = true
+@export var guard_duplicate_wave_completion: bool = true
+@export var validate_wave_state_after_rest: bool = true
+@export var min_boss_interval_for_scaling: int = 1
+
 @export_group("Player Authored Run Hazards")
 @export var enable_gravity_wave_maker_hazards: bool = true
 @export var gravity_wave_maker_start_wave: int = 8
@@ -261,6 +267,7 @@ var _audio_stream_cache: Dictionary = {}
 var _demo_budget_elapsed: float = 999.0
 var _demo_run_complete: bool = false
 var _planet_spawn_blockers: Array[Node2D] = []
+var _wave_completion_in_progress: bool = false
 var _wave_music_tracks: Array[String] = [
 	SONG_THE_ABYSS_PATH,
 	SONG_ORBITAL_DRIFT_PATH,
@@ -507,7 +514,9 @@ func _start_director() -> void:
 	if _is_network_client():
 		_banner_label.text = "WAITING FOR HOST WAVE LOCK"
 		return
-	await get_tree().create_timer(first_wave_delay).timeout
+	await get_tree().create_timer(maxf(first_wave_delay, 0.0)).timeout
+	if _waves_halted or not _waves_enabled() or _is_network_client():
+		return
 	_begin_next_wave()
 
 func halt_waves() -> void:
@@ -567,6 +576,8 @@ func _begin_next_wave() -> void:
 	if _is_network_client() and not _network_forced_wave_start:
 		_banner_label.text = "WAITING FOR HOST WAVE LOCK"
 		return
+	if _spawning:
+		return
 	if _waves_halted or not _waves_enabled():
 		_banner_label.text = "BOSS RUSH CLEARED" if RunProgress and RunProgress.boss_rush_mode and RunProgress.run_finished else "WAVE DIRECTOR STANDBY"
 		return
@@ -575,6 +586,7 @@ func _begin_next_wave() -> void:
 
 	_wave += 1
 	_wave_elapsed = 0.0
+	_wave_completion_in_progress = false
 	_next_pacing_reinforcement_time = pacing_reinforcement_interval
 	_pacing_reinforcement_batches = 0
 	_clear_fake_boss_gag(false)
@@ -595,6 +607,7 @@ func _begin_next_wave() -> void:
 	_spawning = false
 
 func _spawn_regular_wave() -> void:
+	var spawn_wave: int = _wave
 	regular_wave.emit()
 	_banner_label.text = "WAVE %d" % _wave
 	_play_wave_music_for_wave(_wave)
@@ -612,22 +625,27 @@ func _spawn_regular_wave() -> void:
 	if _is_late_game_wave():
 		delay = maxf(spawn_delay * 0.62, 0.22)
 	for i in range(roster.size()):
-		if _player == null or not is_instance_valid(_player):
+		if not _can_continue_spawning_wave(spawn_wave):
 			return
 
 		var enemy = _spawn_enemy(roster[i], "Wave%dEnemy%d" % [_wave, i])
 		if enemy != null:
 			_active_enemies.append(enemy)
 
-		await get_tree().create_timer(delay).timeout
+		await get_tree().create_timer(maxf(delay, 0.0)).timeout
+		if not _can_continue_spawning_wave(spawn_wave):
+			return
 
 func _spawn_boss_wave() -> void:
+	var spawn_wave: int = _wave
 	boss_wave.emit()
 	_banner_label.text = "BOSS WAVE %d" % _wave
 	_seed_wave_hazards()
 	_refresh_planet_spawn_blockers()
 
 	var boss_scene = _choose_boss_scene()
+	if not _can_continue_spawning_wave(spawn_wave):
+		return
 	_play_boss_music_for_wave(_wave, boss_scene)
 	_last_boss_scene_path = boss_scene.resource_path
 	var boss = boss_scene.instantiate()
@@ -635,13 +653,13 @@ func _spawn_boss_wave() -> void:
 	var boss_health := _boss_health_for_scene(boss_scene)
 	boss.set("max_health", boss_health)
 
-	var scale_factor := 1.08 + 0.08 * float(_wave / boss_every_waves)
+	var scale_factor := 1.08 + 0.08 * _boss_cycle_scale()
 	if boss.get("projectile_speed") != null:
 		boss.set("projectile_speed", float(boss.get("projectile_speed")) * scale_factor)
 	if boss.get("contact_damage") != null:
-		boss.set("contact_damage", float(boss.get("contact_damage")) * (1.08 + 0.1 * float(_wave / boss_every_waves)))
+		boss.set("contact_damage", float(boss.get("contact_damage")) * (1.08 + 0.1 * _boss_cycle_scale()))
 	if boss.get("move_speed") != null:
-		boss.set("move_speed", float(boss.get("move_speed")) * (1.06 + 0.04 * float(_wave / boss_every_waves)))
+		boss.set("move_speed", float(boss.get("move_speed")) * (1.06 + 0.04 * _boss_cycle_scale()))
 
 	var boss_2d := boss as Node2D
 	if boss_2d != null:
@@ -735,6 +753,18 @@ func _build_demo_wave_roster() -> Array:
 	for i in range(limit):
 		roster.append(source_roster[i])
 	return roster
+
+
+func _can_continue_spawning_wave(spawn_wave: int) -> bool:
+	if not stop_spawn_loop_when_wave_ends:
+		return _player != null and is_instance_valid(_player)
+	if spawn_wave != _wave:
+		return false
+	if _waves_halted or not _waves_enabled():
+		return false
+	if not _wave_running or _wave_completion_in_progress:
+		return false
+	return _player != null and is_instance_valid(_player)
 
 
 func _build_late_game_roster() -> Array:
@@ -1613,12 +1643,16 @@ func _try_spawn_pacing_reinforcements() -> void:
 
 func _complete_wave(network_forced: bool = false) -> void:
 	_clear_fake_boss_gag(false)
+	if guard_duplicate_wave_completion and _wave_completion_in_progress:
+		return
+	_wave_completion_in_progress = true
 	if _is_network_client() and not network_forced:
 		_wave_running = false
 		_spawning = false
 		_banner_label.text = "WAVE %d CLEAR - AWAITING HOST LOCK" % _wave
 		return
 	_wave_running = false
+	_spawning = false
 	_wave_elapsed = 0.0
 	if clear_external_enemies_on_wave_clear:
 		_clear_external_wave_enemies()
@@ -1642,12 +1676,14 @@ func _complete_wave(network_forced: bool = false) -> void:
 			RunProgress.clear_anchor()
 		_stop_all_music()
 		_banner_label.text = "STEAM DEMO COMPLETE"
+		_wave_completion_in_progress = false
 		return
 
 	if _waves_halted or not _waves_enabled():
 		if RunProgress and RunProgress.boss_rush_mode and RunProgress.run_finished:
 			_banner_label.text = "BOSS RUSH CLEARED"
 		_stop_all_music()
+		_wave_completion_in_progress = false
 		return
 
 	var extra_rest := 0.0
@@ -1657,8 +1693,13 @@ func _complete_wave(network_forced: bool = false) -> void:
 	if RunProgress and RunProgress.boss_rush_mode:
 		rest *= float(RunProgress.challenge_modifiers.get("wave_rest_multiplier", 0.6))
 	_spawn_interwave_galaxy_gate(rest)
-	await get_tree().create_timer(rest).timeout
+	var completed_wave: int = _wave
+	await get_tree().create_timer(maxf(rest, 0.0)).timeout
 	_clear_interwave_galaxy_gate()
+	_wave_completion_in_progress = false
+	if validate_wave_state_after_rest:
+		if completed_wave != _wave or _waves_halted or not _waves_enabled():
+			return
 	_begin_next_wave()
 
 
@@ -1954,6 +1995,12 @@ func _boss_pressure_index(scene: PackedScene) -> int:
 		return 7
 	return 0
 
+func _boss_interval_for_scaling() -> int:
+	return maxi(maxi(boss_every_waves, 1), maxi(min_boss_interval_for_scaling, 1))
+
+func _boss_cycle_scale() -> float:
+	return float(_wave) / float(_boss_interval_for_scaling())
+
 func _boss_health_for_scene(scene: PackedScene) -> float:
 	var boss_index := _boss_pressure_index(scene)
 	var base_health := 2900.0 + float(boss_index) * 360.0
@@ -1963,7 +2010,7 @@ func _boss_health_for_scene(scene: PackedScene) -> float:
 		base_health = 5100.0
 	elif scene == EXTRADIMENSIONAL_BREACHER_SCENE:
 		base_health = 6800.0
-	var wave_pressure := 1.0 + 0.055 * float(maxi(_wave - boss_every_waves, 0))
+	var wave_pressure := 1.0 + 0.055 * float(maxi(_wave - _boss_interval_for_scaling(), 0))
 	var health := base_health * wave_pressure
 	if demo_profile_enabled:
 		health *= maxf(demo_boss_health_multiplier, 0.1)

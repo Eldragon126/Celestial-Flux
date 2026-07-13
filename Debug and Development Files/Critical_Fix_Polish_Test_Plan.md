@@ -95,3 +95,26 @@ Test:
 - Final mothership, trade-interior, hostile faction, and campaign ship art should eventually replace the code-authored vector hulls.
 - Combat feedback has pooled numbers/rings/flashes now, but dedicated SFX and shader/material variants for shield, armor, and boss section hits should be an art/audio pass.
 - The loading watchdog should still be validated in a normal non-headless game run.
+
+## 2026-07-01 Performance And AAA Polish Follow-Through
+
+- `PerformanceBudgetDirector` now records bounded frame-spike black-box samples with wave, scene, projectile/enemy/gravity counts, active VFX bursts, quality tier, and trigger reason. Severe spikes can immediately force LOW presentation budgets without changing player movement, damage, seeds, or gravity truth.
+- Budget application now reaches damage feedback, particle culling, mod hook connection passes, campaign UI cadence, heat-map contour/vector budgets, spacetime fabric cadence, and reality-collapse fabric cadence.
+- `ParticleFocusCuller` no longer rescans the whole scene tree in one synchronous burst by default; scanning is incremental and capped by inspector-editable node/particle budgets.
+- `GravityHeatMapOverlay` removes per-sample dictionary allocation, adds real contour/vector draw caps, and exposes the golden route sample count, contour width, and draw budgets in the inspector.
+- `ModHookDirector` caps projectile signal connection work per reconnect pass so modded projectile-heavy runs do not create avoidable hitching.
+- The debug balance overlay reports performance quality reason and spike count, making fallback behavior visible during normal tuning.
+
+## 2026-07-02 Projectile Readability And Final Combat Polish
+
+- Player and enemy projectiles now refresh cached nearest gravity sources on inspector-editable time/distance thresholds instead of using a single launch-time source list. This keeps gravity bending readable during long arcs without returning to per-frame group scans.
+- Enemy projectiles now expose light, alpha-floor, focus-distance, pressure-cap, gravity-radius, and acceleration-cap tuning in the inspector. Their colors route through readability/reduced-flash settings while preserving a visible projectile alpha floor.
+- `PerformanceBudgetDirector` now pushes projectile visual and gravity-refresh budgets into live projectile nodes, including projectile light caps under pressure.
+- `parametric_enemy_3.gd` no longer has a placeholder health callback. It registers with `RuntimeRegistry`, exposes motion/visual/skill-ring tuning, and displays bounded health/dance feedback through readability-safe colors.
+
+Test:
+
+- Run a busy standard run and watch the debug overlay budget row; `S#` should increment only on meaningful hitches, and quality should fall to LOW during severe spikes.
+- Toggle the gravity heat map with F10 and confirm it remains readable while contour/vector counts stay bounded.
+- In a projectile-heavy or modded run, confirm frame spikes reduce instead of climbing as particles, projectile hooks, and damage feedback become dense.
+- Fight parametric dance enemies and confirm the hit window, low-health state, skill-hit ring, and energy reward remain readable without flash spikes.

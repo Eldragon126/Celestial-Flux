@@ -15,6 +15,8 @@ class_name GravityHeatMapOverlay
 @export var gravity_softener: float = 64.0
 @export var max_sample_cells: int = 760
 @export var gradient_draw_stride: int = 3
+@export var max_contour_segments: int = 760
+@export var max_gradient_vectors: int = 72
 
 @export_group("Visuals & Telemetry")
 @export var contour_levels: Array[float] = [0.15, 0.30, 0.45, 0.65, 0.85]
@@ -23,6 +25,7 @@ class_name GravityHeatMapOverlay
 @export var high_gravity_color: Color = Color(1.0, 0.0, 0.471, 1.0)
 @export var gradient_vector_length: float = 38.0
 @export var gradient_alpha: float = 0.4
+@export var contour_line_width: float = 2.0
 
 @export_group("Golden Slingshot Line")
 @export var show_golden_slingshot_line: bool = true
@@ -30,6 +33,7 @@ class_name GravityHeatMapOverlay
 @export var optimal_slingshot_radius: float = 240.0 
 @export var golden_line_color: Color = Color(1.0, 0.82, 0.18, 1.0)
 @export var golden_line_width: float = 4.0
+@export var golden_line_steps: int = 60
 
 var _player: Node2D = null
 var _gravity_sources: Array[Node2D] = []
@@ -49,6 +53,10 @@ var _golden_path := PackedVector2Array()
 var _elapsed: float = 0.0
 var _visible_world_rect := Rect2(Vector2.ZERO, Vector2.ONE)
 var _cell_size := Vector2.ONE
+var _field_potential: float = 0.0
+var _field_gradient: Vector2 = Vector2.ZERO
+var _drawn_contour_segments: int = 0
+var _drawn_gradient_vectors: int = 0
 
 func _ready() -> void:
 	add_to_group("gravity_heat_map_overlay")
@@ -188,9 +196,9 @@ func _rebuild_samples() -> void:
 	for y in range(_active_rows):
 		for x in range(_active_columns):
 			var pos := _sample_position(x, y)
-			var field := _field_at(pos)
-			var potential: float = field["potential"]
-			var gradient: Vector2 = field["gradient"]
+			_sample_field_at(pos)
+			var potential := _field_potential
+			var gradient := _field_gradient
 			
 			# Use stable bounds for smooth, non-glitchy heat mapping
 			var heat := clampf(potential / _stable_max_potential, 0.0, 1.0)
@@ -204,9 +212,9 @@ func _rebuild_samples() -> void:
 func _sample_position(x: int, y: int) -> Vector2:
 	return _visible_world_rect.position + Vector2(float(x) * _cell_size.x, float(y) * _cell_size.y)
 
-func _field_at(pos: Vector2) -> Dictionary:
-	var potential := 0.0
-	var gradient := Vector2.ZERO
+func _sample_field_at(pos: Vector2) -> void:
+	_field_potential = 0.0
+	_field_gradient = Vector2.ZERO
 
 	for source in _gravity_sources:
 		var mass := absf(_source_mass(source))
@@ -214,11 +222,9 @@ func _field_at(pos: Vector2) -> Dictionary:
 		var dist_squared := maxf(r.length_squared(), gravity_softener * gravity_softener)
 		var dist := sqrt(dist_squared)
 		
-		potential += mass / dist
+		_field_potential += mass / dist
 		# F = G * (m1 * m2) / r^2. Vector direction is towards the source.
-		gradient += -r.normalized() * (mass / dist_squared)
-
-	return { "potential": potential, "gradient": gradient }
+		_field_gradient += -r.normalized() * (mass / dist_squared)
 
 func _rebuild_golden_slingshot_line() -> void:
 	_golden_path.clear()
@@ -233,7 +239,7 @@ func _rebuild_golden_slingshot_line() -> void:
 	
 	# Instead of a glitchy Euler integration from the player, draw the pure math orbit
 	# at the optimal radius (e.g., 256 pixels)
-	var steps = 60
+	var steps := maxi(golden_line_steps, 16)
 	for i in range(steps + 1):
 		var angle = (float(i) / float(steps)) * TAU
 		var point = center + Vector2(cos(angle), sin(angle)) * optimal_slingshot_radius
@@ -259,9 +265,12 @@ func _draw() -> void:
 	_draw_golden_slingshot_line()
 
 func _draw_contours() -> void:
+	_drawn_contour_segments = 0
 	for level in contour_levels:
 		for y in range(_active_rows - 1):
 			for x in range(_active_columns - 1):
+				if _drawn_contour_segments >= max_contour_segments:
+					return
 				_draw_contour_cell(x, y, level)
 
 func _draw_contour_cell(x: int, y: int, level: float) -> void:
@@ -279,12 +288,17 @@ func _draw_contour_cell(x: int, y: int, level: float) -> void:
 	if crossings.size() == 2:
 		var color = _heat_color(level)
 		color.a = _safe_alpha(0.46, 0.46)
-		draw_line(to_local(crossings[0]), to_local(crossings[1]), color, 2.0, true)
+		draw_line(to_local(crossings[0]), to_local(crossings[1]), color, contour_line_width, true)
+		_drawn_contour_segments += 1
 	elif crossings.size() == 4:
 		var color = _heat_color(level)
 		color.a = _safe_alpha(0.46, 0.46)
-		draw_line(to_local(crossings[0]), to_local(crossings[1]), color, 2.0, true)
-		draw_line(to_local(crossings[2]), to_local(crossings[3]), color, 2.0, true)
+		draw_line(to_local(crossings[0]), to_local(crossings[1]), color, contour_line_width, true)
+		_drawn_contour_segments += 1
+		if _drawn_contour_segments >= max_contour_segments:
+			return
+		draw_line(to_local(crossings[2]), to_local(crossings[3]), color, contour_line_width, true)
+		_drawn_contour_segments += 1
 
 func _add_crossing(out_points: Array[Vector2], a: int, b: int, level: float) -> void:
 	if a < 0 or b < 0:
@@ -297,9 +311,12 @@ func _add_crossing(out_points: Array[Vector2], a: int, b: int, level: float) -> 
 	out_points.append(_sample_positions[a].lerp(_sample_positions[b], t))
 
 func _draw_gradient_vectors() -> void:
+	_drawn_gradient_vectors = 0
 	var stride := maxi(gradient_draw_stride, 2)
 	for y in range(0, _active_rows, stride):
 		for x in range(0, _active_columns, stride):
+			if _drawn_gradient_vectors >= max_gradient_vectors:
+				return
 			var index := _sample_index(x, y)
 			if index < 0:
 				continue
@@ -315,6 +332,7 @@ func _draw_gradient_vectors() -> void:
 			var color = Color(0.6, 0.8, 1.0, _safe_alpha(gradient_alpha * strength * 1.55, gradient_alpha))
 			
 			draw_line(to_local(pos), to_local(end_pos), color, 1.5, true)
+			_drawn_gradient_vectors += 1
 
 func _draw_golden_slingshot_line() -> void:
 	if _golden_path.size() < 2: return
@@ -363,9 +381,16 @@ func _safe_alpha(alpha: float, hard_cap: float) -> float:
 	return minf(alpha, hard_cap)
 
 func _source_mass(source: Node) -> float:
-	var mass_value = source.get("mass") if "mass" in source else 1000.0
-	return float(mass_value)
+	return _numeric_property(source, &"mass", 1000.0)
 
 func _source_radius(source: Node) -> float:
-	var rad_value = source.get("radius") if "radius" in source else 128.0
-	return float(rad_value)
+	return _numeric_property(source, &"radius", 128.0)
+
+
+func _numeric_property(source: Node, property_name: StringName, fallback: float) -> float:
+	if source == null or not is_instance_valid(source):
+		return fallback
+	var value: Variant = source.get(property_name)
+	if value is float or value is int:
+		return float(value)
+	return fallback

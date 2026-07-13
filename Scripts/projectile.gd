@@ -16,6 +16,8 @@ signal projectile_hit(hit_data: Dictionary)
 
 @export var initial_speed: float = 1080.0
 @export var gravity_pull_radius: float = 2000.0
+@export var gravity_source_refresh_interval: float = 0.22
+@export var gravity_refresh_distance_threshold: float = 440.0
 @export var player_gravity_deadzone_radius: float = 520.0
 @export var debug_logging: bool = false
 
@@ -109,6 +111,9 @@ var _near_planet_elapsed: float = 0.0
 var _last_near_planet_id: int = -1
 var _gravity_deflection_count: int = 0
 var _last_gravity_direction := Vector2.ZERO
+var _gravity_refresh_elapsed: float = 999.0
+var _last_gravity_refresh_position := Vector2.ZERO
+var _has_gravity_refresh_position: bool = false
 
 # ========================
 # == LIFECYCLE ==
@@ -141,6 +146,7 @@ func _physics_process(delta: float) -> void:
 	_age += delta
 	var total_grav_accel = Vector2.ZERO
 	_update_visual_budget(delta)
+	_update_gravity_source_cache(delta)
 	_apply_relativistic_rail(delta)
 	_apply_weapon_curve(delta)
 	_update_vector_trail(delta)
@@ -1035,6 +1041,10 @@ func _is_projectile_payload_property(property_name: String) -> bool:
 		"damage_max",
 		"gravity_constant",
 		"gravity_pull_radius",
+		"gravity_source_refresh_interval",
+		"gravity_refresh_distance_threshold",
+		"max_gravity_acceleration_per_source",
+		"max_total_gravity_acceleration",
 		"player_gravity_deadzone_radius",
 		"visual_scale",
 		"vector_trail_alpha",
@@ -1188,6 +1198,9 @@ func _refresh_gravity_sources() -> void:
 		return
 
 	planets.clear()
+	_gravity_refresh_elapsed = 0.0
+	_last_gravity_refresh_position = global_position
+	_has_gravity_refresh_position = true
 	if RuntimeRegistry != null:
 		RuntimeRegistry.fill_nearest_gravity_sources(
 			global_position,
@@ -1214,6 +1227,21 @@ func _refresh_gravity_sources() -> void:
 				continue
 			seen[id] = true
 			planets.append(source_2d)
+
+
+func _update_gravity_source_cache(delta: float) -> void:
+	_gravity_refresh_elapsed += delta
+	if _gravity_refresh_elapsed < maxf(gravity_source_refresh_interval, 0.05):
+		return
+	if _has_gravity_refresh_position:
+		var distance_threshold := maxf(gravity_refresh_distance_threshold, 1.0)
+		if (
+			global_position.distance_squared_to(_last_gravity_refresh_position)
+			< distance_threshold * distance_threshold
+		):
+			_gravity_refresh_elapsed = 0.0
+			return
+	_refresh_gravity_sources()
 
 func _on_timer_timeout() -> void:
 	_destroy_projectile()

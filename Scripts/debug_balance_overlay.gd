@@ -390,7 +390,9 @@ func _format_budget_state() -> String:
 	var enabled := _safe_bool(state.get("enabled"), true)
 	var projectiles := int(_safe_float(state.get("projectile_pressure"), 0.0))
 	var enemies := int(_safe_float(state.get("enemy_pressure"), 0.0))
-	return "%s %s fps %d P%d E%d" % ["ON" if enabled else "OFF", quality_text, int(_safe_float(state.get("fps"), 0.0)), projectiles, enemies]
+	var spikes := int(_safe_float(state.get("spikes"), 0.0))
+	var reason := String(state.get("quality_reason", ""))
+	return "%s %s fps %d P%d E%d S%d %s" % ["ON" if enabled else "OFF", quality_text, int(_safe_float(state.get("fps"), 0.0)), projectiles, enemies, spikes, reason]
 
 func _format_projectile_state() -> String:
 	var player_shots := _count_group(&"player_projectiles")

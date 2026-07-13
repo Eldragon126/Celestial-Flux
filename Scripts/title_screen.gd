@@ -204,7 +204,8 @@ func _on_new_run_button_pressed() -> void:
 func _on_tutorial_button_pressed() -> void:
 	if NetworkSession != null:
 		NetworkSession.leave_session()
-	RunProgress.begin_new_run(false)
+	RunProgress.begin_new_run(false, _selected_start_seed())
+	_set_mode_retry_flags("tutorial", "res://Nodes/playable_tutorial.tscn", {"tutorial_mode": true})
 	get_tree().change_scene_to_file("res://Nodes/playable_tutorial.tscn")
 
 
@@ -224,6 +225,7 @@ func _on_boss_rush_button_pressed() -> void:
 	if NetworkSession != null:
 		NetworkSession.leave_session()
 	RunProgress.begin_boss_rush(_selected_start_seed())
+	_set_mode_retry_flags("boss_rush", "res://Nodes/the_abyss.tscn", {"boss_rush": true})
 	_go_to_run_loading_screen()
 
 
@@ -236,9 +238,7 @@ func _on_campaign_button_pressed() -> void:
 	if NetworkSession != null:
 		NetworkSession.leave_session()
 	RunProgress.begin_new_run(false, _selected_start_seed())
-	RunProgress.arena_flags["retry_scene_path"] = CAMPAIGN_MODE_SCENE
-	RunProgress.arena_flags["title_scene_path"] = "res://Nodes/title_screen.tscn"
-	RunProgress.arena_flags["campaign_mode"] = true
+	_set_mode_retry_flags("campaign", CAMPAIGN_MODE_SCENE, {"campaign_mode": true})
 	get_tree().change_scene_to_file(CAMPAIGN_MODE_SCENE)
 
 
@@ -252,15 +252,16 @@ func _on_king_hill_button_pressed() -> void:
 	if NetworkSession != null:
 		NetworkSession.leave_session()
 	RunProgress.begin_new_run(false, _selected_start_seed())
-	RunProgress.arena_flags["retry_scene_path"] = KING_OF_THE_HILL_SCENE
-	RunProgress.arena_flags["title_scene_path"] = "res://Nodes/title_screen.tscn"
-	RunProgress.arena_flags["campaign_mode"] = true
-	RunProgress.arena_flags["king_of_hill_mode"] = true
+	_set_mode_retry_flags("king_of_the_hill", KING_OF_THE_HILL_SCENE, {
+		"campaign_mode": true,
+		"king_of_hill_mode": true,
+	})
 	get_tree().change_scene_to_file(KING_OF_THE_HILL_SCENE)
 
 
 func _begin_new_run(use_challenge: bool = false) -> void:
 	RunProgress.begin_new_run(use_challenge, _selected_start_seed())
+	_set_mode_retry_flags("challenge" if use_challenge else "standard", "res://Nodes/the_abyss.tscn", {"challenge_mode": use_challenge})
 	_go_to_run_loading_screen()
 
 
@@ -273,6 +274,16 @@ func _begin_continue() -> void:
 
 func _go_to_run_loading_screen() -> void:
 	get_tree().change_scene_to_file(RUN_LOADING_SCENE)
+
+
+func _set_mode_retry_flags(profile: String, retry_scene: String, extra_flags: Dictionary = {}) -> void:
+	if RunProgress == null:
+		return
+	RunProgress.arena_flags["run_profile"] = profile
+	RunProgress.arena_flags["retry_scene_path"] = retry_scene
+	RunProgress.arena_flags["title_scene_path"] = "res://Nodes/title_screen.tscn"
+	for key in extra_flags.keys():
+		RunProgress.arena_flags[String(key)] = extra_flags[key]
 
 
 func _prewarm_run_loading_screen() -> void:
@@ -1038,14 +1049,16 @@ func _on_multiplayer_close_pressed() -> void:
 func _on_steam_demo_button_pressed() -> void:
 	if NetworkSession != null:
 		NetworkSession.leave_session()
-	RunProgress.begin_new_run(false)
+	RunProgress.begin_new_run(false, _selected_start_seed())
+	_set_mode_retry_flags("steam_demo", STEAM_DEMO_SCENE, {"steam_demo": true})
 	get_tree().change_scene_to_file(STEAM_DEMO_SCENE)
 
 
 func _on_clip_lab_button_pressed() -> void:
 	if NetworkSession != null:
 		NetworkSession.leave_session()
-	RunProgress.begin_new_run(false)
+	RunProgress.begin_new_run(false, _selected_start_seed())
+	_set_mode_retry_flags("clip_lab", CLIP_LAB_SCENE, {"clip_lab": true})
 	get_tree().change_scene_to_file(CLIP_LAB_SCENE)
 
 

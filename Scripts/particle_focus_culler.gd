@@ -10,14 +10,21 @@ class_name ParticleFocusCuller
 @export var player_focus_radius: float = 1700.0
 @export var screen_margin: float = 340.0
 @export var include_player_children: bool = true
+@export_group("Scan Budget")
+@export var incremental_scanning: bool = true
+@export var max_nodes_per_scan_step: int = 260
+@export var max_tracked_particles: int = 280
 
 var _player: Node2D = null
 var _scan_elapsed: float = 999.0
 var _focus_elapsed: float = 999.0
 var _particle_nodes: Array[Node2D] = []
+var _pending_particle_nodes: Array[Node2D] = []
+var _scan_stack: Array[Node] = []
 var _desired_visible: Dictionary = {}
 var _desired_emitting: Dictionary = {}
 var _was_enabled: bool = true
+var _scan_in_progress: bool = false
 
 
 func _ready() -> void:
@@ -31,6 +38,7 @@ func _process(delta: float) -> void:
 	if not enabled:
 		if _was_enabled:
 			_restore_tracked_particles()
+			_cancel_scan()
 		_was_enabled = false
 		return
 	if not _was_enabled:
@@ -41,19 +49,67 @@ func _process(delta: float) -> void:
 	_focus_elapsed += delta
 	if _scan_elapsed >= maxf(scan_interval, 0.2):
 		_scan_elapsed = 0.0
-		_scan_particles()
+		if incremental_scanning:
+			_begin_particle_scan()
+		else:
+			_scan_particles()
+	if _scan_in_progress:
+		_step_particle_scan(maxi(max_nodes_per_scan_step, 1))
 	if _focus_elapsed >= maxf(focus_refresh_interval, 0.05):
 		_focus_elapsed = 0.0
 		_update_focus()
 
 
 func _scan_particles() -> void:
-	_particle_nodes.clear()
+	_begin_particle_scan()
+	while _scan_in_progress:
+		_step_particle_scan(1000000)
+
+
+func _begin_particle_scan() -> void:
+	_pending_particle_nodes.clear()
+	_scan_stack.clear()
 	_resolve_player()
 	var root := get_tree().current_scene
 	if root == null:
+		_finish_particle_scan()
 		return
-	_collect_particles(root)
+	_scan_stack.append(root)
+	_scan_in_progress = true
+
+
+func _step_particle_scan(max_nodes: int) -> void:
+	var processed := 0
+	while _scan_in_progress and processed < max_nodes and not _scan_stack.is_empty():
+		var node: Node
+		if is_instance_valid(_scan_stack.pop_back()):
+			node = _scan_stack.pop_back()
+		processed += 1
+		if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+			continue
+		if node is GPUParticles2D or node is CPUParticles2D:
+			var particle := node as Node2D
+			if particle != null and _should_track_particle(particle):
+				_pending_particle_nodes.append(particle)
+				if _pending_particle_nodes.size() >= max_tracked_particles:
+					_finish_particle_scan()
+					return
+		var children: Array[Node] = node.get_children()
+		for child in children:
+			var child_node := child as Node
+			if child_node != null:
+				_scan_stack.append(child_node)
+	if _scan_in_progress and _scan_stack.is_empty():
+		_finish_particle_scan()
+
+
+func _finish_particle_scan() -> void:
+	_particle_nodes.clear()
+	for particle in _pending_particle_nodes:
+		_particle_nodes.append(particle)
+	_pending_particle_nodes.clear()
+	_scan_stack.clear()
+	_scan_in_progress = false
 	var active_ids := {}
 	for particle in _particle_nodes:
 		active_ids[particle.get_instance_id()] = true
@@ -65,6 +121,12 @@ func _scan_particles() -> void:
 			_desired_visible.erase(id)
 
 
+func _cancel_scan() -> void:
+	_pending_particle_nodes.clear()
+	_scan_stack.clear()
+	_scan_in_progress = false
+
+
 func _collect_particles(node: Node) -> void:
 	if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
 		return
@@ -72,6 +134,8 @@ func _collect_particles(node: Node) -> void:
 		var particle := node as Node2D
 		if particle != null and _should_track_particle(particle):
 			_particle_nodes.append(particle)
+			if _particle_nodes.size() >= max_tracked_particles:
+				return
 	for child in node.get_children():
 		_collect_particles(child)
 

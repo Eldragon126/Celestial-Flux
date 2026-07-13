@@ -104,6 +104,16 @@ const FLEET_COMMAND_REPAIR := &"retreat_repair"
 @export var route_progress_per_wave: float = 1.0
 @export var interwave_home_planet_repair_per_second: float = 14.0
 
+@export_group("Campaign Flow Safety")
+@export var finish_koth_immediately_on_capture: bool = true
+@export var clear_invaders_on_campaign_victory: bool = true
+@export var clear_invaders_on_campaign_defeat: bool = true
+@export var clear_hostile_carriers_on_campaign_end: bool = true
+@export var close_dock_on_campaign_end: bool = true
+@export var restore_pause_state_on_campaign_exit: bool = true
+@export var hide_campaign_panels_on_end: bool = true
+@export var persist_hill_capture_progress: bool = true
+
 @export_group("Campaign Operations")
 @export var wave_directive_cycle: Array[String] = ["breach", "intercept", "salvage", "hijack", "escort", "carrier_assault", "siege", "gravity_storm", "trade_window", "freehold"]
 @export var standard_directive_label: String = "STANDARD RAID"
@@ -369,6 +379,7 @@ func _ready() -> void:
 	energy_credits = int(RunProgress.arena_flags.get("campaign_energy_credits", start_credits)) if RunProgress != null else start_credits
 	campaign_route_progress = float(RunProgress.arena_flags.get("campaign_route_progress", 0.0)) if RunProgress != null else 0.0
 	freehold_reputation = float(RunProgress.arena_flags.get("campaign_freehold_reputation", starting_freehold_reputation)) if RunProgress != null else starting_freehold_reputation
+	_hill_capture = clampf(float(RunProgress.arena_flags.get("king_of_hill_capture", 0.0)) if RunProgress != null else 0.0, 0.0, hill_capture_goal)
 	_configure_run_progress()
 	_sync_energy_currency()
 	_configure_mother_planet()
@@ -381,6 +392,11 @@ func _ready() -> void:
 		_set_campaign_status(network_client_wait_status)
 	else:
 		_begin_next_wave()
+
+
+func _exit_tree() -> void:
+	if restore_pause_state_on_campaign_exit:
+		_restore_dock_pause_state()
 
 
 func _process(delta: float) -> void:
@@ -400,6 +416,9 @@ func _process(delta: float) -> void:
 		return
 	_apply_interwave_repair(delta)
 	_update_hill_capture(delta)
+	if finish_koth_immediately_on_capture and king_of_hill_mode and _hill_capture >= hill_capture_goal:
+		_finish_campaign()
+		return
 	_update_docking_prompt()
 	_broadcast_network_wave_state(delta)
 	if _mother_destroyed():
@@ -942,6 +961,7 @@ func _complete_wave(network_forced: bool = false) -> void:
 
 func _finish_campaign() -> void:
 	_campaign_finished = true
+	_quiesce_campaign_combat(clear_invaders_on_campaign_victory)
 	_set_campaign_state(CampaignState.VICTORY)
 	if _status_label != null:
 		_status_label.text = "CAMPAIGN STABILIZED"
@@ -960,6 +980,7 @@ func _end_campaign(reason: String) -> void:
 		_set_campaign_status("HOST CONFIRMING FAILURE VECTOR")
 		return
 	_campaign_finished = true
+	_quiesce_campaign_combat(clear_invaders_on_campaign_defeat)
 	_set_campaign_state(CampaignState.DEFEAT)
 	if RunProgress != null:
 		RunProgress.set_last_death_message(reason)
@@ -968,6 +989,53 @@ func _end_campaign(reason: String) -> void:
 	campaign_over.emit(reason)
 	_broadcast_campaign_state_now(&"defeat", reason)
 	get_tree().change_scene_to_file(GAME_OVER_SCENE)
+
+
+func _quiesce_campaign_combat(clear_invaders: bool) -> void:
+	_wave_running = false
+	_wave_rest_remaining = 0.0
+	_gravity_storm_remaining = 0.0
+	_pending_hijack = false
+	_pending_hijack_from_directive = false
+	_clear_hijack_targets()
+	if clear_invaders:
+		_clear_active_campaign_invaders()
+	if clear_hostile_carriers_on_campaign_end:
+		_clear_hostile_campaign_carriers()
+	_cleanup_lists()
+	if close_dock_on_campaign_end:
+		_close_dock_scene(true)
+	elif restore_pause_state_on_campaign_exit:
+		_restore_dock_pause_state()
+	if hide_campaign_panels_on_end:
+		_hide_campaign_interaction_panels()
+	_emit_campaign_debug_snapshot()
+
+
+func _clear_active_campaign_invaders() -> void:
+	for invader in _active_invaders.duplicate():
+		if invader != null and is_instance_valid(invader) and not invader.is_queued_for_deletion():
+			invader.queue_free()
+	_active_invaders.clear()
+
+
+func _clear_hostile_campaign_carriers() -> void:
+	for mothership in _motherships.duplicate():
+		if mothership == null or not is_instance_valid(mothership) or mothership.is_queued_for_deletion():
+			continue
+		if mothership.has_method("is_hostile") and bool(mothership.call("is_hostile")):
+			mothership.queue_free()
+			_motherships.erase(mothership)
+			_active_invaders.erase(mothership)
+
+
+func _hide_campaign_interaction_panels() -> void:
+	for panel in [_upgrade_panel, _alien_panel, _trade_panel, _command_panel]:
+		var control := panel as Control
+		if control != null:
+			control.visible = false
+	if _dock_prompt_label != null:
+		_dock_prompt_label.visible = false
 
 
 func _spawn_initial_escorts() -> void:
@@ -1139,6 +1207,8 @@ func _on_mothership_hostile_alert(mothership: Node, _target: Node2D) -> void:
 
 
 func _on_mothership_destroyed(mothership: Node, reward: int) -> void:
+	if _campaign_finished:
+		return
 	var was_hostile := mothership != null and mothership.has_method("is_hostile") and bool(mothership.call("is_hostile"))
 	_motherships.erase(mothership)
 	_active_invaders.erase(mothership)
@@ -1212,16 +1282,24 @@ func _prepare_dock_scene_layout(dock: Control) -> void:
 	dock.offset_bottom = 0.0
 
 
-func _close_dock_scene() -> void:
+func _close_dock_scene(preserve_campaign_state: bool = false) -> void:
 	if _dock_scene_instance != null and is_instance_valid(_dock_scene_instance) and not _dock_scene_instance.is_queued_for_deletion():
 		_dock_scene_instance.queue_free()
 	_dock_scene_instance = null
 	_active_trade_mothership = null
 	if _trade_panel != null:
 		_trade_panel.visible = false
-	get_tree().paused = _dock_pre_pause_tree_paused
+	_restore_dock_pause_state()
+	if not preserve_campaign_state:
+		_set_campaign_state(CampaignState.DIRECTIVE_ACTIVE if _wave_running else CampaignState.POST_WAVE)
+
+
+func _restore_dock_pause_state() -> void:
+	if not restore_pause_state_on_campaign_exit:
+		return
+	if get_tree() != null:
+		get_tree().paused = _dock_pre_pause_tree_paused
 	Engine.time_scale = maxf(_dock_pre_pause_time_scale, 0.05)
-	_set_campaign_state(CampaignState.DIRECTIVE_ACTIVE if _wave_running else CampaignState.POST_WAVE)
 
 
 func _update_upgrade_panel() -> void:
@@ -1528,11 +1606,15 @@ func _on_fleet_hold_pressed() -> void:
 
 func _on_invader_destroyed(invader: CampaignInvader, reward: int, _position: Vector2) -> void:
 	_active_invaders.erase(invader)
+	if _campaign_finished:
+		return
 	add_campaign_credits(maxi(reward, 1), &"invader_destroyed")
 
 
 func _on_invader_breached_target(invader: CampaignInvader, _target: Node, _damage: float) -> void:
 	_active_invaders.erase(invader)
+	if _campaign_finished:
+		return
 	if home_planet_defense_pulse_on_breach and _target == _mother_planet:
 		_trigger_mother_defense_pulse()
 
@@ -1545,6 +1627,8 @@ func _on_invader_disabled_for_hijack(invader: CampaignInvader, position: Vector2
 
 func _on_planet_turret_defeated(turret: CampaignPlanetTurret, reward: int) -> void:
 	_alien_turrets.erase(turret)
+	if _campaign_finished:
+		return
 	add_campaign_credits(reward, &"planet_turret_defeated")
 	_adjust_freehold_reputation(-turret_defeat_reputation_loss, &"planet_turret_defeated")
 
@@ -1655,6 +1739,7 @@ func _on_energy_component_currency_changed(current_currency: int) -> void:
 func _update_hill_capture(delta: float) -> void:
 	if not king_of_hill_mode or _mother_planet == null:
 		return
+	var previous_capture := _hill_capture
 	var player_inside := _any_live_player_inside_hill()
 	var contested := false
 	for invader in _active_invaders:
@@ -1667,6 +1752,8 @@ func _update_hill_capture(delta: float) -> void:
 		_hill_capture = minf(_hill_capture + delta, hill_capture_goal)
 	elif contested:
 		_hill_capture = maxf(_hill_capture - delta * 0.65, 0.0)
+	if persist_hill_capture_progress and RunProgress != null and not is_equal_approx(previous_capture, _hill_capture):
+		RunProgress.arena_flags["king_of_hill_capture"] = _hill_capture
 
 
 func _apply_interwave_repair(delta: float) -> void:
@@ -1952,6 +2039,7 @@ func _configure_run_progress() -> void:
 	RunProgress.arena_flags["campaign_freehold_reputation"] = freehold_reputation
 	RunProgress.arena_flags["campaign_state"] = _campaign_state_label()
 	RunProgress.arena_flags["campaign_fleet_command"] = String(_fleet_command)
+	RunProgress.arena_flags["king_of_hill_capture"] = _hill_capture
 	if not String(mod_manifest_id).is_empty():
 		RunProgress.arena_flags["campaign_mod_manifest_id"] = String(mod_manifest_id)
 	if not String(mod_gamemode_id).is_empty():

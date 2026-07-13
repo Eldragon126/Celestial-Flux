@@ -3,6 +3,11 @@ extends RigidBody2D
 @export var max_gravity_sources: int = 4
 @export var gravity_constant: float = 200.0
 @export var min_grav_dist: float = 50.0
+@export var gravity_pull_radius: float = 2000.0
+@export var gravity_source_refresh_interval: float = 0.24
+@export var gravity_refresh_distance_threshold: float = 420.0
+@export var max_gravity_acceleration_per_source: float = 2200.0
+@export var max_total_gravity_acceleration: float = 4200.0
 @export var damage_min: float = 9.0
 @export var damage_max: float = 14.0
 
@@ -28,11 +33,18 @@ extends RigidBody2D
 @export var planet_orbit_cleanup_time: float = 0.56
 
 @export_group("Projectile Readability")
-# Forced alpha to 1.0 and boosted the visual brightness slightly.
 @export var enemy_projectile_color: Color = Color(1.0, 0.1, 0.75, 1.0)
 @export var captured_projectile_color: Color = Color(0.2, 1.0, 0.85, 1.0)
 @export var enemy_projectile_light_energy: float = 2.35
 @export var captured_projectile_light_energy: float = 2.2
+@export_range(0.0, 1.0, 0.01) var enemy_projectile_alpha_floor: float = 0.72
+@export_range(0.0, 1.0, 0.01) var captured_projectile_alpha_floor: float = 0.78
+@export var enemy_projectile_light_reduced_flash_cap: float = 0.92
+@export var captured_projectile_light_reduced_flash_cap: float = 1.05
+@export var visual_pressure_soft_cap: int = 58
+@export var visual_pressure_hard_cap: int = 106
+@export var trail_focus_radius: float = 1700.0
+@export var visual_budget_refresh_interval: float = 0.18
 
 var planets: Array[Node2D] = []
 var target: Node2D = null
@@ -48,6 +60,15 @@ var _age: float = 0.0
 var _low_speed_elapsed: float = 0.0
 var _near_planet_elapsed: float = 0.0
 var _last_near_planet_id: int = -1
+var _gravity_refresh_elapsed: float = 999.0
+var _last_gravity_refresh_position := Vector2.ZERO
+var _has_gravity_refresh_position: bool = false
+var _visual_budget_elapsed: float = 999.0
+var _visual_pressure: int = 0
+var _visual_in_focus: bool = true
+var _visual_player: Node2D = null
+var _current_projectile_color: Color = Color.WHITE
+var _current_light_energy: float = 0.0
 
 
 func _ready() -> void:
@@ -120,10 +141,12 @@ func _physics_process(delta: float) -> void:
 	if _consumed_by_black_hole or bool(get_meta(&"black_hole_consumed", false)):
 		return
 	_age += delta
+	_update_visual_budget(delta)
+	_update_gravity_source_cache(delta)
 	if _update_projectile_cleanup(delta):
 		return
 	_update_ownership_accent()
-	var time_scale := CombatStatus.get_time_scale(self)
+	var time_scale: float = CombatStatus.get_time_scale(self)
 
 	var total_force := Vector2.ZERO
 
@@ -140,7 +163,7 @@ func _physics_process(delta: float) -> void:
 		var offset := planet.global_position - global_position
 		var distance := offset.length()
 
-		if distance < 2000.0 and distance > 0.0:
+		if distance < gravity_pull_radius and distance > 0.0:
 			var effective_dist = max(distance, min_grav_dist)
 			var dir := offset.normalized()
 
@@ -156,7 +179,12 @@ func _physics_process(delta: float) -> void:
 				/ (effective_dist * effective_dist)
 			)
 
-			total_force += dir * strength * time_scale
+			var contribution: Vector2 = (dir * strength * time_scale).limit_length(
+				maxf(max_gravity_acceleration_per_source, 1.0)
+			)
+			total_force = (total_force + contribution).limit_length(
+				maxf(max_total_gravity_acceleration, 1.0)
+			)
 
 	if total_force != Vector2.ZERO:
 		apply_force(total_force)
@@ -190,7 +218,7 @@ func _physics_process(delta: float) -> void:
 				initial_speed * homing_speed_floor_ratio
 			)
 			var desired_velocity := homing_dir * minf(current_speed, max_speed)
-			var steer_amount := homing_strength * homing_scale * time_scale * delta
+			var steer_amount: float = homing_strength * homing_scale * time_scale * delta
 
 			linear_velocity = linear_velocity.move_toward(
 				desired_velocity,
@@ -297,12 +325,15 @@ func _refresh_gravity_sources() -> void:
 		return
 
 	planets.clear()
+	_gravity_refresh_elapsed = 0.0
+	_last_gravity_refresh_position = global_position
+	_has_gravity_refresh_position = true
 	if RuntimeRegistry != null:
 		RuntimeRegistry.fill_nearest_gravity_sources(
 			global_position,
 			planets,
 			max_gravity_sources,
-			2000.0,
+			gravity_pull_radius,
 			self
 		)
 		return
@@ -314,16 +345,17 @@ func _refresh_gravity_sources() -> void:
 			if source == null or not is_instance_valid(source):
 				continue
 
-			if not (source is Node2D):
+			var source_2d := source as Node2D
+			if source_2d == null:
 				continue
 
-			var id := source.get_instance_id()
+			var id := source_2d.get_instance_id()
 
 			if seen.has(id):
 				continue
 
 			seen[id] = true
-			planets.append(source)
+			planets.append(source_2d)
 
 	planets.sort_custom(
 		func(a: Node2D, b: Node2D) -> bool:
@@ -404,20 +436,115 @@ func _update_ownership_accent() -> void:
 
 
 func _apply_projectile_color(color: Color, light_energy: float) -> void:
+	_current_projectile_color = color
+	_current_light_energy = light_energy
 	var polygon := get_node_or_null("Polygon2D") as Polygon2D
 	if polygon != null:
 		polygon.color = _safe_projectile_color(color)
 	var light := get_node_or_null("PointLight2D") as PointLight2D
 	if light != null:
 		light.color = Color(color.r, color.g, color.b, 1.0)
-		light.energy = light_energy
+		light.energy = _projectile_light_energy(light_energy)
+		light.visible = _projectile_light_visible()
 
 
 func _safe_projectile_color(color: Color) -> Color:
-	# Bypassing Settings.flash_alpha() as it was likely returning a value near 0.0, 
-	# causing the projectiles to become transparent/dark. We now return the raw 
-	# color exactly as it is set in the Inspector.
-	return color
+	var adjusted := color
+	if Settings != null and Settings.has_method("apply_readability_color"):
+		adjusted = Settings.apply_readability_color(adjusted)
+	var alpha := adjusted.a
+	if Settings != null and Settings.has_method("projectile_alpha"):
+		alpha = float(Settings.projectile_alpha(alpha))
+	var floor_alpha := (
+		captured_projectile_alpha_floor
+		if _ownership_visual_state == &"captured"
+		else enemy_projectile_alpha_floor
+	)
+	var pressure := _projectile_pressure_ratio()
+	alpha = maxf(alpha, minf(floor_alpha, adjusted.a))
+	alpha *= lerpf(1.0, 0.68, pressure)
+	return Color(adjusted.r, adjusted.g, adjusted.b, clampf(alpha, 0.0, adjusted.a))
+
+
+func _update_visual_budget(delta: float) -> void:
+	_visual_budget_elapsed += delta
+	if _visual_budget_elapsed < maxf(visual_budget_refresh_interval, 0.05):
+		return
+	_visual_budget_elapsed = 0.0
+	_visual_pressure = _projectile_pressure_count()
+	_visual_in_focus = _is_in_player_focus()
+	_refresh_current_visuals()
+
+
+func _refresh_current_visuals() -> void:
+	if _ownership_visual_state == &"":
+		return
+	var polygon := get_node_or_null("Polygon2D") as Polygon2D
+	if polygon != null:
+		polygon.color = _safe_projectile_color(_current_projectile_color)
+	var light := get_node_or_null("PointLight2D") as PointLight2D
+	if light != null:
+		light.visible = _projectile_light_visible()
+		if light.visible:
+			light.energy = _projectile_light_energy(_current_light_energy)
+
+
+func _projectile_light_visible() -> bool:
+	return _visual_in_focus and _visual_pressure < visual_pressure_hard_cap
+
+
+func _projectile_light_energy(base_energy: float) -> float:
+	var cap := base_energy
+	if Settings != null and bool(Settings.reduce_flash):
+		if _ownership_visual_state == &"captured":
+			cap = minf(cap, captured_projectile_light_reduced_flash_cap)
+		else:
+			cap = minf(cap, enemy_projectile_light_reduced_flash_cap)
+	var pressure := _projectile_pressure_ratio()
+	return maxf(0.0, minf(base_energy, cap) * lerpf(1.0, 0.38, pressure))
+
+
+func _projectile_pressure_ratio() -> float:
+	if visual_pressure_hard_cap <= visual_pressure_soft_cap:
+		return 0.0
+	if _visual_pressure <= visual_pressure_soft_cap:
+		return 0.0
+	var span := float(maxi(visual_pressure_hard_cap - visual_pressure_soft_cap, 1))
+	return clampf(float(_visual_pressure - visual_pressure_soft_cap) / span, 0.0, 1.0)
+
+
+func _projectile_pressure_count() -> int:
+	if RuntimeRegistry != null:
+		return int(RuntimeRegistry.get_count(&"Projectiles"))
+	return get_tree().get_nodes_in_group("Projectiles").size()
+
+
+func _is_in_player_focus() -> bool:
+	if trail_focus_radius <= 0.0:
+		return true
+	if _visual_player == null or not is_instance_valid(_visual_player):
+		_visual_player = MultiplayerTargeting.local_player(get_tree())
+	if _visual_player == null or not is_instance_valid(_visual_player):
+		return true
+	return (
+		global_position.distance_squared_to(_visual_player.global_position)
+		<= trail_focus_radius * trail_focus_radius
+	)
+
+
+func _update_gravity_source_cache(delta: float) -> void:
+	_gravity_refresh_elapsed += delta
+	if _gravity_refresh_elapsed < maxf(gravity_source_refresh_interval, 0.05):
+		return
+	if _has_gravity_refresh_position:
+		var distance_threshold := maxf(gravity_refresh_distance_threshold, 1.0)
+		if (
+			global_position.distance_squared_to(_last_gravity_refresh_position)
+			< distance_threshold * distance_threshold
+		):
+			_gravity_refresh_elapsed = 0.0
+			return
+	_refresh_gravity_sources()
 
 
 func _update_projectile_cleanup(delta: float) -> bool:

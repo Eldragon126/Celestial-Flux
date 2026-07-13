@@ -46,6 +46,8 @@ const LOCAL_VISUAL_ACTIONS := [&"emit_hud_badge", &"play_sfx", &"request_music_l
 @export var max_effect_duration: float = 6.0
 @export var auto_select_weapon_offers: bool = false
 @export var hud_notice_duration: float = 1.65
+@export_group("Connection Budgets")
+@export var max_projectile_signal_connections_per_pass: int = 48
 
 var _registry: Node = null
 var _player: Node2D = null
@@ -131,9 +133,11 @@ func _connect_sources() -> void:
 func _connect_projectile_hit_sources() -> void:
 	_query_targets.clear()
 	if RuntimeRegistry != null:
-		RuntimeRegistry.fill_group(&"player_projectiles", _query_targets)
+		RuntimeRegistry.fill_group(&"player_projectiles", _query_targets, max_projectile_signal_connections_per_pass)
 	else:
 		for value in get_tree().get_nodes_in_group("player_projectiles"):
+			if _query_targets.size() >= max_projectile_signal_connections_per_pass:
+				break
 			var candidate := value as Node2D
 			if candidate != null:
 				_query_targets.append(candidate)

@@ -4,6 +4,9 @@ class_name PerformanceBudgetDirector
 ## Central place for scalable budgets. It does not own gameplay behavior; it
 ## nudges existing systems toward affordable settings for the selected tier.
 
+signal quality_tier_changed(tier: int, reason: StringName)
+signal performance_spike_recorded(sample: Dictionary)
+
 enum QualityTier { LOW, MEDIUM, HIGH }
 
 @export var enabled: bool = true
@@ -17,9 +20,22 @@ enum QualityTier { LOW, MEDIUM, HIGH }
 @export var network_projectile_pressure_threshold: int = 120
 @export var network_enemy_pressure_threshold: int = 24
 @export var multiplayer_low_fps_threshold: int = 58
+@export_group("Spike Telemetry")
+@export var monitor_frame_spikes: bool = true
+@export var spike_frame_ms_threshold: float = 42.0
+@export var severe_spike_frame_ms_threshold: float = 100.0
+@export var auto_low_on_frame_spike: bool = true
+@export var spike_reaction_cooldown: float = 1.5
+@export var spike_log_capacity: int = 36
+@export var write_spikes_to_run_progress: bool = true
+@export var run_progress_spike_export_interval: float = 2.0
 
 var _elapsed := 999.0
 var _group_buffer: Array[Node2D] = []
+var _spike_log: Array[Dictionary] = []
+var _spike_cooldown_remaining: float = 0.0
+var _spike_export_elapsed: float = 999.0
+var _last_quality_reason: StringName = &"initial"
 
 
 func _ready() -> void:
@@ -31,6 +47,12 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not enabled:
 		return
+	_sample_frame_spike(delta)
+	_spike_cooldown_remaining = maxf(_spike_cooldown_remaining - delta, 0.0)
+	_spike_export_elapsed += delta
+	if write_spikes_to_run_progress and _spike_export_elapsed >= maxf(run_progress_spike_export_interval, 0.25):
+		_spike_export_elapsed = 0.0
+		_export_spikes_to_run_progress()
 	_elapsed += delta
 	if _elapsed < maxf(apply_interval, 0.25):
 		return
@@ -57,6 +79,10 @@ func apply_budgets() -> void:
 	_apply_prediction_budget(low, medium)
 	_apply_projectile_visual_budget(low, medium)
 	_apply_juice_coordinator_budget(scene, low)
+	_apply_feedback_budget(scene, low, medium)
+	_apply_particle_culling_budget(scene, low, medium)
+	_apply_modding_budget(scene, low, medium)
+	_apply_campaign_budget(scene, low, medium)
 	_apply_new_director_budget(scene, low, medium)
 
 
@@ -159,12 +185,12 @@ func _apply_new_director_budget(scene: Node, low: bool, medium: bool) -> void:
 	var swim := scene.find_child("SpacetimeSwimDirector", true, false)
 	if swim != null:
 		_set_if_present(swim, "enable_fabric_shader", not low)
-		_set_if_present(swim, "fabric_update_interval", 0.09 if medium else 0.05)
-		_set_if_present(swim, "fabric_crack_density", 5.2 if medium else 7.0)
+		_set_if_present(swim, "fabric_update_interval", 0.12 if low else (0.09 if medium else 0.05))
+		_set_if_present(swim, "fabric_crack_density", 3.8 if low else (5.2 if medium else 7.0))
 	var collapse := scene.find_child("RealityCollapseDirector", true, false)
 	if collapse != null:
 		_set_if_present(collapse, "enable_fabric_shader", not low)
-		_set_if_present(collapse, "fabric_update_interval", 0.1 if medium else 0.06)
+		_set_if_present(collapse, "fabric_update_interval", 0.13 if low else (0.1 if medium else 0.06))
 	var anomaly := scene.find_child("VectorAnomalyDirector", true, false)
 	if anomaly != null:
 		_set_if_present(anomaly, "max_active_micro_lenses", 2 if low else (3 if medium else 4))
@@ -199,6 +225,49 @@ func _apply_new_director_budget(scene: Node, low: bool, medium: bool) -> void:
 			continue
 		_set_if_present(node, "max_active_fields", 1 if low else 2)
 		_set_if_present(node, "visual_update_interval", 0.08 if low else (0.06 if medium else 0.05))
+
+
+func _apply_feedback_budget(scene: Node, low: bool, medium: bool) -> void:
+	var feedback := scene.find_child("DamageIndicatorManager", true, false)
+	if feedback == null:
+		return
+	var effective_low := low or _is_network_active()
+	_set_if_present(feedback, "max_indicators_per_frame", 5 if effective_low else (8 if medium else 12))
+	_set_if_present(feedback, "max_rings_per_frame", 3 if effective_low else (5 if medium else 8))
+	_set_if_present(feedback, "max_streaks_per_frame", 3 if effective_low else (5 if medium else 8))
+	_set_if_present(feedback, "max_target_flashes_per_frame", 7 if effective_low else (11 if medium else 16))
+	_set_if_present(feedback, "allow_pool_growth", not effective_low)
+	_set_if_present(feedback, "enable_direction_streaks", not effective_low)
+	_set_if_present(feedback, "enable_feedback_recoil", not effective_low)
+	_set_if_present(feedback, "ring_segments", 24 if effective_low else (34 if medium else 42))
+
+
+func _apply_particle_culling_budget(scene: Node, low: bool, medium: bool) -> void:
+	var culler := scene.find_child("ParticleFocusCuller", true, false)
+	if culler == null:
+		return
+	_set_if_present(culler, "scan_interval", 1.55 if low else (1.15 if medium else 0.9))
+	_set_if_present(culler, "focus_refresh_interval", 0.24 if low else (0.18 if medium else 0.14))
+	_set_if_present(culler, "max_nodes_per_scan_step", 150 if low else (240 if medium else 360))
+	_set_if_present(culler, "max_tracked_particles", 170 if low else (260 if medium else 360))
+	_set_if_present(culler, "player_focus_radius", 1250.0 if low else (1550.0 if medium else 1800.0))
+
+
+func _apply_modding_budget(scene: Node, low: bool, medium: bool) -> void:
+	var hooks := scene.find_child("ModHookDirector", true, false)
+	if hooks == null:
+		return
+	_set_if_present(hooks, "reconnect_interval", 0.9 if low else (0.65 if medium else 0.45))
+	_set_if_present(hooks, "max_entries_per_hook", 4 if low else (6 if medium else 8))
+	_set_if_present(hooks, "max_effects_per_entry", 2 if low else (3 if medium else 4))
+	_set_if_present(hooks, "max_projectile_signal_connections_per_pass", 24 if low else (36 if medium else 48))
+
+
+func _apply_campaign_budget(scene: Node, low: bool, medium: bool) -> void:
+	var campaign := scene.find_child("CampaignModeDirector", true, false)
+	if campaign == null:
+		return
+	_set_if_present(campaign, "debug_overlay_refresh_interval", 0.35 if low else (0.25 if medium else 0.18))
 
 
 func _apply_player_budget(low: bool) -> void:
@@ -252,6 +321,12 @@ func _apply_projectile_visual_budget(low: bool, medium: bool) -> void:
 		_set_if_present(node, "rail_trail_particle_cap", rail_cap)
 		_set_if_present(node, "visual_pressure_soft_cap", soft_cap)
 		_set_if_present(node, "visual_pressure_hard_cap", hard_cap)
+		_set_if_present(node, "visual_budget_refresh_interval", 0.24 if effective_low else (0.18 if medium else 0.14))
+		_set_if_present(node, "trail_focus_radius", 1300.0 if effective_low else (1650.0 if medium else 1900.0))
+		_set_if_present(node, "gravity_source_refresh_interval", 0.32 if effective_low else (0.24 if medium else 0.18))
+		_set_if_present(node, "gravity_refresh_distance_threshold", 540.0 if effective_low else (420.0 if medium else 340.0))
+		_set_if_present(node, "enemy_projectile_light_reduced_flash_cap", 0.62 if effective_low else (0.82 if medium else 0.92))
+		_set_if_present(node, "captured_projectile_light_reduced_flash_cap", 0.72 if effective_low else (0.94 if medium else 1.05))
 
 
 func _update_auto_quality() -> void:
@@ -265,12 +340,80 @@ func _update_auto_quality() -> void:
 	var enemy_threshold := network_enemy_pressure_threshold if networked else enemy_pressure_threshold
 	var low_fps_threshold := multiplayer_low_fps_threshold if networked else auto_low_fps_threshold
 	if projectile_pressure >= projectile_threshold or enemy_pressure >= enemy_threshold:
-		quality_tier = QualityTier.LOW
+		_set_quality_tier(QualityTier.LOW, &"entity_pressure")
 		return
 	if fps > 0 and fps < low_fps_threshold and quality_tier > QualityTier.LOW:
-		quality_tier = QualityTier.LOW
+		_set_quality_tier(QualityTier.LOW, &"low_fps")
 	elif fps >= auto_recover_fps_threshold and quality_tier == QualityTier.LOW:
-		quality_tier = QualityTier.MEDIUM
+		_set_quality_tier(QualityTier.MEDIUM, &"fps_recovered")
+
+
+func _set_quality_tier(next_tier: int, reason: StringName) -> void:
+	var clamped := clampi(next_tier, QualityTier.LOW, QualityTier.HIGH)
+	if quality_tier == clamped and _last_quality_reason == reason:
+		return
+	quality_tier = clamped
+	_last_quality_reason = reason
+	quality_tier_changed.emit(quality_tier, reason)
+
+
+func _sample_frame_spike(delta: float) -> void:
+	if not monitor_frame_spikes:
+		return
+	var frame_ms := delta * 1000.0
+	if frame_ms < maxf(spike_frame_ms_threshold, 1.0):
+		return
+	var sample: Dictionary = _make_spike_sample(frame_ms)
+	_spike_log.append(sample)
+	while _spike_log.size() > maxi(spike_log_capacity, 1):
+		_spike_log.pop_front()
+	performance_spike_recorded.emit(sample.duplicate(true))
+	if auto_adjust_quality and auto_low_on_frame_spike and frame_ms >= severe_spike_frame_ms_threshold and _spike_cooldown_remaining <= 0.0:
+		_set_quality_tier(QualityTier.LOW, &"frame_spike")
+		_spike_cooldown_remaining = maxf(spike_reaction_cooldown, 0.1)
+
+
+func _make_spike_sample(frame_ms: float) -> Dictionary:
+	var scene: Node = get_tree().current_scene
+	var wave: int = int(RunProgress.wave_index) if RunProgress != null else 0
+	var scene_name: String = String(scene.name) if scene != null else ""
+	return {
+		"time": Time.get_ticks_msec() / 1000.0,
+		"frame_ms": frame_ms,
+		"fps": Engine.get_frames_per_second(),
+		"quality": quality_tier,
+		"reason": String(_last_quality_reason),
+		"wave": wave,
+		"scene": scene_name,
+		"projectiles": _group_count(&"Projectiles"),
+		"enemy_projectiles": _group_count(&"enemy_projectiles"),
+		"enemies": _group_count(&"enemies"),
+		"gravity_sources": _group_count(&"Objects_With_Gravity"),
+		"vfx_bursts": _active_vfx_burst_count(scene),
+	}
+
+
+func _active_vfx_burst_count(scene: Node) -> int:
+	if scene == null:
+		return 0
+	var vfx := scene.find_child("OrbitalVFXDirector", true, false)
+	if vfx == null or not vfx.has_method("get_vfx_debug_state"):
+		return 0
+	var state_value: Variant = vfx.call("get_vfx_debug_state")
+	if state_value is Dictionary:
+		return int((state_value as Dictionary).get("active_bursts", 0))
+	return 0
+
+
+func _export_spikes_to_run_progress() -> void:
+	if RunProgress == null or _spike_log.is_empty():
+		return
+	var exported: Array = []
+	for sample: Dictionary in _spike_log:
+		exported.append(sample.duplicate(true))
+	RunProgress.arena_flags["performance_spikes"] = exported
+	RunProgress.arena_flags["performance_quality_tier"] = quality_tier
+	RunProgress.arena_flags["performance_quality_reason"] = String(_last_quality_reason)
 
 
 func _set_if_present(target: Node, property_name: StringName, value: Variant) -> void:
@@ -281,7 +424,7 @@ func _set_if_present(target: Node, property_name: StringName, value: Variant) ->
 
 func _group_count(group_name: StringName) -> int:
 	if RuntimeRegistry != null:
-		return RuntimeRegistry.get_count(group_name)
+		return int(RuntimeRegistry.get_count(group_name))
 	return get_tree().get_nodes_in_group(group_name).size()
 
 
@@ -306,7 +449,9 @@ func get_budget_debug_state() -> Dictionary:
 	return {
 		"enabled": enabled,
 		"quality": quality_tier,
+		"quality_reason": String(_last_quality_reason),
 		"fps": Engine.get_frames_per_second(),
 		"projectile_pressure": _group_count(&"Projectiles") + _group_count(&"enemy_projectiles"),
 		"enemy_pressure": _group_count(&"enemies"),
+		"spikes": _spike_log.size(),
 	}
