@@ -877,6 +877,7 @@ func _begin_host_run(seed_override: int = 0, scene_path: String = RUN_SCENE_PATH
 		"network_protocol": NETWORK_PROTOCOL_VERSION,
 		"mod_signature": _local_mod_signature(),
 	}
+	_copy_seed_code_flags_to_config(_run_config)
 	for key in mode_flags.keys():
 		_run_config[String(key)] = mode_flags[key]
 	_run_in_progress = true
@@ -903,10 +904,18 @@ func _apply_run_config(config: Dictionary) -> void:
 	RunProgress.arena_flags["auto_orbiting_celestials"] = bool(config.get("auto_orbiting_celestials", true))
 	RunProgress.arena_flags["retry_scene_path"] = String(config.get("scene_path", RUN_SCENE_PATH))
 	RunProgress.arena_flags["title_scene_path"] = TITLE_SCENE_PATH
-	for key in ["campaign_mode", "king_of_hill_mode", "network_mode_id", "mod_gamemode_id", "mod_campaign_id"]:
+	for key in ["campaign_mode", "king_of_hill_mode", "network_mode_id", "mod_gamemode_id", "mod_campaign_id", "seed_code_id", "seed_code_label", "seed_code_profile", "seed_code_description", "seed_code_run_law", "seed_code_run_law_name", "seed_code_effects"]:
 		if config.has(key):
 			RunProgress.arena_flags[key] = config[key]
 	RunProgress.clear_anchor()
+
+
+func _copy_seed_code_flags_to_config(config: Dictionary) -> void:
+	if RunProgress == null:
+		return
+	for key in ["seed_code_id", "seed_code_label", "seed_code_profile", "seed_code_description", "seed_code_run_law", "seed_code_run_law_name", "seed_code_effects"]:
+		if RunProgress.arena_flags.has(key):
+			config[key] = RunProgress.arena_flags[key]
 
 
 func _change_to_network_run_scene(scene_path: String) -> void:

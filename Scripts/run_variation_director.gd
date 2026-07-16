@@ -74,24 +74,24 @@ func _apply_seeded_modifier() -> void:
 	if not enabled:
 		return
 	var seed_value := int(RunProgress.run_seed if RunProgress != null else 0)
-	var index := absi(seed_value) % 5
-	match index:
-		0:
+	var modifier_id := _resolved_modifier_id(seed_value)
+	match modifier_id:
+		&"comet_wake":
 			_modifier_id = &"comet_wake"
 			_modifier_name = "Comet Wake"
 			_tune_player_float("slingshot_gravity_boost_scale", 0.18, true)
 			_tune_player_float("gravity_charge_per_work", 0.000035, true)
-		1:
+		&"dense_stars":
 			_modifier_id = &"dense_stars"
 			_modifier_name = "Dense Stars"
 			_tune_node_int(_wave_director, "max_regular_enemies", 2, true)
 			_tune_node_int(_resonance_manager, "maximum_resonance_zones", 1, true)
-		2:
+		&"temporal_draft":
 			_modifier_id = &"temporal_draft"
 			_modifier_name = "Temporal Draft"
 			_tune_node_float(_time_manager, "near_miss_charge_amount", 3.0, true)
 			_tune_node_float(_arena_manager, "min_event_interval", -1.5, true)
-		3:
+		&"quiet_recovery":
 			_modifier_id = &"quiet_recovery"
 			_modifier_name = "Quiet Recovery"
 			_tune_node_float(_wave_director, "recovery_rest_bonus", 1.25, true)
@@ -102,7 +102,11 @@ func _apply_seeded_modifier() -> void:
 			_tune_node_float(_arena_manager, "wave_instability_gain", 0.018, true)
 			_tune_node_float(_resonance_manager, "minimum_resonance_strength", -0.08, true)
 	run_modifier_applied.emit(_modifier_id, _modifier_name)
-	_show_banner("RUN LAW: %s" % _modifier_name.to_upper())
+	var seed_label := String(RunProgress.arena_flags.get("seed_code_label", "") if RunProgress != null else "")
+	if seed_label.strip_edges().is_empty():
+		_show_banner("RUN LAW: %s" % _modifier_name.to_upper())
+	else:
+		_show_banner("SEED CODE: %s / %s" % [seed_label.to_upper(), _modifier_name.to_upper()])
 
 
 func _on_regular_wave() -> void:
@@ -220,6 +224,24 @@ func _current_wave() -> int:
 	if _wave_director.has_method("get_current_wave"):
 		return int(_wave_director.call("get_current_wave"))
 	return int(_safe_float(_wave_director.get("_wave"), 0.0))
+
+
+func _resolved_modifier_id(seed_value: int) -> StringName:
+	var forced := String(RunProgress.arena_flags.get("seed_code_run_law", "") if RunProgress != null else "")
+	match StringName(forced):
+		&"comet_wake", &"dense_stars", &"temporal_draft", &"quiet_recovery", &"volatile_lattice":
+			return StringName(forced)
+	var index := absi(seed_value) % 5
+	match index:
+		0:
+			return &"comet_wake"
+		1:
+			return &"dense_stars"
+		2:
+			return &"temporal_draft"
+		3:
+			return &"quiet_recovery"
+	return &"volatile_lattice"
 
 
 func _seeded_roll(wave: int) -> float:

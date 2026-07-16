@@ -120,11 +120,22 @@ var _memory_points_dirty: bool = true
 var _nearest_memory_distance: float = INF
 var _nearest_memory_tangent: Vector2 = Vector2.RIGHT
 var _rng := RandomNumberGenerator.new()
+var _seed_code_profile: StringName = &""
+var _seed_code_label := ""
+var _seed_code_effects: Dictionary = {}
+var _seed_code_intro_done := false
+var _seed_code_debris_elapsed := 999.0
+var _seed_code_time_debt_elapsed := 999.0
+var _seed_code_vacuum_elapsed := 999.0
+var _seed_code_cascade_elapsed := 999.0
 
 
 func _ready() -> void:
 	add_to_group("vector_anomaly_director")
 	_rng.randomize()
+	if RunProgress != null and int(RunProgress.run_seed) != 0:
+		_rng.seed = int(RunProgress.run_seed) ^ 0xA90A17
+	_apply_seed_code_profile()
 	set_process(true)
 	set_physics_process(true)
 	call_deferred("_resolve_systems")
@@ -149,6 +160,7 @@ func _process(delta: float) -> void:
 	_update_orbital_memory(delta)
 	_update_time_debt_lifetimes(delta)
 	_update_debris_orbits(delta)
+	_update_seed_code_feature(delta)
 	_try_seed_orbital_debris()
 
 	if _cascade_elapsed >= cascade_sample_interval:
@@ -347,6 +359,13 @@ func _on_player_projectile_spawned(projectile: Node, direction: Vector2) -> void
 	if projectile == null or not is_instance_valid(projectile):
 		return
 
+	var seed_lens_stacks := _seed_code_int("micro_lens_projectile_stacks", 0)
+	if seed_lens_stacks > 0:
+		var seed_velocity := direction.normalized() * micro_lens_drift_speed * 1.18
+		if _player != null and is_instance_valid(_player):
+			seed_velocity += _player.velocity * 0.12
+		_create_micro_lens(projectile.global_position + direction.normalized() * micro_lens_forward_offset * 0.9, seed_velocity, seed_lens_stacks, &"seed_code")
+
 	var micro_stacks := _stack_count(&"micro_lensing_emitter")
 	if micro_stacks > 0:
 		var velocity := direction.normalized() * micro_lens_drift_speed
@@ -354,11 +373,11 @@ func _on_player_projectile_spawned(projectile: Node, direction: Vector2) -> void
 			velocity += _player.velocity * 0.08
 		_create_micro_lens(projectile.global_position + direction.normalized() * micro_lens_forward_offset, velocity, micro_stacks, &"projectile")
 
-	var vacuum_stacks := _stack_count(&"vacuum_collapse_injector")
+	var vacuum_stacks := _stack_count(&"vacuum_collapse_injector") + _seed_code_int("projectile_vacuum_stacks", 0)
 	if vacuum_stacks > 0:
 		projectile.set_meta(&"vacuum_collapse_stacks", vacuum_stacks)
 
-	var rail_stacks := _stack_count(&"relativistic_rail")
+	var rail_stacks := _stack_count(&"relativistic_rail") + _seed_code_int("projectile_rail_stacks", 0)
 	if rail_stacks > 0:
 		projectile.set_meta(&"relativistic_rail_stacks", rail_stacks)
 
@@ -376,6 +395,14 @@ func _on_player_slingshot_mastery(data: Dictionary) -> void:
 
 	if _stack_count(&"orbital_debris_seeder") > 0 and score >= 0.72:
 		_seed_debris_near(position, _stack_count(&"orbital_debris_seeder"), &"mastery_slingshot")
+
+	var seed_debris_stacks := _seed_code_int("slingshot_debris_stacks", 0)
+	if seed_debris_stacks > 0 and score >= 0.64:
+		_seed_debris_near(position, seed_debris_stacks, &"seed_code_slingshot")
+
+	var seed_vacuum_stacks := _seed_code_int("slingshot_vacuum_stacks", 0)
+	if seed_vacuum_stacks > 0 and score >= 0.58:
+		trigger_vacuum_collapse(position + tangent * 90.0, seed_vacuum_stacks, self, null)
 
 	if score >= 0.52:
 		_apply_momentum_drift(tangent, score, &"slingshot_mastery")
@@ -431,6 +458,7 @@ func _create_micro_lens(position: Vector2, velocity: Vector2, stacks: int, sourc
 		"duration": micro_lens_duration,
 		"age": 0.0,
 		"source": source_label,
+		"color": _seed_code_color(Color(0.24, 0.92, 1.0, 0.52)),
 		"visual": _acquire_lens_visual(),
 	}
 	_micro_lenses.append(lens)
@@ -638,7 +666,7 @@ func _seed_debris_near(position: Vector2, stacks: int, source_label: StringName)
 		debris_seed_mass * (1.0 + 0.12 * float(stacks - 1)),
 		52.0 + 8.0 * float(stacks - 1),
 		debris_seed_lifetime * (1.0 + 0.08 * float(stacks - 1)),
-		Color(0.28, 0.86, 1.0, 1.0)
+		_seed_code_color(Color(0.28, 0.86, 1.0, 1.0))
 	)
 	debris.global_position = anchor.global_position + Vector2.RIGHT.rotated(angle) * orbit_radius
 	var tree := get_tree()
@@ -774,7 +802,7 @@ func _trigger_resonance_cascade(type_name: StringName, zones: Array, charge: flo
 	var zone_type := _zone_type_from_name(type_name)
 	_stamp_resonance(center, radius * 0.52, zone_type, 0.86, 1.8)
 	_stamp_scar(center, radius * 0.46, GravityScarManager.ScarType.HARMONIC_FRACTURE, 0.72, 48.0, &"resonance_cascade")
-	_spawn_transient_ring(center, radius, _cascade_color(type_name), 0.32, 3.6)
+	_spawn_transient_ring(center, radius, _seed_code_color(_cascade_color(type_name)), 0.32, 3.6)
 
 	resonance_cascade_triggered.emit({
 		"position": center,
@@ -949,6 +977,151 @@ func _stack_count(powerup_id: StringName) -> int:
 	return int(_inventory.call("get_stack_count", powerup_id))
 
 
+func _apply_seed_code_profile() -> void:
+	if RunProgress == null:
+		return
+	var profile := String(RunProgress.arena_flags.get("seed_code_profile", "")).strip_edges()
+	if profile.is_empty():
+		return
+	_seed_code_profile = StringName(profile)
+	_seed_code_label = String(RunProgress.arena_flags.get("seed_code_label", profile))
+	var effects_value: Variant = RunProgress.arena_flags.get("seed_code_effects", {})
+	_seed_code_effects = effects_value.duplicate(true) if typeof(effects_value) == TYPE_DICTIONARY else {}
+	anomaly_ring_alpha_cap = maxf(anomaly_ring_alpha_cap, 0.28)
+	anomaly_trace_alpha_cap = maxf(anomaly_trace_alpha_cap, 0.18)
+	transient_ring_min_interval = minf(transient_ring_min_interval, 0.02)
+	match _seed_code_profile:
+		&"micro_lens_bloom":
+			max_active_micro_lenses = maxi(max_active_micro_lenses, 8)
+			micro_lens_duration *= 1.35
+			micro_lens_radius *= 1.08
+			micro_lens_strength *= 1.16
+		&"debris_field":
+			max_seeded_debris = maxi(max_seeded_debris, 10)
+			debris_seed_interval = minf(debris_seed_interval, 2.2)
+			debris_seed_lifetime *= 1.35
+		&"time_debt_split":
+			max_time_debt_zones = maxi(max_time_debt_zones, 5)
+			time_debt_duration *= 1.18
+			time_debt_radius *= 1.08
+		&"orbital_memory":
+			memory_visual_alpha = maxf(memory_visual_alpha, 0.55)
+			memory_max_points = maxi(memory_max_points, 108)
+			memory_influence_radius *= 1.28
+			memory_curve_strength += _seed_code_float("memory_strength_bonus", 90.0)
+		&"vacuum_garden":
+			collapse_radius *= 1.08
+			collapse_event_cooldown = minf(collapse_event_cooldown, 0.14)
+		&"relativistic_rail":
+			relativistic_impact_cooldown = minf(relativistic_impact_cooldown, 0.09)
+			relativistic_impact_radius *= 1.08
+		&"resonance_cascade":
+			cascade_charge_threshold = maxf(cascade_charge_threshold * 0.68, 0.75)
+			cascade_radius *= 1.1
+
+
+func _update_seed_code_feature(delta: float) -> void:
+	if _seed_code_profile == &"":
+		return
+	_seed_code_debris_elapsed += delta
+	_seed_code_time_debt_elapsed += delta
+	_seed_code_vacuum_elapsed += delta
+	_seed_code_cascade_elapsed += delta
+	if _player == null or not is_instance_valid(_player):
+		return
+	if not _seed_code_intro_done:
+		_seed_code_intro_done = true
+		_spawn_seed_code_intro(_player.global_position)
+	match _seed_code_profile:
+		&"debris_field":
+			var debris_interval := _seed_code_float("debris_pulse_interval", 2.6)
+			if _seed_code_debris_elapsed >= debris_interval:
+				_seed_code_debris_elapsed = 0.0
+				_seed_debris_near(_player.global_position, _seed_code_int("auto_debris_stacks", 2), &"seed_code")
+		&"time_debt_split":
+			var time_interval := _seed_code_float("time_debt_interval", 5.2)
+			if _seed_code_time_debt_elapsed >= time_interval:
+				_seed_code_time_debt_elapsed = 0.0
+				_seed_time_debt_along_player_vector()
+		&"vacuum_garden":
+			var vacuum_interval := _seed_code_float("vacuum_pulse_interval", 6.0)
+			if _seed_code_vacuum_elapsed >= vacuum_interval:
+				_seed_code_vacuum_elapsed = 0.0
+				var offset := Vector2.RIGHT.rotated(_rng.randf() * TAU) * _rng.randf_range(120.0, 280.0)
+				trigger_vacuum_collapse(_player.global_position + offset, maxi(_seed_code_int("slingshot_vacuum_stacks", 1), 1), self, null)
+		&"resonance_cascade":
+			var cascade_interval := _seed_code_float("cascade_pulse_interval", 5.8)
+			if _seed_code_cascade_elapsed >= cascade_interval:
+				_seed_code_cascade_elapsed = 0.0
+				_seed_resonance_choir(_player.global_position)
+
+
+func _spawn_seed_code_intro(center: Vector2) -> void:
+	var pulses := maxi(_seed_code_int("opening_pulses", 3), 1)
+	for idx in range(pulses):
+		_last_transient_ring_time = -999.0
+		_spawn_transient_ring(center, 180.0 + float(idx) * 92.0, _seed_code_color(Color(0.35, 0.9, 1.0, 0.48)), 0.42 + float(idx) * 0.08, 2.8 + float(idx) * 0.5)
+
+
+func _seed_time_debt_along_player_vector() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	var velocity := _player.velocity
+	var direction := velocity.normalized() if velocity.length_squared() > 4.0 else Vector2.RIGHT.rotated(_rng.randf() * TAU)
+	var center := _player.global_position
+	_create_time_debt_zone(
+		center - direction * time_debt_radius * 0.7,
+		center + direction * time_debt_radius * 0.95,
+		time_debt_radius,
+		time_debt_duration,
+		_seed_code_float("time_debt_intensity", 0.72),
+		&"seed_code"
+	)
+
+
+func _seed_resonance_choir(center: Vector2) -> void:
+	var color := _seed_code_color(Color(0.94, 0.82, 0.32, 0.48))
+	for idx in range(3):
+		var angle := TAU * float(idx) / 3.0 + _rng.randf_range(-0.2, 0.2)
+		var position := center + Vector2.RIGHT.rotated(angle) * (180.0 + float(idx) * 42.0)
+		_stamp_resonance(position, 210.0, GravityResonanceManager.ZoneType.HARMONIC_ORBIT, 0.78, 2.2)
+		_last_transient_ring_time = -999.0
+		_spawn_transient_ring(position, 210.0, color, 0.34, 2.8)
+
+
+func _seed_code_int(key: String, fallback: int) -> int:
+	var value: Variant = _seed_code_effects.get(key, fallback)
+	if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
+		return int(value)
+	return fallback
+
+
+func _seed_code_float(key: String, fallback: float) -> float:
+	var value: Variant = _seed_code_effects.get(key, fallback)
+	if typeof(value) == TYPE_FLOAT or typeof(value) == TYPE_INT:
+		return float(value)
+	return fallback
+
+
+func _seed_code_color(fallback: Color) -> Color:
+	match _seed_code_profile:
+		&"micro_lens_bloom":
+			return Color(0.95, 0.38, 1.0, fallback.a)
+		&"debris_field":
+			return Color(1.0, 0.72, 0.22, fallback.a)
+		&"time_debt_split":
+			return Color(0.45, 0.66, 1.0, fallback.a)
+		&"orbital_memory":
+			return Color(0.32, 1.0, 0.72, fallback.a)
+		&"vacuum_garden":
+			return Color(1.0, 0.36, 0.18, fallback.a)
+		&"relativistic_rail":
+			return Color(0.34, 0.92, 1.0, fallback.a)
+		&"resonance_cascade":
+			return Color(0.98, 0.86, 0.28, fallback.a)
+	return fallback
+
+
 func _is_hostile(node: Node) -> bool:
 	return node.is_in_group("enemies") or node.is_in_group("wave_enemy") or node.is_in_group("bosses")
 
@@ -1033,7 +1206,9 @@ func _update_lens_visual(lens: Dictionary, delta: float) -> void:
 	visual.rotation += delta * 2.2
 	visual.scale = Vector2.ONE * visual_radius
 	visual.width = lerpf(1.2, 3.2, life)
-	visual.default_color = _visual_color(Color(0.24, 0.92, 1.0, 0.52 * life), anomaly_ring_alpha_cap)
+	var lens_color: Color = lens.get("color", Color(0.24, 0.92, 1.0, 0.52))
+	lens_color.a *= life
+	visual.default_color = _visual_color(lens_color, anomaly_ring_alpha_cap)
 	visual.visible = true
 
 
@@ -1056,7 +1231,7 @@ func _sync_memory_visual() -> void:
 			_memory_line_points.append(point)
 		_memory_line.points = _memory_line_points
 		_memory_points_dirty = false
-	_memory_line.default_color = _visual_color(Color(0.32, 0.78, 1.0, memory_visual_alpha), anomaly_trace_alpha_cap)
+	_memory_line.default_color = _visual_color(_seed_code_color(Color(0.32, 0.78, 1.0, memory_visual_alpha)), anomaly_trace_alpha_cap)
 	_memory_line.visible = true
 
 

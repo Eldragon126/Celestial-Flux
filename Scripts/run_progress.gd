@@ -23,6 +23,97 @@ const SAVE_VERSION := 1
 const PERSISTENT_COLLAPSE_VERSION := 1
 const OPTIONAL_CHALLENGE_VERSION := 1
 const MAX_PERSISTENT_COLLAPSE_SCARS := 28
+const NAMED_SEED_CODES := {
+	"LENSSTORM": {
+		"seed": 426100,
+		"display_name": "Lens Storm",
+		"profile": "micro_lens_bloom",
+		"run_law": "comet_wake",
+		"run_law_name": "Comet Wake",
+		"description": "Player shots shed visible micro-lensing rings and curve nearby combatants.",
+		"effects": {
+			"micro_lens_projectile_stacks": 2,
+			"opening_pulses": 4,
+		},
+	},
+	"DEBRISRAIN": {
+		"seed": 426101,
+		"display_name": "Debris Rain",
+		"profile": "debris_field",
+		"run_law": "dense_stars",
+		"run_law_name": "Dense Stars",
+		"description": "Extra seeded debris orbits nearby gravity wells and slingshots can kick off more fragments.",
+		"effects": {
+			"auto_debris_stacks": 2,
+			"slingshot_debris_stacks": 2,
+			"debris_pulse_interval": 2.6,
+			"opening_pulses": 3,
+		},
+	},
+	"TIMESPLIT": {
+		"seed": 426102,
+		"display_name": "Time Split",
+		"profile": "time_debt_split",
+		"run_law": "temporal_draft",
+		"run_law_name": "Temporal Draft",
+		"description": "The arena periodically paints paired slow and repay zones along the player's movement vector.",
+		"effects": {
+			"time_debt_interval": 5.2,
+			"time_debt_intensity": 0.72,
+			"opening_pulses": 3,
+		},
+	},
+	"GHOSTORBIT": {
+		"seed": 426103,
+		"display_name": "Ghost Orbit",
+		"profile": "orbital_memory",
+		"run_law": "quiet_recovery",
+		"run_law_name": "Quiet Recovery",
+		"description": "The orbital memory trail is longer, brighter, and pulls enemies harder along your previous path.",
+		"effects": {
+			"memory_strength_bonus": 90.0,
+			"opening_pulses": 3,
+		},
+	},
+	"COLLAPSEGARDEN": {
+		"seed": 426104,
+		"display_name": "Collapse Garden",
+		"profile": "vacuum_garden",
+		"run_law": "volatile_lattice",
+		"run_law_name": "Volatile Lattice",
+		"description": "Projectiles and high-grade slingshots plant visible vacuum-collapse blooms.",
+		"effects": {
+			"projectile_vacuum_stacks": 1,
+			"slingshot_vacuum_stacks": 2,
+			"vacuum_pulse_interval": 6.0,
+			"opening_pulses": 4,
+		},
+	},
+	"RAILSPLIT": {
+		"seed": 426105,
+		"display_name": "Rail Split",
+		"profile": "relativistic_rail",
+		"run_law": "comet_wake",
+		"run_law_name": "Comet Wake",
+		"description": "Projectiles carry relativistic rail stacks, accelerating into bright impact lines.",
+		"effects": {
+			"projectile_rail_stacks": 1,
+			"opening_pulses": 3,
+		},
+	},
+	"CASCADECHOIR": {
+		"seed": 426106,
+		"display_name": "Cascade Choir",
+		"profile": "resonance_cascade",
+		"run_law": "dense_stars",
+		"run_law_name": "Dense Stars",
+		"description": "Resonance cascades charge faster and the arena periodically seeds harmonic rings.",
+		"effects": {
+			"cascade_pulse_interval": 5.8,
+			"opening_pulses": 4,
+		},
+	},
+}
 
 const BOSS_MILESTONE_WAVES: Array[int] = [5, 10, 15, 20, 25, 30, 35, 40]
 const LATE_GAME_START_WAVE := 31
@@ -57,6 +148,7 @@ var last_gravity_ghost_replay: Dictionary = {}
 var optional_challenge_state: Dictionary = {}
 
 var _rng := RandomNumberGenerator.new()
+var _pending_seed_code_profile: Dictionary = {}
 
 
 func _ready() -> void:
@@ -79,6 +171,7 @@ func begin_new_run(use_challenge: bool = false, seed_override: int = 0) -> void:
 	last_death_message = ""
 	last_gravity_ghost_replay.clear()
 	phase = Phase.CHALLENGE if challenge_mode else Phase.PHYSICS_WAVES
+	_apply_pending_seed_code_profile()
 	phase_changed.emit(Phase.PHYSICS_WAVES, phase)
 	clear_anchor()
 
@@ -361,7 +454,30 @@ func get_last_gravity_ghost_replay() -> Dictionary:
 
 func get_run_seed_code() -> String:
 	var mode := "boss_rush" if boss_rush_mode else ("challenge" if challenge_mode else "standard")
+	var named_code := String(arena_flags.get("seed_code_id", "")).strip_edges()
+	if not named_code.is_empty():
+		return "%s:%s:%d:%d" % [mode, named_code, run_seed, wave_index]
 	return "%s:%d:%d" % [mode, run_seed, wave_index]
+
+
+func get_named_seed_code_catalog() -> Array[Dictionary]:
+	var catalog: Array[Dictionary] = []
+	for code in NAMED_SEED_CODES.keys():
+		var profile: Dictionary = NAMED_SEED_CODES[code]
+		catalog.append({
+			"code": String(code),
+			"seed": int(profile.get("seed", 0)),
+			"display_name": String(profile.get("display_name", code)),
+			"profile": String(profile.get("profile", "")),
+			"run_law": String(profile.get("run_law", "")),
+			"run_law_name": String(profile.get("run_law_name", "")),
+			"description": String(profile.get("description", "")),
+			"effects": profile.get("effects", {}).duplicate(true),
+		})
+	catalog.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return String(a.get("code", "")) < String(b.get("code", ""))
+	)
+	return catalog
 
 
 func get_optional_challenge_summary() -> Dictionary:
@@ -551,9 +667,13 @@ func _string_array(values: Array) -> Array[String]:
 
 
 func seed_from_code(text: String) -> int:
+	_clear_pending_seed_code_profile()
 	var trimmed := text.strip_edges()
 	if trimmed.is_empty():
 		return 0
+	var named_code := _named_seed_code_from_text(trimmed)
+	if not named_code.is_empty():
+		return _queue_named_seed_code(named_code)
 	var parts := trimmed.split(":", false)
 	if parts.size() >= 2:
 		var parsed_code_seed := _seed_from_numeric_text(String(parts[1]))
@@ -582,3 +702,51 @@ func _seed_from_numeric_text(text: String) -> int:
 		if not clean.substr(i, 1).is_valid_int():
 			return 0
 	return int(clean)
+
+
+func _named_seed_code_from_text(text: String) -> String:
+	var direct := _canonical_seed_code(text)
+	if NAMED_SEED_CODES.has(direct):
+		return direct
+	var parts := text.split(":", false)
+	for part in parts:
+		var candidate := _canonical_seed_code(String(part))
+		if NAMED_SEED_CODES.has(candidate):
+			return candidate
+	return ""
+
+
+func _canonical_seed_code(text: String) -> String:
+	return text.strip_edges().to_upper().replace(" ", "").replace("-", "").replace("_", "")
+
+
+func _queue_named_seed_code(code: String) -> int:
+	var profile: Dictionary = NAMED_SEED_CODES.get(code, {}).duplicate(true)
+	profile["code"] = code
+	_pending_seed_code_profile = profile
+	return int(profile.get("seed", 0))
+
+
+func _clear_pending_seed_code_profile() -> void:
+	_pending_seed_code_profile.clear()
+
+
+func _apply_pending_seed_code_profile() -> void:
+	if _pending_seed_code_profile.is_empty():
+		return
+	var profile := _pending_seed_code_profile.duplicate(true)
+	_clear_pending_seed_code_profile()
+	if int(profile.get("seed", 0)) != run_seed:
+		return
+	var code := String(profile.get("code", "")).strip_edges()
+	if code.is_empty():
+		return
+	var effects_value: Variant = profile.get("effects", {})
+	var effects: Dictionary = effects_value if typeof(effects_value) == TYPE_DICTIONARY else {}
+	arena_flags["seed_code_id"] = code
+	arena_flags["seed_code_label"] = String(profile.get("display_name", code))
+	arena_flags["seed_code_profile"] = String(profile.get("profile", ""))
+	arena_flags["seed_code_description"] = String(profile.get("description", ""))
+	arena_flags["seed_code_run_law"] = String(profile.get("run_law", ""))
+	arena_flags["seed_code_run_law_name"] = String(profile.get("run_law_name", ""))
+	arena_flags["seed_code_effects"] = effects.duplicate(true)

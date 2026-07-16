@@ -688,10 +688,10 @@ func _build_seed_ui() -> void:
 	seed_label.custom_minimum_size = Vector2(74.0, 42.0)
 	_seed_row.add_child(seed_label)
 
-	_seed_edit = _make_line_edit("", "random or seed code")
+	_seed_edit = _make_line_edit("", "random, LENSSTORM, or seed")
 	_seed_edit.name = "SeedStartEdit"
 	_seed_edit.custom_minimum_size = Vector2(236.0, 42.0)
-	_seed_edit.tooltip_text = "Leave blank for a random run, enter a number/text seed, or paste a copied seed code."
+	_seed_edit.tooltip_text = "Leave blank for random, enter a number/text seed, paste a copied seed, or use LENSSTORM, DEBRISRAIN, TIMESPLIT, GHOSTORBIT, COLLAPSEGARDEN, RAILSPLIT, or CASCADECHOIR."
 	_seed_row.add_child(_seed_edit)
 
 	_seed_random_button = _make_action_button("RANDOM")
