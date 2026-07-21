@@ -1555,3 +1555,7 @@ func _active_title_player() -> Node2D:
 	if bool(player.get_meta(&"death_in_progress", false)):
 		return null
 	return player
+
+
+func _on_dw_level_pressed() -> void:
+	get_tree().change_scene_to_file("res://Nodes/ParametricEquationEnemies/parametric_testing_center.tscn")

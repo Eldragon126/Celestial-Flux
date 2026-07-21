@@ -1,7 +1,7 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene format=3 uid="uid://tx0vwd8d5s8m"]
 
-[ext_resource type="Script" path="res://Scripts/game_over_scene.gd" id="1_game_over"]
-[ext_resource type="Shader" path="res://Scripts/pause_menu.gdshader" id="2_shader"]
+[ext_resource type="Script" uid="uid://bg6fx5lq0qwpq" path="res://Scripts/game_over_scene.gd" id="1_game_over"]
+[ext_resource type="Shader" uid="uid://cwu0khh13q40b" path="res://Scripts/pause_menu.gdshader" id="2_shader"]
 [ext_resource type="PackedScene" path="res://Nodes/gravity_ghost_replay_panel.tscn" id="3_ghost"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_failure"]
@@ -12,6 +12,9 @@ shader_parameter/ondulacion = 0.28
 shader_parameter/frecuencia = 7.0
 shader_parameter/color_a = Color(0.34, 0.02, 0.012, 0.32)
 shader_parameter/color_b = Color(1, 0.22, 0.04, 0.2)
+shader_parameter/color_neon = Color(0, 0.85, 1, 1)
+shader_parameter/gravity_strength = 0.45
+shader_parameter/gravity_center = Vector2(0.5, 0.5)
 shader_parameter/real_time = 0.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
@@ -50,7 +53,7 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[node name="GameOverScene" type="Control"]
+[node name="GameOverScene" type="Control" unique_id=497928508]
 process_mode = 3
 layout_mode = 3
 anchors_preset = 15
@@ -60,7 +63,8 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_game_over")
 
-[node name="FailureBackdrop" type="ColorRect" parent="."]
+[node name="FailureBackdrop" type="ColorRect" parent="." unique_id=2106880731]
+material = SubResource("ShaderMaterial_failure")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -68,9 +72,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-material = SubResource("ShaderMaterial_failure")
 
-[node name="CenterPanel" type="PanelContainer" parent="."]
+[node name="CenterPanel" type="PanelContainer" parent="." unique_id=1052257733]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -85,46 +88,46 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="Rows" type="VBoxContainer" parent="CenterPanel"]
+[node name="Rows" type="VBoxContainer" parent="CenterPanel" unique_id=1456609778]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 30
 
-[node name="TitleLabel" type="Label" parent="CenterPanel/Rows"]
+[node name="TitleLabel" type="Label" parent="CenterPanel/Rows" unique_id=168505853]
 layout_mode = 2
 theme_override_font_sizes/font_size = 46
 text = "SIMULATION FAILURE"
 horizontal_alignment = 1
 
-[node name="DeathVectorLabel" type="Label" parent="CenterPanel/Rows"]
+[node name="DeathVectorLabel" type="Label" parent="CenterPanel/Rows" unique_id=1283470994]
 custom_minimum_size = Vector2(900, 82)
 layout_mode = 2
 theme_override_font_sizes/font_size = 21
 text = "DEATH VECTOR: unresolved"
 horizontal_alignment = 1
-vertical_alignment = 1
+vertical_alignment = 2
 autowrap_mode = 3
 
-[node name="GravityGhostReplayPanel" parent="CenterPanel/Rows" instance=ExtResource("3_ghost")]
+[node name="GravityGhostReplayPanel" parent="CenterPanel/Rows" unique_id=763399867 instance=ExtResource("3_ghost")]
 
-[node name="Buttons" type="HBoxContainer" parent="CenterPanel/Rows"]
+[node name="Buttons" type="HBoxContainer" parent="CenterPanel/Rows" unique_id=707158575]
 layout_mode = 2
 theme_override_constants/separation = 18
 alignment = 1
 
-[node name="TryAgainButton" type="Button" parent="CenterPanel/Rows/Buttons"]
+[node name="TryAgainButton" type="Button" parent="CenterPanel/Rows/Buttons" unique_id=1774527888]
 custom_minimum_size = Vector2(260, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 text = "TRY AGAIN"
 
-[node name="TitleButton" type="Button" parent="CenterPanel/Rows/Buttons"]
+[node name="TitleButton" type="Button" parent="CenterPanel/Rows/Buttons" unique_id=867445695]
 custom_minimum_size = Vector2(260, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 text = "QUIT TO TITLE"

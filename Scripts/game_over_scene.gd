@@ -12,11 +12,12 @@ extends Control
 @onready var title_button: Button = $CenterPanel/Rows/Buttons/TitleButton
 @onready var backdrop: ColorRect = $FailureBackdrop
 
-var _death_label_base_position := Vector2.ZERO
+var _last_layout_position := Vector2.ZERO
+var _glitch_offset := Vector2.ZERO
+
 var _resolved_retry_scene_path: String = ""
 var _resolved_title_scene_path: String = ""
 var _challenge_code: String = ""
-
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -30,8 +31,12 @@ func _ready() -> void:
 	var message := RunProgress.last_death_message
 	if message.is_empty():
 		message = "DEATH VECTOR: the simulation collapsed before the lesson could stabilize."
+	
 	death_vector_label.text = message
-	_death_label_base_position = death_vector_label.position
+	
+	# Ensures long text strings push elements vertically rather than overlapping horizontally
+	death_vector_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	
 	_build_score_summary()
 
 	try_again_button.pressed.connect(_on_try_again_pressed)
@@ -91,10 +96,18 @@ func _on_title_pressed() -> void:
 func _update_death_label_glitch(now: float) -> void:
 	if death_vector_label == null:
 		return
+		
+	# If the layout engine recalculates and moves the label (e.g. from the VBoxContainer 
+	# responding to the new summary grid or a window resize), we capture the new base position.
+	if death_vector_label.position.distance_to(_last_layout_position + _glitch_offset) > 0.1:
+		_last_layout_position = death_vector_label.position
+		
 	var flicker := 0.5 + 0.5 * sin(now * 19.0)
 	var sharp := 1.0 if sin(now * 37.0) > 0.86 else 0.0
 	var strength := death_label_glitch_strength * sharp
-	death_vector_label.position = _death_label_base_position + Vector2(strength, -strength * 0.35)
+	
+	_glitch_offset = Vector2(strength, -strength * 0.35)
+	death_vector_label.position = _last_layout_position + _glitch_offset
 	death_vector_label.modulate = Color(0.72 + flicker * 0.18, 0.96, 1.0, 1.0)
 
 

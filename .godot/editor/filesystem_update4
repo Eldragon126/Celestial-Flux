@@ -1,4 +1,4 @@
-res://Nodes/title_screen.tscn
+res://Nodes/the_abyss.tscn
 res://Scripts/playershield.gdshader
 res://Scripts/pause_menu.gdshader
 res://Scripts/planet_1.gdshader

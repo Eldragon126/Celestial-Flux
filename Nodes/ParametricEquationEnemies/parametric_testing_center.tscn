@@ -1,16 +1,147 @@
 [gd_scene format=3 uid="uid://tw7c4fyglsmn"]
 
+[ext_resource type="Script" uid="uid://bi5choc6fpiji" path="res://Scripts/parametric_testing_center.gd" id="1_tchr4"]
 [ext_resource type="PackedScene" uid="uid://dlsujt2aetdca" path="res://Nodes/pulsating_gravity_spawner.tscn" id="2_2fwtw"]
 [ext_resource type="PackedScene" uid="uid://bar4e30caja5p" path="res://Nodes/player.tscn" id="2_na8vp"]
 [ext_resource type="PackedScene" uid="uid://dpot33bourpdy" path="res://Nodes/gravity_wave_maker.tscn" id="3_na8vp"]
+[ext_resource type="PackedScene" uid="uid://c6p3ma61jn8eh" path="res://Nodes/parametric_pulsator.tscn" id="4_q81my"]
+[ext_resource type="PackedScene" path="res://Nodes/parametric_wave_skimmer.tscn" id="5_jsa4e"]
+[ext_resource type="PackedScene" uid="uid://daytuijrlty5v" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn" id="6_erm5b"]
+[ext_resource type="PackedScene" uid="uid://ch82c26sdlrmq" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn" id="7_mgdpd"]
+[ext_resource type="PackedScene" uid="uid://bmw0r3gq3jjlo" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn" id="8_tkxr0"]
+[ext_resource type="PackedScene" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_4.tscn" id="9_jenej"]
+[ext_resource type="PackedScene" uid="uid://c10f52t6u7nk2" path="res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn" id="10_si1mb"]
+[ext_resource type="PackedScene" uid="uid://b2v55yaahtgwt" path="res://Nodes/base_enemy.tscn" id="11_tchr4"]
+[ext_resource type="PackedScene" uid="uid://c7b0subtq6kgr" path="res://Nodes/base_shooter_enemy.tscn" id="12_lmuea"]
+[ext_resource type="FontFile" uid="uid://1xcm8dxwmaaf" path="res://Assets/Fonts/edge-of-the-galaxy-font/EdgeOfTheGalaxyItalic-ZVJB3.otf" id="13_tajdr"]
+[ext_resource type="PackedScene" uid="uid://cqdqshk4xbg5q" path="res://Nodes/planet_1.tscn" id="14_jenej"]
+[ext_resource type="PackedScene" path="res://Nodes/planet_atmosphere_dust.tscn" id="15_si1mb"]
+[ext_resource type="AudioStream" uid="uid://dg57ervpb51fa" path="res://Assets/Songs/The Neural Drift Threshold.mp3" id="16_tchr4"]
+[ext_resource type="Script" uid="uid://dk5kb2f3tf0y7" path="res://Scripts/time_dilation_manager.gd" id="17_si1mb"]
+
+[sub_resource type="Animation" id="Animation_ckak6"]
+resource_name = "DW Level"
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Label:theme_override_colors/font_color")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.35, 0.67, 1),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0.5646202, 0.56462, 1), Color(0, 0.37307164, 0.76746386, 1), Color(0.91421205, 0.71966666, 0, 1), Color(0.963599, 0, 0.02891965, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_5v8bw"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Label:theme_override_colors/font_color")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0, 1, 1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_4wl11"]
+_data = {
+&"DW Level": SubResource("Animation_ckak6"),
+&"RESET": SubResource("Animation_5v8bw")
+}
 
 [node name="ParametricTestingCenter" type="Node2D" unique_id=852147971]
+script = ExtResource("1_tchr4")
 
 [node name="Player" parent="." unique_id=943672105 instance=ExtResource("2_na8vp")]
-position = Vector2(-218, 457)
+position = Vector2(-194, 1276)
+
+[node name="CanvasLayer2" type="CanvasLayer" parent="Player" unique_id=593752999]
+
+[node name="Label" type="Label" parent="Player/CanvasLayer2" unique_id=399736835]
+anchors_preset = -1
+anchor_right = 1.0040001
+anchor_bottom = 0.24900001
+offset_right = 0.78393555
+offset_bottom = -16.70401
+theme_override_colors/font_color = Color(0, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_fonts/font = ExtResource("13_tajdr")
+theme_override_font_sizes/font_size = 100
+text = "DW Level"
+horizontal_alignment = 1
+vertical_alignment = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Player/CanvasLayer2" unique_id=1224375363]
+libraries/ = SubResource("AnimationLibrary_4wl11")
+autoplay = &"DW Level"
 
 [node name="PulsatingGravitySpawner" parent="." unique_id=1794389716 instance=ExtResource("2_2fwtw")]
 position = Vector2(1163, 778)
 
 [node name="Gravity Wave Maker" parent="." unique_id=1314623969 instance=ExtResource("3_na8vp")]
 position = Vector2(-822, 290)
+
+[node name="ParametricPulsator" parent="." unique_id=660136298 instance=ExtResource("4_q81my")]
+position = Vector2(32626, -10986)
+max_health = 340.0
+
+[node name="ParametricWaveSkimmer" parent="." unique_id=2046133695 instance=ExtResource("5_jsa4e")]
+position = Vector2(-22510, 15412)
+
+[node name="ParametricEnemy1" parent="." unique_id=2014406817 instance=ExtResource("6_erm5b")]
+position = Vector2(-3149, -904)
+
+[node name="parametric_enemy_2" parent="." unique_id=1266540202 instance=ExtResource("7_mgdpd")]
+position = Vector2(15404, 9883)
+
+[node name="parametric_enemy_3" parent="." unique_id=1584277574 instance=ExtResource("8_tkxr0")]
+position = Vector2(-18184, 2980)
+
+[node name="ParametricFractureDuelist" parent="." unique_id=1115303603 instance=ExtResource("9_jenej")]
+position = Vector2(9961, -9168)
+
+[node name="ParametricSwarmArchitect" parent="." unique_id=646356104 instance=ExtResource("10_si1mb")]
+position = Vector2(-11878, -10927)
+
+[node name="BaseEnemy" parent="." unique_id=581354831 instance=ExtResource("11_tchr4")]
+position = Vector2(-16923, -4787)
+
+[node name="BaseShooterEnemy" parent="." unique_id=662240552 instance=ExtResource("12_lmuea")]
+position = Vector2(26755, -638)
+
+[node name="parametric_enemy_4" parent="." unique_id=1393975765 instance=ExtResource("7_mgdpd")]
+position = Vector2(-2220, 5701)
+
+[node name="ParametricEnemy2" parent="." unique_id=1714537259 instance=ExtResource("6_erm5b")]
+position = Vector2(5646, -2530)
+
+[node name="Planet1" parent="." unique_id=1811765486 instance=ExtResource("14_jenej")]
+position = Vector2(1836, 1992)
+
+[node name="Planet2" parent="." unique_id=1686029563 instance=ExtResource("14_jenej")]
+position = Vector2(2753, 398)
+
+[node name="PlanetAtmosphereDust" parent="." unique_id=1192535546 instance=ExtResource("15_si1mb")]
+position = Vector2(2365, 1935)
+
+[node name="Planet3" parent="." unique_id=1109743749 instance=ExtResource("14_jenej")]
+position = Vector2(-1321, 1308)
+
+[node name="Planet4" parent="." unique_id=395204380 instance=ExtResource("14_jenej")]
+position = Vector2(232, -232)
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=967601586]
+stream = ExtResource("16_tchr4")
+
+[node name="TimeDilationManager" type="Node" parent="." unique_id=1820963422]
+process_mode = 3
+script = ExtResource("17_si1mb")
+metadata/_custom_type_script = "uid://dk5kb2f3tf0y7"

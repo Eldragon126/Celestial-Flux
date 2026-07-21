@@ -7,10 +7,10 @@
 [ext_resource type="Script" uid="uid://cgo7omjjvv108" path="res://Scripts/health_component.gd" id="4_sfp35"]
 [ext_resource type="Script" uid="uid://dpsx3wfpdu82q" path="res://Scripts/energy_component.gd" id="5_8pukx"]
 [ext_resource type="AudioStream" uid="uid://bwdttw7llfjht" path="res://Assets/Sound Effects/PlayerShoot.wav" id="6_r4ynj"]
+[ext_resource type="Script" uid="uid://i6fhtodnnkja" path="res://Scripts/orbital_trajectory_predictor.gd" id="7_0bouj"]
 [ext_resource type="Script" uid="uid://br88kgexjpay7" path="res://Scripts/gravity_visualization_component.gd" id="8_2hphp"]
 [ext_resource type="Script" uid="uid://8e10xg8c2op6" path="res://Scripts/projectile_predictor.gd" id="9_2hphp"]
 [ext_resource type="Shader" uid="uid://y7se2euonj6q" path="res://Scripts/player_hull.gdshader" id="10_hull"]
-[ext_resource type="Script" uid="uid://dlhwl6q76wxwo" path="res://Scripts/orbital_trajectory_predictor.gd" id="7_0bouj"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_aoxlc"]
 radius = 8.0
@@ -161,7 +161,8 @@ metadata/_custom_type_script = "uid://cgo7omjjvv108"
 
 [node name="EnergyComponent" type="Node" parent="." unique_id=51219610]
 script = ExtResource("5_8pukx")
-max_energy = 10000.0
+max_energy = 5000.0
+starting_energy = 900.0
 metadata/_custom_type_script = "uid://dpsx3wfpdu82q"
 
 [node name="BulletBlastSoundEffect" type="AudioStreamPlayer" parent="." unique_id=1794398086]
@@ -174,7 +175,6 @@ visible = false
 script = ExtResource("7_0bouj")
 show_prediction_line = false
 branch_step_stride = 0
-metadata/_custom_type_script = "uid://dlhwl6q76wxwo"
 
 [node name="GravityVisualizationComponent" type="Node2D" parent="." unique_id=2004999560]
 visible = false

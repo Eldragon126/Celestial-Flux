@@ -30,7 +30,7 @@ color_ramp = SubResource("GradientTexture1D_pie2b")
 offsets = PackedFloat32Array(0.41304347, 1)
 colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
 
-[sub_resource type="GradientTexture1D" id="GradientTexture1D_osi8g"]
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_4ap62"]
 gradient = SubResource("Gradient_4ap62")
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_1xgmy"]
@@ -49,7 +49,7 @@ damping_max = 20.0
 scale_min = 3.0
 scale_max = 8.0
 color = Color(1, 0, 0.59607846, 1)
-color_ramp = SubResource("GradientTexture1D_osi8g")
+color_ramp = SubResource("GradientTexture1D_4ap62")
 turbulence_enabled = true
 turbulence_noise_strength = 0.5
 turbulence_noise_scale = 2.044

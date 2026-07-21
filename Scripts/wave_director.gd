@@ -38,6 +38,8 @@ const PARAMETRIC_2_SCENE = preload("res://Nodes/ParametricEquationEnemies/parame
 const PARAMETRIC_3_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn")
 const PARAMETRIC_4_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_4.tscn")
 const PARAMETRIC_5_SCENE = preload("res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn")
+const PARAMETRIC_PULSATOR_SCENE = preload("res://Nodes/parametric_pulsator.tscn")
+const PARAMETRIC_WAVE_SKIMMER_SCENE = preload("res://Nodes/parametric_wave_skimmer.tscn")
 const GRAVIMETRIC_ECHO_DRONE_SCENE = preload("res://Nodes/gravimetric_echo_drone.tscn")
 const EVENT_HORIZON_WARDEN_ENEMY_SCENE = preload("res://Nodes/event_horizon_warden.tscn")
 const PHASE_SLIP_SWARM_SCENE = preload("res://Nodes/phase_slip_swarm.tscn")
@@ -711,14 +713,18 @@ func _build_wave_roster() -> Array:
 		roster.insert(int(min(8, roster.size())), ORBITAL_NULL_HARVESTER_SCENE)
 	if _wave >= 8:
 		roster.insert(int(min(9, roster.size())), CAUSALITY_SHRIKE_SCENE)
+	if _wave >= 8:
+		roster.insert(int(min(10, roster.size())), PARAMETRIC_WAVE_SKIMMER_SCENE)
 	if _wave >= 9:
-		roster.insert(int(min(10, roster.size())), EVENT_HORIZON_WARDEN_ENEMY_SCENE)
+		roster.insert(int(min(11, roster.size())), EVENT_HORIZON_WARDEN_ENEMY_SCENE)
 	if _wave >= 10:
-		roster.insert(int(min(11, roster.size())), ORBIT_WEAVER_SCENE)
+		roster.insert(int(min(12, roster.size())), ORBIT_WEAVER_SCENE)
 	if _wave >= 11:
-		roster.insert(int(min(12, roster.size())), RESONANCE_PARALYTIC_CONSTRUCT_SCENE)
+		roster.insert(int(min(13, roster.size())), RESONANCE_PARALYTIC_CONSTRUCT_SCENE)
 	if _wave >= 12:
-		roster.insert(int(min(13, roster.size())), GRAVITY_UNDERTAKER_SCENE)
+		roster.insert(int(min(14, roster.size())), GRAVITY_UNDERTAKER_SCENE)
+	if _wave >= 14 and _wave % 4 == 2:
+		roster.insert(int(min(15, roster.size())), PARAMETRIC_PULSATOR_SCENE)
 
 	return roster
 
@@ -774,7 +780,8 @@ func _build_late_game_roster() -> Array:
 		PHASE_SLIP_SWARM_SCENE, GRAVIMETRIC_ECHO_DRONE_SCENE, ORBITAL_NULL_HARVESTER_SCENE,
 		EVENT_HORIZON_WARDEN_ENEMY_SCENE, RESONANCE_PARALYTIC_CONSTRUCT_SCENE,
 		VECTOR_TAX_COLLECTOR_SCENE, PERIAPSIS_MANTIS_SCENE, CAUSALITY_SHRIKE_SCENE,
-		ORBIT_WEAVER_SCENE, GRAVITY_UNDERTAKER_SCENE,
+		ORBIT_WEAVER_SCENE, GRAVITY_UNDERTAKER_SCENE, PARAMETRIC_WAVE_SKIMMER_SCENE,
+		PARAMETRIC_PULSATOR_SCENE,
 	]
 	var roster: Array = []
 	var count: int = mini(8 + int((_wave - RunProgress.LATE_GAME_START_WAVE) * 0.5), max_regular_enemies + 4)

@@ -51,7 +51,7 @@ script = ExtResource("7_juice")
 [node name="TimeDilationManager" type="Node" parent="." unique_id=665013840]
 process_mode = 3
 script = ExtResource("6_r4pno")
-use_global_time_scale = false
+use_global_time_scale = true
 metadata/_custom_type_script = "uid://dk5kb2f3tf0y7"
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=871820821]

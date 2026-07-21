@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" uid="uid://b2v55yaahtgwt" path="res://Nodes/base_enemy.tscn" id="15_tfcd2"]
 [ext_resource type="PackedScene" uid="uid://c7b0subtq6kgr" path="res://Nodes/base_shooter_enemy.tscn" id="16_8o224"]
 [ext_resource type="PackedScene" uid="uid://deeaihs58vwn" path="res://Nodes/gravity_leech.tscn" id="17_tptlw"]
+[ext_resource type="FontFile" uid="uid://1xcm8dxwmaaf" path="res://Assets/Fonts/edge-of-the-galaxy-font/EdgeOfTheGalaxyItalic-ZVJB3.otf" id="17_wcqt8"]
 [ext_resource type="PackedScene" uid="uid://c1rfva2x24bjk" path="res://Nodes/leech_parasite.tscn" id="18_7ytcx"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_title"]
@@ -116,6 +117,43 @@ ambient_light_energy = 0.5
 glow_enabled = true
 glow_intensity = 8.0
 
+[sub_resource type="Animation" id="Animation_ckak6"]
+resource_name = "DW Level"
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Label:theme_override_colors/font_color")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.35, 0.67, 1),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Color(0, 0.5646202, 0.56462, 1), Color(0, 0.37307164, 0.76746386, 1), Color(0.91421205, 0.71966666, 0, 1), Color(0.963599, 0, 0.02891965, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_5v8bw"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Label:theme_override_colors/font_color")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0, 1, 1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_8o224"]
+_data = {
+&"DW Level": SubResource("Animation_ckak6"),
+&"RESET": SubResource("Animation_5v8bw")
+}
+
 [node name="TitleScreen" type="Control" unique_id=928825315]
 process_mode = 3
 layout_mode = 3
@@ -188,6 +226,12 @@ layout_mode = 2
 theme_override_fonts/font = ExtResource("3_kux1l")
 theme_override_font_sizes/font_size = 50
 text = "New Run"
+
+[node name="DW Level" type="Button" parent="Menu" unique_id=1909668439]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_kux1l")
+theme_override_font_sizes/font_size = 50
+text = "DW Level"
 
 [node name="TutorialButton" type="Button" parent="Menu" unique_id=1416150203]
 layout_mode = 2
@@ -367,8 +411,31 @@ position = Vector2(3600, -489)
 
 [node name="SecretCompleted" type="AudioStreamPlayer" parent="." unique_id=640156367]
 
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=2136041927]
+
+[node name="Label" type="Label" parent="CanvasLayer" unique_id=1827412738]
+anchors_preset = -1
+anchor_right = 0.95800006
+anchor_bottom = 0.23600002
+offset_top = 991.0
+offset_right = -0.23217773
+offset_bottom = 991.144
+theme_override_colors/font_color = Color(0, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_fonts/font = ExtResource("17_wcqt8")
+theme_override_font_sizes/font_size = 100
+text = "DW EDITION"
+horizontal_alignment = 2
+vertical_alignment = 1
+metadata/_edit_use_anchors_ = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="CanvasLayer" unique_id=620449848]
+libraries/ = SubResource("AnimationLibrary_8o224")
+autoplay = &"DW Level"
+
 [connection signal="finished" from="AudioStreamPlayer" to="." method="_on_audio_stream_player_finished"]
 [connection signal="pressed" from="Menu/NewRunButton" to="." method="_on_new_run_button_pressed"]
+[connection signal="pressed" from="Menu/DW Level" to="." method="_on_dw_level_pressed"]
 [connection signal="pressed" from="Menu/TutorialButton" to="." method="_on_tutorial_button_pressed"]
 [connection signal="pressed" from="Menu/ContinueButton" to="." method="_on_continue_button_pressed"]
 [connection signal="pressed" from="Menu/ChallengeButton" to="." method="_on_challenge_button_pressed"]

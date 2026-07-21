@@ -1611,12 +1611,9 @@ func _on_health_component_died():
 		shield.visible = false
 
 	var predictor = get_node_or_null("OrbitalTrajectoryPredictor") as Node2D
-	if predictor:
-		predictor.visible = false
+
 
 	var aim_pred = get_node_or_null("ProjectileAimPredictor") as Node2D
-	if aim_pred:
-		aim_pred.visible = false
 
 	var particles = get_node_or_null("GPUParticles2D") as GPUParticles2D
 	if particles:

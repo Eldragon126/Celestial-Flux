@@ -1,8 +1,8 @@
 3e2cc9f74922c2592e3236b3f5b5179c
-::res://::1784228023
+::res://::1784667867
 .agentrules.txt::TextFile::-1::1780678393::0::1::::<><><>0<>0<><>::
 default_bus_layout.tres::AudioBusLayout::6536144205823831777::1779223367::0::1::::<><><>0<>0<><>::
-export_presets.cfg::TextFile::-1::1782750139::0::1::::<><><>0<>0<><>::
+export_presets.cfg::TextFile::-1::1784666094::0::1::::<><><>0<>0<><>::
 HOW_TO_PLAY.md::TextFile::-1::1782250719::0::1::::<><><>0<>0<><>::
 icon.svg::CompressedTexture2D::1800171189912251906::1779223367::1779223367::1::::<><><>0<>0<>60cf4f21f9256d6dc7767d18abb03a86<>res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex::
 README.md::TextFile::-1::1782246627::0::1::::<><><>0<>0<><>::
@@ -11,7 +11,7 @@ test_motor_position.tscn::PackedScene::8574287700416929151::1779223367::0::1::::
 test_motor_position_beam.gd::GDScript::5324332782146253942::1779223367::0::1::::<>StaticBody2D<><>0<>0<><>::
 test_motor_position_spawner.gd::GDScript::3022887130553250319::1779223367::0::1::::<>Node2D<><>0<>0<><>::
 ::res://addons/::1782694770
-::res://addons/godot-rapier2d/::1783454382
+::res://addons/godot-rapier2d/::1784659538
 circle_mesh.tres::ArrayMesh::7174673425048804142::1782319144::0::1::::<><><>0<>0<><>::
 faucet_2d.gd::GDScript::9216407355742322844::1782319144::0::1::::Faucet2D<>Fluid2D<><>0<>0<><>::
 fluid_2d_circle.gd::GDScript::7694350402687501325::1782319144::0::1::::<>Fluid2D<><>0<>1<><>::
@@ -21,11 +21,11 @@ fluid_2d_shader_renderer.gd::GDScript::1153928655632662277::1782319144::0::1::::
 godot-rapier2d.gdextension::GDExtension::6464857025447911873::1782319144::0::1::::<><><>0<>0<><>::
 logo_square_2d.png::CompressedTexture2D::9002049772566657075::1782319146::1782319144::1::::<><><>0<>0<>b503ebbccf6e6a46955b8200090051e5<>res://.godot/imported/logo_square_2d.png-ee7cb55fd9c4d1815ce7e83cd5401198.ctex::
 plugin.info.cfg::TextFile::-1::1782319144::0::1::::<><><>0<>0<><>::
-Radial2D.svg::CompressedTexture2D::5294797171325615259::1782319145::1783454382::1::::<><><>0<>0<>1bc62197614fc00072e42040575d98c4<>res://.godot/imported/Radial2D.svg-4380d9841bddc115105cff2016be7c6a.ctex::
+Radial2D.svg::CompressedTexture2D::5294797171325615259::1782319145::1784659538::1::::<><><>0<>0<>1bc62197614fc00072e42040575d98c4<>res://.godot/imported/Radial2D.svg-4380d9841bddc115105cff2016be7c6a.ctex::
 THIRDPARTY.txt::TextFile::-1::1782319145::0::1::::<><><>0<>0<><>::
 water_shader.gdshader::Shader::5244640210084459761::1782319144::0::1::::<><><>0<>0<><>::
 water_shader.tres::ShaderMaterial::6495341302912672044::1782319144::0::1::::<><><>0<>0<><>::res://addons/godot-rapier2d/water_shader.gdshader
-::res://addons/godot-rapier2d/bin/::1784228009
+::res://addons/godot-rapier2d/bin/::1784667861
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.arm64.framework/::1782319145
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.ios.x86_64.framework/::1782319145
 ::res://addons/godot-rapier2d/bin/libgodot_rapier.macos.framework/::1782319145
@@ -42,8 +42,8 @@ rapier_physical_bone_2d.gd::GDScript::6341721350451337327::1782319146::0::1::::R
 rapier_pin_joint_2d.gd::GDScript::3916190429106199850::1782319146::0::1::::RapierPinJoint2D<>PinJoint2D<><>0<>0<><>::
 rapier_rigid_body_2d.gd::GDScript::1431962763040487152::1782319146::0::1::::RapierRigidBody2D<>RigidBody2D<><>0<>0<><>::
 rapier_static_body_2d.gd::GDScript::3827589778013951087::1782319146::0::1::::RapierStaticBody2D<>StaticBody2D<><>0<>0<><>::
-::res://addons/godot-rapier2d/icons/::1783454382
-Fluid2D.svg::CompressedTexture2D::6302457331682152295::1782319146::1783454382::1::::<><><>0<>0<>231d9337dcdbf2f181060f8de7d5904c<>res://.godot/imported/Fluid2D.svg-af3237d9aa7357bf47435150f6228e4b.ctex::
+::res://addons/godot-rapier2d/icons/::1784659538
+Fluid2D.svg::CompressedTexture2D::6302457331682152295::1782319146::1784659538::1::::<><><>0<>0<>231d9337dcdbf2f181060f8de7d5904c<>res://.godot/imported/Fluid2D.svg-af3237d9aa7357bf47435150f6228e4b.ctex::
 StateManager2D.svg::CompressedTexture2D::1277279720193679363::1782319146::1782319146::1::::<><><>0<>0<>92267b7a9348dcef3639d0308e65795b<>res://.godot/imported/StateManager2D.svg-1a4e1b526e80995b692903b1eb5c9c70.ctex::
 ::res://addons/godotsteam_server/::1782696570
 godotsteam_plugin.gd::GDScript::3760372618818852495::1782696452::0::1::::GodotSteamServerPlugin<>EditorPlugin<><>0<>1<><>::
@@ -164,7 +164,7 @@ SfDistantGalaxySymbolsItalic-EXv9.ttf::FontFile::1516899757451917325::1779223732
 ::res://Assets/Fonts/sf-distant-galaxy-font/misc/::1779223732
 ::res://Assets/Graphics/::1779387429
 BaseEnemyIconForGame.png::CompressedTexture2D::5912239405152103642::1779387427::1779387429::1::::<><><>0<>0<>9d8e97ae7103798c8650eba706722509<>res://.godot/imported/BaseEnemyIconForGame.png-d60ddf6f3db3dc561faa6c815d4625d6.ctex::
-::res://Assets/Songs/::1780597052
+::res://Assets/Songs/::1784664707
 A New Planet.mp3::AudioStreamMP3::6927406375817783018::1780595037::1780597052::1::::<><><>0<>0<>7b3c4d530eb98cf07dc1b4e3781d4339<>res://.godot/imported/A New Planet.mp3-a345497354d6064fd1a783145f8f6446.mp3str::
 A New Thread Ambience.mp3::AudioStreamMP3::3072115801758430353::1780591825::1780593488::1::::<><><>0<>0<>56dd8e7d4cfd28a8547f3e7a010b4c57<>res://.godot/imported/A New Thread Ambience.mp3-195617cc21cec300a8bc59a14e49b346.mp3str::
 A New Thread.mp3::AudioStreamMP3::8497624015251437761::1780591564::1780593489::1::::<><><>0<>0<>e0113ea5ed49abdf53f11ab43caa79e4<>res://.godot/imported/A New Thread.mp3-e733c78814b0567d1b8cc603b2934c66.mp3str::
@@ -176,7 +176,7 @@ Cosmic Bass.wav::AudioStreamWAV::323963802199306733::1779223366::1779223366::1::
 Cosmic Journey Background.mp3::AudioStreamMP3::4636816322834567064::1780591771::1780593489::1::::<><><>0<>0<>e102b52846605ca893527e45f145b0b1<>res://.godot/imported/Cosmic Journey Background.mp3-1da096a3ea95bc0584fecc28ba0871c7.mp3str::
 Cosmic Journey Epic.mp3::AudioStreamMP3::7515052087951070634::1780591809::1780593489::1::::<><><>0<>0<>0747609c390f61ca19256b2d89cbb8ee<>res://.godot/imported/Cosmic Journey Epic.mp3-879fb4a62c7cc6cb8f02077ffad27475.mp3str::
 Crash Landing.mp3::AudioStreamMP3::7226735054393786623::1780595241::1780597052::1::::<><><>0<>0<>8d87e6726e0f89e1767e02ce1c6559c0<>res://.godot/imported/Crash Landing.mp3-ab1e3774006fec949c9c18ac774896a9.mp3str::
-Dawn on A New Planet.mp3::AudioStreamMP3::7880574577382950222::1780591666::1780593489::1::::<><><>0<>0<>0a799510061ef82a1b6d94b3ab60af58<>res://.godot/imported/Dawn on A New Planet.mp3-8c53dfe6edee5f7fb4addd1e94e1a679.mp3str::
+Dawn on A New Planet.mp3::AudioStreamMP3::7880574577382950222::1780591666::1784664707::1::::<><><>0<>0<>94a4b998d4b25a6dcb9444570fd7223b<>res://.godot/imported/Dawn on A New Planet.mp3-8c53dfe6edee5f7fb4addd1e94e1a679.mp3str::
 Fragments of a Forgotten Futur.mp3::AudioStreamMP3::5229367976777555378::1780596004::1780597052::1::::<><><>0<>0<>a975c4900ae8d22e1b47068c93b757a1<>res://.godot/imported/Fragments of a Forgotten Futur.mp3-053afa6c57fa307652ee58184e36c85e.mp3str::
 Gravity Bloom.mp3::AudioStreamMP3::4186434197873512966::1780591848::1780593489::1::::<><><>0<>0<>c6512e9b2daa781e73bdb5407fecbe4d<>res://.godot/imported/Gravity Bloom.mp3-c0420ecd488a79648aed1e57bf59861c.mp3str::
 Green Flame Ultra.mp3::AudioStreamMP3::6544922092252037969::1779223366::1779223366::1::::<><><>0<>0<>b524064e560fcfbea19be00d37c5ca34<>res://.godot/imported/Green Flame Ultra.mp3-805d00ce0787aff5c1dbf37ebb682137.mp3str::
@@ -194,7 +194,7 @@ The Abyss Intro.wav::AudioStreamWAV::2187263912102146407::1779223366::1779223366
 The Abyss.wav::AudioStreamWAV::7479122242740707145::1779223366::1779223366::1::::<><><>0<>0<>c0a8dc23bec5a81576ebcc3f83080878<>res://.godot/imported/The Abyss.wav-be073fd6e6d26119ccb080916834da9b.sample::
 The Arrival.mp3::AudioStreamMP3::4152876535795113649::1779223366::1780593489::1::::<><><>0<>0<>8d301e421fbbfdcda6ca2adeb3d2b90b<>res://.godot/imported/The Arrival.mp3-38796caa9d9fcd2859a1c2a0e511ebee.mp3str::
 The Long Drift.mp3::AudioStreamMP3::7728835909477076334::1779223366::1779223489::1::::<><><>0<>0<>427c89bb504a9cdabdbab98cf020ae3f<>res://.godot/imported/The Long Drift.mp3-b17b73d9bdac4cfc590c31b190d21ea1.mp3str::
-The Neural Drift Threshold.mp3::AudioStreamMP3::7644277458495359410::1780591744::1780593489::1::::<><><>0<>0<>2a7669b13f8e24d735f9ca67d234ce6b<>res://.godot/imported/The Neural Drift Threshold.mp3-81835df63ff57ab6ed240ad8ca2684eb.mp3str::
+The Neural Drift Threshold.mp3::AudioStreamMP3::7644277458495359410::1780591744::1784664707::1::::<><><>0<>0<>6e3e9403b3d27c440695df833b442597<>res://.godot/imported/The Neural Drift Threshold.mp3-81835df63ff57ab6ed240ad8ca2684eb.mp3str::
 The Tomb of Galaxies.mp3::AudioStreamMP3::2287524781128841765::1780595965::1780597052::1::::<><><>0<>0<>11287fe472c60b731eb66ac47551b208<>res://.godot/imported/The Tomb of Galaxies.mp3-653e876aca69926701e771e629e5228d.mp3str::
 The Town.mp3::AudioStreamMP3::4166842732483362886::1780591763::1780593489::1::::<><><>0<>0<>31e8b13c91d2e6de9308471ff4a749cd<>res://.godot/imported/The Town.mp3-13208fed55b737e731280f15045bbab0.mp3str::
 The Universe Says Hello.mp3::AudioStreamMP3::4754408799335143535::1780591788::1780593489::1::::<><><>0<>0<>c84489b6136966bae3b18df549654356<>res://.godot/imported/The Universe Says Hello.mp3-c45ff2524ee88db7597ea97d282c3902.mp3str::
@@ -387,7 +387,8 @@ VECTOR_ANOMALY_IMPLEMENTATION_NOTES.md::TextFile::-1::1782484953::0::1::::<><><>
 vector_anomaly_performance_audit_markdown.md::TextFile::-1::1780333240::0::1::::<><><>0<>0<><>::
 VECTOR_ANOMALY_PRODUCTION_ROADMAP.md::TextFile::-1::1782429758::0::1::::<><><>0<>0<><>::
 vector_anomaly_similarity_blueprint.md::TextFile::-1::1782226445::0::1::::<><><>0<>0<><>::
-::res://docs/::1782483075
+::res://docs/::1784229661
+SEED_CODES.md::TextFile::-1::1784229661::0::1::::<><><>0<>0<><>::
 ::res://examples/::1779223367
 collisions.tscn::PackedScene::4212835744329476512::1779223367::0::1::::<><><>0<>0<><>::uid://dhdc4b8yddyej::::res://addons/rmsmartshape/shapes/shape.gd<>uid://bwcf4pjgprn0k::::res://addons/rmsmartshape/shapes/point.gd<>uid://bo5f7qe27jfje::::res://addons/rmsmartshape/shapes/point_array.gd<>uid://llobjh5hvry::::res://addons/rmsmartshape/shapes/mesh.gd<>uid://8l501jrnaqt8::::res://icon.png<>uid://0lhxan4cqrc1::::res://addons/rmsmartshape/materials/edge_material_metadata.gd<>uid://nc5bfedvnpgm::::res://addons/rmsmartshape/materials/shape_material.gd<>uid://d0xjijisx1woh::::res://addons/rmsmartshape/materials/edge_material.gd<>uid://d218yx0d1ilsn::::res://addons/rmsmartshape/normal_range.gd
 ::res://examples/edge_shader/::1779223367
@@ -436,13 +437,13 @@ vector_anomaly_mod.json::JSON::-1::1782333771::0::1::::<><><>0<>0<><>::
 vector_anomaly_mod.json::JSON::-1::1782311510::0::1::::<><><>0<>0<><>::
 ::res://Mods/space_oregon_trail/::1782311478
 vector_anomaly_mod.json::JSON::-1::1782429791::0::1::::<><><>0<>0<><>::
-::res://Nodes/::1783801601
+::res://Nodes/::1784665972
 accretion_core_boss.tscn::PackedScene::-1::1779472405::0::1::::<><><>0<>0<><>::res://Scripts/Bosses/accretion_core_boss.gd
 adaptive_music_state_director.tscn::PackedScene::7396446591978758113::1781542199::0::1::::<><><>0<>0<><>::uid://ndmkumwhqws4::::res://Scripts/adaptive_music_state_director.gd
 arena_destabilization_manager.tscn::PackedScene::445768193153712680::1779223366::0::1::::<><><>0<>0<><>::uid://bldsjmtcko3dx::::res://Scripts/arena_destabilization_manager.gd
 arena_instability_director.tscn::PackedScene::-1::1780523602::0::1::::<><><>0<>0<><>::res://Scripts/arena_instability_director.gd
 arena_rule_director.tscn::PackedScene::-1::1779814685::0::1::::<><><>0<>0<><>::res://Scripts/arena_rule_director.gd
-base_enemy.tscn::PackedScene::4326747738925883807::1782360745::0::1::::<><><>0<>0<><>::uid://qcu4ivo8kkyo::::res://Scripts/base_enemy.gd<>uid://0was6kja082a::::res://icon.svg<>uid://cg2u575obenyk::::res://Scripts/base_enemy_gpu_particles.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd
+base_enemy.tscn::PackedScene::4326747738925883807::1784571831::0::1::::<><><>0<>0<><>::uid://qcu4ivo8kkyo::::res://Scripts/base_enemy.gd<>uid://0was6kja082a::::res://icon.svg<>uid://cg2u575obenyk::::res://Scripts/base_enemy_gpu_particles.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd
 base_shooter_enemy.tscn::PackedScene::7022499863564439837::1780176409::0::1::::<><><>0<>0<><>::uid://p3fa0lx4jpnk::::res://Scripts/base_shooter_enemy.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd
 black_hole.tscn::PackedScene::922935165722440768::1781799062::0::1::::<><><>0<>0<><>::uid://35eechylswi3::::res://Scripts/black_hole.gd
 boss_v_player.tscn::PackedScene::7945192654685178317::1779469119::0::1::::<><><>0<>0<><>::uid://bar4e30caja5p::::res://Nodes/player.tscn<>uid://cqdqshk4xbg5q::::res://Nodes/planet_1.tscn
@@ -477,7 +478,7 @@ event_horizon_warden.tscn::PackedScene::-1::1780078024::0::1::::<><><>0<>0<><>::
 extradimensional_breacher_boss.tscn::PackedScene::3987616707166811553::1780528723::0::1::::<><><>0<>0<><>::uid://qum8r21iu82q::::res://Scripts/Bosses/extradimensional_breacher_boss.gd
 fair_pacing_director.tscn::PackedScene::-1::1779820406::0::1::::<><><>0<>0<><>::res://Scripts/fair_pacing_director.gd
 gameplay_teaching_director.tscn::PackedScene::-1::1781198333::0::1::::<><><>0<>0<><>::res://Scripts/gameplay_teaching_director.gd
-game_over_scene.tscn::PackedScene::-1::1782225417::0::1::::<><><>0<>0<><>::res://Scripts/game_over_scene.gd<>res://Scripts/pause_menu.gdshader<>res://Nodes/gravity_ghost_replay_panel.tscn
+game_over_scene.tscn::PackedScene::1382625305609850038::1784665972::0::1::::<><><>0<>0<><>::uid://bg6fx5lq0qwpq::::res://Scripts/game_over_scene.gd<>uid://cwu0khh13q40b::::res://Scripts/pause_menu.gdshader<>res://Nodes/gravity_ghost_replay_panel.tscn
 gravimetric_echo_drone.tscn::PackedScene::-1::1780078024::0::1::::<><><>0<>0<><>::res://Scripts/gravimetric_echo_drone.gd
 gravity_component.tscn::PackedScene::8136832031136795303::1779223366::0::1::::<><><>0<>0<><>::uid://baqf8o2ugmdvj::::res://Scripts/gravity_component.gd
 gravity_ghost_recorder.tscn::PackedScene::-1::1782082558::0::1::::<><><>0<>0<><>::res://Scripts/gravity_ghost_recorder.gd
@@ -514,6 +515,8 @@ orbital_null_harvester.tscn::PackedScene::-1::1780078024::0::1::::<><><>0<>0<><>
 orbital_vfx_director.tscn::PackedScene::6427889306312372321::1779567728::0::1::::<><><>0<>0<><>::uid://ysht4fr46t1t::::res://Scripts/orbital_vfx_director.gd
 orbiter_drone.tscn::PackedScene::-1::1779473111::0::1::::<><><>0<>0<><>::res://Scripts/orbiter_drone.gd
 orbit_weaver.tscn::PackedScene::-1::1781282273::0::1::::<><><>0<>0<><>::res://Scripts/orbit_weaver.gd
+parametric_pulsator.tscn::PackedScene::6981382740883256587::1784664458::0::1::::<><><>0<>0<><>::uid://couhvutyvq7yd::::res://Scripts/parametric_pulsator.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd<>uid://baqf8o2ugmdvj::::res://Scripts/gravity_component.gd<>uid://cg2u575obenyk::::res://Scripts/base_enemy_gpu_particles.gd
+parametric_wave_skimmer.tscn::PackedScene::-1::1784660413::0::1::::<><><>0<>0<><>::res://Scripts/parametric_wave_skimmer.gd
 particle_focus_culler.tscn::PackedScene::-1::1780523303::0::1::::<><><>0<>0<><>::res://Scripts/particle_focus_culler.gd
 pause_menu.gd::GDScript::1729526746744302322::1779223366::0::1::::<>Control<><>0<>0<><>::
 pause_menu.tscn::PackedScene::566135867962158278::1782334816::0::1::::<><><>0<>0<><>::uid://cwyg6qwvvq32k::::res://Scripts/pause_menu.gd<>uid://did52e0ygxwb3::::res://Assets/Songs/The Long Drift.mp3<>uid://cwu0khh13q40b::::res://Scripts/pause_menu.gdshader
@@ -526,7 +529,7 @@ physics_drop_system.tscn::PackedScene::-1::1780523455::0::1::::<><><>0<>0<><>::r
 planet_1.tscn::PackedScene::5903059999491356604::1780505123::0::1::::<><><>0<>0<><>::uid://cd3do4wymy0lx::::res://Scripts/planet_1.gd<>uid://b3opol4m0r28b::::res://Scripts/planet_1.gdshader
 planet_atmosphere_dust.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/planet_atmosphere_dust.gd
 playable_tutorial.tscn::PackedScene::-1::1780526573::0::1::::<><><>0<>0<><>::res://Scripts/playable_tutorial_director.gd<>res://Nodes/player.tscn<>res://Nodes/planet_1.tscn<>res://Nodes/base_enemy.tscn<>res://Nodes/weapon_system.tscn<>res://Nodes/gravity_resonance_manager.tscn<>res://Nodes/gravity_scar_manager.tscn<>res://Scripts/time_dilation_manager.gd
-player.tscn::PackedScene::2423284550843104339::1782329337::0::1::::<><><>0<>0<><>::uid://cjj4qrhruwneh::::res://Scripts/player.gd<>uid://bqvpda2clw7pg::::res://Scripts/player_shield.gd<>uid://msjv4m5smmjt::::res://Scripts/playershield.gdshader<>uid://icif7lpmm2a1::::res://Nodes/pause_menu.tscn<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd<>uid://dpsx3wfpdu82q::::res://Scripts/energy_component.gd<>uid://bwdttw7llfjht::::res://Assets/Sound Effects/PlayerShoot.wav<>uid://br88kgexjpay7::::res://Scripts/gravity_visualization_component.gd<>uid://8e10xg8c2op6::::res://Scripts/projectile_predictor.gd<>uid://y7se2euonj6q::::res://Scripts/player_hull.gdshader<>uid://dlhwl6q76wxwo::::res://Scripts/orbital_trajectory_predictor.gd
+player.tscn::PackedScene::2423284550843104339::1784665263::0::1::::<><><>0<>0<><>::uid://cjj4qrhruwneh::::res://Scripts/player.gd<>uid://bqvpda2clw7pg::::res://Scripts/player_shield.gd<>uid://msjv4m5smmjt::::res://Scripts/playershield.gdshader<>uid://icif7lpmm2a1::::res://Nodes/pause_menu.tscn<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd<>uid://dpsx3wfpdu82q::::res://Scripts/energy_component.gd<>uid://bwdttw7llfjht::::res://Assets/Sound Effects/PlayerShoot.wav<>uid://i6fhtodnnkja::::res://Scripts/orbital_trajectory_predictor.gd<>uid://br88kgexjpay7::::res://Scripts/gravity_visualization_component.gd<>uid://8e10xg8c2op6::::res://Scripts/projectile_predictor.gd<>uid://y7se2euonj6q::::res://Scripts/player_hull.gdshader
 player_damage_camera_shake.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/player_damage_camera_shake.gd
 player_death_explosion.tscn::PackedScene::7287011342405606272::1779223366::0::1::::<><><>0<>0<><>::
 player_engine_hum.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/player_engine_hum.gd
@@ -564,7 +567,7 @@ splitting_asteroid_bot.tscn::PackedScene::-1::1779473104::0::1::::<><><>0<>0<><>
 stress_test_director.tscn::PackedScene::-1::1779383709::0::1::::<><><>0<>0<><>::res://Scripts/stress_test_director.gd
 the_abyss.tscn::PackedScene::2778582691990093799::1781559708::0::1::::<><><>0<>0<><>::uid://b21qhaniop41p::::res://Scripts/the_abyss.gd<>uid://bar4e30caja5p::::res://Nodes/player.tscn<>uid://nfcuwc1hcu21::::res://Nodes/black_hole.tscn<>uid://dk5kb2f3tf0y7::::res://Scripts/time_dilation_manager.gd<>uid://bik4q8pcaj1vy::::res://Scripts/orbital_juice_manager.gd
 time_dilation_manager.tscn::PackedScene::23118348817232646::1782276130::0::1::::<><><>0<>0<><>::uid://dk5kb2f3tf0y7::::res://Scripts/time_dilation_manager.gd
-title_screen.tscn::PackedScene::9204183084617661237::1783801601::0::1::::<><><>0<>0<><>::uid://dhdhg4km4qnd8::::res://Scripts/title_screen.gd<>uid://cou7kmndp04qt::::res://Assets/Songs/Orbital Drift.mp3<>uid://bni12e87in5aq::::res://Assets/Fonts/edge-of-the-galaxy-font/EdgeOfTheGalaxyRegular-OVEa6.otf<>uid://l80cn0kfl5wl::::res://Assets/Fonts/sf-distant-galaxy-font/SfDistantGalaxyAlternate-OE4d.ttf<>uid://cwu0khh13q40b::::res://Scripts/pause_menu.gdshader<>uid://cqdqshk4xbg5q::::res://Nodes/planet_1.tscn<>uid://dk5kb2f3tf0y7::::res://Scripts/time_dilation_manager.gd<>uid://daytuijrlty5v::::res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn<>uid://ch82c26sdlrmq::::res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn<>uid://bmw0r3gq3jjlo::::res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn<>res://Nodes/ParametricEquationEnemies/parametric_enemy_4.tscn<>uid://c10f52t6u7nk2::::res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn<>uid://b2v55yaahtgwt::::res://Nodes/base_enemy.tscn<>uid://c7b0subtq6kgr::::res://Nodes/base_shooter_enemy.tscn<>uid://deeaihs58vwn::::res://Nodes/gravity_leech.tscn<>uid://c1rfva2x24bjk::::res://Nodes/leech_parasite.tscn
+title_screen.tscn::PackedScene::9204183084617661237::1784663296::0::1::::<><><>0<>0<><>::uid://dhdhg4km4qnd8::::res://Scripts/title_screen.gd<>uid://cou7kmndp04qt::::res://Assets/Songs/Orbital Drift.mp3<>uid://bni12e87in5aq::::res://Assets/Fonts/edge-of-the-galaxy-font/EdgeOfTheGalaxyRegular-OVEa6.otf<>uid://l80cn0kfl5wl::::res://Assets/Fonts/sf-distant-galaxy-font/SfDistantGalaxyAlternate-OE4d.ttf<>uid://cwu0khh13q40b::::res://Scripts/pause_menu.gdshader<>uid://cqdqshk4xbg5q::::res://Nodes/planet_1.tscn<>uid://dk5kb2f3tf0y7::::res://Scripts/time_dilation_manager.gd<>uid://daytuijrlty5v::::res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn<>uid://ch82c26sdlrmq::::res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn<>uid://bmw0r3gq3jjlo::::res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn<>res://Nodes/ParametricEquationEnemies/parametric_enemy_4.tscn<>uid://c10f52t6u7nk2::::res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn<>uid://b2v55yaahtgwt::::res://Nodes/base_enemy.tscn<>uid://c7b0subtq6kgr::::res://Nodes/base_shooter_enemy.tscn<>uid://deeaihs58vwn::::res://Nodes/gravity_leech.tscn<>uid://1xcm8dxwmaaf::::res://Assets/Fonts/edge-of-the-galaxy-font/EdgeOfTheGalaxyItalic-ZVJB3.otf<>uid://c1rfva2x24bjk::::res://Nodes/leech_parasite.tscn
 unstable_moon.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/unstable_moon.gd
 vector_anomaly_director.tscn::PackedScene::-1::1780418480::0::1::::<><><>0<>0<><>::res://Scripts/vector_anomaly_director.gd
 vector_hud_glyph.tscn::PackedScene::-1::1782084912::0::1::::<><><>0<>0<><>::res://Scripts/vector_hud_glyph.gd
@@ -575,18 +578,18 @@ weapon_system.tscn::PackedScene::-1::1780002278::0::1::::<><><>0<>0<><>::res://S
 wormhole_pair.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/wormhole_pair.gd
 ::res://Nodes/OptionalGameplay/::1782484702
 anomaly_rift_demo.tscn::PackedScene::-1::1782485053::0::1::::<><><>0<>0<><>::res://Scripts/OptionalGameplay/optional_challenge_director.gd<>res://Scripts/OptionalGameplay/anomaly_rift_portal.gd<>res://Scripts/OptionalGameplay/anomaly_shard.gd<>res://Scripts/OptionalGameplay/blackbox_tape.gd<>res://Scripts/OptionalGameplay/momentum_door.gd<>res://Scripts/OptionalGameplay/vector_tunnel.gd<>res://Scripts/OptionalGameplay/secret_movement_tech_detector.gd<>res://Scripts/OptionalGameplay/anomaly_ghost_echo.gd
-::res://Nodes/ParametricEquationEnemies/::1781286027
+::res://Nodes/ParametricEquationEnemies/::1784663138
 parametric_enemy_1.tscn::PackedScene::7209996890795316889::1780079650::0::1::::<><><>0<>0<><>::uid://bveb1b5k8o8hp::::res://Scripts/ParametricEquationScripts/parametric_enemy_1.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd<>uid://baqf8o2ugmdvj::::res://Scripts/gravity_component.gd
 parametric_enemy_2.tscn::PackedScene::5333932135970595572::1780079652::0::1::::<><><>0<>0<><>::uid://bwsalobcwxpw7::::res://Scripts/ParametricEquationScripts/parametric_enemy_2.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd<>uid://baqf8o2ugmdvj::::res://Scripts/gravity_component.gd
 parametric_enemy_3.tscn::PackedScene::3275652881941728816::1779484370::0::1::::<><><>0<>0<><>::uid://covdf2sq84ag4::::res://Scripts/ParametricEquationScripts/parametric_enemy_3.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd<>uid://baqf8o2ugmdvj::::res://Scripts/gravity_component.gd
 parametric_enemy_4.tscn::PackedScene::-1::1779223366::0::1::::<><><>0<>0<><>::res://Scripts/ParametricEquationScripts/parametric_enemy_2.gd<>res://Scripts/health_component.gd<>res://Scripts/gravity_component.gd
 parametric_enemy_5.tscn::PackedScene::6649719353525753475::1779223366::0::1::::<><><>0<>0<><>::uid://bwsalobcwxpw7::::res://Scripts/ParametricEquationScripts/parametric_enemy_2.gd<>uid://cgo7omjjvv108::::res://Scripts/health_component.gd<>uid://baqf8o2ugmdvj::::res://Scripts/gravity_component.gd
-parametric_testing_center.tscn::PackedScene::1380952387068365029::1781286027::0::1::::<><><>0<>0<><>::uid://dlsujt2aetdca::::res://Nodes/pulsating_gravity_spawner.tscn<>uid://bar4e30caja5p::::res://Nodes/player.tscn<>uid://dpot33bourpdy::::res://Nodes/gravity_wave_maker.tscn
+parametric_testing_center.tscn::PackedScene::1380952387068365029::1784663138::0::1::::<><><>0<>0<><>::uid://bi5choc6fpiji::::res://Scripts/parametric_testing_center.gd<>uid://dlsujt2aetdca::::res://Nodes/pulsating_gravity_spawner.tscn<>uid://bar4e30caja5p::::res://Nodes/player.tscn<>uid://dpot33bourpdy::::res://Nodes/gravity_wave_maker.tscn<>uid://c6p3ma61jn8eh::::res://Nodes/parametric_pulsator.tscn<>res://Nodes/parametric_wave_skimmer.tscn<>uid://daytuijrlty5v::::res://Nodes/ParametricEquationEnemies/parametric_enemy_1.tscn<>uid://ch82c26sdlrmq::::res://Nodes/ParametricEquationEnemies/parametric_enemy_2.tscn<>uid://bmw0r3gq3jjlo::::res://Nodes/ParametricEquationEnemies/parametric_enemy_3.tscn<>res://Nodes/ParametricEquationEnemies/parametric_enemy_4.tscn<>uid://c10f52t6u7nk2::::res://Nodes/ParametricEquationEnemies/parametric_enemy_5.tscn<>uid://b2v55yaahtgwt::::res://Nodes/base_enemy.tscn<>uid://c7b0subtq6kgr::::res://Nodes/base_shooter_enemy.tscn<>uid://1xcm8dxwmaaf::::res://Assets/Fonts/edge-of-the-galaxy-font/EdgeOfTheGalaxyItalic-ZVJB3.otf<>uid://cqdqshk4xbg5q::::res://Nodes/planet_1.tscn<>res://Nodes/planet_atmosphere_dust.tscn<>uid://dg57ervpb51fa::::res://Assets/Songs/The Neural Drift Threshold.mp3<>uid://dk5kb2f3tf0y7::::res://Scripts/time_dilation_manager.gd
 polymorph_boss.tscn::PackedScene::4922909907427867519::1779472477::0::1::::<><><>0<>0<><>::uid://bdc2mc1aldsf6::::res://Scripts/ParametricEquationScripts/polymorph_boss.gd
 SDL Log.txt::TextFile::-1::1779223366::0::1::::<><><>0<>0<><>::
 ::res://Nodes/resonance_zones/::1779467036
 resonance_zone_visual.tscn::PackedScene::-1::1780617222::0::1::::<><><>0<>0<><>::res://Scripts/resonance_zone_visual.gd
-::res://Scripts/::1783800754
+::res://Scripts/::1784665972
 _godot_check.gd::GDScript::7637899577734680835::1779223366::0::1::::<>SceneTree<><>0<>0<><>::
 _godot_check_all.gd::GDScript::8017831429787697617::1783004869::0::1::::<>SceneTree<><>0<>0<><>::
 adaptive_music_state_director.gd::GDScript::919395632423091337::1781540656::0::1::::AdaptiveMusicStateDirector<>Node<><>0<>0<><>::
@@ -630,7 +633,7 @@ event_horizon_director.gd::GDScript::8424724652642455370::1780505678::0::1::::Ev
 event_horizon_warden.gd::GDScript::6347301753751740200::1780505796::0::1::::EventHorizonWarden<>CharacterBody2D<><>0<>0<><>::
 fair_pacing_director.gd::GDScript::1941778617603451455::1780805212::0::1::::FairPacingDirector<>Node<><>0<>0<><>::
 gameplay_teaching_director.gd::GDScript::5619137494565754143::1781198333::0::1::::GameplayTeachingDirector<>CanvasLayer<><>0<>0<><>::
-game_over_scene.gd::GDScript::2871895707575176246::1782942365::0::1::::<>Control<><>0<>0<><>::
+game_over_scene.gd::GDScript::2871895707575176246::1784665972::0::1::::<>Control<><>0<>0<><>::
 gravimetric_echo_drone.gd::GDScript::188558047575089692::1781539986::0::1::::GravimetricEchoDrone<>CharacterBody2D<><>0<>0<><>::
 gravity_component.gd::GDScript::2419814021874574943::1782751120::0::1::::GravityComponent<>Node<><>0<>0<><>::
 gravity_component_test_runner.gd::GDScript::8765232107729011022::1779223366::0::1::::<>SceneTree<><>0<>0<><>::
@@ -664,7 +667,7 @@ multiplayer_targeting.gd::GDScript::8052171010494576005::1780806601::0::1::::Mul
 music_finale_director.gd::GDScript::2424844132607505912::1781495045::0::1::::<>Node<><>0<>0<><>::
 music_resonance_boss.gd::GDScript::1567290042278042288::1781201437::0::1::::MusicResonanceBoss<>PhaseBoss<><>0<>0<><>::
 nebula_cloud.gd::GDScript::320727597032300482::1779223366::0::1::::<>Area2D<><>0<>0<><>::
-network_session.gd::GDScript::3419408066386416339::1782837882::0::1::::NetworkSessionManager<>Node<><>0<>0<><>::
+network_session.gd::GDScript::3419408066386416339::1784229656::0::1::::NetworkSessionManager<>Node<><>0<>0<><>::
 new_circle_shape_2d.tres::CircleShape2D::2769419705516880249::1779223366::0::1::::<><><>0<>0<><>::
 orbital_hud.gd::GDScript::6719581749989024932::1782334371::0::1::::<>CanvasLayer<><>0<>0<><>::
 orbital_juice_manager.gd::GDScript::2970366332364540050::1782334358::0::1::::<>Node2D<><>0<>0<><>::
@@ -677,9 +680,13 @@ orbit_thread.gd::GDScript::4011578288156361990::1781282272::0::1::::OrbitThread<
 orbit_thread_anchor.gd::GDScript::1835760214849195129::1781282272::0::1::::OrbitThreadAnchor<>CharacterBody2D<><>0<>0<><>::
 orbit_weaver.gd::GDScript::7607463110087985321::1781282272::0::1::::OrbitWeaver<>CharacterBody2D<><>0<>0<><>::
 parametric_motion_component.gd::GDScript::8379096402876116259::1780418501::0::1::::ParametricMotionComponent<>Node2D<><>0<>0<><>::
+parametric_pulsator.gd::GDScript::5797236334958685763::1784656989::0::1::::ParametricPulsator<>CharacterBody2D<><>0<>0<><>::
+parametric_testing_center.gd::GDScript::3009997439794310402::1784663110::0::1::::<>Node2D<><>0<>0<><>::
+Parametric_Testing_Center_Health.gd::GDScript::1581569152155005308::1784662800::0::1::::<>Label<><>0<>0<><>::
+parametric_wave_skimmer.gd::GDScript::2987444482430913243::1784660412::0::1::::ParametricWaveSkimmer<>CharacterBody2D<><>0<>0<><>::
 particle_focus_culler.gd::GDScript::5845911365967279023::1783800754::0::1::::ParticleFocusCuller<>Node<><>0<>0<><>::
 pause_menu.gd::GDScript::6366961530430168320::1782398724::0::1::::<>Control<><>0<>0<><>::
-pause_menu.gdshader::Shader::6359819644958804231::1783800753::0::1::::<><><>0<>0<><>::
+pause_menu.gdshader::Shader::6359819644958804231::1784665263::0::1::::<><><>0<>0<><>::
 pebble_of_reckoning.gd::GDScript::8855493015747433739::1781540201::0::1::::PebbleOfReckoning<>CharacterBody2D<><>0<>0<><>::
 performance_budget_director.gd::GDScript::8213096334148852219::1783004584::0::1::::PerformanceBudgetDirector<>Node<><>0<>0<><>::
 periapsis_mantis.gd::GDScript::8767823081166773437::1781539734::0::1::::PeriapsisMantis<>CharacterBody2D<><>0<>0<><>::
@@ -689,12 +696,12 @@ physics_aware_enemy_director.gd::GDScript::4919423037199566154::1781283566::0::1
 physics_drop.gd::GDScript::6564770331211235020::1782310999::0::1::::PhysicsDrop<>Area2D<><>0<>0<><>::
 physics_drop_system.gd::GDScript::8423181302644099560::1781539751::0::1::::PhysicsDropSystem<>Node<><>0<>0<><>::
 planet_1.gd::GDScript::5041419185777251057::1781384437::0::1::::<>StaticBody2D<><>0<>0<><>::
-planet_1.gdshader::Shader::4381545973256523815::1783800753::0::1::::<><><>0<>0<><>::
+planet_1.gdshader::Shader::4381545973256523815::1784665263::0::1::::<><><>0<>0<><>::
 planet_atmosphere_dust.gd::GDScript::7609698741783299846::1779223366::0::1::::<>Node2D<><>0<>0<><>::
 playable_tutorial_director.gd::GDScript::5035035054781794395::1782233576::0::1::::PlayableTutorialDirector<>Node2D<><>0<>0<><>::
-player.gd::GDScript::5424910629918329491::1782837617::0::1::::<>CharacterBody2D<><>0<>0<><>::
-player.gdshader::Shader::6169009076136816292::1783800753::0::1::::<><><>0<>0<><>::
-playershield.gdshader::Shader::880010420938775349::1783800753::0::1::::<><><>0<>0<><>::
+player.gd::GDScript::5424910629918329491::1784665263::0::1::::<>CharacterBody2D<><>0<>0<><>::
+player.gdshader::Shader::6169009076136816292::1784665263::0::1::::<><><>0<>0<><>::
+playershield.gdshader::Shader::880010420938775349::1784665263::0::1::::<><><>0<>0<><>::
 player_damage_camera_shake.gd::GDScript::234362575886560579::1780523957::0::1::::<>Node<><>0<>0<><>::
 player_engine_hum.gd::GDScript::5069761183290189784::1779223366::0::1::::<>AudioStreamPlayer2D<><>0<>0<><>::
 player_hull.gdshader::Shader::1751693809725717146::1779467023::0::1::::<><><>0<>0<><>::
@@ -720,11 +727,11 @@ resonance_paralytic_construct.gd::GDScript::5745857980682740074::1780676931::0::
 resonance_zone_visual.gd::GDScript::3733312596977156171::1779467508::0::1::::ResonanceZoneVisual<>Node2D<><>0<>0<><>::
 run_director.gd::GDScript::4989774271595146815::1781541160::0::1::::<>Node<><>0<>0<><>::
 run_loading_screen.gd::GDScript::1832083902877576414::1782333069::0::1::::<>Control<><>0<>0<><>::
-run_progress.gd::GDScript::8557464960202639869::1782483147::0::1::::<>Node<><>0<>0<><>::
+run_progress.gd::GDScript::8557464960202639869::1784229648::0::1::::<>Node<><>0<>0<><>::
 run_score_tracker.gd::GDScript::5831843312323879168::1781487749::0::1::::RunScoreTracker<>Node<><>0<>0<><>::
 run_story_arc_director.gd::GDScript::2294210350372322633::1780001533::0::1::::RunStoryArcDirector<>CanvasLayer<><>0<>0<><>::
 run_transition_director.gd::GDScript::2188650045680637252::1781312984::0::1::::RunTransitionDirector<>CanvasLayer<><>0<>0<><>::
-run_variation_director.gd::GDScript::3965295072505860307::1779661745::0::1::::RunVariationDirector<>Node<><>0<>0<><>::
+run_variation_director.gd::GDScript::3965295072505860307::1784229651::0::1::::RunVariationDirector<>Node<><>0<>0<><>::
 rupture_director.gd::GDScript::6798971582394627091::1781539746::0::1::::<>Node<><>0<>0<><>::
 secret_boss_director.gd::GDScript::4071963840278410730::1780009558::0::1::::SecretBossDirector<>Node<><>0<>0<><>::
 secret_law_boss.gd::GDScript::2275619901518672992::1781494578::0::1::::SecretLawBoss<>PhaseBoss<><>0<>0<><>::
@@ -734,21 +741,21 @@ shielder_support.gd::GDScript::3824832890250223367::1780079005::0::1::::<>Charac
 shield_breaker_unit.gd::GDScript::7462952044244857618::1780676872::0::1::::<>CharacterBody2D<><>0<>0<><>::
 skill_signature_director.gd::GDScript::2635357481461020670::1781540066::0::1::::SkillSignatureDirector<>Node2D<><>0<>0<><>::
 sniper_turret.gd::GDScript::8563286196848860194::1780676879::0::1::::<>StaticBody2D<><>0<>0<><>::
-spacetime_fabric.gdshader::Shader::7872623414899321536::1783800753::0::1::::<><><>0<>0<><>::
+spacetime_fabric.gdshader::Shader::7872623414899321536::1784665263::0::1::::<><><>0<>0<><>::
 spacetime_swim_director.gd::GDScript::2280776331422050987::1782010279::0::1::::SpacetimeSwimDirector<>Node2D<><>0<>0<><>::
 spacetime_tear_director.gd::GDScript::7720219517265331566::1781539831::0::1::::SpacetimeTearDirector<>Node2D<><>0<>0<><>::
 splitting_asteroid_bot.gd::GDScript::7146883491967441158::1780676902::0::1::::<>CharacterBody2D<><>0<>0<><>::
 stress_test_director.gd::GDScript::5471086307788581306::1781540071::0::1::::StressTestDirector<>Node2D<><>0<>0<><>::
 the_abyss.gd::GDScript::4336177276432400783::1781541740::0::1::::<>Node2D<><>0<>0<><>::
 time_dilation_manager.gd::GDScript::7923692202955274316::1782081035::0::1::::TimeDilationManager<>Node<><>0<>0<><>::
-title_screen.gd::GDScript::7657214362730325003::1782942404::0::1::::<>Control<><>0<>0<><>::
+title_screen.gd::GDScript::7657214362730325003::1784663296::0::1::::<>Control<><>0<>0<><>::
 unstable_moon.gd::GDScript::2075570130685602570::1779912650::0::1::::<>StaticBody2D<><>0<>0<><>::
-vector_anomaly_director.gd::GDScript::593592381794617284::1782335550::0::1::::VectorAnomalyDirector<>Node2D<><>0<>0<><>::
+vector_anomaly_director.gd::GDScript::593592381794617284::1784229774::0::1::::VectorAnomalyDirector<>Node2D<><>0<>0<><>::
 vector_hud_glyph.gd::GDScript::2178668894943558860::1782234076::0::1::::VectorHudGlyph<>Control<><>0<>0<><>::
 vector_runtime_registry.gd::GDScript::746752899681950620::1782837608::0::1::::VectorRuntimeRegistry<>Node<><>0<>0<><>::
 vector_tax_collector.gd::GDScript::5167280648878826228::1781494965::0::1::::VectorTaxCollector<>CharacterBody2D<><>0<>0<><>::
 visual_escalation_director.gd::GDScript::7404743603896140314::1780526434::0::1::::VisualEscalationDirector<>Node<><>0<>0<><>::
-wave_director.gd::GDScript::7099340195090699140::1782942562::0::1::::<>Node2D<><>0<>0<><>::
+wave_director.gd::GDScript::7099340195090699140::1784660415::0::1::::<>Node2D<><>0<>0<><>::
 weapon_system.gd::GDScript::6364723658512625332::1782691898::0::1::::WeaponSystem<>Node2D<><>0<>0<><>::
 wormhole_pair.gd::GDScript::1177768064709425769::1780591863::0::1::::<>Node2D<><>0<>0<><>::
 ::res://Scripts/Bosses/::1781200167
@@ -794,11 +801,11 @@ vacuum_collapse_injector.tres::Resource/PowerupDefinition::-1::1780077614::0::1:
 ::res://text_editor_themes/::1780078152
 ::res://website/::1781800335
 WebsiteInstructions.txt::TextFile::-1::1782246611::0::1::::<><><>0<>0<><>::
-::res://website/assets/::1781722397
+::res://website/assets/::1784665345
 favicon.svg::CompressedTexture2D::814135961864004544::1779826357::1779826540::1::::<><><>0<>0<>a2656a3c5aebabe49d97870d9b525a4f<>res://.godot/imported/favicon.svg-fe7cbf9471cfba4b95189cb5a4e0d63d.ctex::
 og-image.svg::CompressedTexture2D::7821495227541784849::1779826360::1779826540::1::::<><><>0<>0<>0373ee591dce9df149c419d2e34e941a<>res://.godot/imported/og-image.svg-16d8990cb50ed67397ccfe28649ec614.ctex::
 steam-library-hero.svg::CompressedTexture2D::6018656696419137024::1780617582::1781722396::1::::<><><>0<>0<>6c02cd1b91dcd9bfff78b171726f3ee4<>res://.godot/imported/steam-library-hero.svg-1439603e128f6aa5e4ab4484ea33ff16.ctex::
-vector-anomaly-key-art.png::CompressedTexture2D::2893112152461561753::1780617093::1781722397::1::::<><><>0<>0<>c2cba81b799f5b53087c85d880279a57<>res://.godot/imported/vector-anomaly-key-art.png-eb6d285b50df69831b39cf7f76ec1387.ctex::
+vector-anomaly-key-art.png::CompressedTexture2D::2893112152461561753::1784665341::1784665345::1::::<><><>0<>0<>c2cba81b799f5b53087c85d880279a57<>res://.godot/imported/vector-anomaly-key-art.png-eb6d285b50df69831b39cf7f76ec1387.ctex::
 vector-anomaly-logo.svg::CompressedTexture2D::1414740806156932174::1780617581::1781722396::1::::<><><>0<>0<>8cf61fed42386da0a8a6b043ca123da5<>res://.godot/imported/vector-anomaly-logo.svg-05a9302d82c3cc12f1463ff0738d83e1.ctex::
 ::res://website/modding/::1781801548
 manifest.schema.json::JSON::-1::1781801548::0::1::::<><><>0<>0<><>::

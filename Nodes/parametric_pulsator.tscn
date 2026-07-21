@@ -1,0 +1,130 @@
+[gd_scene format=3 uid="uid://c6p3ma61jn8eh"]
+
+[ext_resource type="Script" uid="uid://couhvutyvq7yd" path="res://Scripts/parametric_pulsator.gd" id="1_pulsator"]
+[ext_resource type="Script" uid="uid://cgo7omjjvv108" path="res://Scripts/health_component.gd" id="2_health"]
+[ext_resource type="Script" uid="uid://baqf8o2ugmdvj" path="res://Scripts/gravity_component.gd" id="3_gravity"]
+[ext_resource type="Script" uid="uid://cg2u575obenyk" path="res://Scripts/base_enemy_gpu_particles.gd" id="4_mrujj"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_contact"]
+radius = 62.0
+
+[sub_resource type="Gradient" id="Gradient_iwqt5"]
+offsets = PackedFloat32Array(0.41304347, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_4ap62"]
+gradient = SubResource("Gradient_iwqt5")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_i5e5b"]
+lifetime_randomness = 0.45
+particle_flag_disable_z = true
+emission_shape = 1
+emission_sphere_radius = 12.01
+initial_velocity_min = -100.0
+initial_velocity_max = 100.0
+orbit_velocity_min = -0.009999906
+orbit_velocity_max = 0.010000096
+gravity = Vector3(0, 0, 0)
+linear_accel_min = -10.000002
+linear_accel_max = 59.999996
+damping_max = 20.0
+scale_min = 6.0
+scale_max = 15.0
+color = Color(1, 0, 0.59607846, 1)
+color_ramp = SubResource("GradientTexture1D_4ap62")
+hue_variation_min = -0.5
+hue_variation_max = 0.49999997
+turbulence_enabled = true
+turbulence_noise_strength = 0.5
+turbulence_noise_scale = 2.044
+turbulence_noise_speed_random = 0.1
+
+[node name="ParametricPulsator" type="CharacterBody2D" unique_id=1195229801 groups=["Objects_With_Gravity", "ParametricEnemies", "elite", "enemies", "planets", "rare_enemy"]]
+motion_mode = 1
+script = ExtResource("1_pulsator")
+pulse_cooldown = 5.25
+bead_count = 4
+
+[node name="OrbitTrace" type="Line2D" parent="." unique_id=798045512]
+z_index = -2
+closed = true
+width = 1.4
+default_color = Color(0.44, 0.92, 1, 0.26)
+antialiased = true
+
+[node name="PhaseHalo" type="Line2D" parent="." unique_id=437974851]
+z_index = -1
+closed = true
+width = 2.2
+default_color = Color(0.72, 0.42, 1, 0.32)
+antialiased = true
+
+[node name="PulseTelegraph" type="Line2D" parent="." unique_id=521396299]
+visible = false
+z_index = 3
+closed = true
+width = 4.0
+default_color = Color(1, 0.86, 0.24, 0.42)
+antialiased = true
+
+[node name="BlackHoleHorizon" type="Line2D" parent="." unique_id=1983415403]
+visible = false
+z_index = 4
+closed = true
+width = 5.0
+default_color = Color(1, 0.18, 0.08, 0.24)
+antialiased = true
+
+[node name="BlackHoleShear" type="Line2D" parent="." unique_id=1814560815]
+visible = false
+z_index = 3
+closed = true
+width = 2.6
+default_color = Color(0.68, 0.38, 1, 0.18)
+antialiased = true
+
+[node name="Body" type="Polygon2D" parent="." unique_id=975489035]
+color = Color(0.44, 0.92, 1, 1)
+polygon = PackedVector2Array(0, -58, 16, -24, 56, -18, 28, 8, 42, 48, 0, 30, -42, 48, -28, 8, -56, -18, -16, -24)
+
+[node name="InnerCore" type="Polygon2D" parent="." unique_id=310773574]
+color = Color(0.72, 0.42, 1, 0.92)
+polygon = PackedVector2Array(0, -28, 24, 0, 0, 28, -24, 0)
+
+[node name="Collision" type="CollisionPolygon2D" parent="." unique_id=1826387163]
+polygon = PackedVector2Array(0, -58, 16, -24, 56, -18, 28, 8, 42, 48, 0, 30, -42, 48, -28, 8, -56, -18, -16, -24)
+
+[node name="Attack" type="Area2D" parent="." unique_id=1848876625]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Attack" unique_id=1159852808]
+shape = SubResource("CircleShape2D_contact")
+
+[node name="HealthComponent" type="Node" parent="." unique_id=1823056213]
+script = ExtResource("2_health")
+max_health = 640.0
+metadata/_custom_type_script = "uid://cgo7omjjvv108"
+
+[node name="GravityComponent" type="Node" parent="." unique_id=553203378]
+script = ExtResource("3_gravity")
+gravity_constant = 90.0
+min_gravity_distance = 70.0
+max_gravity_distance = 1600.0
+metadata/_custom_type_script = "uid://baqf8o2ugmdvj"
+
+[node name="GPUParticles2D2" type="GPUParticles2D" parent="." unique_id=661269967]
+z_index = -1
+position = Vector2(9, 0)
+amount = 50
+lifetime = 10.0
+speed_scale = 6.0
+randomness = 0.22
+fixed_fps = 60
+trail_enabled = true
+trail_lifetime = 1.0
+process_material = SubResource("ParticleProcessMaterial_i5e5b")
+script = ExtResource("4_mrujj")
+
+[connection signal="body_entered" from="Attack" to="." method="_on_attack_body_entered"]
+[connection signal="died" from="HealthComponent" to="." method="_on_health_component_died"]
+[connection signal="health_changed" from="HealthComponent" to="." method="_on_health_component_health_changed"]
+[connection signal="finished" from="GPUParticles2D2" to="GPUParticles2D2" method="_on_finished"]
